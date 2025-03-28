@@ -1,7 +1,17 @@
 import { Howl } from 'howler';
 
 // Define sound effect types
-type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete' | 'streak' | 'streak5' | 'streak10' | 'streak20';
+type SoundEffect = 
+  // Basic gameplay
+  'correct' | 'incorrect' | 
+  // Achievement-related
+  'levelUp' | 'gradeUp' | 'tokenEarned' | 'perfectScore' |
+  // Session-related
+  'sessionComplete' | 'goalComplete' | 
+  // Streak-related
+  'streak' | 'streak5' | 'streak10' | 'streak20' |
+  // Time-related
+  'timeAchievement5' | 'timeAchievement10' | 'timeAchievement15' | 'timeAchievement20';
 
 // Create a cache for sound effects with more engaging sounds
 const soundCache: Record<SoundEffect, Howl> = {
@@ -48,6 +58,45 @@ const soundCache: Record<SoundEffect, Howl> = {
   // Amazing streak sound (for 20-streak)
   streak20: new Howl({
     src: ['https://assets.mixkit.co/active_storage/sfx/1997/1997-preview.mp3'], // epic win sound
+    volume: 0.8
+  }),
+  
+  // Grade advancement sound
+  gradeUp: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3'], // big achievement
+    volume: 0.8
+  }),
+  
+  // Perfect score sound
+  perfectScore: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1995/1995-preview.mp3'], // victory tune
+    volume: 0.8
+  }),
+  
+  // Goal completion sound
+  goalComplete: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/2014/2014-preview.mp3'], // completion chime
+    volume: 0.75
+  }),
+  
+  // Time milestone sounds
+  timeAchievement5: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1980/1980-preview.mp3'], // simple achievement
+    volume: 0.6
+  }),
+  
+  timeAchievement10: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1990/1990-preview.mp3'], // medium achievement
+    volume: 0.65
+  }),
+  
+  timeAchievement15: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1985/1985-preview.mp3'], // bigger achievement
+    volume: 0.7
+  }),
+  
+  timeAchievement20: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'], // major achievement
     volume: 0.8
   })
 };

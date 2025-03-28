@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 import { useEffect } from 'react';
 import { playSound } from '@/lib/sounds';
 import { Link } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
+import { queryClient } from '@/lib/queryClient';
 
 type SessionCompleteProps = {
   correctAnswers: number;
@@ -18,39 +20,101 @@ export default function SessionComplete({
   tokensEarned,
   onStartNewSession
 }: SessionCompleteProps) {
+  const { user } = useAuth();
   const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
+  
+  // Check for perfect score (all answers correct)
+  const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
+  
+  // Award bonus tokens for perfect score (only once when component mounts)
+  useEffect(() => {
+    if (isPerfectScore && user) {
+      // Award 20 bonus tokens for perfect score
+      const perfectScoreBonus = 20;
+      
+      // Update user tokens in the cache
+      queryClient.setQueryData(['/api/user'], {
+        ...user,
+        tokens: user.tokens + perfectScoreBonus
+      });
+    }
+  }, [isPerfectScore, user]);
   
   // Play celebration sound and trigger confetti on mount
   useEffect(() => {
-    // Play celebration sound
-    playSound('sessionComplete');
+    // Play celebration sound based on performance
+    if (isPerfectScore) {
+      // Play special perfect score sound for perfect sessions
+      playSound('perfectScore');
+    } else {
+      // Play regular session complete sound
+      playSound('sessionComplete');
+    }
     
-    // Trigger confetti animation
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
-    
-    // Fire another round of confetti after a delay
-    setTimeout(() => {
+    // Trigger confetti animation - more elaborate for perfect scores
+    if (isPerfectScore) {
+      // Extra confetti for perfect scores
+      const duration = 3 * 1000;
+      const end = Date.now() + duration;
+      
+      // Initial burst
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF6347', '#9370DB'],
+      });
+      
+      // Continuous bursts for perfect score
+      (function frame() {
+        confetti({
+          particleCount: 20,
+          angle: 60,
+          spread: 75,
+          origin: { x: 0, y: 0.8 },
+          colors: ['#FFD700', '#FFA500']
+        });
+        
+        confetti({
+          particleCount: 20,
+          angle: 120,
+          spread: 75,
+          origin: { x: 1, y: 0.8 },
+          colors: ['#40E0D0', '#9370DB']
+        });
+        
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    } else {
+      // Regular confetti for normal completion
       confetti({
         particleCount: 100,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 }
+        spread: 70,
+        origin: { y: 0.6 }
       });
-    }, 500);
-    
-    setTimeout(() => {
-      confetti({
-        particleCount: 100,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 }
-      });
-    }, 1000);
-  }, []);
+      
+      // Fire another round of confetti after a delay
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+      }, 500);
+      
+      setTimeout(() => {
+        confetti({
+          particleCount: 100,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
+      }, 1000);
+    }
+  }, [isPerfectScore]);
 
   return (
     <motion.div
@@ -81,8 +145,23 @@ export default function SessionComplete({
           transition={{ delay: 0.4, duration: 0.5 }}
           className="mb-6 mt-8"
         >
-          <div className="text-6xl font-bold text-secondary mb-2">🎉</div>
-          <p className="text-xl font-medium">Congratulations!</p>
+          <div className="text-6xl font-bold text-secondary mb-2">
+            {isPerfectScore ? '🏆' : '🎉'}
+          </div>
+          <p className="text-xl font-medium">
+            {isPerfectScore 
+              ? 'PERFECT SCORE! Amazing job!' 
+              : 'Congratulations!'}
+          </p>
+          {isPerfectScore && (
+            <motion.p 
+              className="text-sm text-green-600 font-bold mt-2"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+            >
+              +20 bonus tokens for perfect accuracy!
+            </motion.p>
+          )}
         </motion.div>
         
         <div className="grid grid-cols-3 gap-4 mb-8">
@@ -97,8 +176,15 @@ export default function SessionComplete({
           </div>
           
           <div className="bg-accent bg-opacity-10 p-4 rounded-xl">
-            <div className="text-2xl font-bold text-accent">+{tokensEarned}</div>
+            <div className="text-2xl font-bold text-accent">
+              +{isPerfectScore ? tokensEarned + 20 : tokensEarned}
+            </div>
             <div className="text-sm text-gray-600">Tokens</div>
+            {isPerfectScore && (
+              <div className="text-xs text-green-600 mt-1">
+                (includes perfect bonus)
+              </div>
+            )}
           </div>
         </div>
         

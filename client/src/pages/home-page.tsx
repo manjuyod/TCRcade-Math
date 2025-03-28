@@ -7,6 +7,8 @@ import QuestionCard from '@/components/question-card';
 import FeedbackMessage from '@/components/feedback-message';
 import SessionComplete from '@/components/session-complete';
 import StreakAnimation from '@/components/streak-animation';
+import TimeAchievement from '@/components/time-achievement';
+import LevelUpAnimation from '@/components/level-up-animation';
 import { playSound, preloadSounds } from '@/lib/sounds';
 import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
@@ -36,8 +38,28 @@ export default function HomePage() {
   const [showStreakAnimation, setShowStreakAnimation] = useState<boolean>(false);
   const [streakMilestone, setStreakMilestone] = useState<number>(0);
   
+  // Time achievement tracking
+  const [timeAchievement, setTimeAchievement] = useState<number>(0);
+  const [showTimeAchievement, setShowTimeAchievement] = useState<boolean>(false);
+  
+  // Level-up tracking
+  const [showLevelUpAnimation, setShowLevelUpAnimation] = useState<boolean>(false);
+  const [newLevel, setNewLevel] = useState<string>("");
+  
   // Milestone tracking
   const STREAK_MILESTONES = [3, 5, 10, 20]; // Milestones for streak animations
+  const TIME_MILESTONES = [5, 10, 15, 20]; // Milestones for time achievements (in minutes)
+  
+  // Grade advancement token thresholds
+  const GRADE_ADVANCEMENT_TOKENS = {
+    'k': 500,    // Kindergarten to 1st grade
+    '1': 1000,   // 1st to 2nd grade 
+    '2': 1500,   // 2nd to 3rd grade
+    '3': 2000,   // 3rd to 4th grade
+    '4': 2500,   // 4th to 5th grade
+    '5': 3000,   // 5th to 6th grade
+    '6': 3500    // 6th grade (max level)
+  };
   
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
@@ -68,10 +90,41 @@ export default function HomePage() {
       const userIsActive = timeSinceLastActivity < 2 * 60 * 1000; // 2 minutes inactivity threshold
       
       if (userIsActive) {
+        // Increment time in minutes (1/60 minute = 1 second)
         setDailyTimeSpent(prev => {
           const newValue = Math.min(prev + (1/60), dailyTimeGoal); // Update every second, convert to minutes
           return newValue;
         });
+        
+        // Update user's engagement time in database every minute
+        if (user && now.getSeconds() === 0) { // Only update every minute to reduce API calls
+          const updatedEngagementTime = Math.min(dailyTimeSpent + (1/60), dailyTimeGoal);
+          queryClient.setQueryData(['/api/user'], {
+            ...user,
+            dailyEngagementMinutes: updatedEngagementTime
+          });
+          
+          // Check for time milestone achievements (5, 10, 15, 20 minutes)
+          const previousMinute = Math.floor(dailyTimeSpent);
+          const currentMinute = Math.floor(updatedEngagementTime);
+          
+          if (previousMinute !== currentMinute && [5, 10, 15, 20].includes(currentMinute)) {
+            // Trigger time milestone celebration
+            setTimeAchievement(currentMinute);
+            setTimeout(() => {
+              setShowTimeAchievement(true);
+              
+              // Add bonus tokens for time milestone
+              if (user) {
+                const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
+                queryClient.setQueryData(['/api/user'], {
+                  ...user,
+                  tokens: user.tokens + bonusTokens
+                });
+              }
+            }, 500);
+          }
+        }
       }
     }, 1000); // Update every second
     
@@ -152,9 +205,36 @@ export default function HomePage() {
       
       // Update user data
       if (user) {
+        // Check if user has enough tokens to advance to the next grade
+        let updatedGrade = user.grade;
+        let shouldShowLevelUp = false;
+        
+        // Only check if user is not at the highest grade (6th)
+        if (user.grade && user.grade !== '6' && GRADE_ADVANCEMENT_TOKENS[user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS]) {
+          const requiredTokens = GRADE_ADVANCEMENT_TOKENS[user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS];
+          
+          // If user will have enough tokens after this answer
+          if (data.totalTokens >= requiredTokens) {
+            // Get the next grade level
+            const currentGradeIdx = Object.keys(GRADE_ADVANCEMENT_TOKENS).indexOf(user.grade);
+            updatedGrade = Object.keys(GRADE_ADVANCEMENT_TOKENS)[currentGradeIdx + 1];
+            shouldShowLevelUp = true;
+            
+            // Set level up details to trigger animation
+            setNewLevel(updatedGrade);
+            
+            // Queue level up animation after a short delay
+            setTimeout(() => {
+              setShowLevelUpAnimation(true);
+            }, 1500);
+          }
+        }
+        
+        // Update user data including grade if advanced
         queryClient.setQueryData(['/api/user'], {
           ...user,
           tokens: data.totalTokens,
+          grade: updatedGrade,
           questionsAnswered: user.questionsAnswered + 1,
           correctAnswers: user.correctAnswers + (data.correct ? 1 : 0)
         });
@@ -280,6 +360,22 @@ export default function HomePage() {
           streakCount={currentStreak}
           milestone={streakMilestone}
           onAnimationComplete={() => setShowStreakAnimation(false)} 
+        />
+      )}
+      
+      {/* Time achievement animation */}
+      {showTimeAchievement && (
+        <TimeAchievement
+          minutesSpent={timeAchievement}
+          onAnimationComplete={() => setShowTimeAchievement(false)}
+        />
+      )}
+      
+      {/* Level up animation */}
+      {showLevelUpAnimation && (
+        <LevelUpAnimation
+          newGrade={newLevel}
+          onAnimationComplete={() => setShowLevelUpAnimation(false)}
         />
       )}
     </div>
