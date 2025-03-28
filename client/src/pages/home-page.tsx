@@ -133,8 +133,9 @@ export default function HomePage() {
           return newValue;
         });
         
-        // Update user's engagement time in database every minute
-        if (user && now.getSeconds() === 0) { // Only update every minute to reduce API calls
+        // Update user's engagement time in database every 10 seconds to ensure UI updates
+        // This is more frequent than originally designed but ensures the timer display updates properly
+        if (user && now.getSeconds() % 10 === 0) {
           const updatedEngagementTime = Math.min(dailyTimeSpent + (1/60), dailyTimeGoal);
           queryClient.setQueryData(['/api/user'], {
             ...user,
@@ -260,7 +261,10 @@ export default function HomePage() {
               });
             }
             
-            // Do not auto-dismiss here - let the animation component handle it
+            // Ensure streak animation is auto-dismissed after 3 seconds max
+            setTimeout(() => {
+              setShowStreakAnimation(false);
+            }, 3000);
           }, 500);
         }
       } else {

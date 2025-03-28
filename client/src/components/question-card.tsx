@@ -16,6 +16,14 @@ type VisualInfo = {
   cols?: number;
   total?: number;
   groups?: number;
+  fraction?: {
+    numerator: number;
+    denominator: number;
+  };
+  clock?: {
+    hours: number;
+    minutes: number;
+  };
 };
 
 export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardProps) {
@@ -56,6 +64,18 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
           // For division visuals like [visual:division:20:4]
           visualObj.total = parseInt(parts[1], 10);
           visualObj.groups = parseInt(parts[2], 10);
+        } else if (type === 'fraction' && parts.length > 2) {
+          // For fraction visuals like [visual:fraction:2:3]
+          visualObj.fraction = {
+            numerator: parseInt(parts[1], 10),
+            denominator: parseInt(parts[2], 10)
+          };
+        } else if (type === 'clock' && parts.length > 2) {
+          // For clock visuals like [visual:clock:3:15]
+          visualObj.clock = {
+            hours: parseInt(parts[1], 10),
+            minutes: parseInt(parts[2], 10)
+          };
         } else if (parts.length > 1) {
           // For object visuals like [visual:apples:5]
           visualObj.object = parts[0];
@@ -129,6 +149,81 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
             {Array.from({ length: visualInfo.total || 0 }).map((_, index) => (
               <span key={index} className="text-2xl m-1">🍬</span>
             ))}
+          </div>
+        );
+      
+      case 'fraction':
+        // Render a fraction visualization
+        if (!visualInfo.fraction) return null;
+        const { numerator, denominator } = visualInfo.fraction;
+        
+        return (
+          <div className="flex justify-center mb-6">
+            <div className="w-40 h-40 border-2 border-gray-300 rounded-lg overflow-hidden">
+              <div className="grid h-full w-full" style={{ gridTemplateRows: `repeat(${denominator}, 1fr)` }}>
+                {Array.from({ length: denominator }).map((_, i) => (
+                  <div 
+                    key={i}
+                    className={`
+                      w-full border-b border-gray-300 
+                      ${i < numerator ? 'bg-primary bg-opacity-70' : 'bg-white'}
+                    `}
+                  ></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'clock':
+        // Render a clock visualization
+        if (!visualInfo.clock) return null;
+        const { hours, minutes } = visualInfo.clock;
+        
+        // Calculate hand angles
+        const hourDegrees = ((hours % 12) * 30) + (minutes * 0.5); // 30 degrees per hour + slight adjustment for minutes
+        const minuteDegrees = minutes * 6; // 6 degrees per minute
+        
+        return (
+          <div className="flex justify-center mb-6">
+            <div className="w-40 h-40 relative rounded-full border-4 border-gray-700 bg-white">
+              {/* Clock numbers */}
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => {
+                const angle = (num * 30) * (Math.PI / 180);
+                const x = 50 + 35 * Math.sin(angle);
+                const y = 50 - 35 * Math.cos(angle);
+                return (
+                  <div 
+                    key={num}
+                    className="absolute text-gray-800 font-bold"
+                    style={{ 
+                      left: `${x}%`, 
+                      top: `${y}%`, 
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  >
+                    {num}
+                  </div>
+                );
+              })}
+              
+              {/* Clock hands */}
+              <div 
+                className="absolute left-1/2 top-1/2 w-1 h-16 bg-gray-800 rounded-full origin-top"
+                style={{ 
+                  transform: `translateX(-50%) rotate(${hourDegrees}deg)`,
+                  transformOrigin: 'center 15%'
+                }}
+              ></div>
+              <div 
+                className="absolute left-1/2 top-1/2 w-0.5 h-20 bg-gray-600 rounded-full origin-top"
+                style={{ 
+                  transform: `translateX(-50%) rotate(${minuteDegrees}deg)`,
+                  transformOrigin: 'center 10%'
+                }}
+              ></div>
+              <div className="absolute left-1/2 top-1/2 w-3 h-3 bg-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+            </div>
           </div>
         );
         

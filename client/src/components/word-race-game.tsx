@@ -57,7 +57,7 @@ export default function WordRaceGame({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [timeLeft, isTimerActive, containerControls, onTimeUp]);
+  }, [timeLeft, isTimerActive, dangerThreshold, containerControls, onTimeUp]);
   
   // Reset timer when question changes
   useEffect(() => {
