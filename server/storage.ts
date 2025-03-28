@@ -132,15 +132,200 @@ export class MemStorage implements IStorage {
     const questions = Array.from(this.questions.values())
       .filter(q => q.grade === grade && Math.abs(q.difficulty - targetDifficulty) <= 1);
     
-    if (questions.length === 0) {
-      // Fallback to any questions of the right grade
-      return Array.from(this.questions.values())
-        .filter(q => q.grade === grade)
-        .sort(() => Math.random() - 0.5)[0];
+    if (questions.length === 0 || Math.random() < 0.7) { // 70% chance to generate a dynamic question
+      // Generate a new dynamic question
+      return this.generateDynamicQuestion(grade, targetDifficulty);
     }
     
     // Return a random question from the filtered list
     return questions[Math.floor(Math.random() * questions.length)];
+  }
+  
+  private generateDynamicQuestion(grade: string, difficulty: number): Question {
+    const id = this.currentQuestionId++;
+    const categories = ["addition", "subtraction", "multiplication", "division"];
+    const category = categories[Math.floor(Math.random() * (grade === "K" || grade === "1" ? 2 : categories.length))];
+    
+    // Generate question based on grade and difficulty
+    let num1, num2, answer, options, question;
+    
+    switch(category) {
+      case "addition":
+        // Generate numbers based on grade and difficulty
+        if (grade === "K") {
+          num1 = Math.floor(Math.random() * 5) + 1;  // 1-5
+          num2 = Math.floor(Math.random() * 5) + 1;  // 1-5
+        } else if (grade === "1") {
+          num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+          num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+        } else if (grade === "2") {
+          num1 = Math.floor(Math.random() * 20) + 1; // 1-20
+          num2 = Math.floor(Math.random() * 20) + 1; // 1-20
+        } else if (grade === "3") {
+          num1 = Math.floor(Math.random() * 50) + 10; // 10-59
+          num2 = Math.floor(Math.random() * 50) + 10; // 10-59
+        } else if (grade === "4") {
+          num1 = Math.floor(Math.random() * 100) + 50; // 50-149
+          num2 = Math.floor(Math.random() * 100) + 50; // 50-149
+        } else {
+          num1 = Math.floor(Math.random() * 500) + 100; // 100-599
+          num2 = Math.floor(Math.random() * 500) + 100; // 100-599
+        }
+        
+        answer = (num1 + num2).toString();
+        
+        // Generate word problem with visual cues
+        const objects = ["apples", "bananas", "pencils", "coins", "toys", "books", "markers"];
+        const object = objects[Math.floor(Math.random() * objects.length)];
+        
+        // Add visuals flag to question text for frontend rendering
+        question = `[visual:${object}:${num1}] You have ${num1} ${object} and get ${num2} more. How many ${object} do you have in total?`;
+        
+        // Generate options with answer and close alternatives
+        options = [
+          answer,
+          (num1 + num2 - 1).toString(),
+          (num1 + num2 + 1).toString(),
+          (num1 + num2 + 2).toString()
+        ].sort(() => Math.random() - 0.5);
+        break;
+        
+      case "subtraction":
+        // Ensure num1 > num2 for subtraction
+        if (grade === "K") {
+          num1 = Math.floor(Math.random() * 5) + 3;  // 3-7
+          num2 = Math.floor(Math.random() * (num1 - 1)) + 1; // 1 to num1-1
+        } else if (grade === "1") {
+          num1 = Math.floor(Math.random() * 10) + 5; // 5-14
+          num2 = Math.floor(Math.random() * (num1 - 2)) + 1; // 1 to num1-2
+        } else if (grade === "2") {
+          num1 = Math.floor(Math.random() * 20) + 10; // 10-29
+          num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+        } else if (grade === "3") {
+          num1 = Math.floor(Math.random() * 50) + 20; // 20-69
+          num2 = Math.floor(Math.random() * 20) + 1; // 1-20
+        } else if (grade === "4") {
+          num1 = Math.floor(Math.random() * 100) + 50; // 50-149
+          num2 = Math.floor(Math.random() * 50) + 1; // 1-50
+        } else {
+          num1 = Math.floor(Math.random() * 500) + 100; // 100-599
+          num2 = Math.floor(Math.random() * 100) + 1; // 1-100
+        }
+        
+        answer = (num1 - num2).toString();
+        
+        // Generate word problem with visual cues
+        const subObjects = ["apples", "stickers", "marbles", "cards", "blocks", "cookies"];
+        const subObject = subObjects[Math.floor(Math.random() * subObjects.length)];
+        
+        // Add visuals flag to question text for frontend rendering
+        question = `[visual:${subObject}:${num1}] You have ${num1} ${subObject} and give away ${num2}. How many ${subObject} do you have left?`;
+        
+        // Generate options with answer and close alternatives
+        options = [
+          answer,
+          (num1 - num2 - 1).toString(),
+          (num1 - num2 + 1).toString(),
+          (num1 - num2 + 2).toString()
+        ].sort(() => Math.random() - 0.5);
+        break;
+        
+      case "multiplication":
+        if (grade === "2") {
+          num1 = Math.floor(Math.random() * 5) + 1;  // 1-5
+          num2 = Math.floor(Math.random() * 5) + 1;  // 1-5
+        } else if (grade === "3") {
+          num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+          num2 = Math.floor(Math.random() * 5) + 1;  // 1-5
+        } else if (grade === "4") {
+          num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+          num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+        } else {
+          num1 = Math.floor(Math.random() * 12) + 1; // 1-12
+          num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+        }
+        
+        answer = (num1 * num2).toString();
+        
+        // Generate word problem with visual cues for lower grades
+        if (grade === "2" || grade === "3") {
+          const multObjects = ["boxes", "groups", "rows", "baskets"];
+          const multObject = multObjects[Math.floor(Math.random() * multObjects.length)];
+          question = `[visual:grid:${num1}x${num2}] You have ${num1} ${multObject} with ${num2} items in each. How many items do you have in total?`;
+        } else {
+          question = `${num1} × ${num2} = ?`;
+        }
+        
+        // Generate options with answer and close alternatives
+        options = [
+          answer,
+          (num1 * num2 - num1).toString(),
+          (num1 * num2 + num1).toString(),
+          (num1 * (num2 + 1)).toString()
+        ].sort(() => Math.random() - 0.5);
+        break;
+        
+      case "division":
+        if (grade === "3") {
+          num2 = Math.floor(Math.random() * 5) + 1;  // 1-5
+          num1 = num2 * (Math.floor(Math.random() * 5) + 1); // Multiple of num2 up to 5*num2
+        } else if (grade === "4") {
+          num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+          num1 = num2 * (Math.floor(Math.random() * 10) + 1); // Multiple of num2 up to 10*num2
+        } else {
+          num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+          num1 = num2 * (Math.floor(Math.random() * 12) + 1); // Multiple of num2 up to 12*num2
+        }
+        
+        answer = (num1 / num2).toString();
+        
+        // Generate word problem with visual cues for lower grades
+        if (grade === "3" || grade === "4") {
+          const divObjects = ["candies", "stickers", "markers", "toys"];
+          const divObject = divObjects[Math.floor(Math.random() * divObjects.length)];
+          question = `[visual:division:${num1}:${num2}] You have ${num1} ${divObject} and want to share them equally among ${num2} friends. How many ${divObject} does each friend get?`;
+        } else {
+          question = `${num1} ÷ ${num2} = ?`;
+        }
+        
+        // Generate options with answer and close alternatives
+        options = [
+          answer,
+          (num1 / num2 - 1).toString(),
+          (num1 / num2 + 1).toString(),
+          (Math.floor(num1 / (num2 - 1))).toString()
+        ].sort(() => Math.random() - 0.5);
+        break;
+        
+      default:
+        // Default to simple addition if something goes wrong
+        num1 = Math.floor(Math.random() * 10) + 1;
+        num2 = Math.floor(Math.random() * 10) + 1;
+        answer = (num1 + num2).toString();
+        question = `${num1} + ${num2} = ?`;
+        options = [
+          answer,
+          (num1 + num2 - 1).toString(),
+          (num1 + num2 + 1).toString(),
+          (num1 + num2 + 2).toString()
+        ].sort(() => Math.random() - 0.5);
+    }
+    
+    // Create and return the question
+    const generatedQuestion: Question = {
+      id,
+      category,
+      grade,
+      difficulty: Math.max(1, Math.min(5, difficulty)), // Ensure difficulty is between 1-5
+      question,
+      answer,
+      options
+    };
+    
+    // Add to questions map
+    this.questions.set(id, generatedQuestion);
+    
+    return generatedQuestion;
   }
 
   async getUserProgress(userId: number): Promise<UserProgress[]> {

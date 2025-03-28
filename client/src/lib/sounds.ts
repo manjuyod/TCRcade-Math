@@ -7,7 +7,7 @@ type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessio
 const soundCache: Record<SoundEffect, Howl> = {
   // Exciting cash register "cha-ching" sound for correct answers
   correct: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register sound
+    src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // rewarding coin sound
     volume: 0.6
   }),
   // Soft error sound for incorrect answers that isn't too jarring
@@ -20,9 +20,9 @@ const soundCache: Record<SoundEffect, Howl> = {
     src: ['https://assets.mixkit.co/active_storage/sfx/1993/1993-preview.mp3'], // achievement unlock sound
     volume: 0.6
   }),
-  // Rewarding token sound
+  // Additional rewarding token sound 
   tokenEarned: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // coin sound
+    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register "cha-ching" sound
     volume: 0.5
   }),
   // Session complete fanfare
