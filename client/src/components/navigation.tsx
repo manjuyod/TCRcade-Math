@@ -1,7 +1,8 @@
 import { Link } from 'wouter';
+import { Home, Gamepad as GamepadIcon, Trophy, User } from 'lucide-react';
 
 type NavigationProps = {
-  active: 'play' | 'leaderboard' | 'profile';
+  active: 'home' | 'play' | 'leaderboard' | 'profile';
 };
 
 export default function Navigation({ active }: NavigationProps) {
@@ -10,26 +11,26 @@ export default function Navigation({ active }: NavigationProps) {
       <div className="container mx-auto">
         <ul className="flex justify-around items-center">
           <li className="flex flex-col items-center">
-            <Link href="/">
-              <a className={`p-2 rounded-full ${active === 'play' ? 'bg-primary text-white' : 'text-gray-400'}`}>
-                <i className="ri-gamepad-line text-xl"></i>
-              </a>
+            <Link href="/modules" className={`p-2 rounded-full ${active === 'home' ? 'bg-primary text-white' : 'text-gray-400'}`}>
+              <Home className="h-5 w-5" />
+            </Link>
+            <span className={`text-xs ${active === 'home' ? 'text-primary font-semibold' : 'text-gray-400'} mt-1`}>Home</span>
+          </li>
+          <li className="flex flex-col items-center">
+            <Link href="/" className={`p-2 rounded-full ${active === 'play' ? 'bg-primary text-white' : 'text-gray-400'}`}>
+              <GamepadIcon className="h-5 w-5" />
             </Link>
             <span className={`text-xs ${active === 'play' ? 'text-primary font-semibold' : 'text-gray-400'} mt-1`}>Play</span>
           </li>
           <li className="flex flex-col items-center">
-            <Link href="/leaderboard">
-              <a className={`p-2 rounded-full ${active === 'leaderboard' ? 'bg-primary text-white' : 'text-gray-400'}`}>
-                <i className="ri-trophy-line text-xl"></i>
-              </a>
+            <Link href="/leaderboard" className={`p-2 rounded-full ${active === 'leaderboard' ? 'bg-primary text-white' : 'text-gray-400'}`}>
+              <Trophy className="h-5 w-5" />
             </Link>
             <span className={`text-xs ${active === 'leaderboard' ? 'text-primary font-semibold' : 'text-gray-400'} mt-1`}>Leaderboard</span>
           </li>
           <li className="flex flex-col items-center">
-            <Link href="/profile">
-              <a className={`p-2 rounded-full ${active === 'profile' ? 'bg-primary text-white' : 'text-gray-400'}`}>
-                <i className="ri-user-line text-xl"></i>
-              </a>
+            <Link href="/profile" className={`p-2 rounded-full ${active === 'profile' ? 'bg-primary text-white' : 'text-gray-400'}`}>
+              <User className="h-5 w-5" />
             </Link>
             <span className={`text-xs ${active === 'profile' ? 'text-primary font-semibold' : 'text-gray-400'} mt-1`}>Profile</span>
           </li>

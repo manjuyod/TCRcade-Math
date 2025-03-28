@@ -428,7 +428,7 @@ export default function ModulesPage() {
         </div>
       </main>
       
-      <Navigation active="play" />
+      <Navigation active="home" />
     </div>
   );
 }

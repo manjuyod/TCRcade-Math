@@ -62,10 +62,10 @@ export default function StreakAnimation({
       }, 600);
     }
     
-    // Set timeout for animation complete callback - always dismiss after 2-3 seconds
+    // IMPORTANT: Animation MUST auto-dismiss after no more than 3 seconds, regardless of user interaction
     const timer = setTimeout(() => {
-      onAnimationComplete && onAnimationComplete();
-    }, 2500); // Fixed animation duration of 2.5 seconds for all streak types
+      if (onAnimationComplete) onAnimationComplete();
+    }, 2000); // Fixed shorter animation duration of 2 seconds for all streak types
     
     return () => clearTimeout(timer);
   }, [onAnimationComplete, milestone]);

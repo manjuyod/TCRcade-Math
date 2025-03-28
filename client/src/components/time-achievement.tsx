@@ -43,10 +43,10 @@ export default function TimeAchievement({
       startVelocity: 30
     });
     
-    // Set timeout for animation complete callback - shorter duration
+    // IMPORTANT: Animation MUST auto-dismiss after no more than 3 seconds, regardless of user interaction
     const timer = setTimeout(() => {
-      onAnimationComplete && onAnimationComplete();
-    }, 2500); // Fixed shorter animation duration of 2.5 seconds
+      if (onAnimationComplete) onAnimationComplete();
+    }, 2000); // Fixed shorter animation duration of 2 seconds
     
     return () => clearTimeout(timer);
   }, [onAnimationComplete]);
