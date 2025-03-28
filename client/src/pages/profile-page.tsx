@@ -1,17 +1,43 @@
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { ProgressBar } from '@/components/progress-bar';
 import { UserProgress } from '@shared/schema';
 import { getGradeLabel } from '@/lib/utils';
 import { getCategoryLabel } from '@/lib/questions';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings, Edit } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
+  const [showSettings, setShowSettings] = useState(false);
+  const [interests, setInterests] = useState<string[]>(user?.interests || []);
+  const [newInterest, setNewInterest] = useState('');
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [grade, setGrade] = useState(user?.grade || 'K');
   
   // Fetch user progress
   const { data: progressData, isLoading } = useQuery<UserProgress[]>({
@@ -19,10 +45,98 @@ export default function ProfilePage() {
     refetchOnWindowFocus: false
   });
   
+  // Mutation to update user profile
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: {
+      displayName?: string;
+      grade?: string;
+      interests?: string[];
+    }) => {
+      const response = await apiRequest('PATCH', '/api/user', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Profile updated successfully',
+        description: 'Your profile settings have been saved.',
+      });
+      setShowSettings(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error updating profile',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Mutation for updating learning style
+  const updateLearningStyleMutation = useMutation({
+    mutationFn: async (data: {
+      learningStyle: string;
+      strengths: string[];
+      weaknesses: string[];
+    }) => {
+      const response = await apiRequest('POST', '/api/analytics/learning-style', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update learning style');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Learning style updated',
+        description: 'Your learning preferences have been updated.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error updating learning style',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
   if (!user) return null;
   
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+  
+  const handleAddInterest = () => {
+    if (newInterest.trim() && !interests.includes(newInterest.trim())) {
+      setInterests([...interests, newInterest.trim()]);
+      setNewInterest('');
+    }
+  };
+  
+  const handleRemoveInterest = (interest: string) => {
+    setInterests(interests.filter(i => i !== interest));
+  };
+  
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate({
+      displayName,
+      grade,
+      interests
+    });
+  };
+  
+  const handleSelectLearningStyle = (style: string) => {
+    updateLearningStyleMutation.mutate({
+      learningStyle: style,
+      strengths: user.strengthConcepts || [],
+      weaknesses: user.weaknessConcepts || []
+    });
   };
   
   return (
@@ -135,6 +249,192 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
         
+        {/* Settings/Profile Dialog */}
+        <Dialog open={showSettings} onOpenChange={setShowSettings}>
+          <DialogTrigger asChild>
+            <Button 
+              className="arcade-btn w-full bg-primary text-white font-bold py-3 px-4 rounded-xl mb-4"
+              onClick={() => setShowSettings(true)}
+            >
+              <Settings className="mr-2 h-4 w-4" /> Settings
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Profile Settings</DialogTitle>
+              <DialogDescription>
+                Update your profile information and preferences
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Tabs defaultValue="profile">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="interests">Interests</TabsTrigger>
+                <TabsTrigger value="learning">Learning Style</TabsTrigger>
+              </TabsList>
+              
+              {/* Profile Settings Tab */}
+              <TabsContent value="profile" className="space-y-4 py-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="displayName" className="text-sm font-medium">Display Name</label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter your display name"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="grade" className="text-sm font-medium">Grade Level</label>
+                    <select
+                      id="grade"
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2"
+                    >
+                      <option value="K">Kindergarten</option>
+                      <option value="1">Grade 1</option>
+                      <option value="2">Grade 2</option>
+                      <option value="3">Grade 3</option>
+                      <option value="4">Grade 4</option>
+                      <option value="5">Grade 5</option>
+                      <option value="6">Grade 6</option>
+                      <option value="7">Grade 7</option>
+                      <option value="8">Grade 8</option>
+                      <option value="9">Grade 9</option>
+                      <option value="10">Grade 10</option>
+                      <option value="11">Grade 11</option>
+                      <option value="12">Grade 12</option>
+                    </select>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              {/* Interests Tab */}
+              <TabsContent value="interests" className="space-y-4 py-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Your Interests</label>
+                    <p className="text-sm text-muted-foreground">
+                      These help us create more engaging math problems for you
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {interests.length > 0 ? (
+                        interests.map((interest) => (
+                          <Badge key={interest} variant="outline" className="py-1">
+                            {interest}
+                            <button 
+                              className="ml-1 text-muted-foreground hover:text-foreground" 
+                              onClick={() => handleRemoveInterest(interest)}
+                            >
+                              &times;
+                            </button>
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No interests added yet</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Input
+                        value={newInterest}
+                        onChange={(e) => setNewInterest(e.target.value)}
+                        placeholder="e.g. Space, Sports, Animals"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddInterest();
+                          }
+                        }}
+                      />
+                      <Button 
+                        onClick={handleAddInterest}
+                        disabled={!newInterest.trim()}
+                        type="button"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              {/* Learning Style Tab */}
+              <TabsContent value="learning" className="space-y-4 py-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Preferred Learning Style</label>
+                    <p className="text-sm text-muted-foreground">
+                      Select how you learn best so we can adapt our teaching
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant={user.learningStyle === 'visual' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => handleSelectLearningStyle('visual')}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Visual Learner
+                      </Button>
+                      
+                      <Button
+                        variant={user.learningStyle === 'auditory' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => handleSelectLearningStyle('auditory')}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 010-7.072m12.728 2.828a9 9 0 000-12.728" />
+                        </svg>
+                        Auditory Learner
+                      </Button>
+                      
+                      <Button
+                        variant={user.learningStyle === 'kinesthetic' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => handleSelectLearningStyle('kinesthetic')}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                        </svg>
+                        Hands-On Learner
+                      </Button>
+                      
+                      <Button
+                        variant={user.learningStyle === 'reading' ? 'default' : 'outline'}
+                        className="justify-start"
+                        onClick={() => handleSelectLearningStyle('reading')}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Reading/Writing
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <DialogFooter>
+              <Button 
+                onClick={handleSaveProfile} 
+                disabled={updateProfileMutation.isPending}
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Button
           onClick={handleLogout}
           className="arcade-btn w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-4 rounded-xl mb-4"

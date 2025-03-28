@@ -1389,6 +1389,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI ANALYTICS ROUTES
   // ==========================
   
+  // Update user learning style
+  app.post("/api/analytics/learning-style", ensureAuthenticated, async (req, res) => {
+    try {
+      const { learningStyle, strengths, weaknesses } = req.body;
+      
+      if (!learningStyle) {
+        return res.status(400).json({ error: "Learning style is required" });
+      }
+      
+      const user = await storage.updateLearningStyle(
+        req.user!.id, 
+        learningStyle, 
+        strengths || [], 
+        weaknesses || []
+      );
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating learning style:", error);
+      res.status(500).json({ error: "Failed to update learning style" });
+    }
+  });
+  
   // Get user's AI analytics
   app.get("/api/analytics", ensureAuthenticated, async (req, res) => {
     try {
@@ -1473,31 +1496,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Update user's learning style
-  app.post("/api/analytics/learning-style", ensureAuthenticated, async (req, res) => {
+  // ==========================
+  // AI-POWERED ENHANCEMENTS
+  // ==========================
+  
+  // Generate adaptive question based on student profile
+  app.get("/api/ai/adaptive-question", ensureAuthenticated, async (req, res) => {
     try {
-      const { learningStyle, strengths, weaknesses } = req.body;
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
       
-      if (!learningStyle) {
-        return res.status(400).json({ error: "Learning style is required" });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
       
-      const user = await storage.updateLearningStyle(
-        req.user!.id,
-        learningStyle,
-        strengths || [],
-        weaknesses || []
-      );
+      // Get student's concept masteries to determine strengths and weaknesses
+      const conceptMasteries = await storage.getUserConceptMasteries(userId);
+      const strengths = conceptMasteries
+        .filter(cm => cm.masteryLevel > 0.7)
+        .sort((a, b) => b.masteryLevel - a.masteryLevel)
+        .slice(0, 5)
+        .map(cm => cm.concept);
       
-      res.json({
-        success: true,
-        user
+      const weaknesses = conceptMasteries
+        .filter(cm => cm.masteryLevel < 0.5)
+        .sort((a, b) => a.masteryLevel - b.masteryLevel)
+        .slice(0, 5)
+        .map(cm => cm.concept);
+      
+      // Get student's recently practiced concepts
+      const recentConcepts = conceptMasteries
+        .sort((a, b) => new Date(b.lastPracticed).getTime() - new Date(a.lastPracticed).getTime())
+        .slice(0, 5)
+        .map(cm => cm.concept);
+      
+      // Get student interests (if any)
+      const interests = user.interests || [];
+      
+      // Generate a personalized question
+      const { generateAdaptiveQuestion } = await import('./openai');
+      const question = await generateAdaptiveQuestion({
+        grade: user.grade || 'K',
+        interests,
+        recentConcepts,
+        strengths,
+        weaknesses,
+        learningStyle: user.learningStyle
       });
+      
+      res.json(question);
     } catch (error) {
-      console.error("Error updating learning style:", error);
-      res.status(500).json({ error: "Failed to update learning style" });
+      console.error("Error generating adaptive question:", error);
+      res.status(500).json({ error: "Failed to generate adaptive question" });
     }
   });
+  
+  // Get performance predictions for a student
+  app.get("/api/ai/predict-performance", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get concept masteries and progress data
+      const conceptMasteries = await storage.getUserConceptMasteries(userId);
+      const progressHistory = await storage.getUserProgress(userId);
+      
+      // Generate predictions using AI
+      const { predictStudentPerformance } = await import('./openai');
+      const predictions = await predictStudentPerformance(userId, conceptMasteries, progressHistory);
+      
+      res.json(predictions);
+    } catch (error) {
+      console.error("Error predicting performance:", error);
+      res.status(500).json({ error: "Failed to predict performance" });
+    }
+  });
+  
+  // Generate a concept map for a specific grade and concept
+  app.get("/api/ai/concept-map", ensureAuthenticated, async (req, res) => {
+    try {
+      const grade = req.query.grade as string || req.user!.grade || 'K';
+      const centralConcept = req.query.concept as string;
+      
+      // Generate concept map using AI
+      const { generateConceptMap } = await import('./openai');
+      const conceptMap = await generateConceptMap(grade, centralConcept);
+      
+      res.json(conceptMap);
+    } catch (error) {
+      console.error("Error generating concept map:", error);
+      res.status(500).json({ error: "Failed to generate concept map" });
+    }
+  });
+  
+  // Generate a math concept timeline
+  app.get("/api/ai/math-timeline", ensureAuthenticated, async (req, res) => {
+    try {
+      const concept = req.query.concept as string;
+      const grade = req.query.grade as string || req.user!.grade || 'K';
+      
+      if (!concept) {
+        return res.status(400).json({ error: "Concept parameter is required" });
+      }
+      
+      // Generate math timeline using AI
+      const { generateMathTimeline } = await import('./openai');
+      const timeline = await generateMathTimeline(concept, grade);
+      
+      res.json(timeline);
+    } catch (error) {
+      console.error("Error generating math timeline:", error);
+      res.status(500).json({ error: "Failed to generate math timeline" });
+    }
+  });
+  
+  // Generate achievements for the gamification system
+  app.get("/api/ai/achievements", ensureAuthenticated, async (req, res) => {
+    try {
+      const grade = req.query.grade as string || req.user!.grade || 'K';
+      
+      // Get concepts for this grade level
+      const conceptMasteries = await storage.getUserConceptMasteries(req.user!.id);
+      const concepts = [...new Set(conceptMasteries.map(cm => cm.concept))];
+      
+      // Generate achievements using AI
+      const { generateAchievements } = await import('./openai');
+      const achievements = await generateAchievements(grade, concepts);
+      
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error generating achievements:", error);
+      res.status(500).json({ error: "Failed to generate achievements" });
+    }
+  });
+  
+
 
   return httpServer;
 }

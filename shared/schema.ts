@@ -40,6 +40,7 @@ export const users = pgTable("users", {
   learningStyle: text("learning_style"),
   strengthConcepts: text("strength_concepts").array().default([]),
   weaknessConcepts: text("weakness_concepts").array().default([]),
+  interests: text("interests").array().default([]),
 });
 
 // Avatar items that can be unlocked and purchased

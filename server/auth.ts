@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, User } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -138,5 +138,46 @@ export function setupAuth(app: Express) {
     }
     
     res.json(req.user);
+  });
+  
+  // Update user profile
+  app.patch("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { displayName, grade, interests } = req.body;
+      
+      // Only update fields that were provided
+      const updateData: Partial<User> = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (grade !== undefined) updateData.grade = grade;
+      if (interests !== undefined) updateData.interests = interests;
+      
+      // Generate initials if display name changes
+      if (displayName) {
+        updateData.initials = displayName
+          .split(' ')
+          .map(name => name[0])
+          .join('')
+          .toUpperCase()
+          .substring(0, 2);
+      }
+      
+      // Update user
+      storage.updateUser(req.user.id, updateData)
+        .then(updatedUser => {
+          if (!updatedUser) {
+            return res.status(404).json({ error: "User not found" });
+          }
+          res.json(updatedUser);
+        })
+        .catch(error => {
+          console.error("Error updating user profile:", error);
+          res.status(500).json({ error: "Failed to update user profile" });
+        });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update user profile" });
+    }
   });
 }

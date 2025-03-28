@@ -30,6 +30,7 @@ export interface IStorage {
   
   // Concept mastery methods
   getUserConceptMasteries(userId: number): Promise<ConceptMastery[]>;
+  getConceptsForGrade(grade: string): Promise<string[]>;
   updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery>;
   
   // Recommendation methods
@@ -1032,6 +1033,39 @@ export class MemStorage implements IStorage {
       .filter(mastery => mastery.userId === userId);
     
     return masteries;
+  }
+  
+  // Get all unique concepts for a specific grade level
+  async getConceptsForGrade(grade: string): Promise<string[]> {
+    // First look for concepts in our questions
+    const questions = Array.from(this.questions.values())
+      .filter(q => q.grade === grade && q.concepts && q.concepts.length > 0);
+    
+    // Extract unique concepts from questions
+    const concepts = new Set<string>();
+    questions.forEach(q => {
+      if (q.concepts) {
+        q.concepts.forEach(c => concepts.add(c));
+      }
+    });
+    
+    // If we don't have any concepts yet, return a default set
+    if (concepts.size === 0) {
+      // Default concepts by grade level
+      const defaultConcepts: Record<string, string[]> = {
+        'K': ['Counting', 'Number Recognition', 'Basic Shapes', 'Comparing Sizes'],
+        '1': ['Addition to 20', 'Subtraction to 20', 'Place Value', 'Measurement'],
+        '2': ['Addition to 100', 'Subtraction to 100', 'Time', 'Money', 'Basic Fractions'],
+        '3': ['Multiplication', 'Division', 'Fractions', 'Area', 'Perimeter'],
+        '4': ['Multi-digit Multiplication', 'Long Division', 'Decimals', 'Angles', 'Symmetry'],
+        '5': ['Operations with Fractions', 'Decimal Operations', 'Volume', 'Coordinate Grid', 'Order of Operations'],
+        '6': ['Ratios', 'Proportions', 'Negative Numbers', 'Equations', 'Statistical Measures']
+      };
+      
+      return defaultConcepts[grade] || ['Addition', 'Subtraction', 'Multiplication', 'Division', 'Fractions'];
+    }
+    
+    return Array.from(concepts);
   }
   
   async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery> {
