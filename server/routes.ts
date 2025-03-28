@@ -14,8 +14,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = req.user!.id;
     const grade = req.user!.grade || "K";
     
+    // Get previously answered question IDs from query parameter
+    const answeredIdsParam = req.query.answeredIds as string;
+    let answeredIds: number[] = [];
+    
+    if (answeredIdsParam) {
+      try {
+        answeredIds = JSON.parse(answeredIdsParam);
+      } catch (e) {
+        console.error("Failed to parse answeredIds:", e);
+      }
+    }
+    
     try {
-      const question = await storage.getAdaptiveQuestion(userId, grade);
+      // Maximum retry attempts to find a non-duplicate question
+      const maxRetries = 5;
+      let question = null;
+      let attempts = 0;
+      
+      // Try to find a question that hasn't been answered in this session
+      while (attempts < maxRetries && !question) {
+        question = await storage.getAdaptiveQuestion(userId, grade);
+        
+        // If we found a question and it's in the answeredIds, try again
+        if (question && answeredIds.includes(question.id)) {
+          question = null;
+        }
+        
+        attempts++;
+      }
+      
       if (!question) {
         return res.status(404).json({ message: "No questions found for your grade level" });
       }

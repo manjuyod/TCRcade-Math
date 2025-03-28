@@ -1,25 +1,34 @@
 import { Howl } from 'howler';
 
 // Define sound effect types
-type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned';
+type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete';
 
-// Create a cache for sound effects
+// Create a cache for sound effects with more engaging sounds
 const soundCache: Record<SoundEffect, Howl> = {
+  // Exciting cash register "cha-ching" sound for correct answers
   correct: new Howl({
-    src: ['https://assets.codepen.io/21542/howler-push.mp3'],
-    volume: 0.5
+    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register sound
+    volume: 0.6
   }),
+  // Soft error sound for incorrect answers that isn't too jarring
   incorrect: new Howl({
-    src: ['https://assets.codepen.io/21542/howler-shot.mp3'],
-    volume: 0.5
+    src: ['https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3'], // gentle error tone
+    volume: 0.4
   }),
+  // Celebratory level-up sound
   levelUp: new Howl({
-    src: ['https://assets.codepen.io/21542/howler-coin.mp3'],
+    src: ['https://assets.mixkit.co/active_storage/sfx/1993/1993-preview.mp3'], // achievement unlock sound
+    volume: 0.6
+  }),
+  // Rewarding token sound
+  tokenEarned: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // coin sound
     volume: 0.5
   }),
-  tokenEarned: new Howl({
-    src: ['https://assets.codepen.io/21542/howler-ding.mp3'],
-    volume: 0.5
+  // Session complete fanfare
+  sessionComplete: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1991/1991-preview.mp3'], // victory fanfare
+    volume: 0.7
   })
 };
 

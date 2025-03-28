@@ -1,0 +1,15 @@
+The math app is clean and functional, but I need several key upgrades to improve student engagement, feedback, and content variety.
+
+First, replace the current correct-answer sound with something more rewarding and exciting. Use a sound that creates a dopamine hit, such as a cash register “cha-ching,” slot machine payout, arcade celebration, or sparkly chime. Save the new sound file as "correct.mp3" or "correct.wav" and update the code to trigger it immediately after a correct answer.
+
+Second, add a distinct sound for incorrect answers. Use a soft buzzer, error beep, or a mild "uh-oh" style sound that signals a mistake without being harsh. Save this file as "incorrect.mp3" or "incorrect.wav" and trigger it when a student selects a wrong answer.
+
+Third, fix the issue of repeated questions. During a 20-question session, each question should be unique. If using a list of predefined questions, track which ones have already been served and prevent duplicates within a session. If generating questions dynamically, ensure variation by randomizing numbers, language, or context so that each one feels fresh.
+
+Fourth, at the end of a session (for example, after question 20), display a “Session Complete” screen. This screen should include a congratulatory message, a visual or animated celebration (such as confetti or fireworks), and a performance summary that shows the number of correct answers, accuracy percentage, and tokens earned. Include buttons for users to return to the dashboard, start a new session, choose a different topic, or replay the session.
+
+Fifth, after a session ends, automatically return users to the main dashboard instead of stopping abruptly. The dashboard should summarize session results and offer clear next steps, such as: start a new random session, select a specific math topic (like addition, subtraction, fractions, etc.), review missed questions, or continue progress from the last session.
+
+Lastly, add simple static visual elements to appropriate word problems to reinforce understanding and make learning more fun. For example, if the question says “Here are 17 bananas,” display 17 banana images on screen. If it continues with “You get 3 more strawberries,” show 3 strawberry images as well. Then ask, “How many pieces of fruit do you have in total?” These visuals can be basic image files, icons, or emojis—anything to make the problems more tangible and kid-friendly.
+
+These updates will improve engagement, feedback, and replayability, while also reinforcing understanding through sound, animation, and visual cues. Let me know if you need placeholder images or sound files to implement any of these changes.

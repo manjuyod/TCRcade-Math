@@ -1,0 +1,15 @@
+The math app is clean and functional, but it needs several key upgrades to improve student engagement, feedback, and content variety.
+
+First, replace the current correct-answer sound with something more exciting and rewarding. Use a dopamine-triggering sound like a cash register “cha-ching,” slot machine payout, arcade celebration, or sparkly chime. Save the file as "correct.mp3" or "correct.wav" and update the code to trigger it immediately after a correct answer.
+
+Second, add a distinct sound for incorrect answers. Use a soft buzzer, error beep, or mild "uh-oh" tone to signal mistakes without being jarring. Save as "incorrect.mp3" or "incorrect.wav" and trigger it whenever a wrong answer is selected.
+
+Third, resolve the issue of repeated questions. In a 20-question session, each question should be unique. If using a preset list, track served questions and prevent repeats. If generating dynamically, vary numbers, structure, or wording so each one feels different.
+
+Fourth, after the final question, display a “Session Complete” screen. It should include a congratulatory message, animation (like confetti or fireworks), and a summary of correct answers, accuracy, and tokens earned. Add buttons for “Return to Dashboard,” “Start New Session,” “Choose Topic,” or “Replay.”
+
+Fifth, after any session, redirect users to the main dashboard instead of stopping. The dashboard should show session results and offer next steps like: new random session, topic selection (e.g., addition, fractions), review missed questions, or continue previous progress.
+
+Lastly, add simple static visuals to word problems to boost understanding and make them more fun. For example, if a question says “Here are 17 bananas,” display 17 banana images. If it says “You get 3 more strawberries,” show 3 strawberries. Then ask, “How many pieces of fruit in total?” Use icons, emojis, or images that render cleanly on mobile and tablet screens.
+
+These upgrades will significantly improve the app’s user experience, variety, and engagement.

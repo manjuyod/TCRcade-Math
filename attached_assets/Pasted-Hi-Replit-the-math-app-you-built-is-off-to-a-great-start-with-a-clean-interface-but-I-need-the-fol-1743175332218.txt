@@ -1,0 +1,106 @@
+Hi Replit, the math app you built is off to a great start with a clean interface, but I need the following fixes and upgrades to take it to the next level and better engage students:
+
+🎵 1. Upgrade Correct Answer Sound
+Replace the current correct-answer sound with something more rewarding and dopamine-triggering:
+
+Cash register “cha-ching”
+
+Slot machine payout
+
+Sparkly chimes
+
+Arcade-style celebration tone
+
+Save the new sound as correct.mp3 or correct.wav in assets/sounds/.
+
+Update the audio logic to play this new sound immediately on a correct answer.
+
+🔇 2. Add Incorrect Answer Sound
+Add a new, distinct sound when a student answers incorrectly:
+
+Mild buzzer
+
+Sad blip
+
+Gentle error tone
+
+Save this as incorrect.mp3 or incorrect.wav in the same sound folder.
+
+Trigger it immediately upon a wrong answer, alongside any visual feedback.
+
+🔁 3. Ensure Unique Questions per Session
+Prevent repeat questions within the same session of 20 questions.
+
+If pulling from a list or question pool, track and exclude previously shown questions.
+
+If questions are being generated dynamically, introduce variation in numbers, phrasing, and structure to avoid duplication.
+
+This ensures that each session feels fresh and engaging.
+
+🏁 4. Add Session Completion Screen
+When students reach question 20 of 20:
+
+Show a celebratory “Session Complete” screen with:
+
+Congratulations message
+
+Total correct answers, accuracy %, and tokens earned
+
+Fun animation (e.g., fireworks, trophy, or mascot reaction)
+
+Buttons like:
+
+“Return to Dashboard”
+
+“Choose New Topic”
+
+“Play Again”
+
+🧠 5. Dashboard + Next-Step Optionality
+After completing a session, automatically redirect to a refreshed dashboard screen.
+
+On the dashboard, include:
+
+A summary of session performance
+
+Options to:
+
+Start a new random session
+
+Choose a specific topic (e.g., Addition, Fractions, Word Problems)
+
+Review missed questions
+
+Continue where they left off
+
+Display current streak, token balance, and total time played
+
+🖼️ 6. Add Simple Animations / Visual Aids to Word Problems
+Integrate simple visuals into appropriate word problems to reinforce understanding and engagement.
+
+For example:
+
+If the question says “Here are 17 bananas,” display 17 banana images.
+
+If it continues with “You get 3 more strawberries,” display 3 strawberry images next to the bananas.
+
+Then ask: “How many pieces of fruit do you have in total?”
+
+Use emojis, image files, or SVGs. They can be static but must be visually displayed alongside the text.
+
+Keep visuals lightweight and optimized for mobile use, but fun and colorful enough to feel playful.
+
+Allow for other image types in future problems (e.g., animals, shapes, coins, school objects).
+
+✅ Summary of All Requested Changes
+Replace the correct-answer sound with something more exciting (cha-ching, slot, etc.)
+
+Add a negative sound for incorrect answers
+
+Prevent duplicate questions during a single session
+
+Show a full “Session Complete” screen after question 20
+
+Route users to a dashboard with options for what to do next
+
+Add animations or static visuals to math word problems (bananas, strawberries, etc.)

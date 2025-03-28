@@ -2,8 +2,13 @@ import { Question, User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 // Fetch a question for the user
-export async function fetchQuestion(): Promise<Question> {
-  const response = await fetch('/api/questions', {
+export async function fetchQuestion(answeredIds: number[] = []): Promise<Question> {
+  // Include answeredIds as a query parameter to avoid repeated questions
+  const queryParams = answeredIds.length > 0 
+    ? `?answeredIds=${encodeURIComponent(JSON.stringify(answeredIds))}`
+    : '';
+    
+  const response = await fetch(`/api/questions${queryParams}`, {
     credentials: 'include'
   });
   
