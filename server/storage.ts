@@ -1,4 +1,9 @@
-import { users, type User, type InsertUser, userProgress, type UserProgress, type Question, type Leaderboard, type ConceptMastery, type Recommendation } from "@shared/schema";
+import { 
+  users, type User, type InsertUser, userProgress, type UserProgress, 
+  type Question, type Leaderboard, type ConceptMastery, type Recommendation,
+  type AvatarItem, type DailyChallenge, type MathStory, 
+  type MultiplayerRoom, type AiAnalytic 
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -31,6 +36,38 @@ export interface IStorage {
   getUserRecommendations(userId: number): Promise<Recommendation | undefined>;
   generateRecommendations(userId: number): Promise<Recommendation>;
   
+  // Avatar system methods
+  getAvatarItems(): Promise<AvatarItem[]>;
+  getAvatarItemsByType(type: string): Promise<AvatarItem[]>;
+  getUserAvatar(userId: number): Promise<any>; // Returns the user's avatar configuration
+  updateUserAvatar(userId: number, avatarData: any): Promise<User>;
+  purchaseAvatarItem(userId: number, itemId: number): Promise<{success: boolean, message: string, user?: User}>;
+  
+  // Daily challenge methods
+  getCurrentDailyChallenge(): Promise<DailyChallenge | undefined>;
+  getUserDailyChallengeStatus(userId: number): Promise<{completed: boolean, currentStreak: number}>;
+  completeDailyChallenge(userId: number, challengeId: number, score: number): Promise<User>;
+  
+  // Math storytelling methods
+  getMathStories(grade?: string): Promise<MathStory[]>;
+  getMathStoryById(storyId: number): Promise<MathStory | undefined>;
+  getStoryQuestions(storyId: number, nodeId?: number): Promise<Question[]>;
+  updateStoryProgress(userId: number, storyId: number, nodeId: number, complete: boolean): Promise<any>;
+  
+  // Multiplayer methods
+  createMultiplayerRoom(hostId: number, roomData: Partial<MultiplayerRoom>): Promise<MultiplayerRoom>;
+  getMultiplayerRoom(roomId: number): Promise<MultiplayerRoom | undefined>;
+  getMultiplayerRoomByCode(roomCode: string): Promise<MultiplayerRoom | undefined>;
+  listActiveMultiplayerRooms(grade?: string): Promise<MultiplayerRoom[]>;
+  joinMultiplayerRoom(roomId: number, userId: number): Promise<boolean>;
+  leaveMultiplayerRoom(roomId: number, userId: number): Promise<boolean>;
+  updateMultiplayerRoom(roomId: number, data: Partial<MultiplayerRoom>): Promise<MultiplayerRoom | undefined>;
+  
+  // AI analytics methods
+  generateUserAnalytics(userId: number): Promise<AiAnalytic>;
+  getUserAnalytics(userId: number): Promise<AiAnalytic | undefined>;
+  updateLearningStyle(userId: number, learningStyle: string, strengths: string[], weaknesses: string[]): Promise<User>;
+  
   // Session store
   sessionStore: any; // Using any for sessionStore to avoid type issues
 }
@@ -42,6 +79,11 @@ export class MemStorage implements IStorage {
   private leaderboard: Map<number, Leaderboard>;
   private conceptMasteries: Map<number, ConceptMastery>;
   private recommendations: Map<number, Recommendation>;
+  private avatarItems: Map<number, AvatarItem>;
+  private dailyChallenges: Map<number, DailyChallenge>;
+  private mathStories: Map<number, MathStory>;
+  private multiplayerRooms: Map<number, MultiplayerRoom>;
+  private aiAnalytics: Map<number, AiAnalytic>;
   sessionStore: any; // Using any type to avoid issues
   currentId: number;
   currentQuestionId: number;
@@ -49,6 +91,11 @@ export class MemStorage implements IStorage {
   currentLeaderboardId: number;
   currentConceptMasteryId: number;
   currentRecommendationId: number;
+  currentAvatarItemId: number;
+  currentDailyChallengeId: number;
+  currentMathStoryId: number;
+  currentMultiplayerRoomId: number;
+  currentAiAnalyticId: number;
 
   constructor() {
     this.users = new Map();
@@ -57,12 +104,23 @@ export class MemStorage implements IStorage {
     this.leaderboard = new Map();
     this.conceptMasteries = new Map();
     this.recommendations = new Map();
+    this.avatarItems = new Map();
+    this.dailyChallenges = new Map();
+    this.mathStories = new Map();
+    this.multiplayerRooms = new Map();
+    this.aiAnalytics = new Map();
+    
     this.currentId = 1;
     this.currentQuestionId = 1;
     this.currentProgressId = 1;
     this.currentLeaderboardId = 1;
     this.currentConceptMasteryId = 1;
     this.currentRecommendationId = 1;
+    this.currentAvatarItemId = 1;
+    this.currentDailyChallengeId = 1;
+    this.currentMathStoryId = 1;
+    this.currentMultiplayerRoomId = 1;
+    this.currentAiAnalyticId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 1 day
@@ -70,6 +128,12 @@ export class MemStorage implements IStorage {
     
     // Add sample math questions for each grade
     this.seedQuestions();
+    
+    // Seed initial avatar items
+    this.seedAvatarItems();
+    
+    // Seed initial daily challenge
+    this.seedDailyChallenges();
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -96,7 +160,23 @@ export class MemStorage implements IStorage {
       isAdmin: insertUser.isAdmin ?? false,
       grade: insertUser.grade ?? null,
       displayName: insertUser.displayName ?? null,
-      initials: insertUser.initials ?? "AAA"
+      initials: insertUser.initials ?? "AAA",
+      dailyEngagementMinutes: 0,
+      // Default avatar items
+      avatarItems: {
+        hair: "default",
+        face: "default",
+        outfit: "default",
+        accessories: [],
+        background: "default",
+        unlocks: ["default"]
+      },
+      lastDailyChallenge: null,
+      dailyChallengeStreak: 0,
+      completedChallenges: [],
+      learningStyle: null,
+      strengthConcepts: [],
+      weaknessConcepts: []
     };
     this.users.set(id, user);
     return user;
@@ -902,7 +982,11 @@ export class MemStorage implements IStorage {
       question,
       answer,
       options,
-      concepts
+      concepts,
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: null
     };
     
     // Add to questions map
@@ -1028,72 +1112,88 @@ export class MemStorage implements IStorage {
     // Create recommendation object
     const id = this.currentRecommendationId++;
     
+    // Calculate correct rate for progress items
+    const progressWithCorrectRate = progress.map(p => {
+      // Assuming we track correctAnswers vs totalAnswers elsewhere
+      // For now, we'll set a default correctRate value
+      const correctRate = p.score > 0 && p.completedQuestions > 0 
+        ? p.score / (p.completedQuestions * 10) // Assuming max score per question is 10
+        : 0;
+      return { ...p, correctRate };
+    });
+    
     // Identify concepts that need review (low mastery or marked for review)
     const conceptsToReview = masteries
       .filter(m => m.needsReview || m.masteryLevel < 60)
       .sort((a, b) => a.masteryLevel - b.masteryLevel) // Sort by mastery level, lowest first
       .slice(0, 3) // Take up to 3 concepts to review
-      .map(m => ({
-        concept: m.concept,
-        grade: m.grade,
-        masteryLevel: m.masteryLevel,
-        recommendationType: 'review' as const
-      }));
+      .map(m => m.concept);
     
     // Identify strengths (high mastery concepts)
-    const strengths = masteries
+    const conceptsToLearn = masteries
       .filter(m => m.masteryLevel >= 80)
       .sort((a, b) => b.masteryLevel - a.masteryLevel) // Sort by mastery level, highest first
       .slice(0, 3) // Take up to 3 strengths
-      .map(m => ({
-        concept: m.concept,
-        grade: m.grade,
-        masteryLevel: m.masteryLevel,
-        recommendationType: 'strength' as const
-      }));
+      .map(m => m.concept);
     
     // Identify categories where user has low activity or performance
-    const lowActivityCategories = progress
+    const suggestedCategories = progressWithCorrectRate
       .filter(p => p.completedQuestions < 5) // Categories with few attempts
-      .map(p => ({
-        category: p.category,
-        recommendationType: 'explore' as const
-      }));
+      .map(p => p.category);
     
-    // Create challenges for categories where user is doing well
-    const challengeCategories = progress
-      .filter(p => p.correctRate >= 0.7 && p.completedQuestions >= 5) // Categories with good performance
-      .map(p => ({
-        category: p.category,
-        recommendationType: 'challenge' as const
-      }));
-    
-    // Recommend next grade level for strong categories
-    const nextGradeRecommendations = [];
-    if (user.grade) {
-      const currentGradeIndex = ['K', '1', '2', '3', '4', '5', '6'].indexOf(user.grade);
-      if (currentGradeIndex >= 0 && currentGradeIndex < 6) {
-        const nextGrade = ['K', '1', '2', '3', '4', '5', '6'][currentGradeIndex + 1];
-        
-        const strongCategories = progress
-          .filter(p => p.correctRate >= 0.85 && p.completedQuestions >= 10) // Very strong performance
+    // Store detailed recommendation data in JSON format
+    const recommendationData = {
+      conceptReviews: masteries
+        .filter(m => m.needsReview || m.masteryLevel < 60)
+        .map(m => ({
+          concept: m.concept,
+          grade: m.grade,
+          masteryLevel: m.masteryLevel,
+          recommendationType: 'review'
+        })),
+      strengths: masteries
+        .filter(m => m.masteryLevel >= 80)
+        .map(m => ({
+          concept: m.concept,
+          grade: m.grade,
+          masteryLevel: m.masteryLevel,
+          recommendationType: 'strength'
+        })),
+      categoryRecommendations: [
+        ...progressWithCorrectRate
+          .filter(p => p.completedQuestions < 5)
           .map(p => ({
             category: p.category,
-            grade: nextGrade,
-            recommendationType: 'advance' as const
-          }));
-        
-        nextGradeRecommendations.push(...strongCategories);
-      }
-    }
+            recommendationType: 'explore'
+          })),
+        ...progressWithCorrectRate
+          .filter(p => p.correctRate >= 0.7 && p.completedQuestions >= 5)
+          .map(p => ({
+            category: p.category,
+            recommendationType: 'challenge'
+          }))
+      ]
+    };
+    
+    // Calculate appropriate difficulty level based on user performance
+    const averageMastery = masteries.length > 0 
+      ? masteries.reduce((sum, m) => sum + m.masteryLevel, 0) / masteries.length
+      : 50; // default to middle difficulty
+    
+    // Scale 0-100 mastery to 1-5 difficulty
+    const difficultyLevel = Math.max(1, Math.min(5, 6 - Math.floor(averageMastery / 20)));
     
     const recommendation: Recommendation = {
       id,
       userId,
+      conceptsToReview,
+      conceptsToLearn,
+      suggestedCategories,
+      difficultyLevel,
       generatedAt: new Date(),
-      conceptRecommendations: [...conceptsToReview, ...strengths],
-      categoryRecommendations: [...lowActivityCategories, ...challengeCategories],
-      gradeAdvancementRecommendations: nextGradeRecommendations
+      recommendationData,
+      aiInsights: "Based on your recent performance, we recommend focusing on the concepts you're struggling with.",
+      learningStyleSuggestions: null
     };
     
     this.recommendations.set(id, recommendation);
@@ -1134,6 +1234,452 @@ export class MemStorage implements IStorage {
     
     // Fallback to adaptive question selection if no concept-specific questions found
     return this.getAdaptiveQuestion(userId, user.grade || "K", false);
+  }
+
+  // Avatar system methods
+  async getAvatarItems(): Promise<AvatarItem[]> {
+    return Array.from(this.avatarItems.values());
+  }
+  
+  async getAvatarItemsByType(type: string): Promise<AvatarItem[]> {
+    return Array.from(this.avatarItems.values())
+      .filter(item => item.type === type);
+  }
+  
+  async getUserAvatar(userId: number): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) return null;
+    
+    // Return the user's avatar configuration
+    return user.avatarItems || [];
+  }
+  
+  async updateUserAvatar(userId: number, avatarData: any): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = { ...user, avatarItems: avatarData };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async purchaseAvatarItem(userId: number, itemId: number): Promise<{success: boolean, message: string, user?: User}> {
+    const user = await this.getUser(userId);
+    if (!user) return { success: false, message: "User not found" };
+    
+    const item = this.avatarItems.get(itemId);
+    if (!item) return { success: false, message: "Item not found" };
+    
+    // Check if user has enough tokens
+    if (user.tokens < item.price) {
+      return { success: false, message: "Not enough tokens" };
+    }
+    
+    // Check if user already owns this item
+    const userItems = user.avatarItems || [];
+    if (userItems.includes(itemId)) {
+      return { success: false, message: "Item already owned" };
+    }
+    
+    // Update user tokens and add item to their inventory
+    const updatedUser = { 
+      ...user, 
+      tokens: user.tokens - item.price,
+      avatarItems: [...userItems, itemId]
+    };
+    
+    this.users.set(userId, updatedUser);
+    return { success: true, message: "Item purchased successfully", user: updatedUser };
+  }
+  
+  // Daily challenge methods
+  async getCurrentDailyChallenge(): Promise<DailyChallenge | undefined> {
+    // Get today's challenge or create a new one if none exists
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day
+    
+    // Find a challenge for today
+    let challenge = Array.from(this.dailyChallenges.values())
+      .find(c => c.date.getTime() === today.getTime());
+    
+    if (!challenge) {
+      // Create a new challenge for today
+      challenge = this.createDailyChallenge(today);
+    }
+    
+    return challenge;
+  }
+  
+  async getUserDailyChallengeStatus(userId: number): Promise<{completed: boolean, currentStreak: number}> {
+    const user = await this.getUser(userId);
+    if (!user) return { completed: false, currentStreak: 0 };
+    
+    const challenge = await this.getCurrentDailyChallenge();
+    if (!challenge) return { completed: false, currentStreak: 0 };
+    
+    // Check if user has completed today's challenge
+    const completed = user.lastDailyChallenge ? 
+      new Date(user.lastDailyChallenge).toDateString() === new Date().toDateString() : 
+      false;
+    
+    return {
+      completed,
+      currentStreak: user.dailyChallengeStreak || 0
+    };
+  }
+  
+  async completeDailyChallenge(userId: number, challengeId: number, score: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const challenge = this.dailyChallenges.get(challengeId);
+    if (!challenge) throw new Error("Challenge not found");
+    
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Check if this is a streak continuation
+    const lastCompletionDate = user.lastDailyChallenge ? new Date(user.lastDailyChallenge) : null;
+    let newStreak = user.dailyChallengeStreak || 0;
+    
+    if (lastCompletionDate) {
+      // If last completion was yesterday, increment streak
+      if (lastCompletionDate.toDateString() === yesterday.toDateString()) {
+        newStreak += 1;
+      }
+      // If last completion was before yesterday, reset streak
+      else if (lastCompletionDate < yesterday) {
+        newStreak = 1;
+      }
+      // If already completed today, keep streak the same
+    } else {
+      // First time completing a challenge
+      newStreak = 1;
+    }
+    
+    // Calculate token reward (base + streak bonus)
+    const baseReward = 20;
+    const streakBonus = Math.min(100, newStreak * 5); // Cap at 100 extra tokens
+    const tokenReward = baseReward + streakBonus;
+    
+    // Update user
+    const updatedUser = {
+      ...user,
+      lastDailyChallenge: today,
+      dailyChallengeStreak: newStreak,
+      tokens: (user.tokens || 0) + tokenReward
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  // Math storytelling methods
+  async getMathStories(grade?: string): Promise<MathStory[]> {
+    let stories = Array.from(this.mathStories.values());
+    
+    if (grade) {
+      stories = stories.filter(story => story.grade === grade);
+    }
+    
+    return stories;
+  }
+  
+  async getMathStoryById(storyId: number): Promise<MathStory | undefined> {
+    return this.mathStories.get(storyId);
+  }
+  
+  async getStoryQuestions(storyId: number, nodeId?: number): Promise<Question[]> {
+    const questions = Array.from(this.questions.values())
+      .filter(q => q.storyId === storyId && (!nodeId || q.storyNode === nodeId));
+    
+    return questions;
+  }
+  
+  async updateStoryProgress(userId: number, storyId: number, nodeId: number, complete: boolean): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Initialize story progress if it doesn't exist
+    if (!user.storyProgress) user.storyProgress = {};
+    
+    // Update the progress for this story
+    const storyProgress = user.storyProgress[storyId] || { completedNodes: [] };
+    
+    if (complete && !storyProgress.completedNodes.includes(nodeId)) {
+      storyProgress.completedNodes.push(nodeId);
+    }
+    
+    // Update user record
+    const updatedUser = {
+      ...user,
+      storyProgress: {
+        ...user.storyProgress,
+        [storyId]: storyProgress
+      }
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser.storyProgress;
+  }
+  
+  // Multiplayer methods
+  async createMultiplayerRoom(hostId: number, roomData: Partial<MultiplayerRoom>): Promise<MultiplayerRoom> {
+    const roomId = this.currentMultiplayerRoomId++;
+    
+    // Generate a random 6-character room code
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    const room: MultiplayerRoom = {
+      id: roomId,
+      hostId,
+      roomCode,
+      participants: [hostId],
+      maxParticipants: roomData.maxParticipants || 4,
+      status: 'waiting',
+      grade: roomData.grade || null,
+      category: roomData.category || 'all',
+      createdAt: new Date(),
+      endedAt: null,
+      settings: roomData.settings || { questionCount: 5, timeLimit: 60 }
+    };
+    
+    this.multiplayerRooms.set(roomId, room);
+    return room;
+  }
+  
+  async getMultiplayerRoom(roomId: number): Promise<MultiplayerRoom | undefined> {
+    return this.multiplayerRooms.get(roomId);
+  }
+  
+  async getMultiplayerRoomByCode(roomCode: string): Promise<MultiplayerRoom | undefined> {
+    return Array.from(this.multiplayerRooms.values())
+      .find(room => room.roomCode === roomCode);
+  }
+  
+  async listActiveMultiplayerRooms(grade?: string): Promise<MultiplayerRoom[]> {
+    return Array.from(this.multiplayerRooms.values())
+      .filter(room => 
+        room.status === 'waiting' && 
+        room.participants.length < room.maxParticipants &&
+        (!grade || room.grade === grade)
+      );
+  }
+  
+  async joinMultiplayerRoom(roomId: number, userId: number): Promise<boolean> {
+    const room = this.multiplayerRooms.get(roomId);
+    if (!room) return false;
+    
+    // Check if room is in waiting state and not full
+    if (room.status !== 'waiting' || room.participants.length >= room.maxParticipants) {
+      return false;
+    }
+    
+    // Add user to participants if not already in
+    if (!room.participants.includes(userId)) {
+      room.participants.push(userId);
+    }
+    
+    this.multiplayerRooms.set(roomId, room);
+    return true;
+  }
+  
+  async leaveMultiplayerRoom(roomId: number, userId: number): Promise<boolean> {
+    const room = this.multiplayerRooms.get(roomId);
+    if (!room) return false;
+    
+    // Remove user from participants
+    const index = room.participants.indexOf(userId);
+    if (index !== -1) {
+      room.participants.splice(index, 1);
+    }
+    
+    // If host leaves, assign a new host or close the room
+    if (userId === room.hostId) {
+      if (room.participants.length > 0) {
+        room.hostId = room.participants[0];
+      } else {
+        // No more participants, close the room
+        room.status = 'closed';
+        room.endedAt = new Date();
+      }
+    }
+    
+    this.multiplayerRooms.set(roomId, room);
+    return true;
+  }
+  
+  async updateMultiplayerRoom(roomId: number, data: Partial<MultiplayerRoom>): Promise<MultiplayerRoom | undefined> {
+    const room = this.multiplayerRooms.get(roomId);
+    if (!room) return undefined;
+    
+    const updatedRoom = { ...room, ...data };
+    this.multiplayerRooms.set(roomId, updatedRoom);
+    return updatedRoom;
+  }
+  
+  // AI analytics methods
+  async generateUserAnalytics(userId: number): Promise<AiAnalytic> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const conceptMasteries = await this.getUserConceptMasteries(userId);
+    const userProgress = await this.getUserProgress(userId);
+    
+    // Generate analytics based on user's performance
+    const strengths = conceptMasteries
+      .filter(cm => cm.masteryLevel >= 0.8)
+      .map(cm => cm.concept);
+      
+    const weaknesses = conceptMasteries
+      .filter(cm => cm.masteryLevel <= 0.4)
+      .map(cm => cm.concept);
+    
+    // Determine learning style based on performance patterns
+    let learningStyle = "Visual";
+    if (user.fastestCategory === "wordProblems") {
+      learningStyle = "Verbal";
+    } else if (user.highestScoreCategory === "multiplechoice") {
+      learningStyle = "Analytical";
+    }
+    
+    // Create AI analytics record
+    const analytic: AiAnalytic = {
+      id: this.currentAiAnalyticId++,
+      userId,
+      generatedAt: new Date(),
+      learningStyle,
+      strengthConcepts: strengths,
+      weaknessConcepts: weaknesses,
+      recommendedActivities: ["flashcards", "wordProblems", "gameBasedLearning"],
+      insightSummary: `Student shows proficiency in ${strengths.join(", ")} but needs more practice in ${weaknesses.join(", ")}. Recommended approach: ${learningStyle} learning activities.`,
+      progressAnalysis: {
+        overallProgress: userProgress.length > 0 ? "Steady improvement seen over time" : "Not enough data",
+        improvementRate: user.questionsAnswered > 0 ? (user.correctAnswers / user.questionsAnswered * 100) : 0
+      }
+    };
+    
+    this.aiAnalytics.set(analytic.id, analytic);
+    
+    // Update user's learning style
+    const updatedUser = {
+      ...user,
+      learningStyle,
+      strengthConcepts: strengths,
+      weaknessConcepts: weaknesses
+    };
+    
+    this.users.set(userId, updatedUser);
+    
+    return analytic;
+  }
+  
+  async getUserAnalytics(userId: number): Promise<AiAnalytic | undefined> {
+    return Array.from(this.aiAnalytics.values())
+      .find(analytics => analytics.userId === userId);
+  }
+  
+  async updateLearningStyle(userId: number, learningStyle: string, strengths: string[], weaknesses: string[]): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser = {
+      ...user,
+      learningStyle,
+      strengthConcepts: strengths,
+      weaknessConcepts: weaknesses
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  // Helper methods
+  private createDailyChallenge(date: Date): DailyChallenge {
+    const id = this.currentDailyChallengeId++;
+    
+    // Generate random grade-appropriate questions for each grade level
+    const challenge: DailyChallenge = {
+      id,
+      date,
+      title: `Daily Math Challenge - ${date.toLocaleDateString()}`,
+      description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
+      questionCount: 5,
+      tokenReward: 20,
+      streakBonus: true
+    };
+    
+    this.dailyChallenges.set(id, challenge);
+    return challenge;
+  }
+  
+  // Seed methods
+  private seedAvatarItems() {
+    const avatarItems: AvatarItem[] = [
+      {
+        id: this.currentAvatarItemId++,
+        name: "Basic Hat",
+        description: "A simple hat for your avatar",
+        type: "hat",
+        price: 50,
+        rarity: "common",
+        imageUrl: "/assets/avatars/basic_hat.svg"
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Cool Glasses",
+        description: "Stylish sunglasses for your avatar",
+        type: "accessory",
+        price: 75,
+        rarity: "uncommon",
+        imageUrl: "/assets/avatars/cool_glasses.svg"
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Math Wizard Robe",
+        description: "Show off your math skills with this wizard robe",
+        type: "outfit",
+        price: 150,
+        rarity: "rare",
+        imageUrl: "/assets/avatars/wizard_robe.svg"
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Robot Head",
+        description: "A futuristic robot head for your avatar",
+        type: "head",
+        price: 200,
+        rarity: "epic",
+        imageUrl: "/assets/avatars/robot_head.svg"
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Number Crown",
+        description: "A crown made of numbers",
+        type: "hat",
+        price: 300,
+        rarity: "legendary",
+        imageUrl: "/assets/avatars/number_crown.svg"
+      }
+    ];
+    
+    // Add items to the storage
+    avatarItems.forEach(item => {
+      this.avatarItems.set(item.id, item);
+    });
+  }
+  
+  private seedDailyChallenges() {
+    // Create a challenge for today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    this.createDailyChallenge(today);
+    
+    // Create one for yesterday to test streaks
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    this.createDailyChallenge(yesterday);
   }
 
   private seedQuestions() {
