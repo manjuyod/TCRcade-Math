@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import tcLogo from "../assets/tc-logo.png";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -30,7 +31,7 @@ export default function AuthPage() {
   
   // Redirect if already logged in
   if (user) {
-    setLocation("/");
+    setLocation("/modules");
     return null;
   }
   
@@ -76,12 +77,10 @@ export default function AuthPage() {
             </TabsList>
             
             <CardContent>
-              <div className="flex justify-center mb-8">
-                <div className="h-24 w-24 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-white text-4xl font-bold">M</span>
-                </div>
+              <div className="flex justify-center mb-6">
+                <img src={tcLogo} alt="Tutoring Club Logo" className="h-16" />
               </div>
-              <h1 className="text-3xl font-bold text-center text-dark mb-6">Math Arcade</h1>
+              <h1 className="text-3xl font-bold text-center text-primary mb-6">TCrcade</h1>
               <p className="text-gray-600 text-center mb-8">
                 {activeTab === "login" 
                   ? "Login to start your math adventure!" 
@@ -278,7 +277,7 @@ export default function AuthPage() {
         <div className="max-w-md text-white">
           <h1 className="text-4xl font-bold mb-6">Make Learning Math Fun!</h1>
           <p className="text-xl mb-8">
-            Join Math Arcade and challenge yourself with adaptive questions, earn rewards, and track your progress!
+            Join TCrcade and challenge yourself with adaptive questions, earn rewards, and track your progress!
           </p>
           <ul className="space-y-4">
             <li className="flex items-center">

@@ -110,9 +110,9 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         
         return (
           <div className="flex flex-col items-center justify-center mb-4">
-            {Array.from({ length: visualInfo.rows }).map((_, rowIndex) => (
+            {Array.from({ length: visualInfo.rows || 0 }).map((_, rowIndex) => (
               <div key={rowIndex} className="flex">
-                {Array.from({ length: visualInfo.cols }).map((_, colIndex) => (
+                {Array.from({ length: visualInfo.cols || 0 }).map((_, colIndex) => (
                   <div key={colIndex} className="w-6 h-6 m-1 bg-primary rounded-full"></div>
                 ))}
               </div>
@@ -126,7 +126,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         
         return (
           <div className="flex flex-wrap justify-center mb-4">
-            {Array.from({ length: visualInfo.total }).map((_, index) => (
+            {Array.from({ length: visualInfo.total || 0 }).map((_, index) => (
               <span key={index} className="text-2xl m-1">🍬</span>
             ))}
           </div>
@@ -140,7 +140,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         
         return (
           <div className="flex flex-wrap justify-center mb-4">
-            {Array.from({ length: visualInfo.count }).map((_, index) => (
+            {Array.from({ length: visualInfo.count || 0 }).map((_, index) => (
               <span key={index} className="text-3xl m-1">{emoji}</span>
             ))}
           </div>
@@ -194,9 +194,9 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
             disabled={selectedOption !== null}
             onClick={() => handleSelectOption(option)}
             className={`
-              arcade-btn bg-white border-2 
+              arcade-btn bg-white border-2 shadow-md hover:shadow-lg
               ${selectedOption === option ? 'border-primary' : 'border-gray-200 hover:border-primary'} 
-              text-dark font-bold py-3 rounded-xl text-xl transition
+              text-dark font-bold py-3 rounded-xl text-xl transition transform hover:scale-103
             `}
           >
             {option}

@@ -415,7 +415,7 @@ export default function ModulesPage() {
                 
                 <div className="p-4 pt-0">
                   <Button 
-                    className="w-full"
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
                     disabled={module.locked}
                     onClick={() => handleStartModule(module)}
                   >

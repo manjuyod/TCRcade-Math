@@ -191,22 +191,22 @@ export default function SessionComplete({
         <div className="flex flex-col gap-3">
           <Button
             onClick={onStartNewSession}
-            className="arcade-btn bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl w-full"
+            className="arcade-btn bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             Start New Session
           </Button>
           
           <Link href="/modules">
             <Button 
-              className="arcade-btn bg-secondary hover:bg-secondary/90 text-white font-bold py-3 rounded-xl w-full"
+              className="arcade-btn bg-secondary hover:bg-secondary/90 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               Choose Different Module
             </Button>
           </Link>
           
-          <Link href="/">
+          <Link href="/modules">
             <Button 
-              className="arcade-btn bg-accent hover:bg-accent/90 text-white font-bold py-3 rounded-xl w-full"
+              className="arcade-btn bg-accent hover:bg-accent/90 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
               Return to Dashboard
             </Button>
