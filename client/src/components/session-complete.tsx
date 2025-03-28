@@ -51,69 +51,43 @@ export default function SessionComplete({
       playSound('sessionComplete');
     }
     
-    // Trigger confetti animation - more elaborate for perfect scores
+    // Trigger confetti animation - simplified to prevent crashes
     if (isPerfectScore) {
-      // Extra confetti for perfect scores
-      const duration = 3 * 1000;
-      const end = Date.now() + duration;
-      
-      // Initial burst
+      // Just do a single burst for perfect scores to prevent crashes
       confetti({
-        particleCount: 150,
+        particleCount: 100,
         spread: 100,
         origin: { y: 0.6 },
         colors: ['#FFD700', '#FFA500', '#FF6347', '#9370DB'],
       });
       
-      // Continuous bursts for perfect score
-      (function frame() {
+      // Second burst with slight delay
+      setTimeout(() => {
         confetti({
-          particleCount: 20,
-          angle: 60,
-          spread: 75,
-          origin: { x: 0, y: 0.8 },
+          particleCount: 50,
+          angle: 90,
+          spread: 70,
+          origin: { x: 0.5, y: 0.5 },
           colors: ['#FFD700', '#FFA500']
         });
-        
-        confetti({
-          particleCount: 20,
-          angle: 120,
-          spread: 75,
-          origin: { x: 1, y: 0.8 },
-          colors: ['#40E0D0', '#9370DB']
-        });
-        
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      }());
+      }, 300);
     } else {
-      // Regular confetti for normal completion
+      // Single burst for normal completion
       confetti({
-        particleCount: 100,
+        particleCount: 75,
         spread: 70,
         origin: { y: 0.6 }
       });
-      
-      // Fire another round of confetti after a delay
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 }
-        });
-      }, 500);
-      
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 }
-        });
-      }, 1000);
     }
+    
+    // Cleanup any running confetti after 2 seconds to prevent crashes
+    return () => {
+      // This will stop any continuous confetti animations
+      setTimeout(() => {
+        // Stop any remaining confetti
+        confetti.reset();
+      }, 2000);
+    };
   }, [isPerfectScore]);
 
   return (

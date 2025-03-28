@@ -26,9 +26,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     
+    // Get current module category from localStorage if set
+    const moduleCategory = req.query.category as string;
+    
     try {
       // Maximum retry attempts to find a non-duplicate question
-      const maxRetries = 10; // Increased from 5 to 10 for better chance of finding unique questions
+      const maxRetries = 15; // Increased to give more chances to find matching questions
       let question = null;
       let attempts = 0;
       let seenQuestionIds = new Set(answeredIds); // Track seen questions to avoid duplicates
@@ -40,7 +43,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Force dynamic generation if requested or by random chance (90%)
         const forceDynamic = forceDynamicRequested || Math.random() < 0.9;
-        question = await storage.getAdaptiveQuestion(userId, grade, forceDynamic);
+        
+        // Get an adaptive question matching the requested category if available
+        question = await storage.getAdaptiveQuestion(userId, grade, forceDynamic, moduleCategory);
         
         // If we found a question and it's in the already seen IDs, try again
         if (question && seenQuestionIds.has(question.id)) {
@@ -51,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!question) {
-        return res.status(404).json({ message: "No questions found for your grade level" });
+        return res.status(404).json({ message: "No questions found for your grade level and selected category" });
       }
       
       res.json(question);

@@ -30,7 +30,7 @@ export function StreakBadge({
       <span className={`text-white font-bold ${fontSizes[size]}`}>
         {streakDays}
       </span>
-      <span className="text-[10px] text-white absolute -bottom-1 leading-tight">
+      <span className="text-[8px] text-white absolute -bottom-1 leading-none px-1">
         {streakDays === 1 ? 'day' : 'days'}
       </span>
     </motion.div>

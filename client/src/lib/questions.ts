@@ -2,7 +2,7 @@ import { Question, User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 // Fetch a question for the user
-export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false): Promise<Question> {
+export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false, category?: string): Promise<Question> {
   // Include answeredIds as a query parameter to avoid repeated questions
   let queryParams = answeredIds.length > 0 
     ? `?answeredIds=${encodeURIComponent(JSON.stringify(answeredIds))}`
@@ -13,6 +13,13 @@ export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: bo
     queryParams = queryParams 
       ? `${queryParams}&forceDynamic=true` 
       : '?forceDynamic=true';
+  }
+  
+  // Add category parameter if specified to filter questions by category
+  if (category && category !== 'all') {
+    queryParams = queryParams 
+      ? `${queryParams}&category=${encodeURIComponent(category)}` 
+      : `?category=${encodeURIComponent(category)}`;
   }
     
   const response = await fetch(`/api/questions${queryParams}`, {

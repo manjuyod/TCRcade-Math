@@ -64,7 +64,7 @@ export default function ModulesPage() {
   // Game modules list (these would come from API in a real implementation)
   const modules: Module[] = [
     {
-      id: 'addition-1',
+      id: 'addition',
       name: 'Addition Basics',
       description: 'Learn to add numbers up to 20',
       gameType: GameType.STANDARD,
@@ -75,7 +75,7 @@ export default function ModulesPage() {
       completeCount: 3
     },
     {
-      id: 'subtraction-1',
+      id: 'subtraction',
       name: 'Subtraction Adventure',
       description: 'Practice subtraction with flashcard questions',
       gameType: GameType.STANDARD,
@@ -86,7 +86,7 @@ export default function ModulesPage() {
       completeCount: 2
     },
     {
-      id: 'multiplication-1',
+      id: 'multiplication',
       name: 'Multiplication Island',
       description: 'Learn multiplication with standard questions',
       gameType: GameType.STANDARD,
@@ -97,7 +97,7 @@ export default function ModulesPage() {
       completeCount: 1
     },
     {
-      id: 'division-1',
+      id: 'division',
       name: 'Division Tower',
       description: 'Practice division with flashcard questions',
       gameType: GameType.STANDARD,
@@ -108,7 +108,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'fractions-1',
+      id: 'fractions',
       name: 'Fraction Puzzle',
       description: 'Learn fractions with standard practice questions',
       gameType: GameType.STANDARD,
@@ -119,7 +119,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'word-problems-1',
+      id: 'word-problems',
       name: 'Math Word Race',
       description: 'Solve word problems with standard questions',
       gameType: GameType.STANDARD,
@@ -130,7 +130,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'addition-2',
+      id: 'addition-advanced',
       name: 'Addition Challenge',
       description: 'More challenging addition problems up to 100',
       gameType: GameType.STANDARD,
@@ -141,7 +141,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'geometry-1',
+      id: 'geometry',
       name: 'Shape Explorer',
       description: 'Learn about 2D and 3D shapes with flashcard questions',
       gameType: GameType.STANDARD,
@@ -152,7 +152,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'time-1',
+      id: 'time',
       name: 'Time Trials',
       description: 'Practice telling time with standard questions',
       gameType: GameType.STANDARD,
@@ -163,7 +163,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'money-1',
+      id: 'money',
       name: 'Money Matters',
       description: 'Learn to count and calculate with money',
       gameType: GameType.STANDARD,
@@ -174,7 +174,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'algebra-1',
+      id: 'algebra',
       name: 'Pre-Algebra Basics',
       description: 'Introduction to simple algebra concepts',
       gameType: GameType.STANDARD,
@@ -185,7 +185,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'challenge-1',
+      id: 'mixed',
       name: 'Ultimate Challenge',
       description: 'Mixed topics at the highest difficulty',
       gameType: GameType.STANDARD,

@@ -14,7 +14,7 @@ export interface IStorage {
   
   // Question methods
   getQuestionsByGrade(grade: string, category?: string): Promise<Question[]>;
-  getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean): Promise<Question | undefined>;
+  getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean, category?: string): Promise<Question | undefined>;
   
   // Progress methods
   getUserProgress(userId: number): Promise<UserProgress[]>;
@@ -109,7 +109,7 @@ export class MemStorage implements IStorage {
     return questions;
   }
 
-  async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false): Promise<Question | undefined> {
+  async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false, category?: string): Promise<Question | undefined> {
     const user = await this.getUser(userId);
     if (!user) return undefined;
     
@@ -131,26 +131,49 @@ export class MemStorage implements IStorage {
     // Generate a new dynamic question if forced or randomly decided 
     if (forceDynamic || Math.random() < 0.7) { 
       // Generate a new dynamic question with unique visuals and content
-      return this.generateDynamicQuestion(grade, targetDifficulty);
+      // Pass the category to ensure it's category-specific when selected
+      return this.generateDynamicQuestion(grade, targetDifficulty, category);
     }
     
-    // Get questions matching the difficulty and grade
-    const questions = Array.from(this.questions.values())
+    // Start with questions matching the difficulty and grade
+    let filteredQuestions = Array.from(this.questions.values())
       .filter(q => q.grade === grade && Math.abs(q.difficulty - targetDifficulty) <= 1);
     
-    if (questions.length === 0) {
+    // Further filter by category if one is specified
+    if (category && category !== 'all') {
+      const categoryQuestions = filteredQuestions.filter(q => q.category === category);
+      
+      // If we have questions in this category, use them
+      if (categoryQuestions.length > 0) {
+        filteredQuestions = categoryQuestions;
+      }
+    }
+    
+    if (filteredQuestions.length === 0) {
       // If no static questions match our criteria, generate a dynamic one
-      return this.generateDynamicQuestion(grade, targetDifficulty);
+      // with the specified category if possible
+      return this.generateDynamicQuestion(grade, targetDifficulty, category);
     }
     
     // Return a random question from the filtered list
-    return questions[Math.floor(Math.random() * questions.length)];
+    return filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
   }
   
-  private generateDynamicQuestion(grade: string, difficulty: number): Question {
+  private generateDynamicQuestion(grade: string, difficulty: number, requestedCategory?: string): Question {
     const id = this.currentQuestionId++;
-    const categories = ["addition", "subtraction", "multiplication", "division"];
-    const category = categories[Math.floor(Math.random() * (grade === "K" || grade === "1" ? 2 : categories.length))];
+    const validCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "geometry", "time", "money"];
+    
+    // Use the requested category if it's provided and valid; otherwise choose randomly
+    let category: string;
+    if (requestedCategory && validCategories.includes(requestedCategory)) {
+      category = requestedCategory;
+    } else {
+      // For K-1 grades, only use addition and subtraction
+      const availableCategories = (grade === "K" || grade === "1") 
+        ? ["addition", "subtraction"] 
+        : validCategories;
+      category = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+    }
     
     // Generate question based on grade and difficulty
     let num1, num2, answer, options, question;

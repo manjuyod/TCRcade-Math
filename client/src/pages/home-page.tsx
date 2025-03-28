@@ -147,9 +147,32 @@ export default function HomePage() {
   const [forceDynamic, setForceDynamic] = useState<boolean>(false);
 
   // Fetch a question
+  // Get the current module data if a module ID has been set
+  const [currentModuleCategory, setCurrentModuleCategory] = useState<string | undefined>(undefined);
+  
+  // When the currentModuleId changes, look up the corresponding module details
+  useEffect(() => {
+    if (currentModuleId) {
+      // Find the module in localStorage
+      try {
+        // Extract the category from moduleId
+        // For most modules, the ID is just the category name (e.g., "addition", "subtraction")
+        // For special modules like "addition-advanced", we extract just the main category
+        const category = currentModuleId.includes('-') ? 
+          currentModuleId.split('-')[0] : currentModuleId;
+        setCurrentModuleCategory(category);
+      } catch (e) {
+        console.error("Error getting module details:", e);
+      }
+    } else {
+      setCurrentModuleCategory(undefined);
+    }
+  }, [currentModuleId]);
+  
+  // Fetch a question (now with module category filtering)
   const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ['/api/questions', { answeredIds: answeredQuestionIds, forceDynamic }],
-    queryFn: () => fetchQuestion(answeredQuestionIds, forceDynamic),
+    queryKey: ['/api/questions', { answeredIds: answeredQuestionIds, forceDynamic, category: currentModuleCategory }],
+    queryFn: () => fetchQuestion(answeredQuestionIds, forceDynamic, currentModuleCategory),
     refetchOnWindowFocus: false,
     staleTime: Infinity,
     retry: 3,
@@ -210,6 +233,11 @@ export default function HomePage() {
                 tokens: user.tokens + bonusTokens
               });
             }
+            
+            // Force animation to auto-dismiss after 2 seconds
+            setTimeout(() => {
+              setShowStreakAnimation(false);
+            }, 2000);
           }, 500);
         }
       } else {
@@ -240,6 +268,11 @@ export default function HomePage() {
             // Queue level up animation after a short delay
             setTimeout(() => {
               setShowLevelUpAnimation(true);
+              
+              // Force dismissal after 2 seconds to prevent app crash
+              setTimeout(() => {
+                setShowLevelUpAnimation(false);
+              }, 2000);
             }, 1500);
           }
         }
