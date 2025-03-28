@@ -1,15 +1,25 @@
 
 import OpenAI from 'openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY environment variable');
-}
+// Check if OpenAI API key is available but don't crash if it's missing
+const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize OpenAI only if API key is available
+const openai = hasOpenAIKey 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
+  : null;
 
 export async function analyzeStudentResponse(question: string, studentAnswer: string, correctAnswer: string) {
+  // If OpenAI API key is not available, return a generic response
+  if (!hasOpenAIKey || !openai) {
+    console.log('OpenAI analysis skipped - API key missing');
+    // Return encouraging feedback based on whether the answer was correct
+    const isCorrect = studentAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    return isCorrect 
+      ? "Great job! That's correct!"
+      : "Keep trying! Practice makes perfect.";
+  }
+  
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",

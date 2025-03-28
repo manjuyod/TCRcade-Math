@@ -307,7 +307,7 @@ export default function HomePage() {
             <h2 className="text-lg font-bold text-dark">Daily Goal</h2>
             <span className="text-primary font-bold flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {Math.min(dailyTimeSpent, dailyTimeGoal)}/{dailyTimeGoal} minutes
+              {Math.floor(Math.min(dailyTimeSpent, dailyTimeGoal))}/{dailyTimeGoal} minutes
             </span>
           </div>
           <ProgressBar progress={timeProgress} />
