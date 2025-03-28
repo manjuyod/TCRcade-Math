@@ -14,14 +14,14 @@ export interface IStorage {
   
   // Question methods
   getQuestionsByGrade(grade: string, category?: string): Promise<Question[]>;
-  getAdaptiveQuestion(userId: number, grade: string): Promise<Question | undefined>;
+  getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean): Promise<Question | undefined>;
   
   // Progress methods
   getUserProgress(userId: number): Promise<UserProgress[]>;
   updateUserProgress(userId: number, category: string, data: Partial<UserProgress>): Promise<UserProgress>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for sessionStore to avoid type issues
 }
 
 export class MemStorage implements IStorage {
@@ -29,7 +29,7 @@ export class MemStorage implements IStorage {
   private questions: Map<number, Question>;
   private progress: Map<number, UserProgress>;
   private leaderboard: Map<number, Leaderboard>;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any type to avoid issues
   currentId: number;
   currentQuestionId: number;
   currentProgressId: number;
@@ -109,7 +109,7 @@ export class MemStorage implements IStorage {
     return questions;
   }
 
-  async getAdaptiveQuestion(userId: number, grade: string): Promise<Question | undefined> {
+  async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false): Promise<Question | undefined> {
     const user = await this.getUser(userId);
     if (!user) return undefined;
     
@@ -128,12 +128,18 @@ export class MemStorage implements IStorage {
     else if (correctRate < 0.5) targetDifficulty = Math.max(1, Math.floor(correctRate * 5));
     else targetDifficulty = 3; // Medium difficulty
     
+    // Generate a new dynamic question if forced or randomly decided 
+    if (forceDynamic || Math.random() < 0.7) { 
+      // Generate a new dynamic question with unique visuals and content
+      return this.generateDynamicQuestion(grade, targetDifficulty);
+    }
+    
     // Get questions matching the difficulty and grade
     const questions = Array.from(this.questions.values())
       .filter(q => q.grade === grade && Math.abs(q.difficulty - targetDifficulty) <= 1);
     
-    if (questions.length === 0 || Math.random() < 0.7) { // 70% chance to generate a dynamic question
-      // Generate a new dynamic question
+    if (questions.length === 0) {
+      // If no static questions match our criteria, generate a dynamic one
       return this.generateDynamicQuestion(grade, targetDifficulty);
     }
     

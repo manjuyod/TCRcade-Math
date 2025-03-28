@@ -132,10 +132,13 @@ export default function HomePage() {
     return () => clearInterval(timeTrackingInterval);
   }, [dailyTimeGoal]);
   
+  // Track the need for dynamic questions
+  const [forceDynamic, setForceDynamic] = useState<boolean>(false);
+
   // Fetch a question
   const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ['/api/questions', { answeredIds: answeredQuestionIds }],
-    queryFn: () => fetchQuestion(answeredQuestionIds),
+    queryKey: ['/api/questions', { answeredIds: answeredQuestionIds, forceDynamic }],
+    queryFn: () => fetchQuestion(answeredQuestionIds, forceDynamic),
     refetchOnWindowFocus: false,
     staleTime: Infinity,
     retry: 3,
@@ -269,8 +272,16 @@ export default function HomePage() {
     setShowFeedback(false);
     setFeedbackData(null);
     
+    // When moving to a new question, set forceDynamic to true to avoid repeats
+    setForceDynamic(true);
+    
     // Pass the answeredQuestionIds to the server to avoid repeated questions
     refetch();
+    
+    // Reset forceDynamic after a small delay
+    setTimeout(() => {
+      setForceDynamic(false);
+    }, 500);
   };
   
   const handleStartNewSession = () => {
@@ -281,8 +292,26 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0
     });
+    
+    // Important: Keep track of previously answered question IDs to avoid repeats
+    // But clear the tracking for the new session
     setAnsweredQuestionIds([]);
-    refetch();
+    
+    // Force dynamic question generation when starting a new session
+    setForceDynamic(true);
+    
+    // Force refetch with cache busting by using a timestamp to ensure new questions
+    queryClient.invalidateQueries({ queryKey: ['/api/questions'] });
+    
+    // Add a slight delay before refetching to ensure we get a fresh question
+    setTimeout(() => {
+      refetch();
+      
+      // Reset forceDynamic after we've fetched the first question
+      setTimeout(() => {
+        setForceDynamic(false);
+      }, 500);
+    }, 100);
   };
   
   // Calculate daily goal progress based on time
@@ -291,9 +320,15 @@ export default function HomePage() {
   // Check if current question has already been answered in this session
   useEffect(() => {
     if (question && answeredQuestionIds.includes(question.id) && answeredQuestionIds.length < 100) {
-      // If we've already seen this question, fetch a new one
-      console.log("Duplicate question detected, fetching new one");
+      // If we've already seen this question, force dynamic generation and fetch a new one
+      console.log("Duplicate question detected, fetching new dynamic one");
+      setForceDynamic(true);
       refetch();
+      
+      // Reset the flag after a delay
+      setTimeout(() => {
+        setForceDynamic(false);
+      }, 500);
     }
   }, [question, answeredQuestionIds, refetch]);
   

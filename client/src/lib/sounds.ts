@@ -15,14 +15,14 @@ type SoundEffect =
 
 // Create a cache for sound effects with more engaging sounds
 const soundCache: Record<SoundEffect, Howl> = {
-  // Exciting rewarding sound for correct answers
+  // Triumphant, rewarding sound for correct answers
   correct: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register "cha-ching" sound
+    src: ['https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3'], // Triumphant, uplifting sound
     volume: 0.6
   }),
-  // Clear error sound for incorrect answers 
+  // Crisp, arcade-style negative sound
   incorrect: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/131/131-preview.mp3'], // error beep
+    src: ['https://assets.mixkit.co/active_storage/sfx/953/953-preview.mp3'], // Soft buzzer, clear error tone
     volume: 0.4
   }),
   // Celebratory level-up sound
@@ -35,10 +35,10 @@ const soundCache: Record<SoundEffect, Howl> = {
     src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // coin sound
     volume: 0.5
   }),
-  // Session complete fanfare
+  // Session complete sound - more polished, uplifting tone (less casino-like)
   sessionComplete: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/1991/1991-preview.mp3'], // victory fanfare
-    volume: 0.7
+    src: ['https://assets.mixkit.co/active_storage/sfx/2010/2010-preview.mp3'], // polished achievement sound
+    volume: 0.6
   }),
   // Basic streak sound (for 3-streak)
   streak: new Howl({

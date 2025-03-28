@@ -2,11 +2,18 @@ import { Question, User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 // Fetch a question for the user
-export async function fetchQuestion(answeredIds: number[] = []): Promise<Question> {
+export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false): Promise<Question> {
   // Include answeredIds as a query parameter to avoid repeated questions
-  const queryParams = answeredIds.length > 0 
+  let queryParams = answeredIds.length > 0 
     ? `?answeredIds=${encodeURIComponent(JSON.stringify(answeredIds))}`
     : '';
+  
+  // Add forceDynamic parameter to ensure we get a unique question
+  if (forceDynamic) {
+    queryParams = queryParams 
+      ? `${queryParams}&forceDynamic=true` 
+      : '?forceDynamic=true';
+  }
     
   const response = await fetch(`/api/questions${queryParams}`, {
     credentials: 'include'

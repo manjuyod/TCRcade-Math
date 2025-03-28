@@ -22,23 +22,34 @@ export async function analyzeStudentResponse(question: string, studentAnswer: st
   
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
-          content: "You are a helpful math tutor analyzing student responses. Keep feedback brief, encouraging, and grade-appropriate."
+          content: "You are a helpful math tutor analyzing student responses. Keep feedback brief, encouraging, and grade-appropriate for elementary school children (K-6). Use simple language and be motivational."
         },
         {
           role: "user",
           content: `Question: ${question}\nStudent's answer: ${studentAnswer}\nCorrect answer: ${correctAnswer}\n\nProvide brief feedback on this response.`
         }
       ],
-      max_tokens: 100
+      max_tokens: 120
     });
 
     return response.choices[0]?.message?.content || "Nice try!";
-  } catch (error) {
-    console.error('OpenAI API error:', error);
-    return "Keep practicing!";
+  } catch (error: any) {
+    // Log the specific error
+    if (error.response) {
+      console.error(`OpenAI API error status: ${error.response.status}`);
+      console.error(`OpenAI error message: ${error.response.data.error.message}`);
+    } else {
+      console.error('OpenAI API error:', error.message || error);
+    }
+    
+    // Return different feedback messages based on whether answer was correct
+    const isCorrect = studentAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    return isCorrect 
+      ? "Great job! You got it right!" 
+      : "Keep trying! You'll get it next time.";
   }
 }

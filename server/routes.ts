@@ -28,16 +28,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Maximum retry attempts to find a non-duplicate question
-      const maxRetries = 5;
+      const maxRetries = 10; // Increased from 5 to 10 for better chance of finding unique questions
       let question = null;
       let attempts = 0;
+      let seenQuestionIds = new Set(answeredIds); // Track seen questions to avoid duplicates
       
       // Try to find a question that hasn't been answered in this session
       while (attempts < maxRetries && !question) {
-        question = await storage.getAdaptiveQuestion(userId, grade);
+        // Check if forceDynamic was explicitly requested in the query parameters
+        const forceDynamicRequested = req.query.forceDynamic === 'true';
         
-        // If we found a question and it's in the answeredIds, try again
-        if (question && answeredIds.includes(question.id)) {
+        // Force dynamic generation if requested or by random chance (90%)
+        const forceDynamic = forceDynamicRequested || Math.random() < 0.9;
+        question = await storage.getAdaptiveQuestion(userId, grade, forceDynamic);
+        
+        // If we found a question and it's in the already seen IDs, try again
+        if (question && seenQuestionIds.has(question.id)) {
           question = null;
         }
         
@@ -116,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const feedback = await analyzeStudentResponse(
-        question.text,
+        question.question, // Using question.question instead of question.text
         answer,
         question.answer
       );
