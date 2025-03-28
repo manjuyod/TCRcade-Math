@@ -34,6 +34,17 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         const parts = visualPart.split(':');
         const type = parts[0];
         
+        // Only show visuals for K-2 grades per requirements
+        const gradeLevel = question.grade;
+        const showVisuals = gradeLevel === 'K' || gradeLevel === '1' || gradeLevel === '2';
+        
+        if (!showVisuals) {
+          // For grades 3 and up, don't display visuals
+          setVisualInfo(null);
+          setQuestionText(questionStr.substring(endIndex + 1).trim());
+          return;
+        }
+        
         let visualObj: VisualInfo = { type };
         
         if (type === 'grid' && parts.length > 1) {
@@ -60,7 +71,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     } else {
       setQuestionText(questionStr);
     }
-  }, [question.question]);
+  }, [question.question, question.grade]);
   
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);
@@ -148,9 +159,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         <span className="bg-primary bg-opacity-10 text-primary font-bold py-1 px-3 rounded-full text-sm">
           {getCategoryLabel(question.category)}
         </span>
-        <span className="text-gray-500 text-sm">
-          Question {question.id % 20 + 1}/20
-        </span>
+        {/* No question number displayed here as per requirements */}
       </div>
       
       <div className="text-center my-4">

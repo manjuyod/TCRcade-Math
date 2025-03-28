@@ -6,12 +6,13 @@ import Navigation from '@/components/navigation';
 import QuestionCard from '@/components/question-card';
 import FeedbackMessage from '@/components/feedback-message';
 import SessionComplete from '@/components/session-complete';
+import StreakAnimation from '@/components/streak-animation';
 import { playSound, preloadSounds } from '@/lib/sounds';
 import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
 import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -30,9 +31,17 @@ export default function HomePage() {
     tokensEarned: 0
   });
   
+  // Streak tracking
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [showStreakAnimation, setShowStreakAnimation] = useState<boolean>(false);
+  
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
-  const sessionSize = 20; // Size of a question session
+  const sessionSize = 5; // Size of a question session (changed from 20 to 5)
+  
+  // Daily time tracking (in minutes)
+  const [dailyTimeSpent, setDailyTimeSpent] = useState<number>(0);
+  const dailyTimeGoal = 20; // 20 minutes goal
   
   // Preload sounds when component mounts
   useEffect(() => {
@@ -77,6 +86,23 @@ export default function HomePage() {
         tokensEarned: prev.tokensEarned + data.tokensEarned
       }));
       
+      // Update streak counter
+      if (data.correct) {
+        // Increment the streak counter for correct answers
+        setCurrentStreak(prev => prev + 1);
+        
+        // Check if streak is 3 - show animation for milestone
+        if (currentStreak + 1 === 3) {
+          // Short delay to show the streak animation after feedback
+          setTimeout(() => {
+            setShowStreakAnimation(true);
+          }, 500);
+        }
+      } else {
+        // Reset streak counter for incorrect answers
+        setCurrentStreak(0);
+      }
+      
       // Update user data
       if (user) {
         queryClient.setQueryData(['/api/user'], {
@@ -87,7 +113,10 @@ export default function HomePage() {
         });
       }
       
-      // Check if session is complete (20 questions)
+      // Increment daily time spent (approximate time per question ~1 minute)
+      setDailyTimeSpent(prev => Math.min(prev + 1, dailyTimeGoal));
+      
+      // Check if session is complete (5 questions)
       if (sessionStats.questionsAnswered + 1 >= sessionSize) {
         setTimeout(() => {
           setSessionCompleted(true);
@@ -123,10 +152,8 @@ export default function HomePage() {
     refetch();
   };
   
-  // Calculate daily goal progress
-  const dailyGoal = 20;
-  const questionsAnsweredToday = user?.questionsAnswered || 0;
-  const dailyProgress = Math.min(100, (questionsAnsweredToday / dailyGoal) * 100);
+  // Calculate daily goal progress based on time
+  const timeProgress = Math.min(100, (dailyTimeSpent / dailyTimeGoal) * 100);
   
   // Check if current question has already been answered in this session
   useEffect(() => {
@@ -145,11 +172,12 @@ export default function HomePage() {
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-bold text-dark">Daily Goal</h2>
-            <span className="text-primary font-bold">
-              {Math.min(questionsAnsweredToday, dailyGoal)}/{dailyGoal} questions
+            <span className="text-primary font-bold flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {Math.min(dailyTimeSpent, dailyTimeGoal)}/{dailyTimeGoal} minutes
             </span>
           </div>
-          <ProgressBar progress={dailyProgress} />
+          <ProgressBar progress={timeProgress} />
         </div>
         
         {sessionCompleted ? (
@@ -192,6 +220,14 @@ export default function HomePage() {
       </main>
       
       <Navigation active="play" />
+      
+      {/* Streak animation */}
+      {showStreakAnimation && (
+        <StreakAnimation 
+          streakCount={currentStreak} 
+          onAnimationComplete={() => setShowStreakAnimation(false)} 
+        />
+      )}
     </div>
   );
 }

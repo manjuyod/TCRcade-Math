@@ -1,18 +1,18 @@
 import { Howl } from 'howler';
 
 // Define sound effect types
-type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete';
+type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete' | 'streak';
 
 // Create a cache for sound effects with more engaging sounds
 const soundCache: Record<SoundEffect, Howl> = {
-  // Exciting cash register "cha-ching" sound for correct answers
+  // Exciting rewarding sound for correct answers
   correct: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // rewarding coin sound
+    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register "cha-ching" sound
     volume: 0.6
   }),
-  // Soft error sound for incorrect answers that isn't too jarring
+  // Clear error sound for incorrect answers 
   incorrect: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3'], // gentle error tone
+    src: ['https://assets.mixkit.co/active_storage/sfx/131/131-preview.mp3'], // error beep
     volume: 0.4
   }),
   // Celebratory level-up sound
@@ -22,12 +22,17 @@ const soundCache: Record<SoundEffect, Howl> = {
   }),
   // Additional rewarding token sound 
   tokenEarned: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/2075/2075-preview.mp3'], // cash register "cha-ching" sound
+    src: ['https://assets.mixkit.co/active_storage/sfx/136/136-preview.mp3'], // coin sound
     volume: 0.5
   }),
   // Session complete fanfare
   sessionComplete: new Howl({
     src: ['https://assets.mixkit.co/active_storage/sfx/1991/1991-preview.mp3'], // victory fanfare
+    volume: 0.7
+  }),
+  // Special streak sound
+  streak: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3'], // magical powerup sound
     volume: 0.7
   })
 };
