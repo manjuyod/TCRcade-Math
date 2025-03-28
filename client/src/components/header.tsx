@@ -16,7 +16,7 @@ export default function Header() {
           <Link href="/modules" className="h-10 cursor-pointer">
             <img src={tcLogo} alt="Tutoring Club Logo" className="h-full" />
           </Link>
-          <span className="text-xl font-bold text-primary hidden sm:block">TCrcade</span>
+          <span className="text-xl font-bold text-primary hidden sm:block">TC R cade</span>
         </div>
         
         <div className="flex items-center">

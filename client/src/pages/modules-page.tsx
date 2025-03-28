@@ -24,12 +24,7 @@ import { ProgressBar } from '@/components/progress-bar';
 
 // Mini-game module types
 enum GameType {
-  STANDARD = 'standard',
-  HANGMAN = 'hangman',
-  TREASURE_MAP = 'treasure',
-  TOWER_CLIMB = 'tower',
-  PUZZLE_UNLOCK = 'puzzle',
-  RACE_GAME = 'race'
+  STANDARD = 'standard' // Currently all modules use the standard question format
 }
 
 // Module definition with game type and difficulty
@@ -82,8 +77,8 @@ export default function ModulesPage() {
     {
       id: 'subtraction-1',
       name: 'Subtraction Adventure',
-      description: 'Subtract numbers to solve the mystery',
-      gameType: GameType.HANGMAN,
+      description: 'Practice subtraction with flashcard questions',
+      gameType: GameType.STANDARD,
       icon: <Star className="h-12 w-12 text-amber-500" />,
       difficulty: 1,
       category: 'subtraction',
@@ -93,8 +88,8 @@ export default function ModulesPage() {
     {
       id: 'multiplication-1',
       name: 'Multiplication Island',
-      description: 'Find the hidden treasures with multiplication',
-      gameType: GameType.TREASURE_MAP,
+      description: 'Learn multiplication with standard questions',
+      gameType: GameType.STANDARD,
       icon: <MapPin className="h-12 w-12 text-emerald-500" />,
       difficulty: 2,
       category: 'multiplication',
@@ -104,8 +99,8 @@ export default function ModulesPage() {
     {
       id: 'division-1',
       name: 'Division Tower',
-      description: 'Climb the tower by solving division problems',
-      gameType: GameType.TOWER_CLIMB,
+      description: 'Practice division with flashcard questions',
+      gameType: GameType.STANDARD,
       icon: <Building2 className="h-12 w-12 text-violet-500" />,
       difficulty: 2,
       category: 'division',
@@ -115,8 +110,8 @@ export default function ModulesPage() {
     {
       id: 'fractions-1',
       name: 'Fraction Puzzle',
-      description: 'Complete the puzzle by solving fraction problems',
-      gameType: GameType.PUZZLE_UNLOCK,
+      description: 'Learn fractions with standard practice questions',
+      gameType: GameType.STANDARD,
       icon: <Puzzle className="h-12 w-12 text-blue-500" />,
       difficulty: 3,
       category: 'fractions',
@@ -126,8 +121,8 @@ export default function ModulesPage() {
     {
       id: 'word-problems-1',
       name: 'Math Word Race',
-      description: 'Race to the finish by solving word problems',
-      gameType: GameType.RACE_GAME,
+      description: 'Solve word problems with standard questions',
+      gameType: GameType.STANDARD,
       icon: <Timer className="h-12 w-12 text-red-500" />,
       difficulty: 3,
       category: 'word-problems',
@@ -148,8 +143,8 @@ export default function ModulesPage() {
     {
       id: 'geometry-1',
       name: 'Shape Explorer',
-      description: 'Learn about 2D and 3D shapes',
-      gameType: GameType.TREASURE_MAP,
+      description: 'Learn about 2D and 3D shapes with flashcard questions',
+      gameType: GameType.STANDARD,
       icon: <Dice5 className="h-12 w-12 text-pink-500" />,
       difficulty: 2,
       category: 'geometry',
@@ -159,8 +154,8 @@ export default function ModulesPage() {
     {
       id: 'time-1',
       name: 'Time Trials',
-      description: 'Practice telling time and time calculations',
-      gameType: GameType.RACE_GAME,
+      description: 'Practice telling time with standard questions',
+      gameType: GameType.STANDARD,
       icon: <Clock className="h-12 w-12 text-amber-500" />,
       difficulty: 2,
       category: 'time',
@@ -182,7 +177,7 @@ export default function ModulesPage() {
       id: 'algebra-1',
       name: 'Pre-Algebra Basics',
       description: 'Introduction to simple algebra concepts',
-      gameType: GameType.TOWER_CLIMB,
+      gameType: GameType.STANDARD,
       icon: <BarChart4 className="h-12 w-12 text-indigo-500" />,
       difficulty: 4,
       category: 'algebra',
@@ -193,7 +188,7 @@ export default function ModulesPage() {
       id: 'challenge-1',
       name: 'Ultimate Challenge',
       description: 'Mixed topics at the highest difficulty',
-      gameType: GameType.PUZZLE_UNLOCK,
+      gameType: GameType.STANDARD,
       icon: <Trophy className="h-12 w-12 text-amber-500" />,
       difficulty: 5,
       category: 'mixed',
@@ -216,16 +211,6 @@ export default function ModulesPage() {
     switch(type) {
       case GameType.STANDARD:
         return { label: 'Standard Q&A', color: 'bg-primary' };
-      case GameType.HANGMAN:
-        return { label: 'Math Hangman', color: 'bg-amber-500' };
-      case GameType.TREASURE_MAP:
-        return { label: 'Treasure Map', color: 'bg-emerald-500' };
-      case GameType.TOWER_CLIMB:
-        return { label: 'Tower Climb', color: 'bg-violet-500' };
-      case GameType.PUZZLE_UNLOCK:
-        return { label: 'Puzzle Unlock', color: 'bg-blue-500' };
-      case GameType.RACE_GAME:
-        return { label: 'Race Game', color: 'bg-red-500' };
       default:
         return { label: 'Standard', color: 'bg-gray-500' };
     }

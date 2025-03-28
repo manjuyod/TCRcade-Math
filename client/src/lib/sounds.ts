@@ -101,12 +101,20 @@ const soundCache: Record<SoundEffect, Howl> = {
   })
 };
 
-// Play a sound effect
+// Play a sound effect - stop any currently playing instance first
 export function playSound(effect: SoundEffect): void {
   try {
     const sound = soundCache[effect];
     if (sound) {
+      // Stop this sound if it's already playing to prevent overlap
+      sound.stop();
+      // Play the sound with a new ID
       sound.play();
+      
+      // Ensure sound stops after 2 seconds max (same as animations)
+      setTimeout(() => {
+        sound.stop();
+      }, 2000);
     }
   } catch (error) {
     console.error("Failed to play sound effect:", error);
