@@ -9,6 +9,7 @@ import SessionComplete from '@/components/session-complete';
 import StreakAnimation from '@/components/streak-animation';
 import TimeAchievement from '@/components/time-achievement';
 import LevelUpAnimation from '@/components/level-up-animation';
+import WordRaceGame from '@/components/word-race-game';
 import { playSound, preloadSounds } from '@/lib/sounds';
 import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
@@ -27,12 +28,19 @@ export default function HomePage() {
   
   // Get current module from localStorage if it exists
   const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
+  const [currentModuleType, setCurrentModuleType] = useState<string>('standard');
   
   useEffect(() => {
     // Check if we have a current module when the component mounts
     const moduleId = localStorage.getItem('currentModuleId');
+    const moduleType = localStorage.getItem('currentModuleType');
+    
     if (moduleId) {
       setCurrentModuleId(moduleId);
+    }
+    
+    if (moduleType) {
+      setCurrentModuleType(moduleType);
     }
   }, []);
   
@@ -426,10 +434,22 @@ export default function HomePage() {
             onNextQuestion={handleNextQuestion}
           />
         ) : question ? (
-          <QuestionCard
-            question={question}
-            onAnswerSubmit={handleAnswerSubmit}
-          />
+          currentModuleType === 'word_race' ? (
+            <WordRaceGame
+              question={question}
+              isLoading={false}
+              onAnswerSubmit={handleAnswerSubmit}
+              onTimeUp={() => {
+                // Handle time up event by submitting a blank answer
+                handleAnswerSubmit("");
+              }}
+            />
+          ) : (
+            <QuestionCard
+              question={question}
+              onAnswerSubmit={handleAnswerSubmit}
+            />
+          )
         ) : (
           <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 text-center">
             <p className="text-gray-500">No questions available for your grade level.</p>

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useEffect } from 'react';
-import { playSound } from '@/lib/sounds';
+import { playSound, stopAllSounds } from '@/lib/sounds';
 
 type StreakAnimationProps = {
   streakCount: number;
@@ -64,10 +64,19 @@ export default function StreakAnimation({
     
     // IMPORTANT: Animation MUST auto-dismiss after no more than 3 seconds, regardless of user interaction
     const timer = setTimeout(() => {
+      // Stop any remaining confetti
+      confetti.reset();
+      // Stop any sounds before completing the animation
+      stopAllSounds();
       if (onAnimationComplete) onAnimationComplete();
     }, 2000); // Fixed shorter animation duration of 2 seconds for all streak types
     
-    return () => clearTimeout(timer);
+    // Clear confetti, sounds, and timer on unmount/cleanup
+    return () => {
+      confetti.reset();
+      stopAllSounds();
+      clearTimeout(timer);
+    };
   }, [onAnimationComplete, milestone]);
 
   return (

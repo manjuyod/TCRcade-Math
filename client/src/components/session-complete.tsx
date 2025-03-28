@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
 import { useEffect } from 'react';
-import { playSound } from '@/lib/sounds';
+import { playSound, stopAllSounds } from '@/lib/sounds';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { queryClient } from '@/lib/queryClient';
@@ -86,6 +86,8 @@ export default function SessionComplete({
       setTimeout(() => {
         // Stop any remaining confetti
         confetti.reset();
+        // Stop any playing sounds
+        stopAllSounds();
       }, 2000);
     };
   }, [isPerfectScore]);
@@ -164,7 +166,11 @@ export default function SessionComplete({
         
         <div className="flex flex-col gap-3">
           <Button
-            onClick={onStartNewSession}
+            onClick={() => {
+              // Stop any playing sounds before starting a new session
+              stopAllSounds();
+              onStartNewSession();
+            }}
             className="arcade-btn bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             Start New Session

@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import confetti from 'canvas-confetti';
+import { stopAllSounds } from '@/lib/sounds';
 
 type FeedbackMessageProps = {
   correct: boolean;
@@ -14,6 +16,15 @@ export default function FeedbackMessage({
   correctAnswer, 
   onNextQuestion 
 }: FeedbackMessageProps) {
+  // Function to handle clicking Next Question
+  const handleNextClick = () => {
+    // Clear any remaining confetti
+    confetti.reset();
+    // Stop any playing sounds to prevent overlap
+    stopAllSounds();
+    // Call the passed onNextQuestion function
+    onNextQuestion();
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -68,7 +79,7 @@ export default function FeedbackMessage({
         className="inline-block"
       >
         <Button
-          onClick={onNextQuestion}
+          onClick={handleNextClick}
           className={`
             arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
             shadow-lg transform transition-transform hover:scale-105

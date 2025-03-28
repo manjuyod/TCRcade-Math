@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useEffect } from 'react';
-import { playSound } from '@/lib/sounds';
+import { playSound, stopAllSounds } from '@/lib/sounds';
 import { TrendingUp } from 'lucide-react';
 import { getGradeLabel } from '@/lib/utils';
 
@@ -58,10 +58,18 @@ export default function LevelUpAnimation({
     
     // IMPORTANT: Animation MUST auto-dismiss after no more than 3 seconds, regardless of user interaction
     const timer = setTimeout(() => {
+      // Stop any playing sounds before animation completes
+      stopAllSounds();
+      // Stop any remaining confetti
+      confetti.reset();
       if (onAnimationComplete) onAnimationComplete();
     }, 2000); // Fixed animation duration of 2 seconds
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      stopAllSounds();
+      confetti.reset();
+    };
   }, [onAnimationComplete]);
 
   // Get bonus tokens for level up

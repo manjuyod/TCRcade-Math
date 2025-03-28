@@ -101,23 +101,75 @@ const soundCache: Record<SoundEffect, Howl> = {
   })
 };
 
+// Keep track of active sounds and their timeouts
+const activeSoundTimeouts: Record<string, NodeJS.Timeout> = {};
+
 // Play a sound effect - stop any currently playing instance first
-export function playSound(effect: SoundEffect): void {
+export function playSound(effect: SoundEffect): number | undefined {
   try {
     const sound = soundCache[effect];
     if (sound) {
+      // Clear any existing timeout for this effect
+      if (activeSoundTimeouts[effect]) {
+        clearTimeout(activeSoundTimeouts[effect]);
+        delete activeSoundTimeouts[effect];
+      }
+      
       // Stop this sound if it's already playing to prevent overlap
       sound.stop();
-      // Play the sound with a new ID
-      sound.play();
       
-      // Ensure sound stops after 2 seconds max (same as animations)
-      setTimeout(() => {
+      // Play the sound with a new ID
+      const soundId = sound.play();
+      
+      // Set a timeout to stop the sound after 2 seconds max
+      activeSoundTimeouts[effect] = setTimeout(() => {
         sound.stop();
+        delete activeSoundTimeouts[effect];
       }, 2000);
+      
+      // Return the sound ID in case we want to stop it early
+      return soundId;
     }
+    return undefined;
   } catch (error) {
     console.error("Failed to play sound effect:", error);
+    return undefined;
+  }
+}
+
+// Stop a specific sound effect immediately
+export function stopSound(effect: SoundEffect): void {
+  try {
+    const sound = soundCache[effect];
+    if (sound) {
+      sound.stop();
+      
+      // Clear any existing timeout
+      if (activeSoundTimeouts[effect]) {
+        clearTimeout(activeSoundTimeouts[effect]);
+        delete activeSoundTimeouts[effect];
+      }
+    }
+  } catch (error) {
+    console.error("Failed to stop sound effect:", error);
+  }
+}
+
+// Stop all sounds immediately
+export function stopAllSounds(): void {
+  try {
+    // Stop all sound instances
+    Object.values(soundCache).forEach(sound => {
+      sound.stop();
+    });
+    
+    // Clear all timeouts
+    Object.keys(activeSoundTimeouts).forEach(effect => {
+      clearTimeout(activeSoundTimeouts[effect]);
+      delete activeSoundTimeouts[effect];
+    });
+  } catch (error) {
+    console.error("Failed to stop all sound effects:", error);
   }
 }
 
