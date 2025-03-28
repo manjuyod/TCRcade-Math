@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,10 +30,11 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   
   // Redirect if already logged in
-  if (user) {
-    setLocation("/modules");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/modules");
+    }
+  }, [user, setLocation]);
   
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),

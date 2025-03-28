@@ -10,12 +10,17 @@ import StreakAnimation from '@/components/streak-animation';
 import TimeAchievement from '@/components/time-achievement';
 import LevelUpAnimation from '@/components/level-up-animation';
 import WordRaceGame from '@/components/word-race-game';
+import DailyChallengeComponent from '@/components/daily-challenge';
+import MathStorytelling from '@/components/math-storytelling';
+import AvatarCreator from '@/components/avatar-creator';
+import AiAnalytics from '@/components/ai-analytics';
+import MultiplayerMode from '@/components/multiplayer-mode';
 import { playSound, preloadSounds } from '@/lib/sounds';
 import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
 import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
-import { Loader2, Clock } from 'lucide-react';
+import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -413,61 +418,129 @@ export default function HomePage() {
             <h2 className="text-lg font-bold text-dark">Daily Goal</h2>
             <span className="text-primary font-bold flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {Math.floor(Math.min(dailyTimeSpent, dailyTimeGoal))}/{dailyTimeGoal} minutes
+              {Math.floor(dailyTimeSpent)}/{dailyTimeGoal} minutes
             </span>
           </div>
           <ProgressBar progress={timeProgress} />
         </div>
         
-        {sessionCompleted ? (
-          <SessionComplete
-            correctAnswers={sessionStats.correctAnswers}
-            totalQuestions={sessionStats.questionsAnswered}
-            tokensEarned={sessionStats.tokensEarned}
-            onStartNewSession={handleStartNewSession}
-          />
-        ) : isLoading || answerMutation.isPending ? (
-          <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        {/* Advanced features showcase */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/daily-challenge'}>
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Daily Challenge</h3>
+              <p className="text-xs text-gray-500">Earn bonus tokens every day</p>
+            </div>
           </div>
-        ) : showFeedback && feedbackData ? (
-          <FeedbackMessage
-            correct={feedbackData.correct}
-            tokensEarned={feedbackData.tokensEarned}
-            correctAnswer={feedbackData.correctAnswer}
-            onNextQuestion={handleNextQuestion}
-          />
-        ) : question ? (
-          currentModuleType === 'word_race' ? (
-            <WordRaceGame
-              question={question}
-              isLoading={false}
-              onAnswerSubmit={handleAnswerSubmit}
-              onTimeUp={() => {
-                // Handle time up event by submitting a blank answer
-                handleAnswerSubmit("");
-              }}
-            />
-          ) : (
-            <QuestionCard
-              question={question}
-              onAnswerSubmit={handleAnswerSubmit}
-            />
-          )
-        ) : (
-          <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 text-center">
-            <p className="text-gray-500">No questions available for your grade level.</p>
+          
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/math-stories'}>
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Book className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Math Stories</h3>
+              <p className="text-xs text-gray-500">Learn math through adventures</p>
+            </div>
           </div>
-        )}
+          
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/avatar'}>
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Palette className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Avatar Creator</h3>
+              <p className="text-xs text-gray-500">Customize your character</p>
+            </div>
+          </div>
+        </div>
         
-        {/* Show session progress */}
-        {!sessionCompleted && (
-          <div className="mt-4 text-center">
-            <span className="text-gray-600 text-sm">
-              Session Progress: {sessionStats.questionsAnswered}/{sessionSize} questions
-            </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/multiplayer'}>
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Multiplayer Matches</h3>
+              <p className="text-xs text-gray-500">Compete with friends in real-time</p>
+            </div>
           </div>
-        )}
+          
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/analytics'}>
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Brain className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">AI Analytics</h3>
+              <p className="text-xs text-gray-500">Get personalized learning insights</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Math practice section */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-4">Math Practice</h2>
+          
+          {sessionCompleted ? (
+            <SessionComplete
+              correctAnswers={sessionStats.correctAnswers}
+              totalQuestions={sessionStats.questionsAnswered}
+              tokensEarned={sessionStats.tokensEarned}
+              onStartNewSession={handleStartNewSession}
+            />
+          ) : isLoading || answerMutation.isPending ? (
+            <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 flex items-center justify-center min-h-[300px]">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : showFeedback && feedbackData ? (
+            <FeedbackMessage
+              correct={feedbackData.correct}
+              tokensEarned={feedbackData.tokensEarned}
+              correctAnswer={feedbackData.correctAnswer}
+              onNextQuestion={handleNextQuestion}
+            />
+          ) : question ? (
+            currentModuleType === 'word_race' ? (
+              <WordRaceGame
+                question={question}
+                isLoading={false}
+                onAnswerSubmit={handleAnswerSubmit}
+                onTimeUp={() => {
+                  // Handle time up event by submitting a blank answer
+                  handleAnswerSubmit("");
+                }}
+              />
+            ) : (
+              <QuestionCard
+                question={question}
+                onAnswerSubmit={handleAnswerSubmit}
+              />
+            )
+          ) : (
+            <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 text-center">
+              <p className="text-gray-500">No questions available for your grade level.</p>
+            </div>
+          )}
+          
+          {/* Show session progress */}
+          {!sessionCompleted && (
+            <div className="mt-4 text-center">
+              <span className="text-gray-600 text-sm">
+                Session Progress: {sessionStats.questionsAnswered}/{sessionSize} questions
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Quick preview of daily challenge */}
+        <div className="mb-4">
+          <h2 className="text-lg font-bold mb-4">Today's Challenge</h2>
+          <div className="h-64 overflow-hidden">
+            <DailyChallengeComponent />
+          </div>
+        </div>
       </main>
       
       <Navigation active="play" />
