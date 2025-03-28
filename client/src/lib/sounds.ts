@@ -1,7 +1,7 @@
 import { Howl } from 'howler';
 
 // Define sound effect types
-type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete' | 'streak';
+type SoundEffect = 'correct' | 'incorrect' | 'levelUp' | 'tokenEarned' | 'sessionComplete' | 'streak' | 'streak5' | 'streak10' | 'streak20';
 
 // Create a cache for sound effects with more engaging sounds
 const soundCache: Record<SoundEffect, Howl> = {
@@ -30,10 +30,25 @@ const soundCache: Record<SoundEffect, Howl> = {
     src: ['https://assets.mixkit.co/active_storage/sfx/1991/1991-preview.mp3'], // victory fanfare
     volume: 0.7
   }),
-  // Special streak sound
+  // Basic streak sound (for 3-streak)
   streak: new Howl({
     src: ['https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3'], // magical powerup sound
     volume: 0.7
+  }),
+  // Medium streak sound (for 5-streak)
+  streak5: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1995/1995-preview.mp3'], // arcade bonus sound
+    volume: 0.7
+  }),
+  // Big streak sound (for 10-streak)
+  streak10: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/2002/2002-preview.mp3'], // big achievement sound
+    volume: 0.75
+  }),
+  // Amazing streak sound (for 20-streak)
+  streak20: new Howl({
+    src: ['https://assets.mixkit.co/active_storage/sfx/1997/1997-preview.mp3'], // epic win sound
+    volume: 0.8
   })
 };
 

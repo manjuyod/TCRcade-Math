@@ -34,6 +34,10 @@ export default function HomePage() {
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
   const [showStreakAnimation, setShowStreakAnimation] = useState<boolean>(false);
+  const [streakMilestone, setStreakMilestone] = useState<number>(0);
+  
+  // Milestone tracking
+  const STREAK_MILESTONES = [3, 5, 10, 20]; // Milestones for streak animations
   
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
@@ -43,10 +47,37 @@ export default function HomePage() {
   const [dailyTimeSpent, setDailyTimeSpent] = useState<number>(0);
   const dailyTimeGoal = 20; // 20 minutes goal
   
+  // Time tracking reference for actual duration
+  const startTimeRef = useRef<Date | null>(null);
+  const lastActivityTimeRef = useRef<Date>(new Date());
+  
   // Preload sounds when component mounts
   useEffect(() => {
     preloadSounds();
-  }, []);
+    
+    // Initialize time tracking when component mounts
+    if (!startTimeRef.current) {
+      startTimeRef.current = new Date();
+    }
+    
+    // Set up time tracking interval
+    const timeTrackingInterval = setInterval(() => {
+      // Only count time if user is active (within last 2 minutes)
+      const now = new Date();
+      const timeSinceLastActivity = now.getTime() - lastActivityTimeRef.current.getTime();
+      const userIsActive = timeSinceLastActivity < 2 * 60 * 1000; // 2 minutes inactivity threshold
+      
+      if (userIsActive) {
+        setDailyTimeSpent(prev => {
+          const newValue = Math.min(prev + (1/60), dailyTimeGoal); // Update every second, convert to minutes
+          return newValue;
+        });
+      }
+    }, 1000); // Update every second
+    
+    // Clean up interval on unmount
+    return () => clearInterval(timeTrackingInterval);
+  }, [dailyTimeGoal]);
   
   // Fetch a question
   const { data: question, isLoading, refetch } = useQuery<Question>({
@@ -88,14 +119,30 @@ export default function HomePage() {
       
       // Update streak counter
       if (data.correct) {
-        // Increment the streak counter for correct answers
-        setCurrentStreak(prev => prev + 1);
+        // Calculate the new streak count
+        const newStreakCount = currentStreak + 1;
         
-        // Check if streak is 3 - show animation for milestone
-        if (currentStreak + 1 === 3) {
+        // Increment the streak counter for correct answers
+        setCurrentStreak(newStreakCount);
+        
+        // Check if we've hit a milestone
+        const milestone = STREAK_MILESTONES.find(milestone => milestone === newStreakCount);
+        
+        if (milestone) {
+          // Set the milestone for the animation
+          setStreakMilestone(milestone);
+          
           // Short delay to show the streak animation after feedback
           setTimeout(() => {
             setShowStreakAnimation(true);
+            // Add bonus tokens for streak milestones
+            if (user) {
+              const bonusTokens = milestone * 2; // 2x tokens for each streak milestone
+              queryClient.setQueryData(['/api/user'], {
+                ...user,
+                tokens: user.tokens + bonusTokens
+              });
+            }
           }, 500);
         }
       } else {
@@ -113,26 +160,32 @@ export default function HomePage() {
         });
       }
       
-      // Increment daily time spent (approximate time per question ~1 minute)
-      setDailyTimeSpent(prev => Math.min(prev + 1, dailyTimeGoal));
-      
       // Check if session is complete (5 questions)
       if (sessionStats.questionsAnswered + 1 >= sessionSize) {
         setTimeout(() => {
           setSessionCompleted(true);
           setShowFeedback(false);
+          
+          // Play session complete sound
+          playSound('sessionComplete');
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
     }
   });
   
   const handleAnswerSubmit = (answer: string) => {
+    // Update last activity time to track user engagement
+    lastActivityTimeRef.current = new Date();
+    
     if (question) {
       answerMutation.mutate({ questionId: question.id, answer });
     }
   };
   
   const handleNextQuestion = () => {
+    // Update last activity time to track user engagement
+    lastActivityTimeRef.current = new Date();
+    
     setShowFeedback(false);
     setFeedbackData(null);
     
@@ -224,7 +277,8 @@ export default function HomePage() {
       {/* Streak animation */}
       {showStreakAnimation && (
         <StreakAnimation 
-          streakCount={currentStreak} 
+          streakCount={currentStreak}
+          milestone={streakMilestone}
           onAnimationComplete={() => setShowStreakAnimation(false)} 
         />
       )}
