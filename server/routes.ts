@@ -3,6 +3,92 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { analyzeStudentResponse } from "./openai";
+
+// Helper function to get concept information
+const getConceptInfo = (concept: string) => {
+  // This is a mapping of concepts to their categories, related concepts, and grade ranges
+  // In a real application, this would come from a database or curriculum structure
+  const conceptMap: Record<string, { category: string, relatedConcepts: string[], grade: string }> = {
+    "Addition": { 
+      category: "Operations", 
+      relatedConcepts: ["Subtraction", "Number Sense"], 
+      grade: "K-2" 
+    },
+    "Subtraction": { 
+      category: "Operations", 
+      relatedConcepts: ["Addition", "Number Sense"], 
+      grade: "K-2" 
+    },
+    "Multiplication": { 
+      category: "Operations", 
+      relatedConcepts: ["Division", "Arrays"], 
+      grade: "2-4" 
+    },
+    "Division": { 
+      category: "Operations", 
+      relatedConcepts: ["Multiplication", "Fractions"], 
+      grade: "3-5" 
+    },
+    "Fractions": { 
+      category: "Numbers", 
+      relatedConcepts: ["Division", "Decimals", "Ratio"], 
+      grade: "3-6" 
+    },
+    "Decimals": { 
+      category: "Numbers", 
+      relatedConcepts: ["Fractions", "Place Value"], 
+      grade: "4-6" 
+    },
+    "Place Value": { 
+      category: "Numbers", 
+      relatedConcepts: ["Number Sense", "Decimals"], 
+      grade: "K-4" 
+    },
+    "Number Sense": { 
+      category: "Numbers", 
+      relatedConcepts: ["Counting", "Place Value"], 
+      grade: "K-2" 
+    },
+    "Counting": { 
+      category: "Numbers", 
+      relatedConcepts: ["Number Sense"], 
+      grade: "K-1" 
+    },
+    "Geometry": { 
+      category: "Measurement", 
+      relatedConcepts: ["Spatial Reasoning", "Angles"], 
+      grade: "2-6" 
+    },
+    "Measurement": { 
+      category: "Measurement", 
+      relatedConcepts: ["Geometry", "Units"], 
+      grade: "1-6" 
+    },
+    "Time": { 
+      category: "Measurement", 
+      relatedConcepts: ["Measurement", "Units"], 
+      grade: "1-3" 
+    },
+    "Money": { 
+      category: "Measurement", 
+      relatedConcepts: ["Addition", "Decimals"], 
+      grade: "1-4" 
+    },
+    "Word Problems": { 
+      category: "Applications", 
+      relatedConcepts: ["All Operations"], 
+      grade: "K-6" 
+    }
+  };
+  
+  // Return information for the concept, or a default if not found
+  return conceptMap[concept] || {
+    category: "General Math",
+    relatedConcepts: [],
+    grade: "K-6"
+  };
+};
+
 // Helper middleware to ensure user is authenticated
 const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
   if (req.isAuthenticated()) {
@@ -364,6 +450,371 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Admin analytics endpoints
+  
+  // Analytics summary
+  app.get("/api/admin/analytics/summary", ensureAuthenticated, async (req, res) => {
+    if (!req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const grade = req.query.grade as string;
+      const dateRange = req.query.dateRange as string;
+      
+      // Get all users based on filters
+      const users = Array.from(storage["users"].values())
+        .filter(user => !user.isAdmin)
+        .filter(user => {
+          // Filter by grade if specified
+          if (grade && grade !== 'all' && user.grade !== grade) {
+            return false;
+          }
+          
+          // Filter by date range if specified
+          if (dateRange && dateRange !== 'all') {
+            const lastActive = new Date(user.lastActive);
+            const now = new Date();
+            
+            if (dateRange === '7days') {
+              const sevenDaysAgo = new Date(now);
+              sevenDaysAgo.setDate(now.getDate() - 7);
+              return lastActive >= sevenDaysAgo;
+            } else if (dateRange === '30days') {
+              const thirtyDaysAgo = new Date(now);
+              thirtyDaysAgo.setDate(now.getDate() - 30);
+              return lastActive >= thirtyDaysAgo;
+            } else if (dateRange === '90days') {
+              const ninetyDaysAgo = new Date(now);
+              ninetyDaysAgo.setDate(now.getDate() - 90);
+              return lastActive >= ninetyDaysAgo;
+            } else if (dateRange === 'year') {
+              const oneYearAgo = new Date(now);
+              oneYearAgo.setFullYear(now.getFullYear() - 1);
+              return lastActive >= oneYearAgo;
+            }
+          }
+          
+          return true;
+        });
+      
+      // Calculate aggregated metrics
+      const studentsCount = users.length;
+      
+      // Count users active today
+      const today = new Date();
+      const activeToday = users.filter(user => {
+        const lastActive = new Date(user.lastActive);
+        return lastActive.getDate() === today.getDate() &&
+          lastActive.getMonth() === today.getMonth() &&
+          lastActive.getFullYear() === today.getFullYear();
+      }).length;
+      
+      // Total questions answered
+      const totalQuestionsAnswered = users.reduce((sum, user) => sum + user.questionsAnswered, 0);
+      
+      // Average accuracy
+      const averageAccuracy = users.length > 0 
+        ? Math.round(users.reduce((sum, user) => sum + (user.correctAnswers / (user.questionsAnswered || 1) * 100), 0) / users.length)
+        : 0;
+      
+      // Average time per question (example calculation)
+      const averageTimePerQuestion = 25; // In seconds - would be calculated from actual data
+      
+      // Total session time in minutes
+      const totalSessionTime = users.reduce((sum, user) => sum + user.dailyGoalProgress, 0);
+      
+      // Most/least active grade
+      const gradeDistribution = ['K', '1', '2', '3', '4', '5', '6'].map(grade => {
+        const count = users.filter(user => user.grade === grade).length;
+        return { grade, count };
+      });
+      
+      // Sort by count to find most and least active grades
+      const sortedGrades = [...gradeDistribution].sort((a, b) => b.count - a.count);
+      const mostActiveGrade = sortedGrades.length > 0 ? sortedGrades[0].grade : 'K';
+      const leastActiveGrade = sortedGrades.length > 0 ? sortedGrades[sortedGrades.length - 1].grade : 'K';
+      
+      // Get concept masteries for all users
+      const allConceptMasteries = [];
+      for (const user of users) {
+        const userConceptMasteries = await storage.getUserConceptMasteries(user.id);
+        allConceptMasteries.push(...userConceptMasteries);
+      }
+      
+      // Find the most challenged concept (lowest average mastery)
+      const conceptMasteryMap = new Map();
+      allConceptMasteries.forEach(cm => {
+        if (!conceptMasteryMap.has(cm.concept)) {
+          conceptMasteryMap.set(cm.concept, { total: cm.masteryLevel, count: 1 });
+        } else {
+          const current = conceptMasteryMap.get(cm.concept);
+          conceptMasteryMap.set(cm.concept, { 
+            total: current.total + cm.masteryLevel, 
+            count: current.count + 1 
+          });
+        }
+      });
+      
+      const conceptAverages = Array.from(conceptMasteryMap.entries()).map(([concept, data]) => ({
+        concept,
+        averageMastery: Math.round((data.total / data.count) * 100)
+      }));
+      
+      const sortedConcepts = [...conceptAverages].sort((a, b) => a.averageMastery - b.averageMastery);
+      const mostChallengedConcept = sortedConcepts.length > 0 ? sortedConcepts[0].concept : 'Fractions';
+      
+      // Mock most popular feature (would be based on actual usage data)
+      const mostPopularFeature = 'Daily Challenge';
+      
+      // Generate weekly engagement data
+      const weeklyEngagement = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+        
+        // Count active students for this day
+        const activeStudents = users.filter(user => {
+          const lastActive = new Date(user.lastActive);
+          return lastActive.getDate() === date.getDate() &&
+            lastActive.getMonth() === date.getMonth() &&
+            lastActive.getFullYear() === date.getFullYear();
+        }).length;
+        
+        // Calculate total questions answered this day (would normally come from activity logs)
+        // For demonstration, we'll use a random value between 100-300 based on active students
+        const questionsAnswered = Math.round(activeStudents * (Math.random() * 5 + 3));
+        
+        weeklyEngagement.push({ date: dateString, activeStudents, questionsAnswered });
+      }
+      
+      // Performance by grade
+      const performanceByGrade = ['K', '1', '2', '3', '4', '5', '6'].map(grade => {
+        const gradeUsers = users.filter(user => user.grade === grade);
+        const accuracy = gradeUsers.length > 0
+          ? Math.round(gradeUsers.reduce((sum, user) => sum + (user.correctAnswers / (user.questionsAnswered || 1) * 100), 0) / gradeUsers.length)
+          : 0;
+        const questionsAnswered = gradeUsers.reduce((sum, user) => sum + user.questionsAnswered, 0);
+        
+        return { grade, accuracy, questionsAnswered };
+      });
+      
+      res.json({
+        studentsCount,
+        activeToday,
+        totalQuestionsAnswered,
+        averageAccuracy,
+        averageTimePerQuestion,
+        totalSessionTime,
+        mostActiveGrade,
+        leastActiveGrade,
+        mostChallengedConcept,
+        mostPopularFeature,
+        gradeDistribution,
+        weeklyEngagement,
+        performanceByGrade,
+        conceptMastery: conceptAverages
+      });
+    } catch (error) {
+      console.error("Error generating analytics summary:", error);
+      res.status(500).json({ message: "Failed to generate analytics summary" });
+    }
+  });
+  
+  // Student analytics
+  app.get("/api/admin/analytics/students", ensureAuthenticated, async (req, res) => {
+    if (!req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const grade = req.query.grade as string;
+      const dateRange = req.query.dateRange as string;
+      
+      // Get filtered users
+      const users = Array.from(storage["users"].values())
+        .filter(user => !user.isAdmin)
+        .filter(user => {
+          // Filter by grade if specified
+          if (grade && grade !== 'all' && user.grade !== grade) {
+            return false;
+          }
+          
+          // Filter by date range if specified
+          if (dateRange && dateRange !== 'all') {
+            const lastActive = new Date(user.lastActive);
+            const now = new Date();
+            
+            if (dateRange === '7days') {
+              const sevenDaysAgo = new Date(now);
+              sevenDaysAgo.setDate(now.getDate() - 7);
+              return lastActive >= sevenDaysAgo;
+            } else if (dateRange === '30days') {
+              const thirtyDaysAgo = new Date(now);
+              thirtyDaysAgo.setDate(now.getDate() - 30);
+              return lastActive >= thirtyDaysAgo;
+            } else if (dateRange === '90days') {
+              const ninetyDaysAgo = new Date(now);
+              ninetyDaysAgo.setDate(now.getDate() - 90);
+              return lastActive >= ninetyDaysAgo;
+            } else if (dateRange === 'year') {
+              const oneYearAgo = new Date(now);
+              oneYearAgo.setFullYear(now.getFullYear() - 1);
+              return lastActive >= oneYearAgo;
+            }
+          }
+          
+          return true;
+        });
+      
+      // Enhance users with analytics data
+      const studentAnalytics = await Promise.all(users.map(async user => {
+        // Get top strengths and weaknesses from concept masteries
+        const conceptMasteries = await storage.getUserConceptMasteries(user.id);
+        
+        const sortedByMastery = [...conceptMasteries].sort((a, b) => b.masteryLevel - a.masteryLevel);
+        const topStrengths = sortedByMastery.slice(0, 3).map(cm => cm.concept);
+        
+        const sortedByWeakness = [...conceptMasteries].sort((a, b) => a.masteryLevel - b.masteryLevel);
+        const topWeaknesses = sortedByWeakness.slice(0, 3).map(cm => cm.concept);
+        
+        // Calculate inactive streak (days since last activity)
+        const lastActive = new Date(user.lastActive);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - lastActive.getTime());
+        const inactiveStreak = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          grade: user.grade,
+          questionsAnswered: user.questionsAnswered,
+          correctAnswers: user.correctAnswers,
+          streakDays: user.streakDays,
+          lastActive: user.lastActive,
+          topStrengths,
+          topWeaknesses,
+          learningStyle: user.learningStyle,
+          timeSpent: user.dailyGoalProgress || 0,
+          dailyStreak: user.streakDays,
+          inactiveStreak
+        };
+      }));
+      
+      res.json(studentAnalytics);
+    } catch (error) {
+      console.error("Error generating student analytics:", error);
+      res.status(500).json({ message: "Failed to generate student analytics" });
+    }
+  });
+  
+  // Concepts analytics
+  app.get("/api/admin/analytics/concepts", ensureAuthenticated, async (req, res) => {
+    if (!req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const grade = req.query.grade as string;
+      
+      // Get all concept masteries from all users
+      const users = Array.from(storage["users"].values())
+        .filter(user => !user.isAdmin)
+        .filter(user => {
+          // Filter by grade if specified
+          if (grade && grade !== 'all' && user.grade !== grade) {
+            return false;
+          }
+          return true;
+        });
+      
+      // Get all concepts
+      const allConcepts = new Set();
+      for (const user of users) {
+        const conceptMasteries = await storage.getUserConceptMasteries(user.id);
+        conceptMasteries.forEach(cm => allConcepts.add(cm.concept));
+      }
+      
+      // For each concept, calculate aggregate metrics
+      const conceptsAnalytics = [];
+      
+      for (const concept of allConcepts) {
+        // Get all masteries for this concept
+        let totalMastery = 0;
+        let count = 0;
+        let attemptCount = 0;
+        let successCount = 0;
+        
+        for (const user of users) {
+          const conceptMasteries = await storage.getUserConceptMasteries(user.id);
+          const matching = conceptMasteries.find(cm => cm.concept === concept);
+          
+          if (matching) {
+            totalMastery += matching.masteryLevel;
+            count += 1;
+            attemptCount += matching.attempts;
+            successCount += matching.successes;
+          }
+        }
+        
+        // Calculate averages
+        const averageMastery = count > 0 ? Math.round((totalMastery / count) * 100) : 0;
+        const successRate = attemptCount > 0 ? Math.round((successCount / attemptCount) * 100) : 0;
+        
+        // Determine concept category and grade range
+        // This would normally come from a curriculum structure or tags
+        const conceptInfo = getConceptInfo(concept);
+        
+        // Calculate difficulty rating based on success rate
+        // Lower success rate = higher difficulty
+        const difficultyRating = (100 - successRate) / 20; // Scale to 0-5 range
+        
+        conceptsAnalytics.push({
+          concept,
+          category: conceptInfo.category,
+          averageMastery,
+          attemptCount,
+          successRate,
+          difficultyRating,
+          relatedConcepts: conceptInfo.relatedConcepts,
+          grade: conceptInfo.grade
+        });
+      }
+      
+      res.json(conceptsAnalytics);
+    } catch (error) {
+      console.error("Error generating concept analytics:", error);
+      res.status(500).json({ message: "Failed to generate concept analytics" });
+    }
+  });
+  
+  // Export analytics
+  app.get("/api/admin/analytics/export", ensureAuthenticated, async (req, res) => {
+    if (!req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const format = req.query.format as string;
+      const grade = req.query.grade as string;
+      const dateRange = req.query.dateRange as string;
+      
+      // In a real implementation, this would generate an actual file
+      // based on the requested format
+      
+      res.json({
+        success: true,
+        message: `Analytics data exported in ${format.toUpperCase()} format`,
+        fileUrl: `/downloads/analytics_${new Date().toISOString().split('T')[0]}.${format}`
+      });
+    } catch (error) {
+      console.error("Error exporting analytics:", error);
+      res.status(500).json({ message: "Failed to export analytics" });
     }
   });
 
