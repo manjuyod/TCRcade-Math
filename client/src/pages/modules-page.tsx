@@ -245,7 +245,8 @@ export default function ModulesPage() {
   const handleStartModule = (module: Module) => {
     // In a real implementation, you would set up the selected module
     // and redirect to the gameplay page with the module's configuration
-    localStorage.setItem('currentModule', JSON.stringify(module));
+    // Store only the module ID rather than the entire object to avoid circular JSON errors
+    localStorage.setItem('currentModuleId', module.id);
     setLocation('/');
   };
   

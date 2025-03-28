@@ -25,6 +25,17 @@ export default function HomePage() {
     correctAnswer: string;
   } | null>(null);
   
+  // Get current module from localStorage if it exists
+  const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check if we have a current module when the component mounts
+    const moduleId = localStorage.getItem('currentModuleId');
+    if (moduleId) {
+      setCurrentModuleId(moduleId);
+    }
+  }, []);
+  
   // Session stats
   const [sessionCompleted, setSessionCompleted] = useState<boolean>(false);
   const [sessionStats, setSessionStats] = useState({
