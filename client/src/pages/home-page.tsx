@@ -83,6 +83,7 @@ export default function HomePage() {
   // Time tracking reference for actual duration
   const startTimeRef = useRef<Date | null>(null);
   const lastActivityTimeRef = useRef<Date>(new Date());
+  const lastDateRef = useRef<string>(new Date().toDateString());
   
   // Preload sounds when component mounts
   useEffect(() => {
@@ -97,6 +98,23 @@ export default function HomePage() {
     const timeTrackingInterval = setInterval(() => {
       // Only count time if user is active (within last 2 minutes)
       const now = new Date();
+      const todayDateString = now.toDateString();
+      
+      // Check if the date has changed (a new day has started)
+      if (todayDateString !== lastDateRef.current) {
+        console.log("New day detected, resetting daily time counter");
+        setDailyTimeSpent(0);
+        lastDateRef.current = todayDateString;
+        
+        // If user data exists, also reset their daily engagement time
+        if (user) {
+          queryClient.setQueryData(['/api/user'], {
+            ...user,
+            dailyEngagementMinutes: 0
+          });
+        }
+      }
+      
       const timeSinceLastActivity = now.getTime() - lastActivityTimeRef.current.getTime();
       const userIsActive = timeSinceLastActivity < 2 * 60 * 1000; // 2 minutes inactivity threshold
       
@@ -234,10 +252,7 @@ export default function HomePage() {
               });
             }
             
-            // Force animation to auto-dismiss after 2 seconds
-            setTimeout(() => {
-              setShowStreakAnimation(false);
-            }, 2000);
+            // Do not auto-dismiss here - let the animation component handle it
           }, 500);
         }
       } else {

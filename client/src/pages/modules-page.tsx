@@ -24,7 +24,8 @@ import { ProgressBar } from '@/components/progress-bar';
 
 // Mini-game module types
 enum GameType {
-  STANDARD = 'standard' // Currently all modules use the standard question format
+  STANDARD = 'standard',
+  WORD_RACE = 'word_race' // New game type with countdown timer
 }
 
 // Module definition with game type and difficulty
@@ -66,7 +67,7 @@ export default function ModulesPage() {
     {
       id: 'addition',
       name: 'Addition Basics',
-      description: 'Learn to add numbers up to 20',
+      description: 'Learn to add numbers and practice basic addition skills',
       gameType: GameType.STANDARD,
       icon: <Calculator className="h-12 w-12 text-primary" />,
       difficulty: 1,
@@ -77,7 +78,7 @@ export default function ModulesPage() {
     {
       id: 'subtraction',
       name: 'Subtraction Adventure',
-      description: 'Practice subtraction with flashcard questions',
+      description: 'Master subtraction skills across different difficulty levels',
       gameType: GameType.STANDARD,
       icon: <Star className="h-12 w-12 text-amber-500" />,
       difficulty: 1,
@@ -88,7 +89,7 @@ export default function ModulesPage() {
     {
       id: 'multiplication',
       name: 'Multiplication Island',
-      description: 'Learn multiplication with standard questions',
+      description: 'Build multiplication skills with progressive difficulty levels',
       gameType: GameType.STANDARD,
       icon: <MapPin className="h-12 w-12 text-emerald-500" />,
       difficulty: 2,
@@ -99,7 +100,7 @@ export default function ModulesPage() {
     {
       id: 'division',
       name: 'Division Tower',
-      description: 'Practice division with flashcard questions',
+      description: 'Learn long division concepts and practice division skills',
       gameType: GameType.STANDARD,
       icon: <Building2 className="h-12 w-12 text-violet-500" />,
       difficulty: 2,
@@ -110,7 +111,7 @@ export default function ModulesPage() {
     {
       id: 'fractions',
       name: 'Fraction Puzzle',
-      description: 'Learn fractions with standard practice questions',
+      description: 'Master fractions with visual models and practical examples',
       gameType: GameType.STANDARD,
       icon: <Puzzle className="h-12 w-12 text-blue-500" />,
       difficulty: 3,
@@ -119,10 +120,10 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'word-problems',
+      id: 'word-race',
       name: 'Math Word Race',
-      description: 'Solve word problems with standard questions',
-      gameType: GameType.STANDARD,
+      description: 'Solve math problems against the clock - fast-paced challenge',
+      gameType: GameType.WORD_RACE,
       icon: <Timer className="h-12 w-12 text-red-500" />,
       difficulty: 3,
       category: 'word-problems',
@@ -132,7 +133,7 @@ export default function ModulesPage() {
     {
       id: 'addition-advanced',
       name: 'Addition Challenge',
-      description: 'More challenging addition problems up to 100',
+      description: 'Advanced addition with carrying and multi-digit problems',
       gameType: GameType.STANDARD,
       icon: <Calculator className="h-12 w-12 text-primary" />,
       difficulty: 2,
@@ -143,7 +144,7 @@ export default function ModulesPage() {
     {
       id: 'geometry',
       name: 'Shape Explorer',
-      description: 'Learn about 2D and 3D shapes with flashcard questions',
+      description: 'Identify shapes, count sides, and calculate area and perimeter',
       gameType: GameType.STANDARD,
       icon: <Dice5 className="h-12 w-12 text-pink-500" />,
       difficulty: 2,
@@ -154,7 +155,7 @@ export default function ModulesPage() {
     {
       id: 'time',
       name: 'Time Trials',
-      description: 'Practice telling time with standard questions',
+      description: 'Learn to tell time, calculate elapsed time, and time math',
       gameType: GameType.STANDARD,
       icon: <Clock className="h-12 w-12 text-amber-500" />,
       difficulty: 2,
@@ -165,7 +166,7 @@ export default function ModulesPage() {
     {
       id: 'money',
       name: 'Money Matters',
-      description: 'Learn to count and calculate with money',
+      description: 'Identify coins, count money, and calculate change',
       gameType: GameType.STANDARD,
       icon: <Shield className="h-12 w-12 text-green-500" />,
       difficulty: 2,
@@ -176,7 +177,7 @@ export default function ModulesPage() {
     {
       id: 'algebra',
       name: 'Pre-Algebra Basics',
-      description: 'Introduction to simple algebra concepts',
+      description: 'Solve for unknowns in equations with visual models',
       gameType: GameType.STANDARD,
       icon: <BarChart4 className="h-12 w-12 text-indigo-500" />,
       difficulty: 4,
@@ -187,7 +188,7 @@ export default function ModulesPage() {
     {
       id: 'mixed',
       name: 'Ultimate Challenge',
-      description: 'Mixed topics at the highest difficulty',
+      description: 'Test your skills with a mix of all topics at maximum difficulty',
       gameType: GameType.STANDARD,
       icon: <Trophy className="h-12 w-12 text-amber-500" />,
       difficulty: 5,
@@ -211,6 +212,8 @@ export default function ModulesPage() {
     switch(type) {
       case GameType.STANDARD:
         return { label: 'Standard Q&A', color: 'bg-primary' };
+      case GameType.WORD_RACE:
+        return { label: 'Timed Challenge', color: 'bg-red-500' };
       default:
         return { label: 'Standard', color: 'bg-gray-500' };
     }

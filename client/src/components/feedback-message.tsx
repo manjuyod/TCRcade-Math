@@ -71,8 +71,8 @@ export default function FeedbackMessage({
           onClick={onNextQuestion}
           className={`
             arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
-            border-2 border-white shadow-lg transform transition-transform hover:scale-105
-            ${correct ? 'bg-secondary hover:bg-opacity-90' : 'bg-danger hover:bg-opacity-90'}
+            shadow-lg transform transition-transform hover:scale-105
+            bg-primary hover:bg-primary/80
           `}
           style={{ minWidth: "180px" }}
         >
