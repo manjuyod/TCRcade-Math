@@ -62,6 +62,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!questionId || !answer) {
       return res.status(400).json({ message: "Question ID and answer are required" });
     }
+
+    const { analyzeStudentResponse } = await import('./openai');
     
     const userId = req.user!.id;
     const user = await storage.getUser(userId);
@@ -113,11 +115,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedQuestions: 1
       });
       
+      const feedback = await analyzeStudentResponse(
+        question.text,
+        answer,
+        question.answer
+      );
+
       res.json({
         correct: isCorrect,
         tokensEarned,
         totalTokens: updatedUser?.tokens || user.tokens,
-        correctAnswer: question.answer
+        correctAnswer: question.answer,
+        feedback
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to process answer" });
