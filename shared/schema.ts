@@ -28,9 +28,14 @@ export const users = pgTable("users", {
     unlocks: ["default"]
   }),
   // Challenge calendar fields
-  lastDailyChallenge: date("last_daily_challenge"),
+  lastDailyChallenge: text("last_daily_challenge"),
   dailyChallengeStreak: integer("daily_challenge_streak").default(0).notNull(),
   completedChallenges: text("completed_challenges").array().default([]),
+  // Story progress
+  storyProgress: json("story_progress").default({}),
+  // Additional fields for stats tracking
+  fastestCategory: text("fastest_category"),
+  highestScoreCategory: text("highest_score_category"),
   // AI analytics features
   learningStyle: text("learning_style"),
   strengthConcepts: text("strength_concepts").array().default([]),
@@ -86,7 +91,9 @@ export const dailyChallenges = pgTable("daily_challenges", {
   date: date("date").notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
+  questions: json("questions").default([]),
   questionIds: integer("question_ids").array().default([]),
+  difficulty: text("difficulty").default("medium"),
   difficultyBonus: integer("difficulty_bonus").default(1).notNull(),
   tokenReward: integer("token_reward").default(25).notNull(),
   specialReward: text("special_reward"), // Special avatar item or other reward
@@ -109,6 +116,14 @@ export const multiplayerRooms = pgTable("multiplayer_rooms", {
   gameData: json("game_data").default({}),
   currentQuestionId: integer("current_question_id"),
   roomCode: text("room_code").notNull().unique(),
+  // Extended fields for multiplayer
+  status: text("status").default("waiting"),
+  participants: integer("participants").array().default([]),
+  maxParticipants: integer("max_participants").default(4),
+  settings: json("settings").default({ questionCount: 10, timeLimit: 30 }),
+  gameState: json("game_state").default({}),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
 });
 
 // Track user progress per category
@@ -151,9 +166,9 @@ export const recommendations = pgTable("recommendations", {
   suggestedCategories: text("suggested_categories").array().default([]),
   difficultyLevel: integer("difficulty_level").default(1).notNull(),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
-  recommendationData: json("recommendation_data"), // Flexible JSON data for future extensions
+  recommendationData: json("recommendation_data").default({}), // Flexible JSON data for future extensions
   aiInsights: text("ai_insights"),
-  learningStyleSuggestions: json("learning_style_suggestions"),
+  learningStyleSuggestions: json("learning_style_suggestions").default({}),
 });
 
 // AI Analytics data
@@ -161,12 +176,18 @@ export const aiAnalytics = pgTable("ai_analytics", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   analysisDate: timestamp("analysis_date").defaultNow().notNull(),
-  learningPatterns: json("learning_patterns"),
+  learningPatterns: json("learning_patterns").default({}),
   recommendations: text("recommendations"),
   strengths: text("strengths").array().default([]),
   areasForImprovement: text("areas_for_improvement").array().default([]),
-  engagementAnalysis: json("engagement_analysis"),
+  engagementAnalysis: json("engagement_analysis").default({}),
   suggestedActivities: text("suggested_activities").array().default([]),
+  // Additional fields for analytics
+  learningStyle: text("learning_style"),
+  strengthConcepts: text("strength_concepts").array().default([]),
+  weaknessConcepts: text("weakness_concepts").array().default([]),
+  recommendedActivities: text("recommended_activities").array().default([]),
+  generatedAt: timestamp("generated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
