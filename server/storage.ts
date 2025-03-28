@@ -1,4 +1,4 @@
-import { users, type User, type InsertUser, userProgress, type UserProgress, type Question, type Leaderboard } from "@shared/schema";
+import { users, type User, type InsertUser, userProgress, type UserProgress, type Question, type Leaderboard, type ConceptMastery, type Recommendation } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -13,12 +13,23 @@ export interface IStorage {
   getLeaderboard(): Promise<Array<User & { score: number }>>;
   
   // Question methods
+  getQuestion(id: number): Promise<Question | undefined>;
   getQuestionsByGrade(grade: string, category?: string): Promise<Question[]>;
+  getQuestionsByConcept(grade: string, concept: string): Promise<Question[]>;
   getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean, category?: string): Promise<Question | undefined>;
+  getRecommendedQuestion(userId: number): Promise<Question | undefined>;
   
   // Progress methods
   getUserProgress(userId: number): Promise<UserProgress[]>;
   updateUserProgress(userId: number, category: string, data: Partial<UserProgress>): Promise<UserProgress>;
+  
+  // Concept mastery methods
+  getUserConceptMasteries(userId: number): Promise<ConceptMastery[]>;
+  updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery>;
+  
+  // Recommendation methods
+  getUserRecommendations(userId: number): Promise<Recommendation | undefined>;
+  generateRecommendations(userId: number): Promise<Recommendation>;
   
   // Session store
   sessionStore: any; // Using any for sessionStore to avoid type issues
@@ -29,21 +40,29 @@ export class MemStorage implements IStorage {
   private questions: Map<number, Question>;
   private progress: Map<number, UserProgress>;
   private leaderboard: Map<number, Leaderboard>;
+  private conceptMasteries: Map<number, ConceptMastery>;
+  private recommendations: Map<number, Recommendation>;
   sessionStore: any; // Using any type to avoid issues
   currentId: number;
   currentQuestionId: number;
   currentProgressId: number;
   currentLeaderboardId: number;
+  currentConceptMasteryId: number;
+  currentRecommendationId: number;
 
   constructor() {
     this.users = new Map();
     this.questions = new Map();
     this.progress = new Map();
     this.leaderboard = new Map();
+    this.conceptMasteries = new Map();
+    this.recommendations = new Map();
     this.currentId = 1;
     this.currentQuestionId = 1;
     this.currentProgressId = 1;
     this.currentLeaderboardId = 1;
+    this.currentConceptMasteryId = 1;
+    this.currentRecommendationId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 1 day
@@ -106,9 +125,21 @@ export class MemStorage implements IStorage {
     return leaderboardEntries;
   }
 
+  async getQuestion(id: number): Promise<Question | undefined> {
+    return this.questions.get(id);
+  }
+
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
     const questions = Array.from(this.questions.values())
       .filter(q => q.grade === grade && (!category || q.category === category));
+    
+    return questions;
+  }
+  
+  async getQuestionsByConcept(grade: string, concept: string): Promise<Question[]> {
+    // Filter questions by grade and concept
+    const questions = Array.from(this.questions.values())
+      .filter(q => q.grade === grade && q.concepts?.includes(concept));
     
     return questions;
   }
@@ -802,6 +833,66 @@ export class MemStorage implements IStorage {
         ].sort(() => Math.random() - 0.5);
     }
     
+    // Determine concepts covered in this question
+    let concepts: string[] = [];
+    switch(category) {
+      case "addition":
+        concepts = ["addition", "sum", "counting", "total"];
+        // For higher grades, add place value concept
+        if (grade !== "K" && grade !== "1") {
+          concepts.push("place value");
+        }
+        break;
+      case "subtraction":
+        concepts = ["subtraction", "difference", "comparison"];
+        if (grade !== "K" && grade !== "1") {
+          concepts.push("negative numbers");
+        }
+        break;
+      case "multiplication":
+        concepts = ["multiplication", "repeated addition", "arrays"];
+        if (grade !== "2") {
+          concepts.push("factors");
+        }
+        break;
+      case "division":
+        concepts = ["division", "equal groups", "sharing"];
+        if (grade !== "3") {
+          concepts.push("remainders");
+        }
+        break;
+      case "fractions":
+        concepts = ["fractions", "parts of a whole", "numerator", "denominator"];
+        break;
+      case "geometry":
+        if (grade === "K" || grade === "1") {
+          concepts = ["shapes", "identification", "geometry"];
+        } else if (grade === "2" || grade === "3") {
+          concepts = ["shapes", "sides", "vertices", "properties"];
+        } else {
+          concepts = ["area", "perimeter", "measurement", "formulas"];
+        }
+        break;
+      case "time":
+        if (grade === "K" || grade === "1") {
+          concepts = ["time", "hours", "clock reading"];
+        } else if (grade === "2" || grade === "3") {
+          concepts = ["time", "hours", "minutes", "clock reading"];
+        } else {
+          concepts = ["time", "elapsed time", "time calculation"];
+        }
+        break;
+      case "money":
+        if (grade === "K" || grade === "1") {
+          concepts = ["money", "coins", "values"];
+        } else if (grade === "2" || grade === "3") {
+          concepts = ["money", "counting money", "currency"];
+        } else {
+          concepts = ["money", "making change", "decimal values"];
+        }
+        break;
+    }
+    
     // Create and return the question
     const generatedQuestion: Question = {
       id,
@@ -810,7 +901,8 @@ export class MemStorage implements IStorage {
       difficulty: Math.max(1, Math.min(5, difficulty)), // Ensure difficulty is between 1-5
       question,
       answer,
-      options
+      options,
+      concepts
     };
     
     // Add to questions map
@@ -849,6 +941,200 @@ export class MemStorage implements IStorage {
       return newProgress;
     }
   }
+  
+  async getUserConceptMasteries(userId: number): Promise<ConceptMastery[]> {
+    // Return all concept mastery entries for this user
+    const masteries = Array.from(this.conceptMasteries.values())
+      .filter(mastery => mastery.userId === userId);
+    
+    return masteries;
+  }
+  
+  async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery> {
+    // Find existing mastery entry for this user and concept
+    const existingMastery = Array.from(this.conceptMasteries.values())
+      .find(m => m.userId === userId && m.concept === concept && m.grade === grade);
+    
+    if (existingMastery) {
+      // Update existing mastery entry
+      existingMastery.totalAttempts += 1;
+      existingMastery.correctAttempts += isCorrect ? 1 : 0;
+      existingMastery.lastPracticed = new Date();
+      
+      // Calculate mastery level (0-100) based on correct ratio with recent bias
+      const correctRatio = existingMastery.correctAttempts / existingMastery.totalAttempts;
+      
+      // Adjust mastery level: 
+      // - Increase if correct, decrease if incorrect
+      // - More dramatic shifts at the beginning, smaller adjustments as practice count increases
+      if (isCorrect) {
+        existingMastery.masteryLevel = Math.min(
+          100, 
+          existingMastery.masteryLevel + Math.max(5, 20 / Math.sqrt(existingMastery.totalAttempts))
+        );
+      } else {
+        existingMastery.masteryLevel = Math.max(
+          0, 
+          existingMastery.masteryLevel - Math.max(5, 15 / Math.sqrt(existingMastery.totalAttempts))
+        );
+      }
+      
+      // Flag for review if recent performance is poor
+      existingMastery.needsReview = existingMastery.masteryLevel < 60 || !isCorrect;
+      
+      this.conceptMasteries.set(existingMastery.id, existingMastery);
+      return existingMastery;
+    } else {
+      // Create new mastery entry
+      const id = this.currentConceptMasteryId++;
+      const newMastery: ConceptMastery = {
+        id,
+        userId,
+        concept,
+        grade,
+        totalAttempts: 1,
+        correctAttempts: isCorrect ? 1 : 0,
+        lastPracticed: new Date(),
+        masteryLevel: isCorrect ? 60 : 30, // Initial mastery level
+        needsReview: !isCorrect
+      };
+      
+      this.conceptMasteries.set(id, newMastery);
+      return newMastery;
+    }
+  }
+  
+  async getUserRecommendations(userId: number): Promise<Recommendation | undefined> {
+    // Find recommendation for this user
+    const recommendations = Array.from(this.recommendations.values())
+      .filter(rec => rec.userId === userId)
+      .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+    
+    return recommendations.length > 0 ? recommendations[0] : undefined;
+  }
+  
+  async generateRecommendations(userId: number): Promise<Recommendation> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Get user's concept masteries to identify strengths and weaknesses
+    const masteries = await this.getUserConceptMasteries(userId);
+    
+    // Get user progress to identify overall performance by category
+    const progress = await this.getUserProgress(userId);
+    
+    // Create recommendation object
+    const id = this.currentRecommendationId++;
+    
+    // Identify concepts that need review (low mastery or marked for review)
+    const conceptsToReview = masteries
+      .filter(m => m.needsReview || m.masteryLevel < 60)
+      .sort((a, b) => a.masteryLevel - b.masteryLevel) // Sort by mastery level, lowest first
+      .slice(0, 3) // Take up to 3 concepts to review
+      .map(m => ({
+        concept: m.concept,
+        grade: m.grade,
+        masteryLevel: m.masteryLevel,
+        recommendationType: 'review' as const
+      }));
+    
+    // Identify strengths (high mastery concepts)
+    const strengths = masteries
+      .filter(m => m.masteryLevel >= 80)
+      .sort((a, b) => b.masteryLevel - a.masteryLevel) // Sort by mastery level, highest first
+      .slice(0, 3) // Take up to 3 strengths
+      .map(m => ({
+        concept: m.concept,
+        grade: m.grade,
+        masteryLevel: m.masteryLevel,
+        recommendationType: 'strength' as const
+      }));
+    
+    // Identify categories where user has low activity or performance
+    const lowActivityCategories = progress
+      .filter(p => p.completedQuestions < 5) // Categories with few attempts
+      .map(p => ({
+        category: p.category,
+        recommendationType: 'explore' as const
+      }));
+    
+    // Create challenges for categories where user is doing well
+    const challengeCategories = progress
+      .filter(p => p.correctRate >= 0.7 && p.completedQuestions >= 5) // Categories with good performance
+      .map(p => ({
+        category: p.category,
+        recommendationType: 'challenge' as const
+      }));
+    
+    // Recommend next grade level for strong categories
+    const nextGradeRecommendations = [];
+    if (user.grade) {
+      const currentGradeIndex = ['K', '1', '2', '3', '4', '5', '6'].indexOf(user.grade);
+      if (currentGradeIndex >= 0 && currentGradeIndex < 6) {
+        const nextGrade = ['K', '1', '2', '3', '4', '5', '6'][currentGradeIndex + 1];
+        
+        const strongCategories = progress
+          .filter(p => p.correctRate >= 0.85 && p.completedQuestions >= 10) // Very strong performance
+          .map(p => ({
+            category: p.category,
+            grade: nextGrade,
+            recommendationType: 'advance' as const
+          }));
+        
+        nextGradeRecommendations.push(...strongCategories);
+      }
+    }
+    
+    const recommendation: Recommendation = {
+      id,
+      userId,
+      generatedAt: new Date(),
+      conceptRecommendations: [...conceptsToReview, ...strengths],
+      categoryRecommendations: [...lowActivityCategories, ...challengeCategories],
+      gradeAdvancementRecommendations: nextGradeRecommendations
+    };
+    
+    this.recommendations.set(id, recommendation);
+    return recommendation;
+  }
+  
+  async getRecommendedQuestion(userId: number): Promise<Question | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Get concept masteries to identify what concepts need work
+    const masteries = await this.getUserConceptMasteries(userId);
+    
+    // Find concepts that need review, ordered by priority
+    const conceptsToReview = masteries
+      .filter(m => m.needsReview || m.masteryLevel < 60)
+      .sort((a, b) => {
+        // Order by: 1) needs review flag, 2) mastery level, 3) last practiced (oldest first)
+        if (a.needsReview !== b.needsReview) return a.needsReview ? -1 : 1;
+        if (a.masteryLevel !== b.masteryLevel) return a.masteryLevel - b.masteryLevel;
+        return new Date(a.lastPracticed).getTime() - new Date(b.lastPracticed).getTime();
+      });
+    
+    if (conceptsToReview.length > 0) {
+      // Select a concept to focus on
+      const targetConcept = conceptsToReview[0];
+      
+      // Try to get a question for this concept and grade
+      const questions = await this.getQuestionsByConcept(targetConcept.grade, targetConcept.concept);
+      
+      if (questions.length > 0) {
+        // Return a random question from matching questions
+        return questions[Math.floor(Math.random() * questions.length)];
+      }
+    }
+    
+    // Fallback to adaptive question selection if no concept-specific questions found
+    return this.getAdaptiveQuestion(userId, user.grade || "K", false);
+  }
 
   private seedQuestions() {
     // Addition - Grade K-2
@@ -859,7 +1145,8 @@ export class MemStorage implements IStorage {
         difficulty: 1,
         question: "1 + 1 = ?",
         answer: "2",
-        options: ["1", "2", "3", "4"]
+        options: ["1", "2", "3", "4"],
+        concepts: ["addition", "counting", "sum"]
       },
       {
         category: "addition",
@@ -1064,7 +1351,37 @@ export class MemStorage implements IStorage {
     
     allQuestions.forEach(q => {
       const id = this.currentQuestionId++;
-      this.questions.set(id, { ...q, id });
+      // Add concepts based on category if not specified
+      let concepts: string[] = q.concepts || [];
+      if (concepts.length === 0) {
+        switch (q.category) {
+          case "addition":
+            concepts = ["addition", "sum", "counting"];
+            break;
+          case "subtraction":
+            concepts = ["subtraction", "difference"];
+            break;
+          case "multiplication":
+            concepts = ["multiplication", "repeated addition"];
+            break;
+          case "division":
+            concepts = ["division", "equal groups"];
+            break;
+          case "fractions":
+            concepts = ["fractions", "parts of a whole"];
+            break;
+          case "geometry":
+            concepts = ["shapes", "geometry"];
+            break;
+          case "time":
+            concepts = ["time", "clock reading"];
+            break;
+          case "money":
+            concepts = ["money", "coins"];
+            break;
+        }
+      }
+      this.questions.set(id, { ...q, id, concepts });
     });
   }
 }

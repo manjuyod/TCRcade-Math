@@ -1,8 +1,8 @@
-import { Question, User } from "@shared/schema";
+import { Question, User, Recommendation } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 // Fetch a question for the user
-export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false, category?: string): Promise<Question> {
+export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false, category?: string, useRecommendations: boolean = false): Promise<Question> {
   // Include answeredIds as a query parameter to avoid repeated questions
   let queryParams = answeredIds.length > 0 
     ? `?answeredIds=${encodeURIComponent(JSON.stringify(answeredIds))}`
@@ -21,6 +21,13 @@ export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: bo
       ? `${queryParams}&category=${encodeURIComponent(category)}` 
       : `?category=${encodeURIComponent(category)}`;
   }
+  
+  // If using recommended questions based on learning history
+  if (useRecommendations) {
+    queryParams = queryParams 
+      ? `${queryParams}&recommended=true` 
+      : '?recommended=true';
+  }
     
   const response = await fetch(`/api/questions${queryParams}`, {
     credentials: 'include'
@@ -28,6 +35,21 @@ export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: bo
   
   if (!response.ok) {
     throw new Error('Failed to fetch question');
+  }
+  
+  return await response.json();
+}
+
+// Fetch personalized recommendations for the user
+export async function fetchRecommendations(regenerate: boolean = false): Promise<Recommendation> {
+  const queryParams = regenerate ? '?regenerate=true' : '';
+  
+  const response = await fetch(`/api/recommendations${queryParams}`, {
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch recommendations');
   }
   
   return await response.json();

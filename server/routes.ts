@@ -26,6 +26,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     
+    // Check if the user wants recommended questions based on learning history
+    const useRecommendations = req.query.recommended === 'true';
+    
     // Get current module category from localStorage if set
     const moduleCategory = req.query.category as string;
     
@@ -38,14 +41,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Try to find a question that hasn't been answered in this session
       while (attempts < maxRetries && !question) {
-        // Check if forceDynamic was explicitly requested in the query parameters
-        const forceDynamicRequested = req.query.forceDynamic === 'true';
-        
-        // Force dynamic generation if requested or by random chance (90%)
-        const forceDynamic = forceDynamicRequested || Math.random() < 0.9;
-        
-        // Get an adaptive question matching the requested category if available
-        question = await storage.getAdaptiveQuestion(userId, grade, forceDynamic, moduleCategory);
+        if (useRecommendations) {
+          // Import the recommendation engine functions
+          const { getRecommendedQuestion } = await import('./recommendation-engine');
+          
+          // Get a recommended question based on the user's learning history
+          question = await getRecommendedQuestion(userId);
+        } else {
+          // Check if forceDynamic was explicitly requested in the query parameters
+          const forceDynamicRequested = req.query.forceDynamic === 'true';
+          
+          // Force dynamic generation if requested or by random chance (90%)
+          const forceDynamic = forceDynamicRequested || Math.random() < 0.9;
+          
+          // Get an adaptive question matching the requested category if available
+          question = await storage.getAdaptiveQuestion(userId, grade, forceDynamic, moduleCategory);
+        }
         
         // If we found a question and it's in the already seen IDs, try again
         if (question && seenQuestionIds.has(question.id)) {
@@ -126,6 +137,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedQuestions: 1
       });
       
+      // Update concept mastery for this question
+      try {
+        const { updateConceptsFromAnswer } = await import('./recommendation-engine');
+        await updateConceptsFromAnswer(userId, question.id, isCorrect);
+      } catch (e) {
+        console.error("Failed to update concept mastery:", e);
+      }
+      
       const feedback = await analyzeStudentResponse(
         question.question, // Using question.question instead of question.text
         answer,
@@ -155,6 +174,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(progress);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+  
+  // Get personalized recommendations for the current user
+  app.get("/api/recommendations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    const userId = req.user!.id;
+    
+    try {
+      // Generate fresh recommendations if requested
+      const regenerate = req.query.regenerate === 'true';
+      
+      // Import the recommendation engine functions
+      const { generateRecommendations } = await import('./recommendation-engine');
+      
+      // Get existing recommendations or generate new ones
+      const recommendations = regenerate
+        ? await generateRecommendations(userId)
+        : await (async () => {
+            let rec = await storage.getUserRecommendations(userId);
+            if (!rec) {
+              rec = await generateRecommendations(userId);
+            }
+            return rec;
+          })();
+      
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+      res.status(500).json({ message: "Failed to generate recommendations" });
     }
   });
 
