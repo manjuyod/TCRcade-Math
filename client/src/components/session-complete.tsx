@@ -196,19 +196,19 @@ export default function SessionComplete({
             Start New Session
           </Button>
           
-          <Link href="/">
+          <Link href="/modules">
             <Button 
               className="arcade-btn bg-secondary hover:bg-secondary/90 text-white font-bold py-3 rounded-xl w-full"
             >
-              Return to Dashboard
+              Choose Different Module
             </Button>
           </Link>
           
-          <Link href="/profile">
+          <Link href="/">
             <Button 
               className="arcade-btn bg-accent hover:bg-accent/90 text-white font-bold py-3 rounded-xl w-full"
             >
-              View Your Progress
+              Return to Dashboard
             </Button>
           </Link>
         </div>

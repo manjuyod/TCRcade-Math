@@ -55,15 +55,30 @@ export default function FeedbackMessage({
         <p className="text-gray-600">The correct answer is {correctAnswer}</p>
       )}
       
-      <Button
-        onClick={onNextQuestion}
-        className={`
-          arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
-          ${correct ? 'bg-secondary hover:bg-opacity-90' : 'bg-danger hover:bg-opacity-90'}
-        `}
+      <motion.div
+        animate={{ 
+          scale: [1, 1.05, 1],
+          boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 15px rgba(0,0,0,0.2)", "0px 0px 0px rgba(0,0,0,0)"]
+        }}
+        transition={{ 
+          duration: 1.5,
+          repeat: Infinity,
+          repeatType: "loop"
+        }}
+        className="inline-block"
       >
-        Next Question
-      </Button>
+        <Button
+          onClick={onNextQuestion}
+          className={`
+            arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
+            border-2 border-white shadow-lg
+            ${correct ? 'bg-secondary hover:bg-opacity-90' : 'bg-danger hover:bg-opacity-90'}
+          `}
+          style={{ minWidth: "180px" }}
+        >
+          Next Question →
+        </Button>
+      </motion.div>
     </motion.div>
   );
 }

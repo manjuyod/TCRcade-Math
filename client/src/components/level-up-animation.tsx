@@ -56,10 +56,10 @@ export default function LevelUpAnimation({
       }
     }());
     
-    // Set timeout for animation complete callback
+    // Set timeout for animation complete callback - shorter duration
     const timer = setTimeout(() => {
       onAnimationComplete && onAnimationComplete();
-    }, 5000);
+    }, 2500); // Fixed animation duration of 2.5 seconds
     
     return () => clearTimeout(timer);
   }, [onAnimationComplete]);

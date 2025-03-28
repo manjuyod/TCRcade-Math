@@ -62,10 +62,10 @@ export default function StreakAnimation({
       }, 600);
     }
     
-    // Set timeout for animation complete callback
+    // Set timeout for animation complete callback - always dismiss after 2-3 seconds
     const timer = setTimeout(() => {
       onAnimationComplete && onAnimationComplete();
-    }, milestone >= 10 ? 3000 : 2000); // Longer animation for bigger milestones
+    }, 2500); // Fixed animation duration of 2.5 seconds for all streak types
     
     return () => clearTimeout(timer);
   }, [onAnimationComplete, milestone]);

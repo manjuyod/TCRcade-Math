@@ -43,10 +43,10 @@ export default function TimeAchievement({
       startVelocity: 30
     });
     
-    // Set timeout for animation complete callback
+    // Set timeout for animation complete callback - shorter duration
     const timer = setTimeout(() => {
       onAnimationComplete && onAnimationComplete();
-    }, 3000);
+    }, 2500); // Fixed shorter animation duration of 2.5 seconds
     
     return () => clearTimeout(timer);
   }, [onAnimationComplete]);
