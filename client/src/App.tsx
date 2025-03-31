@@ -16,6 +16,7 @@ import AvatarCreator from "@/components/avatar-creator";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
 import Navigation from "@/components/navigation";
+import ScrollToTop from "@/components/scroll-to-top";
 
 // Create wrapper components for advanced features
 const DailyChallengePage = () => (
@@ -107,6 +108,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ScrollToTop />
         <NavigationWrapper>
           <Router />
         </NavigationWrapper>
