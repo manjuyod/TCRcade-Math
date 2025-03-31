@@ -1285,7 +1285,17 @@ export class MemStorage implements IStorage {
     if (!user) return null;
     
     // Return the user's avatar configuration
-    return user.avatarItems || [];
+    // Make sure we return both the selected avatar items and the owned items list
+    return {
+      avatarItems: user.avatarItems || {
+        hair: 1, // Default hair
+        face: 4, // Default face
+        outfit: 7, // Default outfit
+        background: 13, // Default background
+        accessory: null
+      },
+      ownedItems: user.ownedAvatarItems || [1, 4, 7, 13] // Default items are free
+    };
   }
   
   async updateUserAvatar(userId: number, avatarData: any): Promise<User> {
@@ -1310,16 +1320,16 @@ export class MemStorage implements IStorage {
     }
     
     // Check if user already owns this item
-    const userItems = user.avatarItems || [];
-    if (userItems.includes(itemId)) {
+    const ownedItems = user.ownedAvatarItems || [1, 4, 7, 13]; // Default items are always owned
+    if (ownedItems.includes(itemId)) {
       return { success: false, message: "Item already owned" };
     }
     
-    // Update user tokens and add item to their inventory
+    // Update user tokens and add item to their owned items
     const updatedUser = { 
       ...user, 
       tokens: user.tokens - item.price,
-      avatarItems: [...userItems, itemId]
+      ownedAvatarItems: [...ownedItems, itemId]
     };
     
     this.users.set(userId, updatedUser);
@@ -1633,6 +1643,25 @@ export class MemStorage implements IStorage {
   private createDailyChallenge(date: Date): DailyChallenge {
     const id = this.currentDailyChallengeId++;
     
+    // Generate 5 random questions for the daily challenge
+    const questions: Question[] = [];
+    const questionIds: number[] = [];
+    
+    // Generate questions for different grade levels and difficulty
+    for (let i = 0; i < 5; i++) {
+      // Randomize grade level and difficulty to create variety
+      const gradeOptions = ['K', '1', '2', '3', '4', '5', '6', '7', '8'];
+      const randomGradeIndex = Math.floor(Math.random() * gradeOptions.length);
+      const grade = gradeOptions[randomGradeIndex];
+      
+      // Create a dynamic question for this slot
+      const difficulty = Math.floor(Math.random() * 5) + 1; // 1-5 scale
+      const question = this.generateDynamicQuestion(grade, difficulty);
+      
+      questions.push(question);
+      questionIds.push(question.id);
+    }
+    
     // Generate random grade-appropriate questions for each grade level
     const challenge: DailyChallenge = {
       id,
@@ -1641,7 +1670,9 @@ export class MemStorage implements IStorage {
       description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
       questionCount: 5,
       tokenReward: 20,
-      streakBonus: true
+      streakBonus: true,
+      questions: questions, // Add questions array
+      questionIds: questionIds // Add question IDs array
     };
     
     this.dailyChallenges.set(id, challenge);
@@ -1651,23 +1682,73 @@ export class MemStorage implements IStorage {
   // Seed methods
   private seedAvatarItems() {
     const avatarItems: AvatarItem[] = [
+      // Hair items
       {
         id: this.currentAvatarItemId++,
-        name: "Basic Hat",
-        description: "A simple hat for your avatar",
-        type: "hat",
-        price: 50,
+        name: "Default Hair",
+        description: "Basic hair style",
+        type: "hair",
+        price: 0,
         rarity: "common",
-        imageUrl: "/assets/avatars/basic_hat.svg"
+        imageUrl: null
       },
       {
         id: this.currentAvatarItemId++,
-        name: "Cool Glasses",
-        description: "Stylish sunglasses for your avatar",
-        type: "accessory",
-        price: 75,
+        name: "Curly Hair",
+        description: "Curly hair style",
+        type: "hair",
+        price: 50,
+        rarity: "common",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Math Genius",
+        description: "Einstein-inspired hair",
+        type: "hair",
+        price: 150,
+        rarity: "rare",
+        imageUrl: null
+      },
+      
+      // Face items
+      {
+        id: this.currentAvatarItemId++,
+        name: "Default Face",
+        description: "Standard happy face",
+        type: "face",
+        price: 0,
+        rarity: "common",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Smiling Face",
+        description: "Big smile expression",
+        type: "face",
+        price: 50,
+        rarity: "common",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Thinking Face",
+        description: "Deep in mathematical thought",
+        type: "face",
+        price: 100,
         rarity: "uncommon",
-        imageUrl: "/assets/avatars/cool_glasses.svg"
+        imageUrl: null
+      },
+      
+      // Outfit items
+      {
+        id: this.currentAvatarItemId++,
+        name: "Default Outfit",
+        description: "Basic student outfit",
+        type: "outfit",
+        price: 0,
+        rarity: "common",
+        imageUrl: null
       },
       {
         id: this.currentAvatarItemId++,
@@ -1676,25 +1757,74 @@ export class MemStorage implements IStorage {
         type: "outfit",
         price: 150,
         rarity: "rare",
-        imageUrl: "/assets/avatars/wizard_robe.svg"
+        imageUrl: null
       },
       {
         id: this.currentAvatarItemId++,
-        name: "Robot Head",
-        description: "A futuristic robot head for your avatar",
-        type: "head",
+        name: "Number Superhero",
+        description: "Superhero outfit with math symbols",
+        type: "outfit",
         price: 200,
         rarity: "epic",
-        imageUrl: "/assets/avatars/robot_head.svg"
+        imageUrl: null
+      },
+      
+      // Accessory items
+      {
+        id: this.currentAvatarItemId++,
+        name: "Math Glasses",
+        description: "Glasses with number patterns",
+        type: "accessory",
+        price: 75,
+        rarity: "uncommon",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Calculator Watch",
+        description: "A watch with calculator functionality",
+        type: "accessory",
+        price: 100,
+        rarity: "uncommon",
+        imageUrl: null
       },
       {
         id: this.currentAvatarItemId++,
         name: "Number Crown",
         description: "A crown made of numbers",
-        type: "hat",
+        type: "accessory",
         price: 300,
         rarity: "legendary",
-        imageUrl: "/assets/avatars/number_crown.svg"
+        imageUrl: null
+      },
+      
+      // Background items
+      {
+        id: this.currentAvatarItemId++,
+        name: "Default Background",
+        description: "Simple gradient background",
+        type: "background",
+        price: 0,
+        rarity: "common",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Math Chalkboard",
+        description: "Background with math equations",
+        type: "background",
+        price: 100,
+        rarity: "uncommon",
+        imageUrl: null
+      },
+      {
+        id: this.currentAvatarItemId++,
+        name: "Universe of Numbers",
+        description: "Space background with floating math symbols",
+        type: "background",
+        price: 250,
+        rarity: "epic",
+        imageUrl: null
       }
     ];
     
