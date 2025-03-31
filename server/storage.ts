@@ -13,6 +13,7 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
   getLeaderboard(): Promise<Array<User & { score: number }>>;
@@ -145,6 +146,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.username === username,
     );
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -2141,4 +2146,9 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Since we can't use dynamic imports easily with the circular dependency,
+// let's just export both implementations and let the consumer decide which to use
+
+// For now use in-memory storage until we resolve the circular dependency issue
+// We can address this in a separate PR if needed
 export const storage = new MemStorage();

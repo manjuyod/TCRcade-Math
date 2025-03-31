@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, comparePasswords, hashPassword } from "./auth";
+import { DatabaseStorage } from "./database-storage";
 import { 
   analyzeStudentResponse, 
   generateAdaptiveQuestion, 
@@ -237,8 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Find the question
-      const questions = Array.from(storage["questions"].values());
-      const question = questions.find(q => q.id === parseInt(questionId));
+      const question = await storage.getQuestion(parseInt(questionId));
       
       if (!question) {
         return res.status(404).json({ message: "Question not found" });
@@ -447,14 +447,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       // Get all users except admins
-      const users = Array.from(storage["users"].values())
+      const users = await storage.getAllUsers();
+      const filteredUsers = users
         .filter(user => !user.isAdmin)
         .map(user => ({
           ...user,
           password: undefined // Don't expose passwords
         }));
       
-      res.json(users);
+      res.json(filteredUsers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
@@ -473,7 +474,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dateRange = req.query.dateRange as string;
       
       // Get all users based on filters
-      const users = Array.from(storage["users"].values())
+      const allUsers = await storage.getAllUsers();
+      const users = allUsers
         .filter(user => !user.isAdmin)
         .filter(user => {
           // Filter by grade if specified
@@ -643,7 +645,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dateRange = req.query.dateRange as string;
       
       // Get filtered users
-      const users = Array.from(storage["users"].values())
+      const allUsers = await storage.getAllUsers();
+      const users = allUsers
         .filter(user => !user.isAdmin)
         .filter(user => {
           // Filter by grade if specified
@@ -730,7 +733,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const grade = req.query.grade as string;
       
       // Get all concept masteries from all users
-      const users = Array.from(storage["users"].values())
+      const allUsers = await storage.getAllUsers();
+      const users = allUsers
         .filter(user => !user.isAdmin)
         .filter(user => {
           // Filter by grade if specified
