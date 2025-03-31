@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   email: text("email"),
   isAdmin: boolean("is_admin").default(false).notNull(),
   grade: text("grade"),
+  lastGradeAdvancement: timestamp("last_grade_advancement"),
   tokens: integer("tokens").default(0).notNull(),
   streakDays: integer("streak_days").default(0).notNull(),
   lastActive: timestamp("last_active").defaultNow().notNull(),
@@ -198,6 +199,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   displayName: true,
   grade: true,
+  lastGradeAdvancement: true,
   initials: true,
   isAdmin: true,
 });

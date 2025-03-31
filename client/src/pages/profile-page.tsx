@@ -561,6 +561,30 @@ export default function ProfilePage() {
               {/* Account Settings Tab */}
               <TabsContent value="account" className="space-y-4 py-4">
                 <div className="space-y-4">
+                  {/* Grade Information Section */}
+                  <div className="space-y-2 border-b pb-4">
+                    <h4 className="font-medium">Grade Information</h4>
+                    <p className="text-sm text-gray-600">
+                      Current Grade: <span className="font-bold">{getGradeLabel(user?.grade || 'K')}</span>
+                    </p>
+                    
+                    {user?.lastGradeAdvancement && (
+                      <p className="text-sm text-gray-600">
+                        Last Advanced: <span className="font-medium">
+                          {new Date(user.lastGradeAdvancement).toLocaleDateString()}
+                        </span>
+                      </p>
+                    )}
+                    
+                    <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                      <h5 className="text-sm font-medium text-blue-700">About Grade Advancement</h5>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Your grade will automatically advance on July 4th each year. 
+                        Teachers and parents can also adjust your grade manually in the profile settings.
+                      </p>
+                    </div>
+                  </div>
+                  
                   {/* Email Change Section */}
                   <div className="space-y-2 border-b pb-4">
                     <h4 className="font-medium">Update Email</h4>

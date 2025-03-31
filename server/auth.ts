@@ -122,22 +122,73 @@ export function setupAuth(app: Express) {
       lastActive.getDate()
     ) : null;
     
-    if (lastActiveDay && today > lastActiveDay) {
-      // It's a new day, reset daily tokens and update streak
-      storage.updateUser(req.user.id, { 
-        dailyTokensEarned: 0,
-        streakDays: req.user.streakDays + 1,
-        lastActive: now
-      });
-    } else if (!lastActive || !lastActiveDay) {
-      // First login, initialize streak
-      storage.updateUser(req.user.id, {
-        streakDays: 1,
-        lastActive: now
-      });
+    // Updates to make to user profile
+    const updates: Partial<User> = {};
+    
+    // Check if it's July 4th (month index is 0-based, so 6 = July)
+    const isJulyFourth = now.getMonth() === 6 && now.getDate() === 4;
+    
+    // Check if user's grade needs to be advanced (only on July 4th)
+    if (isJulyFourth && req.user?.grade) {
+      const lastYear = req.user.lastGradeAdvancement ? 
+        new Date(req.user.lastGradeAdvancement).getFullYear() : 
+        null;
+      
+      // Only advance grade if it hasn't been advanced this year
+      if (!lastYear || lastYear < now.getFullYear()) {
+        const currentGrade = req.user.grade;
+        
+        // Advance to next grade level if not already at grade 12
+        if (currentGrade !== '12') {
+          let nextGrade: string;
+          
+          if (currentGrade === 'K') {
+            nextGrade = '1';
+          } else {
+            const gradeNum = parseInt(currentGrade);
+            if (!isNaN(gradeNum) && gradeNum < 12) {
+              nextGrade = String(gradeNum + 1);
+            } else {
+              nextGrade = currentGrade; // Keep the same if parsing fails
+            }
+          }
+          
+          updates.grade = nextGrade;
+          updates.lastGradeAdvancement = now;
+          
+          console.log(`Advancing user ${req.user.username} from grade ${currentGrade} to ${nextGrade}`);
+        }
+      }
     }
     
-    res.json(req.user);
+    if (lastActiveDay && today > lastActiveDay) {
+      // It's a new day, reset daily tokens and update streak
+      updates.dailyTokensEarned = 0;
+      updates.streakDays = req.user.streakDays + 1;
+      updates.lastActive = now;
+    } else if (!lastActive || !lastActiveDay) {
+      // First login, initialize streak
+      updates.streakDays = 1;
+      updates.lastActive = now;
+    }
+    
+    // Apply updates if there are any
+    if (Object.keys(updates).length > 0) {
+      storage.updateUser(req.user.id, updates)
+        .then(updatedUser => {
+          if (updatedUser) {
+            res.json(updatedUser);
+          } else {
+            res.json(req.user);
+          }
+        })
+        .catch(error => {
+          console.error("Error updating user:", error);
+          res.json(req.user);
+        });
+    } else {
+      res.json(req.user);
+    }
   });
   
   // Update user profile
