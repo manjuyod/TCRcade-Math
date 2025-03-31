@@ -39,7 +39,7 @@ export default function Navigation({ active }: NavigationProps) {
                 </button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-auto rounded-t-3xl pt-3">
-                <div className="grid grid-cols-3 gap-2 py-2">
+                <div className="flex justify-around py-2 px-1">
                   <Link href="/daily-challenge" className="flex flex-col items-center gap-1 p-1.5 rounded-lg hover:bg-gray-100">
                     <div className={`p-1.5 rounded-full ${active === 'daily-challenge' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                       <Calendar className="h-4 w-4" />

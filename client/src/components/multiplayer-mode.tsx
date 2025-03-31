@@ -568,7 +568,7 @@ export default function MultiplayerMode() {
           <TabsContent value="create" className="space-y-4 pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Create a Multiplayer Game</CardTitle>
+                <CardTitle>Create a Multiplayer Room</CardTitle>
                 <CardDescription>
                   Customize your game settings
                 </CardDescription>
@@ -719,7 +719,7 @@ export default function MultiplayerMode() {
                   {createRoomMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Create Game
+                  Create a Room
                 </Button>
               </CardFooter>
             </Card>
@@ -887,7 +887,7 @@ export default function MultiplayerMode() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button onClick={handleLeaveRoom}>Leave Game</Button>
+            <Button onClick={handleLeaveRoom}>Leave Room</Button>
           </CardFooter>
         </Card>
       );
@@ -1168,7 +1168,7 @@ export default function MultiplayerMode() {
   // Fallback to browse view
   return (
     <Button onClick={() => setView('browse')}>
-      Browse Games
+      Browse Rooms
     </Button>
   );
 }

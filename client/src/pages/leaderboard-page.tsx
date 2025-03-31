@@ -93,7 +93,7 @@ export default function LeaderboardPage() {
             <div className="p-4">
               {leaderboard.slice(3).map((entry, index) => (
                 <div key={entry.id} className="leaderboard-item flex items-center p-3 border-b border-gray-100">
-                  <span className="text-lg font-bold text-gray-500 w-10 text-center">{index + 4}</span>
+                  <span className="text-lg font-bold text-white w-10 h-10 flex items-center justify-center rounded-full bg-orange-500">{index + 4}</span>
                   <div className="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mx-3">
                     <span className="text-primary font-bold text-sm">{entry.initials}</span>
                   </div>

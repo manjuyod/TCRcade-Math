@@ -190,7 +190,7 @@ export default function SessionComplete({
             </Button>
           </Link>
           
-          <Link href="/modules">
+          <Link href="/">
             <Button 
               className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
