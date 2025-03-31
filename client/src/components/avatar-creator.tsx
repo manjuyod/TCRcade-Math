@@ -108,7 +108,7 @@ export default function AvatarCreator() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState('hair');
-  const [currentAvatar, setCurrentAvatar] = useState<Record<string, string | number>>({
+  const [currentAvatar, setCurrentAvatar] = useState<Record<string, string | number | null>>({
     hair: 'default',
     face: 'default',
     outfit: 'default',
@@ -196,10 +196,20 @@ export default function AvatarCreator() {
   // Initialize avatar from user data
   useEffect(() => {
     if (userAvatar && !isLoadingUserAvatar) {
-      setCurrentAvatar(prev => ({
-        ...prev,
-        ...userAvatar.avatarItems
-      }));
+      // If avatar data exists and has the proper structure
+      if (userAvatar.avatarItems && typeof userAvatar.avatarItems === 'object') {
+        // Create a new object with the user's avatar items
+        const newAvatarConfig = { ...currentAvatar };
+        
+        // Update each avatar type (hair, face, outfit, etc.)
+        if (userAvatar.avatarItems.hair) newAvatarConfig.hair = userAvatar.avatarItems.hair;
+        if (userAvatar.avatarItems.face) newAvatarConfig.face = userAvatar.avatarItems.face;
+        if (userAvatar.avatarItems.outfit) newAvatarConfig.outfit = userAvatar.avatarItems.outfit;
+        if (userAvatar.avatarItems.background) newAvatarConfig.background = userAvatar.avatarItems.background;
+        if (userAvatar.avatarItems.accessory) newAvatarConfig.accessory = userAvatar.avatarItems.accessory;
+        
+        setCurrentAvatar(newAvatarConfig);
+      }
     }
   }, [userAvatar, isLoadingUserAvatar]);
 
@@ -232,13 +242,28 @@ export default function AvatarCreator() {
 
   // Check if user owns an item
   const userOwnsItem = (item: AvatarItem) => {
-    if (!userAvatar || !userAvatar.ownedItems) return item.price === 0; // Default items are free
-    return userAvatar.ownedItems.includes(item.id);
+    // Default items (price 0) are always owned
+    if (item.price === 0) return true;
+    
+    // Check if item exists in userAvatar's unlocks array
+    if (!userAvatar || !userAvatar.avatarItems || !userAvatar.avatarItems.unlocks) {
+      return false;
+    }
+    
+    const unlocks = userAvatar.avatarItems.unlocks;
+    // Check if item ID exists in unlocks array (as number or string)
+    return unlocks.includes(item.id) || unlocks.includes(item.id.toString());
   };
 
   // Check if item is currently selected
   const isItemSelected = (item: AvatarItem) => {
-    return currentAvatar[item.type] === item.id;
+    if (!currentAvatar || typeof currentAvatar !== 'object') return false;
+    
+    // Convert both to string for comparison to handle both number and string types
+    const selectedItemId = currentAvatar[item.type];
+    return selectedItemId !== null && 
+           selectedItemId !== undefined && 
+           selectedItemId.toString() === item.id.toString();
   };
 
   // Handle save button click

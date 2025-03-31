@@ -1286,15 +1286,41 @@ export class MemStorage implements IStorage {
     
     // Return the user's avatar configuration
     // Make sure we return both the selected avatar items and the owned items list
+    const defaultAvatarItems = {
+      hair: 1, // Default hair
+      face: 4, // Default face
+      outfit: 7, // Default outfit
+      background: 13, // Default background
+      accessory: null
+    };
+    
+    // Convert any string IDs to numbers for consistency
+    let userAvatarItems = user.avatarItems || defaultAvatarItems;
+    if (typeof userAvatarItems === 'object') {
+      Object.keys(userAvatarItems).forEach(key => {
+        if (key !== 'accessory' && userAvatarItems[key] !== null) {
+          if (typeof userAvatarItems[key] === 'string' && userAvatarItems[key] !== 'default') {
+            userAvatarItems[key] = parseInt(userAvatarItems[key], 10);
+          } else if (userAvatarItems[key] === 'default') {
+            // Map default string values to their corresponding IDs
+            if (key === 'hair') userAvatarItems[key] = 1;
+            if (key === 'face') userAvatarItems[key] = 4;
+            if (key === 'outfit') userAvatarItems[key] = 7;
+            if (key === 'background') userAvatarItems[key] = 13;
+          }
+        }
+      });
+    }
+    
+    // Ensure ownedItems exists and includes default items
+    const defaultOwnedItems = [1, 4, 7, 13]; // Default items are free
+    const ownedItems = user.ownedAvatarItems 
+      ? [...new Set([...user.ownedAvatarItems, ...defaultOwnedItems])] 
+      : defaultOwnedItems;
+    
     return {
-      avatarItems: user.avatarItems || {
-        hair: 1, // Default hair
-        face: 4, // Default face
-        outfit: 7, // Default outfit
-        background: 13, // Default background
-        accessory: null
-      },
-      ownedItems: user.ownedAvatarItems || [1, 4, 7, 13] // Default items are free
+      avatarItems: userAvatarItems,
+      ownedItems: ownedItems
     };
   }
   
@@ -1320,16 +1346,35 @@ export class MemStorage implements IStorage {
     }
     
     // Check if user already owns this item
-    const ownedItems = user.ownedAvatarItems || [1, 4, 7, 13]; // Default items are always owned
-    if (ownedItems.includes(itemId)) {
+    // Get owned items from avatarItems.unlocks array or create new array with default items
+    let avatarItemsObj = user.avatarItems || {};
+    if (typeof avatarItemsObj !== 'object') {
+      avatarItemsObj = {};
+    }
+    
+    // Initialize unlocks array if it doesn't exist
+    if (!avatarItemsObj.unlocks) {
+      avatarItemsObj.unlocks = ['default'];
+    }
+    
+    const unlocks = Array.isArray(avatarItemsObj.unlocks) ? 
+      avatarItemsObj.unlocks : ['default'];
+    
+    // Check if user already owns this item (either as a string or number)
+    if (unlocks.includes(itemId) || unlocks.includes(itemId.toString())) {
       return { success: false, message: "Item already owned" };
     }
     
     // Update user tokens and add item to their owned items
+    const updatedAvatarItems = {
+      ...avatarItemsObj,
+      unlocks: [...unlocks, itemId]
+    };
+    
     const updatedUser = { 
       ...user, 
       tokens: user.tokens - item.price,
-      ownedAvatarItems: [...ownedItems, itemId]
+      avatarItems: updatedAvatarItems
     };
     
     this.users.set(userId, updatedUser);
