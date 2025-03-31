@@ -133,9 +133,11 @@ export default function DailyChallengeComponent() {
     } else {
       // Challenge complete, submit results
       if (challenge?.challenge) {
+        // Include current question if correct
+        const finalScore = feedbackData?.correct ? score + 1 : score;
         completeMutation.mutate({
           challengeId: challenge.challenge.id,
-          score: score + (feedbackData?.correct ? 1 : 0) // Include current question if correct
+          score: finalScore
         });
       }
     }
