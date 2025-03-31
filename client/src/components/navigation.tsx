@@ -14,7 +14,7 @@ export default function Navigation({ active }: NavigationProps) {
   const isAdvancedFeatureActive = ['daily-challenge', 'math-stories', 'avatar', 'multiplayer', 'analytics'].includes(active);
   
   return (
-    <nav className="bg-white shadow-lg py-3 px-4 border-t-2 border-gray-100 fixed bottom-0 left-0 right-0 z-50 print:hidden">
+    <nav className="bg-white shadow-xl py-3 px-4 border-t-2 border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden">
       <div className="container mx-auto">
         <ul className="flex justify-around items-center">
           <li className="flex flex-col items-center">

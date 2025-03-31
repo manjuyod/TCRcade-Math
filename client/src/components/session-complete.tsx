@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { playSound, stopAllSounds } from '@/lib/sounds';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,57 +40,63 @@ export default function SessionComplete({
     }
   }, [isPerfectScore, user]);
   
+  // Add state to manage cleanup
+  const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  
   // Play celebration sound and trigger confetti on mount
   useEffect(() => {
-    // Play celebration sound based on performance
-    if (isPerfectScore) {
-      // Play special perfect score sound for perfect sessions
-      playSound('perfectScore');
-    } else {
-      // Play regular session complete sound
-      playSound('sessionComplete');
-    }
+    // Don't do anything if we already triggered confetti (avoid multiple triggers)
+    if (hasTriggeredConfetti) return;
     
-    // Trigger confetti animation - simplified to prevent crashes
-    if (isPerfectScore) {
-      // Just do a single burst for perfect scores to prevent crashes
-      confetti({
-        particleCount: 100,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: ['#FFD700', '#FFA500', '#FF6347', '#9370DB'],
-      });
+    try {
+      // Play celebration sound based on performance
+      if (isPerfectScore) {
+        // Play special perfect score sound for perfect sessions
+        playSound('perfectScore');
+      } else {
+        // Play regular session complete sound
+        playSound('sessionComplete');
+      }
       
-      // Second burst with slight delay
-      setTimeout(() => {
+      // Trigger confetti animation - VERY limited to prevent crashes
+      if (isPerfectScore) {
+        // Drastically reduced particle count for perfect scores to prevent crashes
         confetti({
-          particleCount: 50,
-          angle: 90,
-          spread: 70,
-          origin: { x: 0.5, y: 0.5 },
-          colors: ['#FFD700', '#FFA500']
+          particleCount: 25, // Reduced from 100
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#9370DB'],
+          disableForReducedMotion: true
         });
-      }, 300);
-    } else {
-      // Single burst for normal completion
-      confetti({
-        particleCount: 75,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-    
-    // Cleanup any running confetti after 2 seconds to prevent crashes
-    return () => {
-      // This will stop any continuous confetti animations
-      setTimeout(() => {
-        // Stop any remaining confetti
+      } else {
+        // Even more limited single burst for normal completion
+        confetti({
+          particleCount: 15, // Reduced from 75
+          spread: 60,
+          origin: { y: 0.6 },
+          disableForReducedMotion: true
+        });
+      }
+      
+      // Mark that we've triggered confetti to prevent double-triggering
+      setHasTriggeredConfetti(true);
+      
+      // Force confetti cleanup after 1 second
+      const confettiCleanup = setTimeout(() => {
         confetti.reset();
-        // Stop any playing sounds
+      }, 1000);
+      
+      // Return cleanup function
+      return () => {
+        clearTimeout(confettiCleanup);
+        confetti.reset();
         stopAllSounds();
-      }, 2000);
-    };
-  }, [isPerfectScore]);
+      };
+    } catch (e) {
+      console.error("Error in session complete animation:", e);
+      return () => {};
+    }
+  }, [isPerfectScore, hasTriggeredConfetti]);
 
   return (
     <motion.div
