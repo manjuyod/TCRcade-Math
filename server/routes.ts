@@ -1,8 +1,15 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
-import { analyzeStudentResponse } from "./openai";
+import { setupAuth, comparePasswords, hashPassword } from "./auth";
+import { 
+  analyzeStudentResponse, 
+  generateAdaptiveQuestion, 
+  predictStudentPerformance,
+  generateConceptMap,
+  generateMathTimeline,
+  generateAchievements
+} from "./openai";
 
 // Helper function to get concept information
 const getConceptInfo = (concept: string) => {
@@ -873,6 +880,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get user's current avatar
+  // Update user's email
+  app.patch("/api/user/email", ensureAuthenticated, async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
+      // Update the user's email
+      const updatedUser = await storage.updateUser(req.user!.id, { email });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return the updated user
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating email:", error);
+      res.status(500).json({ error: "Failed to update email" });
+    }
+  });
+  
+  // Update user's password
+  app.patch("/api/user/password", ensureAuthenticated, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+      
+      // Check if the current password is correct
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Verify current password (this would use the comparePasswords function from auth.ts)
+      const isPasswordValid = await comparePasswords(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the password
+      const updatedUser = await storage.updateUser(req.user!.id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "Failed to update password" });
+      }
+      
+      res.json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ error: "Failed to update password" });
+    }
+  });
+  
+  // Get user's avatar
   app.get("/api/user/avatar", ensureAuthenticated, async (req, res) => {
     try {
       const avatar = await storage.getUserAvatar(req.user!.id);
@@ -1630,6 +1706,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
 
+
+  // AI-powered features
+  
+  // Generate adaptive questions using GPT-4
+  app.post('/api/questions/generate', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade, interests, concepts, strengths, weaknesses, learningStyle } = req.body;
+      const studentContext = {
+        grade: grade || req.user!.grade || 'K',
+        interests,
+        recentConcepts: concepts,
+        strengths,
+        weaknesses,
+        learningStyle
+      };
+      
+      // Use the OpenAI integration to generate a question
+      const generatedQuestion = await generateAdaptiveQuestion(studentContext);
+      
+      // Return the generated question
+      res.json(generatedQuestion);
+    } catch (error) {
+      console.error('Error generating AI question:', error);
+      res.status(500).json({ error: 'Failed to generate question' });
+    }
+  });
+  
+  // Generate a math concept map
+  app.get('/api/ai/concept-map', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade, concept } = req.query;
+      if (!grade) {
+        return res.status(400).json({ error: 'Grade level is required' });
+      }
+      
+      const conceptMap = await generateConceptMap(grade as string, concept as string);
+      res.json(conceptMap);
+    } catch (error) {
+      console.error('Error generating concept map:', error);
+      res.status(500).json({ error: 'Failed to generate concept map' });
+    }
+  });
+  
+  // Generate a math timeline for a concept
+  app.get('/api/ai/math-timeline', ensureAuthenticated, async (req, res) => {
+    try {
+      const { concept, grade } = req.query;
+      if (!concept || !grade) {
+        return res.status(400).json({ error: 'Concept and grade level are required' });
+      }
+      
+      const timeline = await generateMathTimeline(concept as string, grade as string);
+      res.json(timeline);
+    } catch (error) {
+      console.error('Error generating math timeline:', error);
+      res.status(500).json({ error: 'Failed to generate math timeline' });
+    }
+  });
+  
+  // Generate game achievements for a grade level
+  app.get('/api/ai/achievements', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade } = req.query;
+      const concepts = (req.query.concepts as string || '').split(',').filter(c => c.trim());
+      
+      if (!grade) {
+        return res.status(400).json({ error: 'Grade level is required' });
+      }
+      
+      const achievements = await generateAchievements(grade as string, concepts);
+      res.json(achievements);
+    } catch (error) {
+      console.error('Error generating achievements:', error);
+      res.status(500).json({ error: 'Failed to generate achievements' });
+    }
+  });
+  
+  // Predict student performance (requires authentication)
+  app.get('/api/ai/predict-performance', ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get the user's concept mastery data
+      const conceptData = await storage.getUserConceptMasteries(userId);
+      
+      // Get the user's progress data
+      const progressData = await storage.getUserProgress(userId);
+      
+      // Generate performance predictions
+      const predictions = await predictStudentPerformance(userId, conceptData, progressData);
+      res.json(predictions);
+    } catch (error) {
+      console.error('Error predicting student performance:', error);
+      res.status(500).json({ error: 'Failed to predict performance' });
+    }
+  });
 
   return httpServer;
 }

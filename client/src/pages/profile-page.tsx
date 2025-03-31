@@ -39,6 +39,12 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [grade, setGrade] = useState(user?.grade || 'K');
   
+  // Email and password change fields
+  const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   // Fetch user progress
   const { data: progressData, isLoading } = useQuery<UserProgress[]>({
     queryKey: ['/api/progress'],
@@ -106,6 +112,65 @@ export default function ProfilePage() {
     }
   });
   
+  // Mutation to update email
+  const updateEmailMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const response = await apiRequest('PATCH', '/api/user/email', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update email');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Email updated successfully',
+        description: 'Your email address has been updated.',
+      });
+      setShowSettings(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error updating email',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Mutation to update password
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (data: { 
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const response = await apiRequest('PATCH', '/api/user/password', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update password');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Password updated successfully',
+        description: 'Your password has been changed. Please use your new password next time you login.',
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowSettings(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error updating password',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
   if (!user) return null;
   
   const handleLogout = () => {
@@ -136,6 +201,75 @@ export default function ProfilePage() {
       learningStyle: style,
       strengths: user.strengthConcepts || [],
       weaknesses: user.weaknessConcepts || []
+    });
+  };
+  
+  // Handle email update
+  const handleUpdateEmail = () => {
+    if (!email.trim()) {
+      toast({
+        title: "Error",
+        description: "Email cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateEmailMutation.mutate({ email });
+  };
+  
+  // Handle password update
+  const handleUpdatePassword = () => {
+    if (!currentPassword) {
+      toast({
+        title: "Error",
+        description: "Current password is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!newPassword) {
+      toast({
+        title: "Error",
+        description: "New password is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updatePasswordMutation.mutate({
+      currentPassword,
+      newPassword
     });
   };
   
@@ -268,10 +402,11 @@ export default function ProfilePage() {
             </DialogHeader>
             
             <Tabs defaultValue="profile">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
                 <TabsTrigger value="interests">Interests</TabsTrigger>
                 <TabsTrigger value="learning">Learning Style</TabsTrigger>
+                <TabsTrigger value="account">Account</TabsTrigger>
               </TabsList>
               
               {/* Profile Settings Tab */}
@@ -419,6 +554,78 @@ export default function ProfilePage() {
                         Reading/Writing
                       </Button>
                     </div>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              {/* Account Settings Tab */}
+              <TabsContent value="account" className="space-y-4 py-4">
+                <div className="space-y-4">
+                  {/* Email Change Section */}
+                  <div className="space-y-2 border-b pb-4">
+                    <h4 className="font-medium">Update Email</h4>
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleUpdateEmail}
+                      className="mt-2"
+                      disabled={updateEmailMutation.isPending}
+                    >
+                      {updateEmailMutation.isPending ? "Updating..." : "Update Email"}
+                    </Button>
+                  </div>
+                  
+                  {/* Password Change Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Change Password</h4>
+                    <div className="space-y-2">
+                      <label htmlFor="currentPassword" className="text-sm font-medium">Current Password</label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter your current password"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="newPassword" className="text-sm font-medium">New Password</label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter your new password"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm your new password"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleUpdatePassword}
+                      className="mt-4 w-full"
+                      disabled={updatePasswordMutation.isPending}
+                      variant="outline"
+                    >
+                      {updatePasswordMutation.isPending ? "Updating..." : "Change Password"}
+                    </Button>
                   </div>
                 </div>
               </TabsContent>

@@ -19,6 +19,7 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Please enter a valid email address").optional(),
   displayName: z.string().optional(),
   grade: z.string().min(1, "Please select a grade"),
   initials: z.string().length(3, "Initials must be exactly 3 letters").toUpperCase().optional()
@@ -49,6 +50,7 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+      email: "",
       displayName: "",
       grade: "K",
       initials: ""
@@ -182,6 +184,25 @@ export default function AuthPage() {
                     
                     <FormField
                       control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address (optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                              placeholder="Your email address"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={registerForm.control}
                       name="displayName"
                       render={({ field }) => (
                         <FormItem>
@@ -217,6 +238,12 @@ export default function AuthPage() {
                                 <option value="4">Grade 4</option>
                                 <option value="5">Grade 5</option>
                                 <option value="6">Grade 6</option>
+                                <option value="7">Grade 7</option>
+                                <option value="8">Grade 8</option>
+                                <option value="9">Grade 9</option>
+                                <option value="10">Grade 10</option>
+                                <option value="11">Grade 11</option>
+                                <option value="12">Grade 12</option>
                               </select>
                             </FormControl>
                             <FormMessage />
