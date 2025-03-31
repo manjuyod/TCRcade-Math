@@ -14,17 +14,17 @@ export default function Navigation({ active }: NavigationProps) {
   const isAdvancedFeatureActive = ['daily-challenge', 'avatar', 'multiplayer', 'analytics'].includes(active);
   
   return (
-    <nav className="bg-white shadow-xl py-0.5 px-4 border-t border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden">
+    <nav className="bg-white shadow-xl py-0 px-4 border-t border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden">
       <div className="container mx-auto">
-        <ul className="flex justify-around items-center">
+        <ul className="flex justify-around items-center h-[40px]">
           <li className="flex flex-col items-center">
-            <Link href="/modules" className={`p-1.5 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link href="/modules" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
               <Home className={`${active === 'home' ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'home' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Home</span>
           </li>
           <li className="flex flex-col items-center">
-            <Link href="/" className={`p-1.5 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'play' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link href="/" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'play' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
               <GamepadIcon className={`${active === 'play' ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'play' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Play</span>
@@ -34,7 +34,7 @@ export default function Navigation({ active }: NavigationProps) {
           <li className="flex flex-col items-center">
             <Sheet>
               <SheetTrigger asChild>
-                <button className={`p-1.5 rounded-full transition-all duration-200 transform hover:scale-110 ${isAdvancedFeatureActive ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+                <button className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${isAdvancedFeatureActive ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
                   <Menu className={`${isAdvancedFeatureActive ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />
                 </button>
               </SheetTrigger>
@@ -74,14 +74,14 @@ export default function Navigation({ active }: NavigationProps) {
           </li>
           
           <li className="flex flex-col items-center">
-            <Link href="/leaderboard" className={`p-1.5 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link href="/leaderboard" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
               <Trophy className={`${active === 'leaderboard' ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'leaderboard' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Leaderboard</span>
           </li>
           
           <li className="flex flex-col items-center">
-            <Link href="/profile" className={`p-1.5 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link href="/profile" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
               <User className={`${active === 'profile' ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'profile' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Profile</span>

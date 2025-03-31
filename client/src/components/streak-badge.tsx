@@ -11,15 +11,15 @@ export function StreakBadge({
 }: StreakBadgeProps) {
   // Define sizes based on the size prop
   const dimensions = {
-    sm: 'h-8 w-8',
-    md: 'h-12 w-12',
-    lg: 'h-16 w-16'
+    sm: 'h-7 w-7',
+    md: 'h-9 w-9',
+    lg: 'h-12 w-12'
   };
   
   const fontSizes = {
-    sm: 'text-sm',
-    md: 'text-lg',
-    lg: 'text-2xl'
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-lg'
   };
   
   return (
@@ -30,7 +30,7 @@ export function StreakBadge({
       <span className={`text-white font-bold ${fontSizes[size]}`}>
         {streakDays}
       </span>
-      <span className="text-[8px] text-white absolute bottom-1 leading-none px-1">
+      <span className="text-[7px] text-white absolute bottom-0.5 leading-none px-1">
         {streakDays === 1 ? 'day' : 'days'}
       </span>
     </motion.div>
