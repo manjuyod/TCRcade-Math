@@ -12,7 +12,6 @@ import ModulesPage from "@/pages/modules-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import DailyChallengeComponent from "@/components/daily-challenge";
-import MathStorytelling from "@/components/math-storytelling";
 import AvatarCreator from "@/components/avatar-creator";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
@@ -28,14 +27,7 @@ const DailyChallengePage = () => (
   </div>
 );
 
-const MathStoriesPage = () => (
-  <div className="flex flex-col min-h-screen">
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Math Storytelling</h1>
-      <MathStorytelling />
-    </div>
-  </div>
-);
+
 
 const AvatarPage = () => (
   <div className="flex flex-col min-h-screen">
@@ -73,7 +65,6 @@ function Router() {
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <ProtectedRoute path="/daily-challenge" component={DailyChallengePage} />
-      <ProtectedRoute path="/math-stories" component={MathStoriesPage} />
       <ProtectedRoute path="/avatar" component={AvatarPage} />
       <ProtectedRoute path="/multiplayer" component={MultiplayerPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
@@ -94,7 +85,6 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location === '/profile') return 'profile';
     if (location === '/leaderboard') return 'leaderboard';
     if (location.includes('/daily-challenge')) return 'daily-challenge';
-    if (location.includes('/math-stories')) return 'math-stories';
     if (location.includes('/avatar')) return 'avatar';
     if (location.includes('/multiplayer')) return 'multiplayer';
     if (location.includes('/analytics')) return 'analytics';
