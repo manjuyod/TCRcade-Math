@@ -16,7 +16,7 @@ export default function Navigation({ active }: NavigationProps) {
   return (
     <nav className="bg-white shadow-xl py-0 px-4 border-t border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden">
       <div className="container mx-auto">
-        <ul className="flex justify-around items-center h-[40px]">
+        <ul className="flex justify-around items-end h-[32px] pb-0.5">
           <li className="flex flex-col items-center">
             <Link href="/modules" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
               <Home className={`${active === 'home' ? 'h-4 w-4' : 'h-3.5 w-3.5'}`} />

@@ -10,24 +10,24 @@ export default function Header() {
   if (!user) return null;
   
   return (
-    <header className="bg-white shadow-sm py-1 px-4 sticky top-0 z-10">
-      <div className="container mx-auto flex justify-between items-center h-[35px]">
+    <header className="bg-white shadow-sm py-2 px-4 sticky top-0 z-10">
+      <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Link href="/modules" className="h-7 cursor-pointer">
+          <Link href="/modules" className="h-8 cursor-pointer">
             <img src={tcLogo} alt="Tutoring Club Logo" className="h-full" />
           </Link>
           <span className="text-lg font-bold text-primary hidden sm:block">tcRCADE</span>
         </div>
         
         <div className="flex items-center">
-          <div className="flex items-center mr-2">
+          <div className="flex items-center mr-3">
             <div className="flex items-center bg-amber-100 rounded-full px-2 py-0.5">
               <Coins className="h-3 w-3 text-amber-700 mr-1" />
-              <span className="font-bold text-amber-700 text-xs">{user.tokens}</span>
+              <span className="font-bold text-amber-700">{user.tokens}</span>
             </div>
           </div>
           
-          <StreakBadge streakDays={user.streakDays} />
+          <StreakBadge streakDays={user.streakDays} size="sm" />
         </div>
       </div>
     </header>

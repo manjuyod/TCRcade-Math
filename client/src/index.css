@@ -10,17 +10,17 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     /* Add padding to the bottom of all pages to make room for the fixed navigation bar */
-    padding-bottom: 6rem; /* Increased padding for the fixed nav bar */
+    padding-bottom: 3.5rem; /* Reduced padding for the fixed nav bar */
   }
   
   /* Additional padding for containers near the bottom of the page */
   .container {
-    padding-bottom: 5rem;
+    padding-bottom: 2.5rem;
   }
   
   /* Add specific classes for pages with long scrollable content */
   .page-with-nav {
-    padding-bottom: 6rem !important;
+    padding-bottom: 3.5rem !important;
   }
 }
 
