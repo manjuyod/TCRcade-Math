@@ -21,6 +21,7 @@ import {
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/progress-bar';
+import { useSessionTimer } from '@/hooks/use-session-timer';
 
 // Mini-game module types
 enum GameType {
@@ -45,10 +46,11 @@ interface Module {
 export default function ModulesPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { minutesPlayed, progressPercentage, dailyGoal } = useSessionTimer();
   
   // Stats for the dashboard
   const userStats = {
-    minutesPlayed: 15, // Default to 15 minutes (mock value since we don't have dailyEngagementMinutes property)
+    minutesPlayed: minutesPlayed, // Use real-time session data
     totalTokens: user?.tokens || 0,
     totalCorrect: user?.correctAnswers || 0,
     totalQuestions: user?.questionsAnswered || 0, 
@@ -58,9 +60,8 @@ export default function ModulesPage() {
   // Active game filter
   const [activeFilter, setActiveFilter] = useState<string>('all');
   
-  // Daily goal progress
-  const dailyTimeGoal = 20; // minutes
-  const timeProgress = Math.min(100, ((userStats.minutesPlayed || 0) / dailyTimeGoal) * 100);
+  // Use the progress percentage from the timer hook
+  const timeProgress = progressPercentage;
   
   // Game modules list (these would come from API in a real implementation)
   const modules: Module[] = [
@@ -254,7 +255,7 @@ export default function ModulesPage() {
             <div className="mt-2">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-600">Daily Goal</span>
-                <span className="text-xs font-medium">{Math.floor(userStats.minutesPlayed)}/{dailyTimeGoal} min</span>
+                <span className="text-xs font-medium">{Math.floor(userStats.minutesPlayed)}/{dailyGoal} min</span>
               </div>
               <ProgressBar progress={timeProgress} height={10} />
             </div>

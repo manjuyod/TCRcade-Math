@@ -27,55 +27,54 @@ export default function StreakAnimation({
       playSound('streak');
     }
     
-    // Create confetti animation with intensity based on milestone
-    const particleMultiplier = milestone >= 10 ? 3 : milestone >= 5 ? 2 : 1;
+    // Create confetti animation with limited intensity to prevent crashes
+    // For all milestone levels, use a safe amount of particles
+    const safeParticleCount = Math.min(30, milestone >= 10 ? 30 : milestone >= 5 ? 25 : 20);
     
     confetti({
-      particleCount: 50 * particleMultiplier,
-      spread: 45 + (milestone * 2),
+      particleCount: safeParticleCount,
+      spread: 45,
       origin: { y: 0.6, x: 0.5 },
       colors: ['#FFD700', '#FFA500', '#FF4500', '#4CAF50', '#2196F3'],
       angle: 90,
-      startVelocity: 25 + milestone
+      startVelocity: 20
     });
     
-    // For higher milestones, add extra confetti bursts
+    // For higher milestones, add just one extra burst with limited particles
     if (milestone >= 5) {
       setTimeout(() => {
         confetti({
-          particleCount: 30 * particleMultiplier,
-          spread: 70,
+          particleCount: safeParticleCount,
+          spread: 60,
           origin: { y: 0.7, x: 0.3 },
           angle: 120,
-          startVelocity: 35
+          startVelocity: 20
         });
       }, 300);
-      
-      setTimeout(() => {
-        confetti({
-          particleCount: 30 * particleMultiplier,
-          spread: 70,
-          origin: { y: 0.7, x: 0.7 },
-          angle: 60,
-          startVelocity: 35
-        });
-      }, 600);
     }
     
-    // IMPORTANT: Animation MUST auto-dismiss after no more than 3 seconds, regardless of user interaction
+    // CRITICAL: Ensure animation auto-dismisses after 3 seconds max
     const timer = setTimeout(() => {
       // Stop any remaining confetti
       confetti.reset();
       // Stop any sounds before completing the animation
       stopAllSounds();
       if (onAnimationComplete) onAnimationComplete();
-    }, 2000); // Fixed shorter animation duration of 2 seconds for all streak types
+    }, 3000); // 3 second max animation duration for all streak types
     
-    // Clear confetti, sounds, and timer on unmount/cleanup
+    // Set a backup timer in case the primary one fails
+    const backupTimer = setTimeout(() => {
+      confetti.reset();
+      stopAllSounds();
+      if (onAnimationComplete) onAnimationComplete();
+    }, 3500); // Backup timer 0.5 seconds after primary
+    
+    // Clear confetti, sounds, and timers on unmount/cleanup
     return () => {
       confetti.reset();
       stopAllSounds();
       clearTimeout(timer);
+      clearTimeout(backupTimer);
     };
   }, [onAnimationComplete, milestone]);
 

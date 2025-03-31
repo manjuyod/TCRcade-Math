@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { useSessionTimer } from '@/hooks/use-session-timer';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import QuestionCard from '@/components/question-card';
@@ -24,6 +25,7 @@ import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, Che
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { minutesPlayed, displayMinutes, progressPercentage, dailyGoal } = useSessionTimer();
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
   const [feedbackData, setFeedbackData] = useState<{
     correct: boolean;
@@ -89,91 +91,56 @@ export default function HomePage() {
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const sessionSize = 5; // Size of a question session (changed from 20 to 5)
   
-  // Daily time tracking (in minutes)
-  const [dailyTimeSpent, setDailyTimeSpent] = useState<number>(0);
-  const dailyTimeGoal = 20; // 20 minutes goal
+  // Using TIME_MILESTONES defined above for achievements
   
-  // Time tracking reference for actual duration
-  const startTimeRef = useRef<Date | null>(null);
+  // Reference for user activity
   const lastActivityTimeRef = useRef<Date>(new Date());
-  const lastDateRef = useRef<string>(new Date().toDateString());
   
   // Preload sounds when component mounts
   useEffect(() => {
     preloadSounds();
-    
-    // Initialize time tracking when component mounts
-    if (!startTimeRef.current) {
-      startTimeRef.current = new Date();
-    }
-    
-    // Set up time tracking interval
-    const timeTrackingInterval = setInterval(() => {
-      // Only count time if user is active (within last 2 minutes)
-      const now = new Date();
-      const todayDateString = now.toDateString();
+
+    // Set up effect to check for time milestone achievements (5, 10, 15, 20 minutes)
+    const checkMilestones = () => {
+      // Previous minute value stored in the ref
+      const prevMinute = Math.floor(lastCheckedMinuteRef.current);
+      // Current minute from the timer hook
+      const currentMinute = displayMinutes;
       
-      // Check if the date has changed (a new day has started)
-      if (todayDateString !== lastDateRef.current) {
-        console.log("New day detected, resetting daily time counter");
-        setDailyTimeSpent(0);
-        lastDateRef.current = todayDateString;
-        
-        // If user data exists, also reset their daily engagement time
-        if (user) {
-          queryClient.setQueryData(['/api/user'], {
-            ...user,
-            dailyEngagementMinutes: 0
-          });
-        }
-      }
-      
-      const timeSinceLastActivity = now.getTime() - lastActivityTimeRef.current.getTime();
-      const userIsActive = timeSinceLastActivity < 2 * 60 * 1000; // 2 minutes inactivity threshold
-      
-      if (userIsActive) {
-        // Increment time in minutes (1/60 minute = 1 second)
-        setDailyTimeSpent(prev => {
-          const newValue = Math.min(prev + (1/60), dailyTimeGoal); // Update every second, convert to minutes
-          return newValue;
-        });
-        
-        // Update user's engagement time in database every 10 seconds to ensure UI updates
-        // This is more frequent than originally designed but ensures the timer display updates properly
-        if (user && now.getSeconds() % 10 === 0) {
-          const updatedEngagementTime = Math.min(dailyTimeSpent + (1/60), dailyTimeGoal);
-          queryClient.setQueryData(['/api/user'], {
-            ...user,
-            dailyEngagementMinutes: updatedEngagementTime
-          });
+      // Only trigger achievement once per milestone
+      if (prevMinute !== currentMinute && TIME_MILESTONES.includes(currentMinute)) {
+        // Trigger time milestone celebration
+        setTimeAchievement(currentMinute);
+        setTimeout(() => {
+          setShowTimeAchievement(true);
           
-          // Check for time milestone achievements (5, 10, 15, 20 minutes)
-          const previousMinute = Math.floor(dailyTimeSpent);
-          const currentMinute = Math.floor(updatedEngagementTime);
-          
-          if (previousMinute !== currentMinute && [5, 10, 15, 20].includes(currentMinute)) {
-            // Trigger time milestone celebration
-            setTimeAchievement(currentMinute);
-            setTimeout(() => {
-              setShowTimeAchievement(true);
-              
-              // Add bonus tokens for time milestone
-              if (user) {
-                const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
-                queryClient.setQueryData(['/api/user'], {
-                  ...user,
-                  tokens: user.tokens + bonusTokens
-                });
-              }
-            }, 500);
+          // Add bonus tokens for time milestone
+          if (user) {
+            const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
+            queryClient.setQueryData(['/api/user'], {
+              ...user,
+              tokens: user.tokens + bonusTokens
+            });
           }
-        }
+        }, 500);
       }
-    }, 1000); // Update every second
+      
+      // Update the last checked minute
+      lastCheckedMinuteRef.current = currentMinute;
+    };
+    
+    // Create interval to periodically check milestones
+    const milestoneInterval = setInterval(checkMilestones, 5000); // Check every 5 seconds
+    
+    // Initial check
+    checkMilestones();
     
     // Clean up interval on unmount
-    return () => clearInterval(timeTrackingInterval);
-  }, [dailyTimeGoal]);
+    return () => clearInterval(milestoneInterval);
+  }, [displayMinutes, user]);
+  
+  // Reference to track the last minute we checked for milestones
+  const lastCheckedMinuteRef = useRef<number>(0);
   
   // Track the need for dynamic questions
   const [forceDynamic, setForceDynamic] = useState<boolean>(false);
@@ -390,8 +357,7 @@ export default function HomePage() {
     }, 100);
   };
   
-  // Calculate daily goal progress based on time
-  const timeProgress = Math.min(100, (dailyTimeSpent / dailyTimeGoal) * 100);
+  // Using progress percentage from the timer hook instead of manual calculation
   
   // Check if current question has already been answered in this session
   useEffect(() => {
@@ -418,10 +384,10 @@ export default function HomePage() {
             <h2 className="text-lg font-bold text-dark">Daily Goal</h2>
             <span className="text-primary font-bold flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {Math.floor(dailyTimeSpent)}/{dailyTimeGoal} minutes
+              {displayMinutes}/{dailyGoal} minutes
             </span>
           </div>
-          <ProgressBar progress={timeProgress} />
+          <ProgressBar progress={progressPercentage} />
         </div>
         
         {/* Advanced features showcase */}

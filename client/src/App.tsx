@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,6 +16,7 @@ import MathStorytelling from "@/components/math-storytelling";
 import AvatarCreator from "@/components/avatar-creator";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
+import Navigation from "@/components/navigation";
 
 // Create wrapper components for advanced features
 const DailyChallengePage = () => (
@@ -82,11 +83,43 @@ function Router() {
   );
 }
 
+// Navigation wrapper to ensure footer navigation appears on all pages
+const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [location] = useLocation();
+  
+  // Determine active nav section based on current path
+  const getActiveNav = () => {
+    if (location === '/') return 'play';
+    if (location === '/modules') return 'home';
+    if (location === '/profile') return 'profile';
+    if (location === '/leaderboard') return 'leaderboard';
+    if (location.includes('/daily-challenge')) return 'daily-challenge';
+    if (location.includes('/math-stories')) return 'math-stories';
+    if (location.includes('/avatar')) return 'avatar';
+    if (location.includes('/multiplayer')) return 'multiplayer';
+    if (location.includes('/analytics')) return 'analytics';
+    
+    return 'home';
+  };
+  
+  // Don't show navigation on auth page or admin page
+  const shouldShowNav = !location.includes('/auth') && !location.includes('/admin');
+  
+  return (
+    <>
+      {children}
+      {shouldShowNav && <Navigation active={getActiveNav() as any} />}
+    </>
+  );
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <NavigationWrapper>
+          <Router />
+        </NavigationWrapper>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
