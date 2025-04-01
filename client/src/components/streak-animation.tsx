@@ -14,117 +14,140 @@ export default function StreakAnimation({
   milestone = 3, 
   onAnimationComplete 
 }: StreakAnimationProps) {
-  // Refs to track timers so we can properly clean them up
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const initDelayRef = useRef<NodeJS.Timeout | null>(null);
+  // Use refs to safely track state that shouldn't cause re-renders
+  const isUnmountedRef = useRef(false);
+  const animationShownRef = useRef(false);
   
-  // State to track if animation has been shown and completed
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [hasShownConfetti, setHasShownConfetti] = useState(false);
+  // Timer refs that need to be cleared
+  const timerRef = useRef<number | null>(null);
+  const dismissTimerRef = useRef<number | null>(null);
   
-  // Handle completion of the animation safely
-  const handleComplete = () => {
-    if (isCompleted) return; // Prevent double-calls
+  // Simplified state management
+  const [isVisible, setIsVisible] = useState(true);
+  
+  // Safe completion handler that won't crash the app
+  const safeComplete = () => {
+    if (isUnmountedRef.current) return;
     
-    setIsCompleted(true);
-    
-    // Clean up before calling onAnimationComplete
+    // Clear any timers
     if (timerRef.current) {
-      clearTimeout(timerRef.current);
+      window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     
-    // Always try to clean up confetti
-    try {
-      confetti.reset();
-    } catch (e) {
-      console.error("Confetti reset failed:", e);
+    if (dismissTimerRef.current) {
+      window.clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
     }
     
-    // Stop sounds
+    // Try to reset confetti
+    try {
+      if (window && confetti) {
+        confetti.reset();
+      }
+    } catch (e) {
+      console.error("Safe error in confetti reset:", e);
+    }
+    
+    // Try to stop sounds
     try {
       stopAllSounds();
     } catch (e) {
-      console.error("Sound stop failed:", e);
+      console.error("Safe error in stopping sounds:", e);
     }
     
-    // Finally call the completion callback
-    if (onAnimationComplete) {
-      onAnimationComplete();
-    }
+    // Hide first
+    setIsVisible(false);
+    
+    // Then call callback after a brief delay
+    setTimeout(() => {
+      if (isUnmountedRef.current) return;
+      if (onAnimationComplete && typeof onAnimationComplete === 'function') {
+        try {
+          onAnimationComplete();
+        } catch (e) {
+          console.error("Error in animation complete callback:", e);
+        }
+      }
+    }, 100);
   };
   
-  // Handle one-time effects on mount
+  // Simplified effect with better error handling
   useEffect(() => {
-    // Skip if already completed
-    if (isCompleted || hasShownConfetti) return;
+    // Make sure we don't run animations if we've already shown them
+    if (animationShownRef.current) return;
+    animationShownRef.current = true;
     
-    // Use a small delay to ensure component is fully mounted
-    initDelayRef.current = setTimeout(() => {
-      // Mark that we've shown confetti to prevent duplicate runs
-      setHasShownConfetti(true);
-      
-      // Play sound (inside try/catch)
+    const runAnimation = () => {
+      // Play sound effect first (in try/catch)
       try {
-        // Use a simple sound that's less likely to fail
         playSound('streak');
       } catch (e) {
-        console.error("Sound play failed:", e);
+        console.error("Safe error in playing sound:", e);
       }
       
-      // Show minimal confetti (inside try/catch)
+      // Show simplified confetti effect (in try/catch)
       try {
-        // Use very few particles (5) to reduce risk of crashes
-        confetti({
-          particleCount: 5,
-          spread: 45,
-          origin: { y: 0.6, x: 0.5 },
-          disableForReducedMotion: true
-        });
+        if (window && confetti) {
+          confetti({
+            particleCount: milestone >= 5 ? 30 : 15, // More particles for bigger milestones
+            spread: 45,
+            origin: { y: 0.6, x: 0.5 },
+            disableForReducedMotion: true
+          });
+        }
       } catch (e) {
-        console.error("Confetti failed:", e);
+        console.error("Safe error in confetti:", e);
       }
-      
-      // Set a timer to auto-dismiss
-      timerRef.current = setTimeout(() => {
-        handleComplete();
-      }, 2500); // Reduced time to 2.5 seconds
-      
-    }, 50); // Very short delay
+    };
     
-    // Cleanup function
-    return () => {
-      // Clear all pending timers
-      if (initDelayRef.current) {
-        clearTimeout(initDelayRef.current);
-        initDelayRef.current = null;
-      }
+    // Use window timeout instead of React's setTimeout for better stability
+    timerRef.current = window.setTimeout(() => {
+      runAnimation();
       
+      // Set auto-dismiss timer
+      dismissTimerRef.current = window.setTimeout(() => {
+        safeComplete();
+      }, 2000); // Auto-dismiss after 2 seconds
+    }, 50);
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isUnmountedRef.current = true;
+      
+      // Clear timers
       if (timerRef.current) {
-        clearTimeout(timerRef.current);
+        window.clearTimeout(timerRef.current);
         timerRef.current = null;
       }
       
-      // Always attempt to clean up running animations
+      if (dismissTimerRef.current) {
+        window.clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+      
+      // Try to clean up
       try {
-        confetti.reset();
+        if (window && confetti) {
+          confetti.reset();
+        }
       } catch (e) {
-        console.error("Confetti reset failed in cleanup:", e);
+        console.error("Safe cleanup error:", e);
       }
       
       try {
         stopAllSounds();
       } catch (e) {
-        console.error("Sound stop failed in cleanup:", e);
+        console.error("Safe cleanup error:", e);
       }
     };
-  }, []);
+  }, [milestone]);
   
-  // Don't render anything if already completed
-  if (isCompleted) {
+  // Don't render anything if not visible
+  if (!isVisible) {
     return null;
   }
-
+  
   // Static version without animations for maximum stability
   return (
     <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50 bg-black bg-opacity-30">
