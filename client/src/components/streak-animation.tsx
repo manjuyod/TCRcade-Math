@@ -1,8 +1,7 @@
-// Ultra-simplified streak animation that doesn't crash the app
-// No animation libraries, no complex timers, just plain HTML with timeout
+// Emergency fixed version of streak animation
+// No sound effects, no external libraries, just a static display that self-dismisses
 
-import { useEffect } from 'react';
-import { playSound } from '@/lib/sounds';
+import { useState, useEffect } from 'react';
 
 type StreakAnimationProps = {
   streakCount: number;
@@ -15,50 +14,68 @@ export default function StreakAnimation({
   milestone = 3, 
   onAnimationComplete 
 }: StreakAnimationProps) {
-  // Just use a single useEffect with no dependencies to prevent infinite loops
+  // Local state to track if component is mounted
+  const [isMounted, setIsMounted] = useState(true);
+  
+  // Self-dismissing logic that doesn't rely on parent state
   useEffect(() => {
-    // Try to play sound in a safe way
-    try {
-      playSound('streak');
-    } catch (e) {
-      console.error("Error playing streak sound:", e);
-    }
+    // Safety - only set timer if component is mounted
+    if (!isMounted) return;
     
-    // Auto dismiss after 1.5 seconds
+    // NO sound effects - they may be causing crashes
+    
+    // Auto dismiss after 2 seconds using local state first
     const timer = setTimeout(() => {
-      if (onAnimationComplete) {
-        onAnimationComplete();
-      }
-    }, 1500);
+      setIsMounted(false);
+      
+      // Then call the parent callback only after state is updated
+      setTimeout(() => {
+        if (onAnimationComplete) {
+          onAnimationComplete();
+        }
+      }, 50);
+    }, 2000);
     
     // Clean up on unmount
     return () => {
       clearTimeout(timer);
     };
-  }, []); // <-- Empty dependency array is key to prevent infinite loops
+  }, [isMounted, onAnimationComplete]); // Include dependencies to prevent React warnings
   
-  // Simple emoji and text without any fancy animations or libraries
-  const emoji = milestone >= 20 ? '🏆' : 
-               milestone >= 10 ? '⭐' : 
-               milestone >= 5 ? '🔥' : '✓';
+  // If not mounted, render nothing
+  if (!isMounted) return null;
   
-  const title = milestone >= 20 ? 'INCREDIBLE STREAK!' : 
-               milestone >= 10 ? 'AMAZING STREAK!' : 
-               milestone >= 5 ? 'SUPER STREAK!' : 'Streak Bonus!';
+  // Simple text-only version, no emoji to prevent potential display issues
+  let displayText = 'Streak Bonus!';
+  let bonusText = '';
   
-  // Simple static popup with no animations
+  // Simple if-else instead of ternary chains for better reliability
+  if (milestone >= 20) {
+    displayText = 'INCREDIBLE STREAK!';
+  } else if (milestone >= 10) {
+    displayText = 'AMAZING STREAK!';
+  } else if (milestone >= 5) {
+    displayText = 'SUPER STREAK!';
+  }
+  
+  // Calculate bonus tokens
+  if (milestone >= 5) {
+    bonusText = `+${milestone * 2} bonus tokens!`;
+  }
+  
+  // Simple static popup with no fancy effects
   return (
     <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50 bg-black bg-opacity-30">
       <div className="bg-white rounded-xl py-6 px-8 shadow-lg text-center">
         <div className="text-4xl mb-2">
-          {emoji} {streakCount} in a row!
+          {streakCount} in a row!
         </div>
         <div className="text-xl font-bold text-primary">
-          {title}
+          {displayText}
         </div>
-        {milestone >= 5 && (
+        {bonusText && (
           <div className="text-sm mt-2 text-primary-dark">
-            +{milestone * 2} bonus tokens!
+            {bonusText}
           </div>
         )}
       </div>

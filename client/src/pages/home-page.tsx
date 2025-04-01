@@ -249,34 +249,32 @@ export default function HomePage() {
         // Increment the streak counter for correct answers
         setCurrentStreak(newStreakCount);
         
-        // Check if we've hit a milestone
-        const milestone = STREAK_MILESTONES.find(milestone => milestone === newStreakCount);
+        // Check if we've hit a milestone - SIMPLIFIED VERSION
+        const milestone = STREAK_MILESTONES.find(m => m === newStreakCount);
         
         if (milestone) {
           try {
-            // Set the milestone for the animation
-            setStreakMilestone(milestone);
-            
-            // Add bonus tokens for streak milestones - do this BEFORE showing animation
+            // Add bonus tokens for streak milestones
             if (user) {
-              const bonusTokens = milestone * 2; // 2x tokens for each streak milestone
+              const bonusTokens = milestone * 2; // 2x tokens for each milestone
+              
+              // First update local user data 
               queryClient.setQueryData(['/api/user'], {
                 ...user,
                 tokens: user.tokens + bonusTokens
               });
-            }
-            
-            // Short delay to show the streak animation after feedback
-            // Use a much shorter delay (200ms) to prevent timing issues
-            setTimeout(() => {
-              // Show streak animation (component now has auto-dismiss)
-              console.log(`Showing streak animation for ${newStreakCount} streak (milestone: ${milestone})`);
+              
+              // Set milestone in state
+              setStreakMilestone(milestone);
+              
+              // Don't use too many nested timeouts - keep it simple
+              console.log(`Showing streak animation for ${newStreakCount} streak`);
+              
+              // Show animation immediately - component handles its own dismissal
               setShowStreakAnimation(true);
-            }, 200);
-            
-            // We no longer need a second timeout here - the component handles its own dismissal
+            }
           } catch (e) {
-            console.error("Error handling streak animation:", e);
+            console.error("Error handling streak bonus:", e);
           }
         }
       } else {
