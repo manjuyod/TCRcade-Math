@@ -38,34 +38,34 @@ export default function Navigation({ active }: NavigationProps) {
                   <Menu className={`${isAdvancedFeatureActive ? 'h-5 w-5' : 'h-4 w-4'}`} />
                 </button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto rounded-t-3xl pt-3">
-                <div className="flex justify-around py-2 px-1">
-                  <Link href="/daily-challenge" className="flex flex-col items-center gap-1 p-1.5 rounded-lg hover:bg-gray-100">
-                    <div className={`p-1.5 rounded-full ${active === 'daily-challenge' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Calendar className="h-4 w-4" />
+              <SheetContent side="bottom" className="h-auto rounded-t-3xl">
+                <div className="flex justify-around py-4 px-1 mb-6 mt-2">
+                  <Link href="/daily-challenge" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                    <div className={`p-2 rounded-full ${active === 'daily-challenge' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <Calendar className="h-5 w-5" />
                     </div>
-                    <span className="text-[8px] text-center">Daily Challenge</span>
+                    <span className="text-xs text-center">Daily Challenge</span>
                   </Link>
                   
-                  <Link href="/avatar" className="flex flex-col items-center gap-1 p-1.5 rounded-lg hover:bg-gray-100">
-                    <div className={`p-1.5 rounded-full ${active === 'avatar' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Palette className="h-4 w-4" />
+                  <Link href="/avatar" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                    <div className={`p-2 rounded-full ${active === 'avatar' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <Palette className="h-5 w-5" />
                     </div>
-                    <span className="text-[8px] text-center">Avatar</span>
+                    <span className="text-xs text-center">Avatar</span>
                   </Link>
                   
-                  <Link href="/multiplayer" className="flex flex-col items-center gap-1 p-1.5 rounded-lg hover:bg-gray-100">
-                    <div className={`p-1.5 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Users className="h-4 w-4" />
+                  <Link href="/multiplayer" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                    <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <Users className="h-5 w-5" />
                     </div>
-                    <span className="text-[8px] text-center">Multiplayer</span>
+                    <span className="text-xs text-center">Multiplayer</span>
                   </Link>
                   
-                  <Link href="/analytics" className="flex flex-col items-center gap-1 p-1.5 rounded-lg hover:bg-gray-100">
-                    <div className={`p-1.5 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Brain className="h-4 w-4" />
+                  <Link href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                    <div className={`p-2 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <Brain className="h-5 w-5" />
                     </div>
-                    <span className="text-[8px] text-center">AI Analytics</span>
+                    <span className="text-xs text-center">AI Analytics</span>
                   </Link>
                 </div>
               </SheetContent>
