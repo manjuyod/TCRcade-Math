@@ -1,36 +1,23 @@
 import { Question, User, Recommendation } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
-// Fetch a question for the user - now using the faster /api/questions/next endpoint
+// Simplified version - fetch a question without all the complex params
 export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false, category?: string, useRecommendations: boolean = false): Promise<Question> {
-  // Build query parameters
-  const params = new URLSearchParams();
-  
-  // Add exclude ID if we have answeredIds (just the most recent one to avoid the same question)
-  if (answeredIds.length > 0) {
-    params.append('exclude', answeredIds[answeredIds.length - 1].toString());
-  }
-  
-  // Always force dynamic generation for variety and speed
-  params.append('forceDynamic', 'true');
-  
-  // Add timestamp to prevent caching
-  params.append('t', Date.now().toString());
+  // Simplified params with only the essential ones
+  let params = new URLSearchParams();
   
   // Add category parameter if specified to filter questions by category
   if (category && category !== 'all') {
     params.append('category', category);
   }
   
-  console.log(`Fetching question with params: ${params.toString()}`);
-    
+  // Always force dynamic generation for variety and speed
+  params.append('forceDynamic', 'true');
+  
   // Use the fast /api/questions/next endpoint which doesn't require authentication
   const response = await fetch(`/api/questions/next?${params.toString()}`, {
     credentials: 'include',
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
+    // Don't add cache headers - let the browser handle caching
   });
   
   if (!response.ok) {

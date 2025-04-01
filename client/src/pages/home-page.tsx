@@ -96,9 +96,23 @@ export default function HomePage() {
   // Reference for user activity
   const lastActivityTimeRef = useRef<Date>(new Date());
   
-  // Preload sounds when component mounts
+  // Preload sounds and fetch initial question when component mounts
   useEffect(() => {
     preloadSounds();
+    
+    // Initial fetch of a question when the component mounts
+    fetch(`/api/questions/next?forceDynamic=true`, {
+      credentials: 'include'
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Update the query client directly with the fetched data
+        const newQuestion = data.question || data;
+        queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+      })
+      .catch(error => {
+        console.error('Error fetching initial question:', error);
+      });
 
     // Set up effect to check for time milestone achievements (5, 10, 15, 20 minutes)
     const checkMilestones = () => {
@@ -160,6 +174,20 @@ export default function HomePage() {
         const category = currentModuleId.includes('-') ? 
           currentModuleId.split('-')[0] : currentModuleId;
         setCurrentModuleCategory(category);
+        
+        // When the module changes, immediately fetch a question
+        fetch(`/api/questions/next?category=${category}&forceDynamic=true`, {
+          credentials: 'include'
+        })
+          .then(response => response.json())
+          .then(data => {
+            // Update the query client directly with the fetched data
+            const newQuestion = data.question || data;
+            queryClient.setQueryData(['/api/questions/next', category], newQuestion);
+          })
+          .catch(error => {
+            console.error('Error fetching question for new module:', error);
+          });
       } catch (e) {
         console.error("Error getting module details:", e);
       }
@@ -169,19 +197,14 @@ export default function HomePage() {
   }, [currentModuleId]);
   
   // Fetch a question (now with module category filtering)
-  // Using a unique key for every "Get New Problem" click by including a timestamp
+  // Using a simple key structure and manual refetching only
   const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ['/api/questions/next', { 
-      answeredIds: answeredQuestionIds, 
-      forceDynamic, 
-      category: currentModuleCategory,
-      t: Date.now() // Add timestamp to ensure cache invalidation
-    }],
-    queryFn: () => fetchQuestion(answeredQuestionIds, forceDynamic, currentModuleCategory),
+    queryKey: ['/api/questions/next', currentModuleCategory], 
+    queryFn: () => fetchQuestion([], true, currentModuleCategory),
     refetchOnWindowFocus: false,
-    staleTime: 0, // Don't cache the result
-    retry: 3,
-    enabled: !sessionCompleted // Don't fetch new questions when session is complete
+    staleTime: Infinity, // Cache the result indefinitely until manually refetched
+    retry: 1, // Only retry once to avoid overwhelming the server
+    enabled: !sessionCompleted && false // Don't automatically fetch, we'll do it manually
   });
   
   // Submit answer mutation
@@ -331,36 +354,31 @@ export default function HomePage() {
     }
   };
   
+  // Simple version with just a single API request
   const handleNextQuestion = () => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
     
+    // Clear feedback
     setShowFeedback(false);
     setFeedbackData(null);
     
-    // When moving to a new question, set forceDynamic to true to avoid repeats
-    setForceDynamic(true);
-    
-    // Invalidate the query cache with a new timestamp
-    queryClient.setQueryData(
-      ['/api/questions/next', {
-        answeredIds: answeredQuestionIds,
-        forceDynamic: true,
-        category: currentModuleCategory,
-        t: Date.now() // Fresh timestamp for each new question
-      }],
-      undefined
-    );
-    
-    // Pass the answeredQuestionIds to the server to avoid repeated questions
-    refetch();
-    
-    // Reset forceDynamic after a small delay
-    setTimeout(() => {
-      setForceDynamic(false);
-    }, 500);
+    // Simple direct fetch to get a question
+    fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true`, {
+      credentials: 'include'
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Update the query client directly with the fetched data
+        const newQuestion = data.question || data;
+        queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+      })
+      .catch(error => {
+        console.error('Error fetching question:', error);
+      });
   };
   
+  // Simple version with direct fetch and no complex query cache manipulation
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
@@ -370,36 +388,22 @@ export default function HomePage() {
       tokensEarned: 0
     });
     
-    // Important: Keep track of previously answered question IDs to avoid repeats
-    // But clear the tracking for the new session
+    // Clear tracking for a new session
     setAnsweredQuestionIds([]);
     
-    // Force dynamic question generation when starting a new session
-    setForceDynamic(true);
-    
-    // Force refetch with cache busting by using a timestamp to ensure new questions
-    queryClient.invalidateQueries({ queryKey: ['/api/questions/next'] });
-    
-    // Add a slight delay before refetching to ensure we get a fresh question
-    setTimeout(() => {
-      // Create a fresh timestamp to ensure we get a new question
-      queryClient.setQueryData(
-        ['/api/questions/next', {
-          answeredIds: [],
-          forceDynamic: true,
-          category: currentModuleCategory,
-          t: Date.now()
-        }],
-        undefined
-      );
-      
-      refetch();
-      
-      // Reset forceDynamic after we've fetched the first question
-      setTimeout(() => {
-        setForceDynamic(false);
-      }, 500);
-    }, 100);
+    // Simple direct fetch to get a fresh question
+    fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true`, {
+      credentials: 'include'
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Update the query client directly with the fetched data
+        const newQuestion = data.question || data;
+        queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+      })
+      .catch(error => {
+        console.error('Error fetching question:', error);
+      });
   };
   
   // Using progress percentage from the timer hook instead of manual calculation
@@ -407,30 +411,24 @@ export default function HomePage() {
   // Check if current question has already been answered in this session
   useEffect(() => {
     if (question && answeredQuestionIds.includes(question.id) && answeredQuestionIds.length < 100) {
-      // If we've already seen this question, force dynamic generation and fetch a new one
-      console.log("Duplicate question detected, fetching new dynamic one");
-      setForceDynamic(true);
+      // If we've already seen this question, fetch a new one directly
+      console.log("Duplicate question detected, fetching new one");
       
-      // Invalidate the current query with a new timestamp
-      queryClient.setQueryData(
-        ['/api/questions/next', {
-          answeredIds: answeredQuestionIds,
-          forceDynamic: true,
-          category: currentModuleCategory,
-          t: Date.now() // New timestamp to ensure fresh data
-        }],
-        undefined
-      );
-      
-      // Now do the refetch
-      refetch();
-      
-      // Reset the flag after a delay
-      setTimeout(() => {
-        setForceDynamic(false);
-      }, 500);
+      // Simple direct fetch to get a fresh question
+      fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true`, {
+        credentials: 'include'
+      })
+        .then(response => response.json())
+        .then(data => {
+          // Update the query client directly with the fetched data
+          const newQuestion = data.question || data;
+          queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+        })
+        .catch(error => {
+          console.error('Error fetching new question:', error);
+        });
     }
-  }, [question, answeredQuestionIds, refetch, currentModuleCategory]);
+  }, [question, answeredQuestionIds, currentModuleCategory]);
   
   return (
     <div className="flex flex-col min-h-screen">
