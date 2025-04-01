@@ -870,61 +870,54 @@ export class DatabaseStorage implements IStorage {
   // Additional method for adaptive questions that's directly referenced in the routes
   async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false, category?: string, excludeIds: number[] = []): Promise<Question | undefined> {
     try {
-      // Get user data to determine appropriate difficulty
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId));
-      
-      if (!user) {
-        return undefined;
+      // Simplified approach: Get random question for the specified grade level
+      // If category is specified, filter by category
+
+      // First check if we have a valid grade parameter, fallback to user's grade or "K"
+      if (!grade) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        grade = user?.grade || "K";
       }
+
+      let query = db.select().from(questions);
       
-      // Determine difficulty based on user's correct answer rate
-      const correctRate = user.questionsAnswered > 0 
-        ? user.correctAnswers / user.questionsAnswered
-        : 0.5;
+      // Build a filter for grade
+      const filters = [eq(questions.grade, grade)];
       
-      let targetDifficulty = 3; // Default medium difficulty
-      
-      if (correctRate > 0.8) {
-        targetDifficulty = Math.min(5, Math.ceil(correctRate * 5));
-      } else if (correctRate < 0.5) {
-        targetDifficulty = Math.max(1, Math.floor(correctRate * 5));
-      }
-      
-      // If no grade specified, use user's grade or default to "K"
-      const effectiveGrade = grade || user.grade || "K";
-      
-      // Find questions matching the criteria
-      let query = db
-        .select()
-        .from(questions)
-        .where(eq(questions.grade, effectiveGrade));
-      
+      // Add category filter if specified
       if (category && category !== 'all') {
-        query = query.where(eq(questions.category, category));
+        filters.push(eq(questions.category, category));
       }
       
-      // Filter by difficulty
-      const allQuestions = await query;
-      const matchingQuestions = allQuestions.filter(q => 
-        Math.abs(q.difficulty - targetDifficulty) <= 1
-      );
-      
-      if (matchingQuestions.length > 0) {
-        // Return a random question from matching ones
-        return matchingQuestions[Math.floor(Math.random() * matchingQuestions.length)];
+      // Add exclusion filter if there are IDs to exclude
+      if (excludeIds.length > 0) {
+        // To avoid issues with possibly empty excludeIds array
+        const filteredIds = excludeIds.filter(id => typeof id === 'number');
+        if (filteredIds.length > 0) {
+          filters.push(inArray(questions.id, filteredIds).not());
+        }
       }
       
-      // If no matching questions or forceDynamic is true, we should return a dynamic question
-      // However, the implementation would depend on how your system generates dynamic questions
-      // For now, return any question with closest difficulty
+      // Apply all filters with AND
+      const allQuestions = await query.where(and(...filters));
+      
+      // If we have questions that match the criteria, return a random one
       if (allQuestions.length > 0) {
-        allQuestions.sort((a, b) => 
-          Math.abs(a.difficulty - targetDifficulty) - Math.abs(b.difficulty - targetDifficulty)
-        );
-        return allQuestions[0];
+        return allQuestions[Math.floor(Math.random() * allQuestions.length)];
+      }
+      
+      // If no matching questions with filters, try just the grade filter (ignore excludes/category)
+      const fallbackQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
+      
+      if (fallbackQuestions.length > 0) {
+        return fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+      }
+      
+      // Last resort: return any question
+      const anyQuestions = await db.select().from(questions).limit(10);
+      
+      if (anyQuestions.length > 0) {
+        return anyQuestions[Math.floor(Math.random() * anyQuestions.length)];
       }
       
       return undefined;

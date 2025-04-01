@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, comparePasswords, hashPassword } from "./auth";
 import { DatabaseStorage } from "./database-storage";
+import { db } from "./db";
+import { questions } from "@shared/schema";
+import { eq, and, or, not, inArray } from "drizzle-orm";
 import { 
   analyzeStudentResponse,
   generateMathHint,
@@ -179,93 +182,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Better question fetching endpoint that uses session tracking to prevent duplicates
+  // Simplified question fetching endpoint that directly fetches questions from the database
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
-    const userId = req.user!.id;
-    const grade = req.query.grade as string || req.user!.grade || "3";
-    const category = req.query.category as string;
-    const forceDynamic = req.query.forceDynamic === 'true';
-
-    // Initialize session tracking for seen questions if it doesn't exist
-    if (!req.session.seenQuestions) {
-      req.session.seenQuestions = [];
-    }
-    
-    // Extract excluded question IDs from query parameter
-    const excludeParam = req.query.exclude as string;
-    let explicitExcludeIds: number[] = [];
-    
-    if (excludeParam) {
-      try {
-        // Support both comma-separated and single ID
-        if (excludeParam.includes(',')) {
-          explicitExcludeIds = excludeParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-        } else {
-          const id = parseInt(excludeParam);
-          if (!isNaN(id)) {
-            explicitExcludeIds = [id];
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse exclude IDs:", e);
-      }
-    }
-    
     try {
-      // Combine explicit exclude IDs with session's seen questions
-      // But limit the session history to the last 20 questions to avoid
-      // running out of questions in small datasets
-      const sessionHistory = req.session.seenQuestions.slice(-20);
-      const allExcludeIds = [...new Set([...explicitExcludeIds, ...sessionHistory])];
+      const userId = req.user!.id;
+      const grade = req.query.grade as string || req.user!.grade || "3";
+      const category = req.query.category as string;
       
-      // Maximum retry attempts to find a non-duplicate question
-      const maxRetries = 15;
-      let question = null;
-      let attempts = 0;
+      console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}`);
       
-      // Try to find a question that hasn't been seen recently
-      while (attempts < maxRetries && !question) {
-        // Get an adaptive question matching the requested category if available
-        // Pass our exclude list to prevent duplicates
-        try {
-          question = await storage.getAdaptiveQuestion(
-            userId, 
-            grade, 
-            forceDynamic || attempts > 0, // Force dynamic generation on retry
-            category,
-            allExcludeIds
-          );
-          
-          attempts++;
-          
-          // If we still got a question we've seen, try again
-          if (question && sessionHistory.includes(question.id)) {
-            question = null;
-          }
-        } catch (error) {
-          console.error("Error fetching question attempt:", error);
-          attempts++;
-        }
+      // Direct database query to get any matching questions
+      let query = db.select().from(questions);
+      
+      // Add grade filter
+      let conditions = [];
+      conditions.push(eq(questions.grade, grade));
+      
+      // Add category filter if specified
+      if (category && category !== 'all') {
+        conditions.push(eq(questions.category, category));
       }
       
-      if (!question) {
-        return res.status(404).json({ message: "No questions found for your grade level and selected category" });
+      // Execute the query
+      const matchingQuestions = await query.where(and(...conditions));
+      console.log(`Found ${matchingQuestions.length} matching questions`);
+      
+      if (matchingQuestions.length > 0) {
+        // Return a random question from matching ones
+        const randomIndex = Math.floor(Math.random() * matchingQuestions.length);
+        return res.json(matchingQuestions[randomIndex]);
       }
       
-      // Add this question to the session's seen list
-      req.session.seenQuestions.push(question.id);
+      // If no matching questions with specified filters, try just by grade
+      const gradeQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
       
-      // Save the session to persist the update
-      req.session.save(err => {
-        if (err) {
-          console.error("Error saving session:", err);
-        }
-      });
+      if (gradeQuestions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * gradeQuestions.length);
+        return res.json(gradeQuestions[randomIndex]);
+      }
       
-      res.json(question);
+      // If still no questions, try any grade
+      const anyQuestions = await db.select().from(questions);
+      
+      if (anyQuestions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * anyQuestions.length);
+        return res.json(anyQuestions[randomIndex]);
+      }
+      
+      // Last resort - get a hardcoded question
+      const fallbackQuestion = {
+        id: 999,
+        category: "addition",
+        grade: grade || "3",
+        difficulty: 1,
+        question: "What is 2 + 2?",
+        answer: "4",
+        options: ["3", "4", "5", "6"],
+        concepts: ["addition", "counting"],
+        storyId: null,
+        storyNode: null,
+        storyText: null,
+        storyImage: null
+      };
+      
+      return res.json(fallbackQuestion);
     } catch (error) {
-      console.error("Error fetching next question:", error);
-      res.status(500).json({ message: "Failed to fetch question" });
+      console.error("Error in /api/questions/next:", error);
+      return res.status(500).json({ message: "An error occurred while fetching questions" });
     }
   });
   
