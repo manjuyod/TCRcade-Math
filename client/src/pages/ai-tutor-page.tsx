@@ -26,19 +26,24 @@ export default function AiTutorPage() {
     }
   });
 
-  // Fetch selected question
+  // Fetch selected question with a refetch key to prevent stale data
+  const [refetchKey, setRefetchKey] = useState(0);
+  
   const { 
     data: currentQuestion,
     isLoading: questionLoading,
-    refetch: refetchQuestion
   } = useQuery({
-    queryKey: ['/api/questions', currentQuestionId],
+    queryKey: ['/api/questions', currentQuestionId, refetchKey],
     queryFn: async () => {
       if (!currentQuestionId) return null;
+      console.log(`Actually fetching question ID: ${currentQuestionId} with refetch key ${refetchKey}`);
       const res = await apiRequest('GET', `/api/questions/${currentQuestionId}`);
-      return res.json();
+      const data = await res.json();
+      console.log("API returned question data:", data);
+      return data;
     },
     enabled: !!currentQuestionId,
+    refetchOnWindowFocus: false,
   });
 
   const fetchNewQuestion = async () => {
@@ -77,6 +82,9 @@ export default function AiTutorPage() {
       
       if (data.question && data.question.id) {
         console.log("New question received:", data.question);
+        
+        // Increase refetch key to force a new fetch from API
+        setRefetchKey(prev => prev + 1);
         
         // Delay slightly to ensure UI state change is visible
         setTimeout(() => {
