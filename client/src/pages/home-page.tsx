@@ -218,13 +218,11 @@ export default function HomePage() {
         const milestone = STREAK_MILESTONES.find(milestone => milestone === newStreakCount);
         
         if (milestone) {
-          // Set the milestone for the animation
-          setStreakMilestone(milestone);
-          
-          // Short delay to show the streak animation after feedback
-          setTimeout(() => {
-            setShowStreakAnimation(true);
-            // Add bonus tokens for streak milestones
+          try {
+            // Set the milestone for the animation
+            setStreakMilestone(milestone);
+            
+            // Add bonus tokens for streak milestones - do this BEFORE showing animation
             if (user) {
               const bonusTokens = milestone * 2; // 2x tokens for each streak milestone
               queryClient.setQueryData(['/api/user'], {
@@ -233,11 +231,18 @@ export default function HomePage() {
               });
             }
             
-            // Ensure streak animation is auto-dismissed after 3 seconds max
+            // Short delay to show the streak animation after feedback
+            // Use a much shorter delay (200ms) to prevent timing issues
             setTimeout(() => {
-              setShowStreakAnimation(false);
-            }, 3000);
-          }, 500);
+              // Show streak animation (component now has auto-dismiss)
+              console.log(`Showing streak animation for ${newStreakCount} streak (milestone: ${milestone})`);
+              setShowStreakAnimation(true);
+            }, 200);
+            
+            // We no longer need a second timeout here - the component handles its own dismissal
+          } catch (e) {
+            console.error("Error handling streak animation:", e);
+          }
         }
       } else {
         // Reset streak counter for incorrect answers
@@ -288,12 +293,24 @@ export default function HomePage() {
       
       // Check if session is complete (5 questions)
       if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+        // Update final session stats before showing session complete
+        const finalStats = {
+          questionsAnswered: sessionStats.questionsAnswered + 1,
+          correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
+          tokensEarned: sessionStats.tokensEarned + data.tokensEarned
+        };
+        
+        // Set the final stats
+        setSessionStats(finalStats);
+        
         setTimeout(() => {
           setSessionCompleted(true);
           setShowFeedback(false);
           
           // Play session complete sound
           playSound('sessionComplete');
+          
+          console.log("Session completed with stats:", finalStats);
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
     }
@@ -402,13 +419,13 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/math-stories'}>
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/practice'}>
             <div className="bg-primary/10 p-2 rounded-full">
               <Book className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">Math Stories</h3>
-              <p className="text-xs text-gray-500">Learn math through adventures</p>
+              <h3 className="font-semibold">Practice Mode</h3>
+              <p className="text-xs text-gray-500">Targeted skill practice</p>
             </div>
           </div>
           

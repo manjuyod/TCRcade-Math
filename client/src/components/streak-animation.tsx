@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { playSound, stopAllSounds } from '@/lib/sounds';
 
 type StreakAnimationProps = {
@@ -14,110 +14,122 @@ export default function StreakAnimation({
   milestone = 3, 
   onAnimationComplete 
 }: StreakAnimationProps) {
-  // State to track if animation is completed
-  const [isCompleted, setIsCompleted] = useState(false);
+  // Refs to track timers so we can properly clean them up
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const initDelayRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Handle completion of the animation
+  // State to track if animation has been shown and completed
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [hasShownConfetti, setHasShownConfetti] = useState(false);
+  
+  // Handle completion of the animation safely
   const handleComplete = () => {
+    if (isCompleted) return; // Prevent double-calls
+    
     setIsCompleted(true);
+    
+    // Clean up before calling onAnimationComplete
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // Always try to clean up confetti
+    try {
+      confetti.reset();
+    } catch (e) {
+      console.error("Confetti reset failed:", e);
+    }
+    
+    // Stop sounds
+    try {
+      stopAllSounds();
+    } catch (e) {
+      console.error("Sound stop failed:", e);
+    }
+    
+    // Finally call the completion callback
     if (onAnimationComplete) {
       onAnimationComplete();
     }
   };
   
+  // Handle one-time effects on mount
   useEffect(() => {
-    // Prevent any further execution if we're already completed
-    if (isCompleted) return;
+    // Skip if already completed
+    if (isCompleted || hasShownConfetti) return;
     
-    let timer: ReturnType<typeof setTimeout>;
-    
-    // Use a small delay to prevent immediate execution on mounting
-    const initDelay = setTimeout(() => {
-      // Play appropriate sound based on milestone
+    // Use a small delay to ensure component is fully mounted
+    initDelayRef.current = setTimeout(() => {
+      // Mark that we've shown confetti to prevent duplicate runs
+      setHasShownConfetti(true);
+      
+      // Play sound (inside try/catch)
       try {
-        // Use a single sound to reduce complexity
+        // Use a simple sound that's less likely to fail
         playSound('streak');
       } catch (e) {
-        console.error("Sound playback failed:", e);
+        console.error("Sound play failed:", e);
       }
       
-      // Create basic confetti - using minimal particles for stability
+      // Show minimal confetti (inside try/catch)
       try {
-        // Static particle count for all milestone levels to ensure stability
-        const particleCount = 5; // Very conservative
-        
-        // Single burst for all milestone levels
+        // Use very few particles (5) to reduce risk of crashes
         confetti({
-          particleCount,
+          particleCount: 5,
           spread: 45,
           origin: { y: 0.6, x: 0.5 },
-          colors: ['#FFD700', '#4CAF50', '#2196F3'],
-          angle: 90,
-          startVelocity: 20,
           disableForReducedMotion: true
         });
       } catch (e) {
         console.error("Confetti failed:", e);
       }
       
-      // Auto-dismiss after 3 seconds
-      timer = setTimeout(() => {
-        try {
-          confetti.reset();
-          stopAllSounds();
-          handleComplete();
-        } catch (e) {
-          console.error("Cleanup failed:", e);
-        }
-      }, 3000);
-    }, 100); // Short delay to prevent immediate execution
+      // Set a timer to auto-dismiss
+      timerRef.current = setTimeout(() => {
+        handleComplete();
+      }, 2500); // Reduced time to 2.5 seconds
+      
+    }, 50); // Very short delay
     
     // Cleanup function
     return () => {
+      // Clear all pending timers
+      if (initDelayRef.current) {
+        clearTimeout(initDelayRef.current);
+        initDelayRef.current = null;
+      }
+      
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      // Always attempt to clean up running animations
       try {
-        clearTimeout(initDelay); // Clear the initialization delay
-        clearTimeout(timer);     // Clear the auto-dismiss timer
-        confetti.reset();        // Reset any running confetti
-        stopAllSounds();         // Stop any playing sounds
+        confetti.reset();
       } catch (e) {
-        console.error("Effect cleanup failed:", e);
+        console.error("Confetti reset failed in cleanup:", e);
+      }
+      
+      try {
+        stopAllSounds();
+      } catch (e) {
+        console.error("Sound stop failed in cleanup:", e);
       }
     };
-  }, [milestone, onAnimationComplete, isCompleted]);
+  }, []);
   
-  // Don't render if animation is completed
+  // Don't render anything if already completed
   if (isCompleted) {
     return null;
   }
 
+  // Static version without animations for maximum stability
   return (
-    <motion.div
-      className="fixed inset-0 pointer-events-none flex items-center justify-center z-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="bg-primary bg-opacity-20 rounded-2xl p-8 pointer-events-none"
-        initial={{ scale: 0.5, y: 20 }}
-        animate={{ 
-          scale: [0.5, 1.1, 1],
-          y: [20, -10, 0]
-        }}
-        transition={{ 
-          duration: 0.6,
-          ease: "easeOut"
-        }}
-      >
-        <motion.div
-          className="text-center"
-          animate={{
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 0.5
-          }}
-        >
+    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50 bg-black bg-opacity-30">
+      <div className="bg-white rounded-2xl p-8 pointer-events-none shadow-lg">
+        <div className="text-center">
           <div className="text-4xl mb-2">
             {milestone >= 20 ? '🏆' : milestone >= 10 ? '⭐' : '🔥'} {streakCount} in a row!
           </div>
@@ -131,8 +143,8 @@ export default function StreakAnimation({
               +{milestone * 2} bonus tokens!
             </div>
           )}
-        </motion.div>
-      </motion.div>
-    </motion.div>
+        </div>
+      </div>
+    </div>
   );
 }

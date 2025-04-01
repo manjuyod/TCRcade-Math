@@ -43,8 +43,8 @@ export default function LeaderboardPage() {
               {leaderboard.length >= 2 && (
                 /* 2nd Place */
                 <div className="flex flex-col items-center mx-4">
-                  <div className="w-16 h-16 bg-white rounded-full border-4 border-accent flex items-center justify-center mb-2">
-                    <span className="text-primary text-xl font-bold">{leaderboard[1].initials}</span>
+                  <div className="w-16 h-16 bg-orange-400 rounded-full border-4 border-white flex items-center justify-center mb-2">
+                    <span className="text-white text-xl font-bold">{leaderboard[1].initials}</span>
                   </div>
                   <div className="bg-accent py-1 px-3 rounded-full">
                     <span className="text-xs font-bold">{leaderboard[1].score}</span>
@@ -58,8 +58,8 @@ export default function LeaderboardPage() {
               {leaderboard.length >= 1 && (
                 /* 1st Place */
                 <div className="flex flex-col items-center mx-4">
-                  <div className="w-20 h-20 bg-white rounded-full border-4 border-accent flex items-center justify-center mb-2 relative">
-                    <span className="text-primary text-2xl font-bold">{leaderboard[0].initials}</span>
+                  <div className="w-20 h-20 bg-orange-500 rounded-full border-4 border-white flex items-center justify-center mb-2 relative">
+                    <span className="text-white text-2xl font-bold">{leaderboard[0].initials}</span>
                     <div className="absolute -top-6">
                       <i className="ri-award-fill text-4xl text-yellow-400"></i>
                     </div>
@@ -76,8 +76,8 @@ export default function LeaderboardPage() {
               {leaderboard.length >= 3 && (
                 /* 3rd Place */
                 <div className="flex flex-col items-center mx-4">
-                  <div className="w-16 h-16 bg-white rounded-full border-4 border-accent flex items-center justify-center mb-2">
-                    <span className="text-primary text-xl font-bold">{leaderboard[2].initials}</span>
+                  <div className="w-16 h-16 bg-orange-300 rounded-full border-4 border-white flex items-center justify-center mb-2">
+                    <span className="text-white text-xl font-bold">{leaderboard[2].initials}</span>
                   </div>
                   <div className="bg-accent py-1 px-3 rounded-full">
                     <span className="text-xs font-bold">{leaderboard[2].score}</span>
@@ -94,8 +94,8 @@ export default function LeaderboardPage() {
               {leaderboard.slice(3).map((entry, index) => (
                 <div key={entry.id} className="leaderboard-item flex items-center p-3 border-b border-gray-100">
                   <span className="text-lg font-bold text-white w-10 h-10 flex items-center justify-center rounded-full bg-orange-500">{index + 4}</span>
-                  <div className="w-10 h-10 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mx-3">
-                    <span className="text-primary font-bold text-sm">{entry.initials}</span>
+                  <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center mx-3">
+                    <span className="text-white font-bold text-sm">{entry.initials}</span>
                   </div>
                   <div className="flex-1">
                     <span className="text-dark font-bold">{entry.displayName || entry.username}</span>
