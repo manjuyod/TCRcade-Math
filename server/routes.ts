@@ -5,7 +5,7 @@ import { setupAuth, comparePasswords, hashPassword } from "./auth";
 import { DatabaseStorage } from "./database-storage";
 import { db } from "./db";
 import { questions } from "@shared/schema";
-import { eq, and, or, not, inArray } from "drizzle-orm";
+import { eq, and, or, not, inArray, notInArray } from "drizzle-orm";
 import { 
   analyzeStudentResponse,
   generateMathHint,
@@ -182,16 +182,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simplified question fetching endpoint that directly fetches questions from the database
+  // Improved question fetching endpoint that handles duplicates and exclusions
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
       const grade = req.query.grade as string || req.user!.grade || "3";
       const category = req.query.category as string;
+      const forceDynamic = req.query.forceDynamic === 'true';
       
-      console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}`);
+      // Parse excluded question IDs (questions the user has already seen)
+      const excludeIds: number[] = [];
+      if (req.query.exclude) {
+        try {
+          const excludeString = req.query.exclude as string;
+          excludeIds.push(...excludeString.split(',').map(id => parseInt(id.trim())));
+        } catch (e) {
+          console.warn("Failed to parse excluded question IDs:", e);
+        }
+      }
       
-      // Direct database query to get any matching questions
+      console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}`);
+      
+      // Try using OpenAI for generating new questions if forced or have many exclusions
+      if (forceDynamic || excludeIds.length > 15) {
+        try {
+          const openaiService = await import('./openai');
+          console.log("Attempting to generate question via OpenAI...");
+          
+          const generatedQuestion = await openaiService.generateAdaptiveQuestion({
+            grade,
+            category,
+            previousQuestions: excludeIds.slice(0, 10), // Send a sample of previous questions
+            difficulty: 3 // Medium difficulty by default
+          });
+          
+          if (generatedQuestion && generatedQuestion.question) {
+            // Create a properly formatted question object
+            const newQuestion = {
+              id: Date.now(), // Use timestamp as unique ID
+              category: generatedQuestion.category || category || "general",
+              grade,
+              difficulty: generatedQuestion.difficulty || 3,
+              question: generatedQuestion.question,
+              answer: generatedQuestion.answer,
+              options: generatedQuestion.options || [],
+              concepts: generatedQuestion.concepts || [],
+              storyId: null,
+              storyNode: null,
+              storyText: null,
+              storyImage: null
+            };
+            
+            console.log("Successfully generated new question via OpenAI");
+            return res.json(newQuestion);
+          }
+        } catch (openaiError) {
+          console.error("OpenAI question generation failed:", openaiError);
+          // Continue to database fallback if OpenAI fails
+        }
+      }
+      
+      // Build database query with exclusions
       let query = db.select().from(questions);
       
       // Add grade filter
@@ -203,41 +254,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conditions.push(eq(questions.category, category));
       }
       
-      // Execute the query
+      // Exclude previously seen questions if we have IDs to exclude
+      if (excludeIds.length > 0) {
+        conditions.push(notInArray(questions.id, excludeIds));
+      }
+      
+      // Execute the query with all conditions
       const matchingQuestions = await query.where(and(...conditions));
-      console.log(`Found ${matchingQuestions.length} matching questions`);
+      console.log(`Found ${matchingQuestions.length} matching questions (excluding ${excludeIds.length} seen IDs)`);
+      
+      // BETTER RANDOMIZATION: Fisher-Yates shuffle for true randomness
+      const shuffle = (array: any[]) => {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      };
       
       if (matchingQuestions.length > 0) {
-        // Return a random question from matching ones
-        const randomIndex = Math.floor(Math.random() * matchingQuestions.length);
-        return res.json(matchingQuestions[randomIndex]);
+        // Shuffle ALL matching questions for better randomization
+        const shuffledQuestions = shuffle([...matchingQuestions]);
+        // Return the first question after shuffling
+        return res.json(shuffledQuestions[0]);
       }
       
-      // If no matching questions with specified filters, try just by grade
-      const gradeQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
+      // If no matching questions with all filters, try just by grade (still excluding seen questions)
+      const gradeConditions = [eq(questions.grade, grade)];
+      
+      // Still exclude previously seen questions
+      if (excludeIds.length > 0) {
+        gradeConditions.push(notInArray(questions.id, excludeIds));
+      }
+      
+      const gradeQuestions = await db.select().from(questions).where(and(...gradeConditions));
       
       if (gradeQuestions.length > 0) {
-        const randomIndex = Math.floor(Math.random() * gradeQuestions.length);
-        return res.json(gradeQuestions[randomIndex]);
+        const shuffledQuestions = shuffle([...gradeQuestions]);
+        return res.json(shuffledQuestions[0]);
       }
       
-      // If still no questions, try any grade
-      const anyQuestions = await db.select().from(questions);
+      // If we've exhausted all unseen questions, prioritize questions of the requested grade
+      // but don't filter by previously seen (this means we'll show repeats as last resort)
+      console.log("No unseen questions available, falling back to previously seen questions");
+      const allGradeQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
       
-      if (anyQuestions.length > 0) {
-        const randomIndex = Math.floor(Math.random() * anyQuestions.length);
-        return res.json(anyQuestions[randomIndex]);
+      if (allGradeQuestions.length > 0) {
+        const shuffledQuestions = shuffle([...allGradeQuestions]);
+        return res.json(shuffledQuestions[0]); 
       }
       
-      // Last resort - get a hardcoded question
-      const fallbackQuestion = {
-        id: 999,
-        category: "addition",
-        grade: grade || "3",
-        difficulty: 1,
-        question: "What is 2 + 2?",
-        answer: "4",
-        options: ["3", "4", "5", "6"],
+      // Last resort - try to use OpenAI even if we didn't initially
+      try {
+        const openaiService = await import('./openai');
+        console.log("Attempting last-resort OpenAI question generation...");
+        
+        const generatedQuestion = await openaiService.generateAdaptiveQuestion({
+          grade,
+          category
+        });
+        
+        if (generatedQuestion && generatedQuestion.question) {
+          const newQuestion = {
+            id: Date.now() + Math.floor(Math.random() * 10000), // Add randomness to ensure unique ID
+            category: generatedQuestion.category || category || "general",
+            grade,
+            difficulty: generatedQuestion.difficulty || 3,
+            question: generatedQuestion.question,
+            answer: generatedQuestion.answer,
+            options: generatedQuestion.options || [],
+            concepts: generatedQuestion.concepts || [],
+            storyId: null,
+            storyNode: null,
+            storyText: null,
+            storyImage: null
+          };
+          
+          console.log("Last-resort OpenAI generation successful");
+          return res.json(newQuestion);
+        }
+      } catch (finalOpenAiError) {
+        console.error("Final OpenAI generation attempt failed:", finalOpenAiError);
+      }
+      
+      // Absolute last resort - hardcoded emergency question with randomized ID
+      // This should rarely be reached with all our fallbacks
+      const emergencyQuestion = {
+        id: 999000 + Math.floor(Math.random() * 1000), // Add randomness to ID
+        category: category || "addition",
+        grade: grade,
+        difficulty: 2,
+        question: `What is ${Math.floor(Math.random() * 10) + 1} + ${Math.floor(Math.random() * 10) + 1}?`,
+        answer: "Dynamic", // This will be handled on client-side to be computed correctly
+        options: ["Dynamic"],
         concepts: ["addition", "counting"],
         storyId: null,
         storyNode: null,
@@ -245,7 +354,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storyImage: null
       };
       
-      return res.json(fallbackQuestion);
+      // Calculate correct answer for the dynamic emergency question
+      const emergencyQuestionMatch = emergencyQuestion.question.match(/What is (\d+) \+ (\d+)\?/);
+      if (emergencyQuestionMatch) {
+        const num1 = parseInt(emergencyQuestionMatch[1]);
+        const num2 = parseInt(emergencyQuestionMatch[2]);
+        const sum = num1 + num2;
+        emergencyQuestion.answer = sum.toString();
+        emergencyQuestion.options = [
+          sum.toString(),
+          (sum + 1).toString(),
+          (sum - 1).toString(),
+          (sum + 2).toString()
+        ];
+        // Shuffle options
+        emergencyQuestion.options = shuffle(emergencyQuestion.options);
+      }
+      
+      console.log("Using emergency fallback question");
+      return res.json(emergencyQuestion);
     } catch (error) {
       console.error("Error in /api/questions/next:", error);
       return res.status(500).json({ message: "An error occurred while fetching questions" });

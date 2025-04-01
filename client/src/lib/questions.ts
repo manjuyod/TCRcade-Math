@@ -34,14 +34,19 @@ export async function fetchQuestion(
   params.append('forceDynamic', forceDynamic ? 'true' : 'false');
   
   // Include ALL excluded IDs from both params and our global cache
-  // This provides multi-layered duplicate prevention
+  // This provides multi-layered duplicate prevention with strong randomization
   const allExcludeIds = [...excludeIds, ...Array.from(globalSeenQuestions)];
-  if (allExcludeIds.length > 0) {
-    params.append('exclude', allExcludeIds.join(','));
-  }
   
-  // Add timestamp to prevent caching
-  params.append('_t', Date.now().toString());
+  // Always include the exclude parameter, even if empty, to ensure the API knows to handle duplicates
+  params.append('exclude', allExcludeIds.join(','));
+  
+  // Add timestamp to prevent caching and add some randomness to request
+  params.append('_t', Date.now().toString() + Math.floor(Math.random() * 1000));
+  
+  // Explicitly request dynamic generation for better variety after user has seen several questions
+  if (forceDynamic || globalSeenQuestions.size > 10) {
+    params.append('forceDynamic', 'true');
+  }
   
   // Make the request
   const response = await fetch(`/api/questions/next?${params.toString()}`, {
@@ -58,9 +63,10 @@ export async function fetchQuestion(
   // Extract the actual question from response
   const question = data.question || data;
   
-  // Add question ID to global seen list to prevent duplicates
+  // Add question ID to global seen list to prevent duplicates in future requests
   if (question && typeof question.id === 'number') {
-    globalSeenQuestions.add(data.question.id);
+    globalSeenQuestions.add(question.id);
+    console.log(`Added question ID ${question.id} to global seen list (total: ${globalSeenQuestions.size})`);
   }
   
   // Return the question
@@ -108,13 +114,23 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
         // If we're already retrying, force dynamic to get new questions
         const shouldForceDynamic = forceFresh || retryCount.current > 0;
         
-        // Get current question's ID for exclusion
-        const currentId = question?.id;
-        const idsToExclude = currentId ? [currentId] : [];
+        // Get current question ID and ALL session question IDs for exclusion
+        // Include both the current component's seen questions AND the global seen questions set
+        const sessionSeenIds = [...Array.from(seenQuestionsRef.current)];
         
-        // Fetch a question
+        if (question?.id) {
+          sessionSeenIds.push(question.id);
+        }
+        
+        // Make sure we have a unique set of IDs to exclude
+        const uniqueIdsToExclude = [...new Set(sessionSeenIds)];
+        
+        // Log exclusion info for debugging
+        console.log(`Fetching question with ${uniqueIdsToExclude.length} excluded IDs, forceDynamic=${shouldForceDynamic}`);
+        
+        // Fetch a question with our improved exclusion mechanism
         newQuestion = await fetchQuestion(
-          idsToExclude,
+          uniqueIdsToExclude,
           shouldForceDynamic,
           category,
           grade

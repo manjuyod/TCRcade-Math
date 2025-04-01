@@ -429,28 +429,30 @@ export default function HomePage() {
   
   // Using progress percentage from the timer hook instead of manual calculation
   
-  // TEMPORARILY DISABLED duplicate question detection
-  // This was causing infinite loops with small question banks
-  /*
+  // IMPROVED duplicate question detection
+  // This won't get into infinite loops with small question banks thanks to our improved backend
   useEffect(() => {
-    if (question && answeredQuestionIds.includes(question.id) && answeredQuestionIds.length < 100) {
-      // If we've already seen this question in this session, fetch a new one
-      console.log("Duplicate question detected in current session, fetching new one");
+    if (question && 
+        answeredQuestionIds.includes(question.id) && 
+        answeredQuestionIds.length < 1000 && // Don't run if we have too many answered questions
+        !isManuallyLoading // Don't run if we're already loading
+    ) {
+      // If we've already seen this question in this session, log it and fetch a new one
+      console.log(`Duplicate question detected in session: ID ${question.id}, fetching new question`);
       
       // Set loading state to prevent showing the duplicate
       setIsManuallyLoading(true);
       
       // Use our improved question hook to fetch a new question with duplicate prevention
-      fetchNewQuestion(true)
+      fetchNewQuestion(true) // forceDynamic=true to ensure variety
         .finally(() => {
           // Turn off loading after a short delay
           setTimeout(() => {
             setIsManuallyLoading(false);
-          }, 100);
+          }, 200);
         });
     }
-  }, [question, answeredQuestionIds, fetchNewQuestion]);
-  */
+  }, [question, answeredQuestionIds, fetchNewQuestion, isManuallyLoading]);
   
   return (
     <div className="flex flex-col min-h-screen">
