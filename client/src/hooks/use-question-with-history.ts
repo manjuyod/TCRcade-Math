@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Question } from '@shared/schema';
 
 interface UseQuestionWithHistoryReturn {
@@ -11,7 +11,8 @@ interface UseQuestionWithHistoryReturn {
 }
 
 /**
- * Custom hook for fetching questions while avoiding repetition
+ * Custom hook for fetching questions - minimal version with no duplicate detection
+ * to avoid infinite loops
  * 
  * @param grade The grade level to fetch questions for
  * @param category Optional category to filter questions
@@ -21,8 +22,8 @@ export function useQuestionWithHistory(
   grade: string,
   category?: string
 ): UseQuestionWithHistoryReturn {
+  // Just keep a record but don't use for filtering
   const [seenQuestions, setSeenQuestions] = useState<number[]>([]);
-  const queryClient = useQueryClient();
   
   // Build a query key that includes grade and category
   const queryKey = category 
@@ -32,7 +33,7 @@ export function useQuestionWithHistory(
   // State to trigger query refetching
   const [fetchTrigger, setFetchTrigger] = useState(0);
   
-  // Fetch a question
+  // Fetch a question - with no duplicate detection
   const { data, isLoading, error } = useQuery<Question>({
     queryKey: [...queryKey, fetchTrigger],
     queryFn: async () => {
@@ -43,6 +44,9 @@ export function useQuestionWithHistory(
         url += `&category=${category}`;
       }
       
+      // Add a randomizing parameter to prevent cache
+      url += `&random=${Math.random()}`;
+      
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -51,15 +55,9 @@ export function useQuestionWithHistory(
       
       const data = await response.json();
       
-      // Add to seen questions list to prevent duplicates
-      if (data.id && !seenQuestions.includes(data.id)) {
-        setSeenQuestions(prev => {
-          // Limit to last 20 seen questions to prevent the list from growing too large
-          if ([...prev, data.id].length > 20) {
-            return [...prev, data.id].slice(-20);
-          }
-          return [...prev, data.id];
-        });
+      // Just record seen questions but don't filter by them
+      if (data.id) {
+        setSeenQuestions(prev => [...prev.slice(-19), data.id]);
       }
       
       return data;
@@ -68,15 +66,8 @@ export function useQuestionWithHistory(
   });
   
   // Function to fetch a new question
-  const fetchNewQuestion = async (excludeCurrentQuestion?: boolean) => {
-    // If we have a current question and want to exclude it
-    if (excludeCurrentQuestion && data?.id) {
-      if (!seenQuestions.includes(data.id)) {
-        setSeenQuestions(prev => [...prev, data.id]);
-      }
-    }
-    
-    // Trigger a refetch with the updated seenQuestions
+  const fetchNewQuestion = async () => {
+    // Just trigger a refetch by incrementing the trigger
     setFetchTrigger(prev => prev + 1);
   };
 

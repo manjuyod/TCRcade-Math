@@ -431,7 +431,9 @@ export default function HomePage() {
   
   // Using progress percentage from the timer hook instead of manual calculation
   
-  // Check if current question has already been answered in this session
+  // TEMPORARILY DISABLED duplicate question detection
+  // This was causing infinite loops with small question banks
+  /*
   useEffect(() => {
     if (question && answeredQuestionIds.includes(question.id) && answeredQuestionIds.length < 100) {
       // If we've already seen this question in this session, fetch a new one
@@ -450,6 +452,7 @@ export default function HomePage() {
         });
     }
   }, [question, answeredQuestionIds, fetchNewQuestion]);
+  */
   
   return (
     <div className="flex flex-col min-h-screen">
