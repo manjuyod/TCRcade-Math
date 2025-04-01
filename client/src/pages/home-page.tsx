@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSessionTimer } from '@/hooks/use-session-timer';
+import { useQuestionWithHistory } from '@/hooks/use-question-with-history';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import QuestionCard from '@/components/question-card';
