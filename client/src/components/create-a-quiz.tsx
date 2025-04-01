@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import SessionComplete from '@/components/session-complete';
 import { playSound } from '@/lib/sounds';
 
-export default function PracticeMode() {
+export default function CreateAQuiz() {
   const { user } = useAuth();
   const [selectedGrade, setSelectedGrade] = useState<string>(user?.grade || '4');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -161,15 +161,15 @@ export default function PracticeMode() {
   return (
     <div className="container mx-auto px-4 pb-20">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Practice Mode</h1>
+        <h1 className="text-2xl font-bold mb-2">Create-A-Quiz</h1>
         <p className="text-gray-600">
-          Practice specific math skills and track your progress
+          Create a custom quiz with topics and grade levels you choose
         </p>
       </div>
       
       {sessionQuestions.length === 0 ? (
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Create a Practice Session</h2>
+          <h2 className="text-lg font-semibold mb-4">Create Your Custom Quiz</h2>
           
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Grade Level</label>
@@ -206,7 +206,7 @@ export default function PracticeMode() {
             onClick={startSession}
             className="w-full bg-orange-500 hover:bg-orange-600"
           >
-            Start Practice Session
+            Create My Quiz
           </Button>
         </Card>
       ) : (

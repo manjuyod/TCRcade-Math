@@ -465,6 +465,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update user stats from practice/quiz sessions
+  app.post("/api/user/stats", ensureAuthenticated, async (req, res) => {
+    const userId = req.user!.id;
+    const { correctAnswers, tokensEarned, questionsAnswered } = req.body;
+    
+    if (typeof correctAnswers !== 'number' || typeof tokensEarned !== 'number' || typeof questionsAnswered !== 'number') {
+      return res.status(400).json({ message: "Invalid stats data" });
+    }
+    
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user stats
+      const updatedUser = await storage.updateUser(userId, {
+        tokens: user.tokens + tokensEarned,
+        correctAnswers: user.correctAnswers + correctAnswers,
+        questionsAnswered: user.questionsAnswered + questionsAnswered,
+        lastActive: new Date()
+      });
+      
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error("Error updating user stats:", error);
+      res.status(500).json({ message: "Failed to update user stats" });
+    }
+  });
+  
   // Get personalized recommendations for the current user
   app.get("/api/recommendations", ensureAuthenticated, async (req, res) => {
     const userId = req.user!.id;

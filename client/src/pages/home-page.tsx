@@ -21,7 +21,7 @@ import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
 import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
-import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -421,11 +421,11 @@ export default function HomePage() {
           
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/practice'}>
             <div className="bg-primary/10 p-2 rounded-full">
-              <Book className="h-5 w-5 text-primary" />
+              <Pencil className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">Practice Mode</h3>
-              <p className="text-xs text-gray-500">Targeted skill practice</p>
+              <h3 className="font-semibold">Create-A-Quiz</h3>
+              <p className="text-xs text-gray-500">Create custom quizzes</p>
             </div>
           </div>
           

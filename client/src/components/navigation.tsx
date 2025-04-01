@@ -1,17 +1,17 @@
 import { Link } from 'wouter';
-import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Palette, Users, Brain, Calendar } from 'lucide-react';
+import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Palette, Users, Brain, Calendar, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type NavigationProps = {
-  active: 'home' | 'play' | 'leaderboard' | 'profile' | 'daily-challenge' | 'avatar' | 'multiplayer' | 'analytics';
+  active: 'home' | 'play' | 'leaderboard' | 'profile' | 'daily-challenge' | 'avatar' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice';
 };
 
 export default function Navigation({ active }: NavigationProps) {
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   
   // Check if any of the advanced features is active
-  const isAdvancedFeatureActive = ['daily-challenge', 'avatar', 'multiplayer', 'analytics'].includes(active);
+  const isAdvancedFeatureActive = ['daily-challenge', 'avatar', 'multiplayer', 'analytics', 'create-a-quiz'].includes(active);
   
   return (
     <nav className="bg-white shadow-xl px-4 border-t border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden h-11">
@@ -39,7 +39,7 @@ export default function Navigation({ active }: NavigationProps) {
                 </button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-auto rounded-t-3xl">
-                <div className="flex justify-around py-4 px-1 mb-6 mt-2">
+                <div className="flex flex-wrap justify-around py-4 px-1 mb-6 mt-2">
                   <Link href="/daily-challenge" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
                     <div className={`p-2 rounded-full ${active === 'daily-challenge' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                       <Calendar className="h-5 w-5" />
@@ -66,6 +66,13 @@ export default function Navigation({ active }: NavigationProps) {
                       <Brain className="h-5 w-5" />
                     </div>
                     <span className="text-xs text-center">AI Analytics</span>
+                  </Link>
+
+                  <Link href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+                    <div className={`p-2 rounded-full ${active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                      <Pencil className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs text-center">Create-A-Quiz</span>
                   </Link>
                 </div>
               </SheetContent>
