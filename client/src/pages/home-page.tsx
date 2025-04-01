@@ -249,8 +249,15 @@ export default function HomePage() {
         // Increment the streak counter for correct answers
         setCurrentStreak(newStreakCount);
         
-        // Check if we've hit a milestone - SIMPLIFIED VERSION
-        const milestone = STREAK_MILESTONES.find(m => m === newStreakCount);
+        // Check if we've hit a milestone - EVEN MORE SIMPLIFIED VERSION
+        // This won't create any new objects or cause React update issues
+        let milestone = 0;
+        for (let i = 0; i < STREAK_MILESTONES.length; i++) {
+          if (STREAK_MILESTONES[i] === newStreakCount) {
+            milestone = STREAK_MILESTONES[i];
+            break;
+          }
+        }
         
         if (milestone) {
           try {
@@ -267,17 +274,21 @@ export default function HomePage() {
               // Set milestone in state
               setStreakMilestone(milestone);
               
-              // First show feedback, then show streak animation with delay
-              console.log(`Preparing streak animation for ${newStreakCount} streak`);
+              // Only show streak animation for certain milestones (not EVERY answer)
+              // and only when feedback is visible to avoid conflicts
+              console.log(`Processing streak animation for ${newStreakCount} streak`);
               
-              // Delay streak animation to happen after feedback display
-              // This avoids UI conflicts between feedback and streak animation
-              setTimeout(() => {
-                if (!isManuallyLoading) {
-                  console.log(`Showing streak animation for ${newStreakCount} streak`);
-                  setShowStreakAnimation(true);
-                }
-              }, 1500);
+              // Set milestone state, but ONLY show the animation under safe conditions
+              if (showFeedback && !isManuallyLoading && milestone === newStreakCount) {
+                console.log(`Showing streak animation for ${newStreakCount} streak milestone`);
+                
+                // Wait until feedback had time to render
+                setTimeout(() => {
+                  if (!showStreakAnimation) { // Only set this once to avoid loops
+                    setShowStreakAnimation(true);
+                  }
+                }, 1000);
+              }
             }
           } catch (e) {
             console.error("Error handling streak bonus:", e);
@@ -635,28 +646,42 @@ export default function HomePage() {
       
       <Navigation active="play" />
       
-      {/* Streak animation */}
+      {/* Streak animation - SIMPLIFIED to prevent React infinite loops */}
       {showStreakAnimation && (
         <StreakAnimation 
           streakCount={currentStreak}
           milestone={streakMilestone}
-          onAnimationComplete={() => setShowStreakAnimation(false)} 
+          onAnimationComplete={() => {
+            // Immediately set to false without any side effects
+            setShowStreakAnimation(false);
+            
+            // Stop any further state updates in this render cycle
+            return;
+          }} 
         />
       )}
       
-      {/* Time achievement animation */}
+      {/* Time achievement animation - also using simplified pattern */}
       {showTimeAchievement && (
         <TimeAchievement
           minutesSpent={timeAchievement}
-          onAnimationComplete={() => setShowTimeAchievement(false)}
+          onAnimationComplete={() => {
+            // Immediately set to false without any side effects
+            setShowTimeAchievement(false);
+            return;
+          }}
         />
       )}
       
-      {/* Level up animation */}
+      {/* Level up animation - also using simplified pattern */}
       {showLevelUpAnimation && (
         <LevelUpAnimation
           newGrade={newLevel}
-          onAnimationComplete={() => setShowLevelUpAnimation(false)}
+          onAnimationComplete={() => {
+            // Immediately set to false without any side effects
+            setShowLevelUpAnimation(false);
+            return;
+          }}
         />
       )}
     </div>

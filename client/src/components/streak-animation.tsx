@@ -1,7 +1,7 @@
-// Emergency fixed version of streak animation
-// No sound effects, no external libraries, just a static display that self-dismisses
+// Super simplified version of streak animation with NO state to prevent React update loops
+// This stateless component relies completely on parent control
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 
 type StreakAnimationProps = {
   streakCount: number;
@@ -9,47 +9,17 @@ type StreakAnimationProps = {
   onAnimationComplete?: () => void;
 };
 
+// Completely stateless component to avoid any setState loops
 export default function StreakAnimation({ 
   streakCount, 
   milestone = 3, 
   onAnimationComplete 
 }: StreakAnimationProps) {
-  // Local state to track if component is mounted
-  const [isMounted, setIsMounted] = useState(true);
   
-  // Self-dismissing logic that doesn't rely on parent state
-  useEffect(() => {
-    // Safety - only set timer if component is mounted
-    if (!isMounted) return;
-    
-    // NO sound effects - they may be causing crashes
-    
-    // Auto dismiss after 2 seconds using local state first
-    const timer = setTimeout(() => {
-      setIsMounted(false);
-      
-      // Then call the parent callback only after state is updated
-      setTimeout(() => {
-        if (onAnimationComplete) {
-          onAnimationComplete();
-        }
-      }, 50);
-    }, 2000);
-    
-    // Clean up on unmount
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [isMounted, onAnimationComplete]); // Include dependencies to prevent React warnings
-  
-  // If not mounted, render nothing
-  if (!isMounted) return null;
-  
-  // Simple text-only version, no emoji to prevent potential display issues
+  // Simple text-only version
   let displayText = 'Streak Bonus!';
   let bonusText = '';
   
-  // Simple if-else instead of ternary chains for better reliability
   if (milestone >= 20) {
     displayText = 'INCREDIBLE STREAK!';
   } else if (milestone >= 10) {
@@ -58,20 +28,22 @@ export default function StreakAnimation({
     displayText = 'SUPER STREAK!';
   }
   
-  // Calculate bonus tokens
   if (milestone >= 5) {
     bonusText = `+${milestone * 2} bonus tokens!`;
   }
-  
-  // Handle click to manually dismiss the animation
-  const handleDismiss = () => {
-    setIsMounted(false);
+
+  // Simple handler with no state changes in the component
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Just call the parent callback immediately
     if (onAnimationComplete) {
       onAnimationComplete();
     }
   };
 
-  // Simple static popup that can be clicked to dismiss
+  // Simple static popup
   return (
     <div 
       className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30"
