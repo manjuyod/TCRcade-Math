@@ -43,16 +43,26 @@ export default function AiTutorPage() {
 
   const fetchNewQuestion = async () => {
     try {
+      // Clear previous question to ensure new content is loaded
+      setCurrentQuestionId(null);
+      
       const params = new URLSearchParams();
       params.append('grade', selectedGrade);
       if (selectedCategory) {
         params.append('category', selectedCategory);
       }
+      // Add a random parameter to avoid caching
+      params.append('random', Math.random().toString());
       
+      // Add forceDynamic=true to ensure a dynamically generated question
+      params.append('forceDynamic', 'true');
+      
+      console.log(`Fetching new question with params: ${params.toString()}`);
       const res = await apiRequest('GET', `/api/questions/next?${params}`);
       const data = await res.json();
       
       if (data.question) {
+        console.log("New question received:", data.question);
         setCurrentQuestionId(data.question.id);
       } else {
         toast({
@@ -93,27 +103,33 @@ export default function AiTutorPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex flex-col items-center mb-8">
-        <h1 className="text-3xl font-bold text-center mb-2">AI Math Tutor</h1>
+    <div className="container mx-auto py-6 px-4 max-w-6xl">
+      <div className="flex flex-col items-center mb-6">
+        <h1 className="text-3xl font-bold text-center mb-2 text-primary">AI Math Tutor</h1>
         <p className="text-center text-muted-foreground max-w-xl">
           Get personalized help with math problems using our AI tutor. Choose a grade level and topic, 
           then get step-by-step guidance, hints, and explanations.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Problem</CardTitle>
+          <Card className="shadow-md">
+            <CardHeader className="bg-muted/30 pb-4">
+              <CardTitle className="text-lg flex items-center">
+                <BookOpenCheck className="h-5 w-5 mr-2 text-primary" />
+                Select Problem
+              </CardTitle>
               <CardDescription>Choose a grade level and category</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div>
-                <h3 className="text-sm font-medium mb-2">Grade Level</h3>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <span className="bg-primary/10 text-primary rounded-full w-5 h-5 inline-flex items-center justify-center mr-2 text-xs">1</span>
+                  Grade Level
+                </h3>
                 <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange}>
-                  <TabsList className="grid grid-cols-7 w-full">
+                  <TabsList className="grid grid-cols-7 w-full bg-muted/30">
                     <TabsTrigger value="K">K</TabsTrigger>
                     <TabsTrigger value="1">1</TabsTrigger>
                     <TabsTrigger value="2">2</TabsTrigger>
@@ -126,14 +142,17 @@ export default function AiTutorPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Category</h3>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <span className="bg-primary/10 text-primary rounded-full w-5 h-5 inline-flex items-center justify-center mr-2 text-xs">2</span>
+                  Category
+                </h3>
                 {categoriesLoading ? (
                   <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : categories && categories.length > 0 ? (
                   <Tabs defaultValue={selectedCategory} onValueChange={handleCategoryChange}>
-                    <TabsList className="grid grid-cols-2 gap-2">
+                    <TabsList className="grid grid-cols-2 gap-2 bg-muted/30">
                       {categories.map((category: string) => (
                         <TabsTrigger 
                           key={category} 
@@ -150,53 +169,98 @@ export default function AiTutorPage() {
                 )}
               </div>
             </CardContent>
-            <CardFooter>
-              <Button onClick={fetchNewQuestion} className="w-full">
+            <CardFooter className="pt-0">
+              <Button onClick={fetchNewQuestion} className="w-full bg-primary hover:bg-primary/90 font-medium">
                 Get New Problem
               </Button>
             </CardFooter>
           </Card>
 
-          <Card className="mt-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Need help with:</CardTitle>
+          <Card className="mt-4 shadow-md">
+            <CardHeader className="pb-2 bg-muted/30">
+              <CardTitle className="text-base flex items-center">
+                <BookOpenCheck className="h-4 w-4 mr-2 text-primary" />
+                Need help with:
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-3">
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Operations")}>
-                  <div className="text-left">
-                    <div className="font-medium">Addition</div>
-                    <div className="text-xs text-muted-foreground">Adding numbers</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("addition");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Addition</div>
+                    <div className="text-xs text-muted-foreground truncate">Adding numbers</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Operations")}>
-                  <div className="text-left">
-                    <div className="font-medium">Subtraction</div>
-                    <div className="text-xs text-muted-foreground">Taking away</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("subtraction");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Subtraction</div>
+                    <div className="text-xs text-muted-foreground truncate">Taking away</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Operations")}>
-                  <div className="text-left">
-                    <div className="font-medium">Multiplication</div>
-                    <div className="text-xs text-muted-foreground">Times tables</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("multiplication");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Multiplication</div>
+                    <div className="text-xs text-muted-foreground truncate">Times tables</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Operations")}>
-                  <div className="text-left">
-                    <div className="font-medium">Division</div>
-                    <div className="text-xs text-muted-foreground">Sharing equally</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("division");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Division</div>
+                    <div className="text-xs text-muted-foreground truncate">Sharing equally</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Fractions")}>
-                  <div className="text-left">
-                    <div className="font-medium">Fractions</div>
-                    <div className="text-xs text-muted-foreground">Parts of a whole</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("fractions");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Fractions</div>
+                    <div className="text-xs text-muted-foreground truncate">Parts of a whole</div>
                   </div>
                 </Button>
-                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => setSelectedCategory("Measurement")}>
-                  <div className="text-left">
-                    <div className="font-medium">Measurement</div>
-                    <div className="text-xs text-muted-foreground">Size, weight, time</div>
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                  onClick={() => {
+                    setSelectedCategory("measurement");
+                    fetchNewQuestion();
+                  }}
+                >
+                  <div className="text-left truncate w-full">
+                    <div className="font-medium truncate">Measurement</div>
+                    <div className="text-xs text-muted-foreground truncate">Size, weight, time</div>
                   </div>
                 </Button>
               </div>
@@ -207,14 +271,26 @@ export default function AiTutorPage() {
         <div className="md:col-span-2">
           {currentQuestion ? (
             <>
-              <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-2">Problem</h2>
-                <p className="text-lg">{currentQuestion.question}</p>
-                <div className="flex items-center mt-4 text-sm text-muted-foreground">
-                  <BookOpenCheck className="h-4 w-4 mr-1" />
-                  <span>Grade {currentQuestion.grade} &middot; {currentQuestion.category}</span>
-                </div>
-              </div>
+              <Card className="shadow-md mb-6 overflow-hidden">
+                <CardHeader className="bg-primary/10 pb-4">
+                  <CardTitle className="text-xl flex items-center">
+                    <BookOpenCheck className="h-5 w-5 mr-2 text-primary" />
+                    Current Problem
+                  </CardTitle>
+                  <CardDescription className="flex items-center mt-1">
+                    <span className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+                      Grade {currentQuestion.grade}
+                    </span>
+                    <span className="mx-2 text-muted-foreground">&bull;</span>
+                    <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                      {currentQuestion.category}
+                    </span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-lg font-medium">{currentQuestion.question}</p>
+                </CardContent>
+              </Card>
               
               <AIMathTutor 
                 question={currentQuestion.question}
@@ -224,20 +300,32 @@ export default function AiTutorPage() {
               />
             </>
           ) : questionLoading ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Loading problem...</p>
+            <div className="flex flex-col items-center justify-center h-64 bg-white/50 rounded-lg shadow-sm">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground font-medium">Loading your math problem...</p>
             </div>
           ) : (
             <>
-              <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-2">Problem</h2>
-                <p className="text-lg">{sampleQuestion.question}</p>
-                <div className="flex items-center mt-4 text-sm text-muted-foreground">
-                  <BookOpenCheck className="h-4 w-4 mr-1" />
-                  <span>Grade {sampleQuestion.grade} &middot; {sampleQuestion.category}</span>
-                </div>
-              </div>
+              <Card className="shadow-md mb-6 overflow-hidden">
+                <CardHeader className="bg-primary/10 pb-4">
+                  <CardTitle className="text-xl flex items-center">
+                    <BookOpenCheck className="h-5 w-5 mr-2 text-primary" />
+                    Sample Problem
+                  </CardTitle>
+                  <CardDescription className="flex items-center mt-1">
+                    <span className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+                      Grade {sampleQuestion.grade}
+                    </span>
+                    <span className="mx-2 text-muted-foreground">&bull;</span>
+                    <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                      {sampleQuestion.category}
+                    </span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-lg font-medium">{sampleQuestion.question}</p>
+                </CardContent>
+              </Card>
 
               <AIMathTutor 
                 question={sampleQuestion.question}
@@ -246,8 +334,16 @@ export default function AiTutorPage() {
                 concept={sampleQuestion.concepts[0]}
               />
               
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                <p>This is a sample problem. Click "Get New Problem" to fetch a real problem from our database.</p>
+              <div className="mt-4 text-center text-sm flex flex-col items-center justify-center bg-muted/30 p-3 rounded-lg">
+                <p className="text-muted-foreground mb-2">This is a sample problem to show you how the AI Math Tutor works.</p>
+                <Button 
+                  onClick={fetchNewQuestion} 
+                  variant="outline"
+                  className="border-primary/20 text-primary bg-white hover:bg-primary/10"
+                >
+                  <BookOpenCheck className="h-4 w-4 mr-2" />
+                  Get a New Problem
+                </Button>
               </div>
             </>
           )}
