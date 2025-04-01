@@ -35,16 +35,20 @@ export async function fetchQuestion(
   
   // Include ALL excluded IDs from both params and our global cache
   // This provides multi-layered duplicate prevention with strong randomization
-  const allExcludeIds = [...excludeIds, ...Array.from(globalSeenQuestions)];
+  const allExcludeIds = [...excludeIds, ...Array.from(globalSeenQuestions.values())];
   
-  // Always include the exclude parameter, even if empty, to ensure the API knows to handle duplicates
-  params.append('exclude', allExcludeIds.join(','));
+  // Only include the exclude parameter if we actually have IDs to exclude
+  // This prevents issues where the server side might misinterpret an empty string
+  if (allExcludeIds.length > 0) {
+    params.append('exclude', allExcludeIds.join(','));
+  }
   
   // Add timestamp to prevent caching and add some randomness to request
   params.append('_t', Date.now().toString() + Math.floor(Math.random() * 1000));
   
   // Explicitly request dynamic generation for better variety after user has seen several questions
-  if (forceDynamic || globalSeenQuestions.size > 10) {
+  // or when forceDynamic is true
+  if (forceDynamic || globalSeenQuestions.size > 5) {
     params.append('forceDynamic', 'true');
   }
   
@@ -116,14 +120,16 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
         
         // Get current question ID and ALL session question IDs for exclusion
         // Include both the current component's seen questions AND the global seen questions set
-        const sessionSeenIds = [...Array.from(seenQuestionsRef.current)];
+        const sessionSeenIds = Array.from(seenQuestionsRef.current.values());
         
         if (question?.id) {
           sessionSeenIds.push(question.id);
         }
         
         // Make sure we have a unique set of IDs to exclude
-        const uniqueIdsToExclude = [...new Set(sessionSeenIds)];
+        // Create a temporary regular array and then convert back to avoid Set iteration issues
+        const tempSet = new Set(sessionSeenIds);
+        const uniqueIdsToExclude = Array.from(tempSet);
         
         // Log exclusion info for debugging
         console.log(`Fetching question with ${uniqueIdsToExclude.length} excluded IDs, forceDynamic=${shouldForceDynamic}`);
@@ -137,12 +143,16 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
         );
         
         // Check if this is a duplicate question (already seen in this session)
-        isDuplicate = newQuestion ? 
+        // But don't consider it a duplicate if we're on retry #2+ to avoid infinite loops
+        isDuplicate = newQuestion && retryCount.current < 2 ? 
           seenQuestionsRef.current.has(newQuestion.id) : false;
         
         if (isDuplicate) {
-          console.log("Duplicate question detected, fetching new one");
+          console.log(`Question ${newQuestion?.id} is a duplicate, retrying (attempt ${retryCount.current + 1})`);
           retryCount.current++;
+        } else if (newQuestion) {
+          // Question is unique or we're past retry #2, accept it
+          console.log(`Accepting question ${newQuestion.id} (isDuplicate: ${isDuplicate}, retries: ${retryCount.current})`);
         }
       } while (isDuplicate && retryCount.current < maxRetries);
       

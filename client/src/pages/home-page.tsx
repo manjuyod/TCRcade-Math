@@ -267,11 +267,17 @@ export default function HomePage() {
               // Set milestone in state
               setStreakMilestone(milestone);
               
-              // Don't use too many nested timeouts - keep it simple
-              console.log(`Showing streak animation for ${newStreakCount} streak`);
+              // First show feedback, then show streak animation with delay
+              console.log(`Preparing streak animation for ${newStreakCount} streak`);
               
-              // Show animation immediately - component handles its own dismissal
-              setShowStreakAnimation(true);
+              // Delay streak animation to happen after feedback display
+              // This avoids UI conflicts between feedback and streak animation
+              setTimeout(() => {
+                if (!isManuallyLoading) {
+                  console.log(`Showing streak animation for ${newStreakCount} streak`);
+                  setShowStreakAnimation(true);
+                }
+              }, 1500);
             }
           } catch (e) {
             console.error("Error handling streak bonus:", e);
@@ -429,8 +435,9 @@ export default function HomePage() {
   
   // Using progress percentage from the timer hook instead of manual calculation
   
-  // IMPROVED duplicate question detection
-  // This won't get into infinite loops with small question banks thanks to our improved backend
+  // DISABLED duplicate question detection to fix infinite loop
+  // We'll rely on the server-side exclusion instead
+  /*
   useEffect(() => {
     if (question && 
         answeredQuestionIds.includes(question.id) && 
@@ -453,6 +460,7 @@ export default function HomePage() {
         });
     }
   }, [question, answeredQuestionIds, fetchNewQuestion, isManuallyLoading]);
+  */
   
   return (
     <div className="flex flex-col min-h-screen">

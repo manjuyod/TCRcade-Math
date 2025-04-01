@@ -63,9 +63,21 @@ export default function StreakAnimation({
     bonusText = `+${milestone * 2} bonus tokens!`;
   }
   
-  // Simple static popup with no fancy effects
+  // Handle click to manually dismiss the animation
+  const handleDismiss = () => {
+    setIsMounted(false);
+    if (onAnimationComplete) {
+      onAnimationComplete();
+    }
+  };
+
+  // Simple static popup that can be clicked to dismiss
   return (
-    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50 bg-black bg-opacity-30">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30"
+      onClick={handleDismiss}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="bg-white rounded-xl py-6 px-8 shadow-lg text-center">
         <div className="text-4xl mb-2">
           {streakCount} in a row!
@@ -78,6 +90,9 @@ export default function StreakAnimation({
             {bonusText}
           </div>
         )}
+        <div className="mt-4 text-sm text-gray-400">
+          (Click anywhere to continue)
+        </div>
       </div>
     </div>
   );
