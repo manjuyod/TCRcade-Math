@@ -146,27 +146,23 @@ export default function SessionComplete({
           )}
         </motion.div>
         
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-primary bg-opacity-10 p-4 rounded-xl">
-            <div className="text-2xl font-bold text-primary">{correctAnswers}</div>
-            <div className="text-sm text-gray-600">Correct</div>
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          <div className="flex justify-between items-center bg-orange-100 p-6 rounded-xl border-2 border-orange-300">
+            <div className="text-lg font-bold text-gray-800">Correct Answers:</div>
+            <div className="text-3xl font-extrabold text-orange-600">{correctAnswers}/{totalQuestions}</div>
           </div>
           
-          <div className="bg-secondary bg-opacity-10 p-4 rounded-xl">
-            <div className="text-2xl font-bold text-secondary">{accuracy}%</div>
-            <div className="text-sm text-gray-600">Accuracy</div>
+          <div className="flex justify-between items-center bg-blue-100 p-6 rounded-xl border-2 border-blue-300">
+            <div className="text-lg font-bold text-gray-800">Accuracy:</div>
+            <div className="text-3xl font-extrabold text-blue-600">{accuracy}%</div>
           </div>
           
-          <div className="bg-accent bg-opacity-10 p-4 rounded-xl">
-            <div className="text-2xl font-bold text-accent">
+          <div className="flex justify-between items-center bg-green-100 p-6 rounded-xl border-2 border-green-300">
+            <div className="text-lg font-bold text-gray-800">Tokens Earned:</div>
+            <div className="text-3xl font-extrabold text-green-600">
               +{isPerfectScore ? tokensEarned + 20 : tokensEarned}
+              {isPerfectScore && <span className="text-sm text-green-600 ml-2">(+20 bonus)</span>}
             </div>
-            <div className="text-sm text-gray-600">Tokens</div>
-            {isPerfectScore && (
-              <div className="text-xs text-green-600 mt-1">
-                (includes perfect bonus)
-              </div>
-            )}
           </div>
         </div>
         

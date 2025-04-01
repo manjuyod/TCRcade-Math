@@ -46,8 +46,8 @@ export default function LeaderboardPage() {
                   <div className="w-16 h-16 bg-orange-400 rounded-full border-4 border-white flex items-center justify-center mb-2">
                     <span className="text-white text-xl font-bold">{leaderboard[1].initials}</span>
                   </div>
-                  <div className="bg-accent py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold">{leaderboard[1].score}</span>
+                  <div className="bg-orange-500 py-1 px-3 rounded-full">
+                    <span className="text-xs font-bold text-white">{leaderboard[1].score}</span>
                   </div>
                   <div className="h-20 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">2nd</span>
@@ -64,8 +64,8 @@ export default function LeaderboardPage() {
                       <i className="ri-award-fill text-4xl text-yellow-400"></i>
                     </div>
                   </div>
-                  <div className="bg-accent py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold">{leaderboard[0].score}</span>
+                  <div className="bg-orange-500 py-1 px-3 rounded-full">
+                    <span className="text-xs font-bold text-white">{leaderboard[0].score}</span>
                   </div>
                   <div className="h-28 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">1st</span>
@@ -79,8 +79,8 @@ export default function LeaderboardPage() {
                   <div className="w-16 h-16 bg-orange-300 rounded-full border-4 border-white flex items-center justify-center mb-2">
                     <span className="text-white text-xl font-bold">{leaderboard[2].initials}</span>
                   </div>
-                  <div className="bg-accent py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold">{leaderboard[2].score}</span>
+                  <div className="bg-orange-500 py-1 px-3 rounded-full">
+                    <span className="text-xs font-bold text-white">{leaderboard[2].score}</span>
                   </div>
                   <div className="h-16 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">3rd</span>
@@ -101,25 +101,25 @@ export default function LeaderboardPage() {
                     <span className="text-dark font-bold">{entry.displayName || entry.username}</span>
                     <span className="text-xs text-gray-500 ml-2">{getGradeLabel(entry.grade || 'K')}</span>
                   </div>
-                  <div className="bg-accent bg-opacity-10 py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold text-yellow-800">{entry.score}</span>
+                  <div className="bg-orange-500 py-1 px-3 rounded-full">
+                    <span className="text-xs font-bold text-white">{entry.score}</span>
                   </div>
                 </div>
               ))}
               
               {/* User's Position (if not in top 10) */}
               {userPosition > 9 && (
-                <div className="leaderboard-item flex items-center p-3 bg-primary bg-opacity-5 rounded-xl mt-4">
-                  <span className="text-lg font-bold text-primary w-10 text-center">{userPosition + 1}</span>
-                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mx-3">
+                <div className="leaderboard-item flex items-center p-3 bg-orange-500 bg-opacity-5 rounded-xl mt-4">
+                  <span className="text-lg font-bold text-orange-500 w-10 text-center">{userPosition + 1}</span>
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mx-3">
                     <span className="text-white font-bold text-sm">YOU</span>
                   </div>
                   <div className="flex-1">
                     <span className="text-dark font-bold">{user.displayName || user.username}</span>
                     <span className="text-xs text-gray-500 ml-2">{getGradeLabel(user.grade || 'K')}</span>
                   </div>
-                  <div className="bg-accent py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold text-yellow-800">{user.tokens}</span>
+                  <div className="bg-orange-500 py-1 px-3 rounded-full">
+                    <span className="text-xs font-bold text-white">{user.tokens}</span>
                   </div>
                 </div>
               )}

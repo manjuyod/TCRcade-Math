@@ -15,6 +15,7 @@ import DailyChallengeComponent from "@/components/daily-challenge";
 import AvatarCreator from "@/components/avatar-creator";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
+import PracticeMode from "@/components/practice-mode";
 import Navigation from "@/components/navigation";
 import ScrollToTop from "@/components/scroll-to-top";
 
@@ -57,6 +58,15 @@ const AnalyticsPage = () => (
   </div>
 );
 
+const PracticePage = () => (
+  <div className="flex flex-col min-h-screen">
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Practice Mode</h1>
+      <PracticeMode />
+    </div>
+  </div>
+);
+
 function Router() {
   return (
     <Switch>
@@ -69,6 +79,7 @@ function Router() {
       <ProtectedRoute path="/avatar" component={AvatarPage} />
       <ProtectedRoute path="/multiplayer" component={MultiplayerPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
+      <ProtectedRoute path="/practice" component={PracticePage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
@@ -89,6 +100,7 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location.includes('/avatar')) return 'avatar';
     if (location.includes('/multiplayer')) return 'multiplayer';
     if (location.includes('/analytics')) return 'analytics';
+    if (location.includes('/practice')) return 'practice';
     
     return 'home';
   };

@@ -221,6 +221,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch question" });
     }
   });
+  
+  // Get questions by concept for practice mode
+  app.get("/api/questions/concept/:grade/:concept", ensureAuthenticated, async (req, res) => {
+    try {
+      const questions = await storage.getQuestionsByConcept(
+        req.params.grade, 
+        req.params.concept
+      );
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching concept questions:", error);
+      res.status(500).json({ error: "Failed to fetch questions" });
+    }
+  });
+  
+  // Get questions by grade for practice mode
+  app.get("/api/questions/grade/:grade", ensureAuthenticated, async (req, res) => {
+    try {
+      const grade = req.params.grade;
+      const category = req.query.category as string | undefined;
+      
+      const questions = await storage.getQuestionsByGrade(grade, category);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching grade questions:", error);
+      res.status(500).json({ error: "Failed to fetch questions" });
+    }
+  });
+  
+  // Get available categories for a grade
+  app.get("/api/categories", ensureAuthenticated, async (req, res) => {
+    try {
+      const grade = req.query.grade as string;
+      if (!grade) {
+        return res.status(400).json({ error: "Grade parameter is required" });
+      }
+      
+      // Get all questions for the grade
+      const questions = await storage.getQuestionsByGrade(grade);
+      
+      // Extract unique categories
+      const categories = [...new Set(questions.map(q => q.category))];
+      
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+  
+  // Get available concepts for a grade
+  app.get("/api/concepts", ensureAuthenticated, async (req, res) => {
+    try {
+      const grade = req.query.grade as string;
+      if (!grade) {
+        return res.status(400).json({ error: "Grade parameter is required" });
+      }
+      
+      const concepts = await storage.getConceptsForGrade(grade);
+      res.json(concepts);
+    } catch (error) {
+      console.error("Error fetching concepts:", error);
+      res.status(500).json({ error: "Failed to fetch concepts" });
+    }
+  });
 
   // Answer question
   app.post("/api/answer", ensureAuthenticated, async (req, res) => {
