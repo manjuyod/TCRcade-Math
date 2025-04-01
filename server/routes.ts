@@ -4,12 +4,9 @@ import { storage } from "./storage";
 import { setupAuth, comparePasswords, hashPassword } from "./auth";
 import { DatabaseStorage } from "./database-storage";
 import { 
-  analyzeStudentResponse, 
-  generateAdaptiveQuestion, 
-  predictStudentPerformance,
-  generateConceptMap,
-  generateMathTimeline,
-  generateAchievements
+  analyzeStudentResponse,
+  generateMathHint,
+  explainMathConcept
 } from "./openai";
 
 // Helper function to get concept information
@@ -1899,6 +1896,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error predicting student performance:', error);
       res.status(500).json({ error: 'Failed to predict performance' });
+    }
+  });
+
+  // AI Math Tutor endpoints
+  app.post('/api/tutor/feedback', async (req, res) => {
+    try {
+      const { question, studentAnswer, correctAnswer } = req.body;
+      
+      if (!question || !studentAnswer || !correctAnswer) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const feedback = await analyzeStudentResponse(question, studentAnswer, correctAnswer);
+      res.json(feedback);
+    } catch (error) {
+      console.error('Error generating tutor feedback:', error);
+      res.status(500).json({ error: "Failed to generate feedback" });
+    }
+  });
+
+  app.post('/api/tutor/hint', async (req, res) => {
+    try {
+      const { question, grade, previousAttempts } = req.body;
+      
+      if (!question || !grade) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const hint = await generateMathHint(question, grade, previousAttempts || 0);
+      res.json({ hint });
+    } catch (error) {
+      console.error('Error generating hint:', error);
+      res.status(500).json({ error: "Failed to generate hint" });
+    }
+  });
+
+  app.post('/api/tutor/explain', async (req, res) => {
+    try {
+      const { concept, grade } = req.body;
+      
+      if (!concept || !grade) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const explanation = await explainMathConcept(concept, grade);
+      res.json({ explanation });
+    } catch (error) {
+      console.error('Error generating explanation:', error);
+      res.status(500).json({ error: "Failed to generate explanation" });
     }
   });
 

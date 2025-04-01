@@ -9,6 +9,7 @@ import ProfilePage from "@/pages/profile-page";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import AdminPage from "@/pages/admin-page";
 import ModulesPage from "@/pages/modules-page";
+import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import DailyChallengeComponent from "@/components/daily-challenge";
@@ -80,6 +81,7 @@ function Router() {
       <ProtectedRoute path="/multiplayer" component={MultiplayerPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
       <ProtectedRoute path="/practice" component={CreateQuizPage} />
+      <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
@@ -101,6 +103,7 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location.includes('/multiplayer')) return 'multiplayer';
     if (location.includes('/analytics')) return 'analytics';
     if (location.includes('/practice')) return 'create-a-quiz';
+    if (location.includes('/tutor')) return 'tutor';
     
     return 'home';
   };

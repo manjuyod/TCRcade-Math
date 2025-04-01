@@ -1,492 +1,332 @@
+import OpenAI from "openai";
 
-import OpenAI from 'openai';
+// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Check if OpenAI API key is available but don't crash if it's missing
-const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+type AdaptiveQuestionParams = {
+  grade: string;
+  concept?: string;
+  studentLevel?: number;
+  previousQuestions?: number[];
+  difficulty?: number;
+  category?: string;
+};
 
-// Initialize OpenAI only if API key is available
-const openai = hasOpenAIKey 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) 
-  : null;
-
+/**
+ * Analyzes a student's response to a math question and provides helpful feedback
+ */
 export async function analyzeStudentResponse(question: string, studentAnswer: string, correctAnswer: string) {
-  // If OpenAI API key is not available, return a generic response
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI analysis skipped - API key missing');
-    // Return encouraging feedback based on whether the answer was correct
-    const isCorrect = studentAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
-    return isCorrect 
-      ? "Great job! That's correct!"
-      : "Keep trying! Practice makes perfect.";
-  }
-  
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a helpful math tutor analyzing student responses. Keep feedback brief, encouraging, and grade-appropriate for elementary school children (K-6). Use simple language and be motivational."
+          content: `You are an expert and encouraging math tutor for K-6 students. 
+          Your goal is to help students understand math concepts by giving clear, encouraging feedback.
+          Keep your responses simple, positive, and appropriate for elementary school students.
+          If the student's answer is correct, offer brief praise.
+          If the answer is incorrect, explain the concept in simple terms and guide them toward the right approach without directly giving the answer.
+          Always use visuals or relatable examples when appropriate.
+          For incorrect answers, provide 1-2 hints that will help them solve it on their own.`
         },
         {
           role: "user",
-          content: `Question: ${question}\nStudent's answer: ${studentAnswer}\nCorrect answer: ${correctAnswer}\n\nProvide brief feedback on this response.`
+          content: `Question: ${question}\nStudent's answer: ${studentAnswer}\nCorrect answer: ${correctAnswer}`
         }
       ],
-      max_tokens: 120
+      max_tokens: 300,
     });
 
-    return response.choices[0]?.message?.content || "Nice try!";
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('OpenAI API error:', error.message || error);
-    }
-    
-    // Return different feedback messages based on whether answer was correct
-    const isCorrect = studentAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
-    return isCorrect 
-      ? "Great job! You got it right!" 
-      : "Keep trying! You'll get it next time.";
+    return {
+      feedback: response.choices[0].message.content,
+      isCorrect: studentAnswer === correctAnswer
+    };
+  } catch (error) {
+    console.error("Error analyzing student response:", error);
+    return {
+      feedback: "I couldn't analyze your answer right now. Let's try again later!",
+      isCorrect: studentAnswer === correctAnswer
+    };
   }
 }
 
-type StudentContextData = {
-  grade: string;
-  interests?: string[];
-  recentConcepts?: string[];
-  strengths?: string[];
-  weaknesses?: string[];
-  learningStyle?: string;
-  previousQuestions?: { question: string, correct: boolean }[];
-};
+/**
+ * Generates a personalized hint based on a math question and student context
+ */
+export async function generateMathHint(question: string, grade: string, previousAttempts: number = 0) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful math tutor for ${grade} grade students. 
+          Provide an age-appropriate hint for the question without giving away the answer.
+          For the first hint (previousAttempts=0), give a general conceptual reminder.
+          For the second hint (previousAttempts=1), provide a more specific strategy.
+          For the third hint (previousAttempts=2+), provide a more direct clue that gets them closer to the answer.
+          Keep hints concise, encouraging, and tailored for young students.`
+        },
+        {
+          role: "user",
+          content: `Question: ${question}\nPrevious attempts: ${previousAttempts}`
+        }
+      ],
+      max_tokens: 150,
+    });
 
-type GeneratedQuestion = {
-  question: string;
-  options: string[];
-  answer: string;
-  concepts: string[];
-  difficulty: number;
-};
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Error generating math hint:", error);
+    return "Think about the key steps needed to solve this problem. You can do it!";
+  }
+}
 
 /**
- * Generates a personalized math question for a student based on their profile and learning context
+ * Explains a math concept in an age-appropriate and engaging way
  */
-export async function generateAdaptiveQuestion(
-  studentContext: StudentContextData
-): Promise<GeneratedQuestion> {
-  // If OpenAI API key is not available, return a generic question
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI question generation skipped - API key missing');
-    return {
-      question: "What is 2 + 2?",
-      options: ["3", "4", "5", "6"],
-      answer: "4",
-      concepts: ["Addition"],
-      difficulty: 1
-    };
-  }
-  
+export async function explainMathConcept(concept: string, grade: string) {
   try {
-    // The system prompt guides the AI to generate an appropriate math question
-    const systemPrompt = `You are an expert math curriculum developer for elementary school students (K-6).
-    Generate a personalized multiple-choice math question tailored to the student's grade level, interests, and learning needs.
-    Ensure the question is aligned with Common Core standards for the specified grade.
-    Make the question engaging, age-appropriate, and connected to the student's interests if possible.
-    
-    Your response must be valid JSON with the following structure:
-    {
-      "question": "The complete question text",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "answer": "The correct option text (must match exactly one of the options)",
-      "concepts": ["Primary math concept", "Secondary concept"],
-      "difficulty": A number from 1-5 representing the difficulty level
-    }
-    
-    For Kindergarten and Grade 1, use simple language, visual cues (describe them), and focus on counting, basic addition/subtraction.
-    For Grades 2-3, focus on multiplication, division, simple fractions, and measurement.
-    For Grades 4-6, include more complex fractions, decimals, geometry, and pre-algebra concepts.
-    
-    Adapt difficulty based on the student's strengths and weaknesses.`;
-    
-    // Format the student context for the AI request
-    const formattedInterests = studentContext.interests?.join(", ") || "general topics";
-    const formattedStrengths = studentContext.strengths?.join(", ") || "unknown";
-    const formattedWeaknesses = studentContext.weaknesses?.join(", ") || "unknown";
-    const recentConcepts = studentContext.recentConcepts?.join(", ") || "various math concepts";
-    
-    const content = `
-      Grade level: ${studentContext.grade}
-      Student interests: ${formattedInterests}
-      Recent concepts covered: ${recentConcepts}
-      Strengths: ${formattedStrengths}
-      Areas for improvement: ${formattedWeaknesses}
-      Learning style: ${studentContext.learningStyle || "visual"}
-      
-      Generate a creative, engaging math question that connects to the student's interests if possible,
-      and helps reinforce their understanding of recent concepts or address areas that need improvement.
-      Ensure the question is appropriately challenging but achievable at their grade level.
-    `;
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a talented math teacher who excels at explaining concepts to ${grade} grade students.
+          Use simple language, fun examples, and visual descriptions when explaining concepts.
+          Relate the concept to real-world situations that children can understand.
+          Keep the explanation concise - no more than 3-4 sentences.
+          End with an encouraging message that makes the student feel capable.`
+        },
+        {
+          role: "user",
+          content: `Please explain the math concept of "${concept}" to a ${grade} grade student.`
+        }
+      ],
+      max_tokens: 200,
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Error explaining math concept:", error);
+    return `${concept} is an important math skill that you'll use often. Let's keep practicing to get better at it!`;
+  }
+}
+
+/**
+ * Generates adaptive questions based on student parameters
+ */
+export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
+  try {
+    const { grade, concept, studentLevel = 3, difficulty = 3, category = "General" } = params;
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content }
+        {
+          role: "system",
+          content: `You are an expert math educator who creates grade-appropriate math questions.
+          Generate a math question for ${grade} grade students with difficulty level ${difficulty}/5.
+          ${concept ? `Focus on the concept of ${concept}.` : `Focus on ${category} math.`}
+          The student skill level is ${studentLevel}/5.
+          Format your response as a JSON object with these fields:
+          - question: The actual question text
+          - answer: The correct answer (as simple text, e.g. "42" or "3.14")
+          - options: An array of 4 possible answers including the correct one
+          - difficulty: A number 1-5
+          - concepts: Array of math concepts covered
+          - grade: The grade level ("K", "1", "2", etc.)
+          - category: A category like "Arithmetic", "Algebra", "Geometry", etc.`
+        },
+        {
+          role: "user",
+          content: `Create a ${grade} grade ${category} math question${concept ? ` about ${concept}` : ''} with difficulty ${difficulty}/5.`
+        }
       ],
+      response_format: { type: "json_object" },
       max_tokens: 500,
-      temperature: 0.8,
-      response_format: { type: "json_object" }
     });
-    
-    const resultContent = response.choices[0].message.content;
-    if (!resultContent) {
-      throw new Error("Empty response from OpenAI");
-    }
-    
-    const questionData = JSON.parse(resultContent) as GeneratedQuestion;
-    
-    // Validate the response to ensure it has the required structure
-    if (!questionData.question || !questionData.options || !questionData.answer || !questionData.concepts) {
-      throw new Error("Generated question is missing required fields");
-    }
-    
-    // Ensure difficulty is within range
-    questionData.difficulty = Math.max(1, Math.min(5, questionData.difficulty));
-    
-    return questionData;
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('Error generating adaptive question:', error.message || error);
-    }
-    
-    // Return a fallback question in case of error
+
+    return JSON.parse(response.choices[0].message.content);
+  } catch (error) {
+    console.error("Error generating adaptive question:", error);
+    // Return a fallback question as a last resort
     return {
-      question: "What is 2 + 2?",
-      options: ["3", "4", "5", "6"],
-      answer: "4",
+      question: "What is 2 + 3?",
+      answer: "5",
+      options: ["4", "5", "6", "7"],
+      difficulty: 1,
       concepts: ["Addition"],
-      difficulty: 1
+      grade: params.grade || "K",
+      category: params.category || "Arithmetic"
     };
   }
 }
 
 /**
- * Predicts a student's performance trajectory based on their learning history
+ * Predicts student performance based on learning history
  */
-export async function predictStudentPerformance(userId: number, conceptData: any[], progressData: any[]) {
-  // If OpenAI API key is not available, return an error
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI prediction skipped - API key missing');
-    return {
-      error: "Prediction requires OpenAI API key"
-    };
-  }
-  
+export async function predictStudentPerformance(
+  userId: number, 
+  conceptMasteries: any[], 
+  progressHistory: any[]
+) {
   try {
-    const systemPrompt = `You are an AI educational analytics expert. Analyze the provided student learning data
-    and generate predictions about the student's future performance, areas of potential struggle, and
-    recommendations for teachers or parents. Format your response as JSON with the following structure:
-    {
-      "predictedMasteryTrajectory": {
-        "nextWeek": number, // 0-100 mastery percentage
-        "nextMonth": number,
-        "nextQuarter": number
-      },
-      "conceptsAtRisk": [
-        { "concept": string, "reason": string, "recommendedAction": string }
-      ],
-      "strengths": [
-        { "concept": string, "observation": string }
-      ],
-      "learningVelocity": string, // "accelerating", "steady", "declining"
-      "recommendedFocus": string,
-      "estimatedTimeToMastery": {
-        "concept": string,
-        "timeInWeeks": number
-      }
-    }`;
-    
-    const content = `
-      Student ID: ${userId}
-      Concept mastery data: ${JSON.stringify(conceptData)}
-      Progress history: ${JSON.stringify(progressData)}
-      
-      Analyze this data to predict the student's future performance. Look for patterns in their
-      learning velocity, identify concepts they're struggling with, and suggest areas to focus on.
-      Estimate how long it might take them to master any concepts they're currently struggling with.
-    `;
-    
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content }
+        {
+          role: "system",
+          content: `You are an AI educational analyst that predicts student performance.
+          Analyze the student's concept masteries and progress history to predict:
+          1. Which concepts they are ready to advance in
+          2. Which concepts need review
+          3. A recommended learning path
+          Format your response as a JSON object with these fields:
+          - readyForAdvancement: Array of concept names
+          - needsReview: Array of concept names
+          - recommendedPath: Brief description of suggested learning activities
+          - strengthAreas: Array of the student's strongest areas
+          - challengeAreas: Array of areas where the student needs more support`
+        },
+        {
+          role: "user",
+          content: `Analyze student performance:\nConcept Masteries: ${JSON.stringify(conceptMasteries)}\nProgress History: ${JSON.stringify(progressHistory)}`
+        }
       ],
-      max_tokens: 800,
-      temperature: 0.3,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_tokens: 500,
     });
-    
-    if (!response.choices[0]?.message?.content) {
-      throw new Error("Empty response from OpenAI");
-    }
-    
+
     return JSON.parse(response.choices[0].message.content);
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('Error predicting student performance:', error.message || error);
-    }
-    
+  } catch (error) {
+    console.error("Error predicting student performance:", error);
     return {
-      error: "Could not generate predictions at this time"
+      readyForAdvancement: [],
+      needsReview: [],
+      recommendedPath: "Continue practicing fundamental skills across all areas.",
+      strengthAreas: [],
+      challengeAreas: []
     };
   }
 }
 
 /**
- * Generates a knowledge graph of mathematical concepts and their relationships
+ * Generates a conceptual map showing relationships between math concepts
  */
-export async function generateConceptMap(grade: string, centralConcept?: string) {
-  // If OpenAI API key is not available, return an error
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI concept map generation skipped - API key missing');
-    return {
-      error: "Concept map generation requires OpenAI API key"
-    };
-  }
-  
+export async function generateConceptMap(grade: string, centralConcept: string) {
   try {
-    const systemPrompt = `You are an expert mathematics curriculum designer. Create a knowledge graph of
-    math concepts for the specified grade level, showing how concepts relate to each other.
-    Format your response as a JSON object representing a graph with nodes (concepts) and edges (relationships):
-    {
-      "nodes": [
-        { "id": string, "name": string, "category": string, "description": string }
-      ],
-      "links": [
-        { "source": string, "target": string, "relationship": string }
-      ]
-    }
-    
-    Each node represents a math concept appropriate for the grade level.
-    Each link shows how two concepts relate (e.g., "builds on", "prerequisite for", "applies to").
-    Ensure the graph is comprehensive but not overwhelming, covering key grade-level concepts.`;
-    
-    const content = `
-      Grade level: ${grade}
-      ${centralConcept ? `Central concept: ${centralConcept}` : ''}
-      
-      Create a knowledge graph showing the key math concepts for grade ${grade}, their relationships,
-      and dependencies. ${centralConcept ? `Center the graph around the concept "${centralConcept}".` : ''}
-      Only include concepts that are grade-appropriate or prerequisite concepts from earlier grades.
-    `;
-    
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content }
+        {
+          role: "system",
+          content: `You are an expert math curriculum designer.
+          Create a concept map for ${grade} grade students centered on ${centralConcept}.
+          Show how ${centralConcept} relates to other math concepts at this grade level.
+          Format your response as a JSON object with these fields:
+          - centralConcept: The main concept
+          - relatedConcepts: Array of objects with name and relationship properties
+          - prerequisites: Array of concepts that should be understood first
+          - applications: Array of real-world applications of this concept
+          - nextSteps: Array of concepts to learn after mastering this one`
+        },
+        {
+          role: "user",
+          content: `Create a concept map for ${centralConcept} at ${grade} grade level.`
+        }
       ],
-      max_tokens: 1000,
-      temperature: 0.5,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_tokens: 600,
     });
-    
-    if (!response.choices[0]?.message?.content) {
-      throw new Error("Empty response from OpenAI");
-    }
-    
+
     return JSON.parse(response.choices[0].message.content);
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('Error generating concept map:', error.message || error);
-    }
-    
+  } catch (error) {
+    console.error("Error generating concept map:", error);
     return {
-      error: "Could not generate concept map at this time"
+      centralConcept,
+      relatedConcepts: [],
+      prerequisites: [],
+      applications: [],
+      nextSteps: []
     };
   }
 }
 
 /**
- * Generates historical context and interesting facts about math concepts
+ * Generates a timeline of how a math concept develops across grade levels
  */
-export async function generateMathTimeline(concept: string, gradeLevel: string) {
-  // If OpenAI API key is not available, return an error
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI timeline generation skipped - API key missing');
-    return {
-      error: "Timeline generation requires OpenAI API key"
-    };
-  }
-  
+export async function generateMathTimeline(concept: string, grade: string) {
   try {
-    const systemPrompt = `You are a mathematics historian making math engaging for elementary students.
-    Create a child-friendly timeline about the historical development of the given math concept.
-    Format your response as JSON with the following structure:
-    {
-      "concept": string,
-      "timelineEvents": [
-        { "year": string, "event": string, "significance": string, "funFact": string }
-      ],
-      "keyFigures": [
-        { "name": string, "contribution": string, "interestingDetail": string }
-      ],
-      "ageAppropriateDescription": string
-    }
-    
-    Make all content engaging and appropriate for elementary school students in the specified grade.
-    Use simple language and focus on stories that would capture a child's imagination.
-    Include diverse mathematicians and cultural contributions when relevant.`;
-    
-    const content = `
-      Math concept: ${concept}
-      Grade level: ${gradeLevel}
-      
-      Create an engaging, historically accurate, and age-appropriate timeline about the development of ${concept}
-      throughout history. Include interesting facts, key mathematicians, and cultural context that would
-      fascinate elementary school students in grade ${gradeLevel}.
-    `;
-    
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content }
+        {
+          role: "system",
+          content: `You are a math curriculum specialist.
+          Create a developmental timeline for how the concept of ${concept} evolves from kindergarten through 6th grade.
+          Format your response as a JSON object with these fields:
+          - concept: The math concept name
+          - timeline: Array of objects with grade and description properties showing how the concept develops
+          - currentGradeDetails: Detailed information about what students at ${grade} grade should know
+          - connections: How this concept connects to other areas of mathematics`
+        },
+        {
+          role: "user",
+          content: `Create a developmental timeline for the math concept "${concept}" with details for ${grade} grade.`
+        }
       ],
-      max_tokens: 1000,
-      temperature: 0.7,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_tokens: 600,
     });
-    
-    if (!response.choices[0]?.message?.content) {
-      throw new Error("Empty response from OpenAI");
-    }
-    
+
     return JSON.parse(response.choices[0].message.content);
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('Error generating math timeline:', error.message || error);
-    }
-    
+  } catch (error) {
+    console.error("Error generating math timeline:", error);
     return {
-      error: "Could not generate math timeline at this time"
+      concept,
+      timeline: [],
+      currentGradeDetails: `In ${grade} grade, students work with ${concept} in age-appropriate ways.`,
+      connections: []
     };
   }
 }
 
 /**
- * Generates achievement milestones and challenges for the gamification system
+ * Generates achievement badges and milestones for math concepts
  */
 export async function generateAchievements(grade: string, concepts: string[]) {
-  // If OpenAI API key is not available, return an error
-  if (!hasOpenAIKey || !openai) {
-    console.log('OpenAI achievements generation skipped - API key missing');
-    return {
-      error: "Achievements generation requires OpenAI API key"
-    };
-  }
-  
   try {
-    const systemPrompt = `You are a gamification specialist designing achievement systems for a math learning platform.
-    Create a set of engaging achievements appropriate for elementary students in the specified grade.
-    Format your response as JSON with the following structure:
-    {
-      "publicAchievements": [
-        { 
-          "id": string,
-          "name": string,
-          "description": string, 
-          "requirements": string,
-          "rewardTokens": number,
-          "tier": "bronze" | "silver" | "gold",
-          "concept": string
-        }
-      ],
-      "secretAchievements": [
-        { 
-          "id": string,
-          "name": string,
-          "description": string, 
-          "requirements": string,
-          "rewardTokens": number,
-          "hint": string
-        }
-      ],
-      "challengeSeries": [
-        {
-          "id": string,
-          "name": string,
-          "theme": string,
-          "description": string,
-          "stages": [
-            { "stage": number, "challenge": string, "reward": string }
-          ]
-        }
-      ]
-    }
-    
-    Make achievements fun, motivating, and educational, with clever names and descriptions.
-    Design public achievements openly visible to students and secret achievements they discover through special actions.
-    Create challenge series with progressive difficulty that tell a story or follow a theme.`;
-    
-    const content = `
-      Grade level: ${grade}
-      Math concepts: ${concepts.join(", ")}
-      
-      Generate a comprehensive set of achievements and challenges for grade ${grade} students
-      focusing on the listed math concepts. Include a mix of easy, medium, and difficult achievements
-      that will motivate students and make learning fun. Ensure that rewards are appropriate for the
-      difficulty level.
-    `;
-    
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content }
+        {
+          role: "system",
+          content: `You are a gamification expert for educational applications.
+          Create achievement badges and milestones for ${grade} grade students learning these math concepts: ${concepts.join(', ')}.
+          Make the achievements fun, motivating, and appropriate for elementary students.
+          Format your response as a JSON object with these fields:
+          - achievements: Array of achievement objects with name, description, and criteria properties
+          - milestones: Array of milestone objects with level, name, and description properties
+          - conceptBadges: Object mapping each concept to a badge name and description`
+        },
+        {
+          role: "user",
+          content: `Generate achievements and badges for ${grade} grade students learning: ${concepts.join(', ')}`
+        }
       ],
-      max_tokens: 1200,
-      temperature: 0.8,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_tokens: 800,
     });
-    
-    if (!response.choices[0]?.message?.content) {
-      throw new Error("Empty response from OpenAI");
-    }
-    
+
     return JSON.parse(response.choices[0].message.content);
-  } catch (error: any) {
-    // Log the specific error
-    if (error.response) {
-      console.error(`OpenAI API error status: ${error.response.status}`);
-      console.error(`OpenAI error message: ${error.response.data.error.message}`);
-    } else {
-      console.error('Error generating achievements:', error.message || error);
-    }
-    
+  } catch (error) {
+    console.error("Error generating achievements:", error);
     return {
-      error: "Could not generate achievements at this time"
+      achievements: [],
+      milestones: [],
+      conceptBadges: {}
     };
   }
 }
