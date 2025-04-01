@@ -464,39 +464,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const forceDynamic = req.query.forceDynamic === 'true';
       const excludeId = req.query.exclude ? parseInt(req.query.exclude as string) : null;
       
-      console.log(`Fetching next question - Grade: ${grade}, Category: ${category}, Force Dynamic: ${forceDynamic}`);
+      // Use a session-based approach to track recently seen questions
+      const sessionId = req.sessionID;
+      if (!req.session.seenQuestions) {
+        req.session.seenQuestions = [];
+      }
+      
+      // Get previously seen questions from session (limited to last 10)
+      const seenQuestionIds = req.session.seenQuestions || [];
+      
+      console.log(`Fetching next question - Grade: ${grade}, Category: ${category}, Force Dynamic: ${forceDynamic}, Seen IDs: ${seenQuestionIds.join(',')}`);
       
       let question;
+      let attempts = 0;
       
-      // If forcing dynamic question generation, use OpenAI
-      if (forceDynamic) {
-        try {
-          // Import the openai module dynamically
-          const { generateAdaptiveQuestion } = await import('./openai');
-          
-          // Generate a dynamic question based on parameters
-          const questionData = await generateAdaptiveQuestion({
-            grade,
-            category,
-            difficulty: Math.floor(Math.random() * 3) + 1, // Random difficulty 1-3
-          });
-          
-          if (questionData && questionData.question) {
-            // Format the generated question into our standard format
-            question = {
-              id: Date.now(), // Use timestamp as temporary ID
-              category: category || "addition",
+      // Try up to 5 times to get a unique question
+      while (!question && attempts < 5) {
+        attempts++;
+        
+        // If forcing dynamic question generation, use OpenAI
+        if (forceDynamic || attempts > 1) {
+          try {
+            // Import the openai module dynamically
+            const { generateAdaptiveQuestion } = await import('./openai');
+            
+            // Generate a dynamic question based on parameters - increase difficulty with attempts
+            const questionData = await generateAdaptiveQuestion({
               grade,
-              difficulty: questionData.difficulty || 1,
-              question: questionData.question,
-              answer: questionData.answer,
-              options: questionData.options || [],
-              concepts: [category || "math"],
-              storyId: null,
-              storyNode: null,
-              storyText: null,
-              storyImage: null
-            };
+              category,
+              difficulty: Math.min(3, Math.floor(Math.random() * 3) + attempts), // Increase difficulty with attempts
+            });
+            
+            if (questionData && questionData.question) {
+              // Format the generated question into our standard format
+              // Use random ID with timestamp to ensure uniqueness
+              const randomId = Math.floor(Math.random() * 100000) + Date.now();
+              
+              question = {
+                id: randomId, 
+                category: category || "addition",
+                grade,
+                difficulty: questionData.difficulty || 1,
+                question: questionData.question,
+                answer: questionData.answer,
+                options: questionData.options || [],
+                concepts: [category || "math"],
+                storyId: null,
+                storyNode: null,
+                storyText: null,
+                storyImage: null
+              };
             
             console.log("Successfully generated dynamic question:", question.question);
           }
@@ -551,6 +568,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Get a random question from the filtered list
           question = validQuestions[Math.floor(Math.random() * validQuestions.length)];
+        }
+      }
+      
+      // Update session with this question ID to avoid repeats
+      if (question) {
+        try {
+          // Get current question history (limited to last 20 questions)
+          const currentHistory = req.session.seenQuestions ? req.session.seenQuestions as number[] : [];
+          
+          // Add this question and keep only the most recent 20
+          const updatedHistory = [question.id, ...currentHistory].slice(0, 20);
+          
+          // Save to session
+          // Using index notation to avoid TypeScript errors
+          req.session['seenQuestions'] = updatedHistory;
+          
+          // Log for debugging
+          console.log(`Sending question ID: ${question.id}, recently used IDs: ${updatedHistory.slice(0, 5).join(', ')}`);
+        } catch (err) {
+          console.error("Error updating question history in session:", err);
         }
       }
       

@@ -313,13 +313,32 @@ export default function HomePage() {
           }
         }
         
-        // Update user data including grade if advanced
-        queryClient.setQueryData(['/api/user'], {
-          ...user,
-          tokens: data.totalTokens,
-          grade: updatedGrade,
-          questionsAnswered: user.questionsAnswered + 1,
-          correctAnswers: user.correctAnswers + (data.correct ? 1 : 0)
+        // Store current token count to avoid infinite loop when updating user data
+        const finalTokens = data.totalTokens;
+        const updatedQuestionsAnswered = user.questionsAnswered + 1;
+        const updatedCorrectAnswers = user.correctAnswers + (data.correct ? 1 : 0);
+        
+        // Update user data including grade if advanced - but don't trigger a re-render cascade
+        // by avoiding multiple updates to the same data
+        queryClient.setQueryData(['/api/user'], prevUser => {
+          if (!prevUser) return null;
+          
+          // If the data is the same as what we just set, don't update to avoid infinite loop
+          if (
+            (prevUser as any).tokens === finalTokens && 
+            (prevUser as any).grade === updatedGrade &&
+            (prevUser as any).questionsAnswered === updatedQuestionsAnswered
+          ) {
+            return prevUser;
+          }
+          
+          return {
+            ...prevUser,
+            tokens: finalTokens,
+            grade: updatedGrade,
+            questionsAnswered: updatedQuestionsAnswered,
+            correctAnswers: updatedCorrectAnswers
+          };
         });
       }
       

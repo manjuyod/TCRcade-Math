@@ -72,13 +72,17 @@ export default function StreakAnimation({
     }, 100);
   };
   
-  // Simplified effect with better error handling
+  // Simplified effect with better error handling that runs only once
   useEffect(() => {
     // Make sure we don't run animations if we've already shown them
     if (animationShownRef.current) return;
     animationShownRef.current = true;
     
+    let isMounted = true;
+    
     const runAnimation = () => {
+      if (!isMounted) return; // Skip if component is unmounting
+      
       // Play sound effect first (in try/catch)
       try {
         playSound('streak');
@@ -89,8 +93,10 @@ export default function StreakAnimation({
       // Show simplified confetti effect (in try/catch)
       try {
         if (window && confetti) {
+          const particleCount = milestone >= 5 ? 20 : 15; // Reduced for 5+ to avoid crashes
+          
           confetti({
-            particleCount: milestone >= 5 ? 30 : 15, // More particles for bigger milestones
+            particleCount,
             spread: 45,
             origin: { y: 0.6, x: 0.5 },
             disableForReducedMotion: true
@@ -102,26 +108,30 @@ export default function StreakAnimation({
     };
     
     // Use window timeout instead of React's setTimeout for better stability
+    // Important: Use a very short initial delay - longer delays may cause race conditions
     timerRef.current = window.setTimeout(() => {
+      if (!isMounted) return;
       runAnimation();
       
-      // Set auto-dismiss timer
+      // Set auto-dismiss timer - always dismiss to prevent memory issues
       dismissTimerRef.current = window.setTimeout(() => {
+        if (!isMounted) return;
         safeComplete();
-      }, 2000); // Auto-dismiss after 2 seconds
-    }, 50);
+      }, 1500); // Auto-dismiss after 1.5 seconds - slightly shorter to avoid issues
+    }, 10); // Very short initial delay
     
     // Cleanup function to prevent memory leaks
     return () => {
+      isMounted = false;
       isUnmountedRef.current = true;
       
       // Clear timers
-      if (timerRef.current) {
+      if (timerRef.current !== null) {
         window.clearTimeout(timerRef.current);
         timerRef.current = null;
       }
       
-      if (dismissTimerRef.current) {
+      if (dismissTimerRef.current !== null) {
         window.clearTimeout(dismissTimerRef.current);
         dismissTimerRef.current = null;
       }
@@ -141,7 +151,9 @@ export default function StreakAnimation({
         console.error("Safe cleanup error:", e);
       }
     };
-  }, [milestone]);
+  // IMPORTANT: Empty dependency array to ensure this only runs once
+  // This prevents re-renders from triggering the animation multiple times
+  }, []);
   
   // Don't render anything if not visible
   if (!isVisible) {
