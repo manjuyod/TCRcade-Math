@@ -169,11 +169,17 @@ export default function HomePage() {
   }, [currentModuleId]);
   
   // Fetch a question (now with module category filtering)
+  // Using a unique key for every "Get New Problem" click by including a timestamp
   const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ['/api/questions', { answeredIds: answeredQuestionIds, forceDynamic, category: currentModuleCategory }],
+    queryKey: ['/api/questions/next', { 
+      answeredIds: answeredQuestionIds, 
+      forceDynamic, 
+      category: currentModuleCategory,
+      t: Date.now() // Add timestamp to ensure cache invalidation
+    }],
     queryFn: () => fetchQuestion(answeredQuestionIds, forceDynamic, currentModuleCategory),
     refetchOnWindowFocus: false,
-    staleTime: Infinity,
+    staleTime: 0, // Don't cache the result
     retry: 3,
     enabled: !sessionCompleted // Don't fetch new questions when session is complete
   });
@@ -335,6 +341,17 @@ export default function HomePage() {
     // When moving to a new question, set forceDynamic to true to avoid repeats
     setForceDynamic(true);
     
+    // Invalidate the query cache with a new timestamp
+    queryClient.setQueryData(
+      ['/api/questions/next', {
+        answeredIds: answeredQuestionIds,
+        forceDynamic: true,
+        category: currentModuleCategory,
+        t: Date.now() // Fresh timestamp for each new question
+      }],
+      undefined
+    );
+    
     // Pass the answeredQuestionIds to the server to avoid repeated questions
     refetch();
     
@@ -361,10 +378,21 @@ export default function HomePage() {
     setForceDynamic(true);
     
     // Force refetch with cache busting by using a timestamp to ensure new questions
-    queryClient.invalidateQueries({ queryKey: ['/api/questions'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/questions/next'] });
     
     // Add a slight delay before refetching to ensure we get a fresh question
     setTimeout(() => {
+      // Create a fresh timestamp to ensure we get a new question
+      queryClient.setQueryData(
+        ['/api/questions/next', {
+          answeredIds: [],
+          forceDynamic: true,
+          category: currentModuleCategory,
+          t: Date.now()
+        }],
+        undefined
+      );
+      
       refetch();
       
       // Reset forceDynamic after we've fetched the first question
@@ -382,6 +410,19 @@ export default function HomePage() {
       // If we've already seen this question, force dynamic generation and fetch a new one
       console.log("Duplicate question detected, fetching new dynamic one");
       setForceDynamic(true);
+      
+      // Invalidate the current query with a new timestamp
+      queryClient.setQueryData(
+        ['/api/questions/next', {
+          answeredIds: answeredQuestionIds,
+          forceDynamic: true,
+          category: currentModuleCategory,
+          t: Date.now() // New timestamp to ensure fresh data
+        }],
+        undefined
+      );
+      
+      // Now do the refetch
       refetch();
       
       // Reset the flag after a delay
@@ -389,7 +430,7 @@ export default function HomePage() {
         setForceDynamic(false);
       }, 500);
     }
-  }, [question, answeredQuestionIds, refetch]);
+  }, [question, answeredQuestionIds, refetch, currentModuleCategory]);
   
   return (
     <div className="flex flex-col min-h-screen">

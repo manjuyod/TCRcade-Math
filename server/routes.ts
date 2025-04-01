@@ -179,45 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get a question appropriate for the user (alternative endpoint with more features)
-  app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const category = req.query.category as string;
-      const forceDynamic = req.query.forceDynamic === "true";
-      
-      let question;
-      if (req.query.adaptive === "true") {
-        // Get a question using the adaptive algorithm
-        question = await storage.getAdaptiveQuestion(
-          userId, 
-          req.user!.grade || "K", 
-          forceDynamic,
-          category
-        );
-      } else if (req.query.recommended === "true") {
-        // Get a recommended question based on learning needs
-        const { getRecommendedQuestion } = await import('./recommendation-engine');
-        question = await getRecommendedQuestion(userId);
-      } else {
-        // Get a random question for the user's grade and category
-        const questions = await storage.getQuestionsByGrade(
-          req.user!.grade || "K",
-          category
-        );
-        question = questions[Math.floor(Math.random() * questions.length)];
-      }
-      
-      if (!question) {
-        return res.status(404).json({ error: "No suitable questions found" });
-      }
-      
-      res.json({ question });
-    } catch (error) {
-      console.error("Error fetching question:", error);
-      res.status(500).json({ error: "Failed to fetch question" });
-    }
-  });
+  // Removed the slower version of /api/questions/next
+  // The faster version is implemented below (line ~490)
   
   // Get questions by concept for practice mode
   app.get("/api/questions/concept/:grade/:concept", ensureAuthenticated, async (req, res) => {

@@ -1,43 +1,50 @@
 import { Question, User, Recommendation } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
-// Fetch a question for the user
+// Fetch a question for the user - now using the faster /api/questions/next endpoint
 export async function fetchQuestion(answeredIds: number[] = [], forceDynamic: boolean = false, category?: string, useRecommendations: boolean = false): Promise<Question> {
-  // Include answeredIds as a query parameter to avoid repeated questions
-  let queryParams = answeredIds.length > 0 
-    ? `?answeredIds=${encodeURIComponent(JSON.stringify(answeredIds))}`
-    : '';
+  // Build query parameters
+  const params = new URLSearchParams();
   
-  // Add forceDynamic parameter to ensure we get a unique question
-  if (forceDynamic) {
-    queryParams = queryParams 
-      ? `${queryParams}&forceDynamic=true` 
-      : '?forceDynamic=true';
+  // Add exclude ID if we have answeredIds (just the most recent one to avoid the same question)
+  if (answeredIds.length > 0) {
+    params.append('exclude', answeredIds[answeredIds.length - 1].toString());
   }
+  
+  // Always force dynamic generation for variety and speed
+  params.append('forceDynamic', 'true');
+  
+  // Add timestamp to prevent caching
+  params.append('t', Date.now().toString());
   
   // Add category parameter if specified to filter questions by category
   if (category && category !== 'all') {
-    queryParams = queryParams 
-      ? `${queryParams}&category=${encodeURIComponent(category)}` 
-      : `?category=${encodeURIComponent(category)}`;
+    params.append('category', category);
   }
   
-  // If using recommended questions based on learning history
-  if (useRecommendations) {
-    queryParams = queryParams 
-      ? `${queryParams}&recommended=true` 
-      : '?recommended=true';
-  }
+  console.log(`Fetching question with params: ${params.toString()}`);
     
-  const response = await fetch(`/api/questions${queryParams}`, {
-    credentials: 'include'
+  // Use the fast /api/questions/next endpoint which doesn't require authentication
+  const response = await fetch(`/api/questions/next?${params.toString()}`, {
+    credentials: 'include',
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
   });
   
   if (!response.ok) {
     throw new Error('Failed to fetch question');
   }
   
-  return await response.json();
+  const data = await response.json();
+  
+  // The /api/questions/next endpoint returns data in a different format
+  if (data.question) {
+    return data.question;
+  }
+  
+  return data;
 }
 
 // Fetch personalized recommendations for the user
