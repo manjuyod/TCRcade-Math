@@ -492,6 +492,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get next question (with support for dynamic question generation)
+  app.get("/api/questions/next", async (req, res) => {
+    try {
+      // Get parameters from query
+      const grade = req.query.grade as string || "3";
+      const category = req.query.category as string;
+      const forceDynamic = req.query.forceDynamic === 'true';
+      const excludeId = req.query.exclude ? parseInt(req.query.exclude as string) : null;
+      
+      console.log(`Fetching next question - Grade: ${grade}, Category: ${category}, Force Dynamic: ${forceDynamic}`);
+      
+      let question;
+      
+      // If forcing dynamic question generation, use OpenAI
+      if (forceDynamic) {
+        try {
+          // Import the openai module dynamically
+          const { generateAdaptiveQuestion } = await import('./openai');
+          
+          // Generate a dynamic question based on parameters
+          const questionData = await generateAdaptiveQuestion({
+            grade,
+            category,
+            difficulty: Math.floor(Math.random() * 3) + 1, // Random difficulty 1-3
+          });
+          
+          if (questionData && questionData.question) {
+            // Format the generated question into our standard format
+            question = {
+              id: Date.now(), // Use timestamp as temporary ID
+              category: category || "addition",
+              grade,
+              difficulty: questionData.difficulty || 1,
+              question: questionData.question,
+              answer: questionData.answer,
+              options: questionData.options || [],
+              concepts: [category || "math"],
+              storyId: null,
+              storyNode: null,
+              storyText: null,
+              storyImage: null
+            };
+            
+            console.log("Successfully generated dynamic question:", question.question);
+          }
+        } catch (err) {
+          console.error("Error generating dynamic question:", err);
+          // Fall back to database questions if dynamic generation fails
+        }
+      }
+      
+      // If no dynamic question was generated, or if not forcing dynamic generation,
+      // fetch from database
+      if (!question) {
+        // Get questions from the database for the specified grade and category
+        const questions = await storage.getQuestionsByGrade(grade, category);
+        
+        // Filter out excluded question if specified
+        const validQuestions = excludeId 
+          ? questions.filter(q => q.id !== excludeId)
+          : questions;
+        
+        if (validQuestions.length === 0) {
+          // If no questions found in database, try to use dynamic generation as fallback
+          if (!forceDynamic) {
+            const { generateAdaptiveQuestion } = await import('./openai');
+            const questionData = await generateAdaptiveQuestion({
+              grade,
+              category,
+              difficulty: 1
+            });
+            
+            if (questionData && questionData.question) {
+              question = {
+                id: Date.now(),
+                category: category || "addition",
+                grade,
+                difficulty: 1,
+                question: questionData.question,
+                answer: questionData.answer,
+                options: questionData.options || [],
+                concepts: [category || "math"],
+                storyId: null,
+                storyNode: null,
+                storyText: null,
+                storyImage: null
+              };
+            }
+          }
+          
+          if (!question) {
+            return res.status(404).json({ error: "No questions found for the specified criteria" });
+          }
+        } else {
+          // Get a random question from the filtered list
+          question = validQuestions[Math.floor(Math.random() * validQuestions.length)];
+        }
+      }
+      
+      res.json({ question });
+    } catch (error) {
+      console.error("Error fetching next question:", error);
+      res.status(500).json({ error: "Failed to fetch next question" });
+    }
+  });
+  
   // Get personalized recommendations for the current user
   app.get("/api/recommendations", ensureAuthenticated, async (req, res) => {
     const userId = req.user!.id;

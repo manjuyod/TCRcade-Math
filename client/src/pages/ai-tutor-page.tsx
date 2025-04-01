@@ -43,27 +43,50 @@ export default function AiTutorPage() {
 
   const fetchNewQuestion = async () => {
     try {
-      // Clear previous question to ensure new content is loaded
+      // First show loading state
       setCurrentQuestionId(null);
       
+      // Construct parameters for the API request
       const params = new URLSearchParams();
       params.append('grade', selectedGrade);
       if (selectedCategory) {
         params.append('category', selectedCategory);
       }
-      // Add a random parameter to avoid caching
-      params.append('random', Math.random().toString());
       
-      // Add forceDynamic=true to ensure a dynamically generated question
+      // Add timestamp to force a fresh request every time
+      params.append('t', Date.now().toString());
+      
+      // Force dynamic question generation for variety
       params.append('forceDynamic', 'true');
       
+      // Avoid getting the same question by tracking previous IDs
+      if (currentQuestionId) {
+        params.append('exclude', currentQuestionId.toString());
+      }
+      
       console.log(`Fetching new question with params: ${params.toString()}`);
+      
+      // Show loading feedback
+      toast({
+        title: "Generating question",
+        description: "Creating a new math problem for you...",
+      });
+      
       const res = await apiRequest('GET', `/api/questions/next?${params}`);
       const data = await res.json();
       
-      if (data.question) {
+      if (data.question && data.question.id) {
         console.log("New question received:", data.question);
-        setCurrentQuestionId(data.question.id);
+        
+        // Delay slightly to ensure UI state change is visible
+        setTimeout(() => {
+          setCurrentQuestionId(data.question.id);
+          
+          toast({
+            title: "New problem ready!",
+            description: "A fresh math problem has been generated for you.",
+          });
+        }, 500);
       } else {
         toast({
           title: "No questions found",
