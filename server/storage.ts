@@ -2146,9 +2146,11 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Import the DatabaseStorage implementation
+import { DatabaseStorage } from './database-storage';
+
 // Since we can't use dynamic imports easily with the circular dependency,
 // let's just export both implementations and let the consumer decide which to use
 
-// For now use in-memory storage until we resolve the circular dependency issue
-// We can address this in a separate PR if needed
-export const storage = new MemStorage();
+// Use PostgreSQL database storage for persistence instead of in-memory storage
+export const storage = new DatabaseStorage();
