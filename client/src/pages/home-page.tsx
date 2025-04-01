@@ -20,9 +20,10 @@ import MultiplayerMode from '@/components/multiplayer-mode';
 import { playSound, preloadSounds } from '@/lib/sounds';
 import { fetchQuestion, submitAnswer } from '@/lib/questions';
 import { ProgressBar } from '@/components/progress-bar';
+import { Button } from '@/components/ui/button';
 import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
-import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -562,7 +563,43 @@ export default function HomePage() {
             )
           ) : (
             <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 text-center">
-              <p className="text-gray-500">No questions available for your grade level.</p>
+              <AlertCircle className="h-10 w-10 mx-auto mb-3 text-amber-500" />
+              <h3 className="text-lg font-semibold mb-2">No Questions Available</h3>
+              <p className="text-gray-600 mb-4">
+                We couldn't find any questions for grade {user?.grade || 'K'} 
+                {currentModuleCategory ? ` in the ${currentModuleCategory} category` : ''}.
+              </p>
+              <p className="text-gray-500 text-sm mb-4">
+                This could be because your current grade level doesn't have enough questions,
+                or because you've seen most of the available questions already.
+              </p>
+              <div className="flex justify-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    // Set a different grade
+                    const availableGrades = ['K', '1', '2', '3', '4', '5', '6'];
+                    const currentIndex = availableGrades.indexOf(user?.grade || 'K');
+                    const nextGrade = availableGrades[(currentIndex + 1) % availableGrades.length];
+                    
+                    // Update user grade through API (optional implementation)
+                    console.log(`Would switch to grade ${nextGrade}`);
+                    
+                    // For now, just try to fetch a new question with forceDynamic=true
+                    fetchNewQuestion(true);
+                  }}
+                >
+                  Try Different Grade
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Force dynamic question generation
+                    fetchNewQuestion(true);
+                  }}
+                >
+                  Generate Question
+                </Button>
+              </div>
             </div>
           )}
           

@@ -70,8 +70,15 @@ export function useQuestionWithHistory(
       
       // Make the request
       const response = await fetch(`/api/questions/next?${params.toString()}`, { signal });
+      
+      // Handle 404 errors specifically - these mean no questions were found
+      if (response.status === 404) {
+        console.warn('No questions found for the current criteria - try a different grade or category');
+        return null;
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch question');
+        throw new Error(`Failed to fetch question: ${response.status}`);
       }
       
       // Handle both response formats: { question: Question } or Question directly

@@ -868,7 +868,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Additional method for adaptive questions that's directly referenced in the routes
-  async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false, category?: string): Promise<Question | undefined> {
+  async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false, category?: string, excludeIds: number[] = []): Promise<Question | undefined> {
     try {
       // Get user data to determine appropriate difficulty
       const [user] = await db
@@ -893,11 +893,14 @@ export class DatabaseStorage implements IStorage {
         targetDifficulty = Math.max(1, Math.floor(correctRate * 5));
       }
       
+      // If no grade specified, use user's grade or default to "K"
+      const effectiveGrade = grade || user.grade || "K";
+      
       // Find questions matching the criteria
       let query = db
         .select()
         .from(questions)
-        .where(eq(questions.grade, grade));
+        .where(eq(questions.grade, effectiveGrade));
       
       if (category && category !== 'all') {
         query = query.where(eq(questions.category, category));

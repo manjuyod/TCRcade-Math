@@ -227,19 +227,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       while (attempts < maxRetries && !question) {
         // Get an adaptive question matching the requested category if available
         // Pass our exclude list to prevent duplicates
-        question = await storage.getAdaptiveQuestion(
-          userId, 
-          grade, 
-          forceDynamic || attempts > 0, // Force dynamic generation on retry
-          category,
-          allExcludeIds
-        );
-        
-        attempts++;
-        
-        // If we still got a question we've seen, try again
-        if (question && sessionHistory.includes(question.id)) {
-          question = null;
+        try {
+          question = await storage.getAdaptiveQuestion(
+            userId, 
+            grade, 
+            forceDynamic || attempts > 0, // Force dynamic generation on retry
+            category,
+            allExcludeIds
+          );
+          
+          attempts++;
+          
+          // If we still got a question we've seen, try again
+          if (question && sessionHistory.includes(question.id)) {
+            question = null;
+          }
+        } catch (error) {
+          console.error("Error fetching question attempt:", error);
+          attempts++;
         }
       }
       
