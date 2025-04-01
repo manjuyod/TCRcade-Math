@@ -66,30 +66,16 @@ export default function FeedbackMessage({
         <p className="text-gray-600">The correct answer is {correctAnswer}</p>
       )}
       
-      <motion.div
-        animate={{ 
-          scale: [1, 1.05, 1],
-          boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 15px rgba(0,0,0,0.2)", "0px 0px 0px rgba(0,0,0,0)"]
-        }}
-        transition={{ 
-          duration: 1.5,
-          repeat: Infinity,
-          repeatType: "loop"
-        }}
-        className="inline-block"
+      {/* We removed the outer motion.div and placed button directly in the component */}
+      <Button
+        onClick={handleNextClick}
+        className="animate-pulse-button arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
+                  shadow-lg transform transition-all duration-300
+                  bg-primary hover:bg-primary/80 hover:scale-105 hover:shadow-xl"
+        style={{ minWidth: "180px" }}
       >
-        <Button
-          onClick={handleNextClick}
-          className={`
-            arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
-            shadow-lg transform transition-transform hover:scale-105
-            bg-primary hover:bg-primary/80
-          `}
-          style={{ minWidth: "180px" }}
-        >
-          Next Question →
-        </Button>
-      </motion.div>
+        Next Question →
+      </Button>
     </motion.div>
   );
 }

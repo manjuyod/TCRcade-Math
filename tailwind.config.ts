@@ -79,10 +79,25 @@ export default {
             height: "0",
           },
         },
+        "pulse-button": {
+          "0%": {
+            transform: "scale(1)",
+            boxShadow: "0 0 0 rgba(0,0,0,0)",
+          },
+          "50%": {
+            transform: "scale(1.05)",
+            boxShadow: "0 0 15px rgba(0,0,0,0.2)",
+          },
+          "100%": {
+            transform: "scale(1)",
+            boxShadow: "0 0 0 rgba(0,0,0,0)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-button": "pulse-button 1.5s infinite",
       },
     },
   },
