@@ -27,15 +27,23 @@ type VisualInfo = {
 };
 
 export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardProps) {
+  // Default to a safe fallback if question is undefined
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [questionText, setQuestionText] = useState<string>(question.question);
+  const [questionText, setQuestionText] = useState<string>(question?.question || "Loading question...");
   const [visualInfo, setVisualInfo] = useState<VisualInfo | null>(null);
   
   // Parse question for visual cues
   useEffect(() => {
+    // Guard against undefined question
+    if (!question || !question.question) {
+      setQuestionText("Loading question...");
+      return;
+    }
+    
     const questionStr = question.question;
+    
     // Check if there's a visual instruction in the question
-    if (questionStr.startsWith('[visual:')) {
+    if (questionStr && questionStr.startsWith('[visual:')) {
       const endIndex = questionStr.indexOf(']');
       if (endIndex > 0) {
         const visualPart = questionStr.substring(8, endIndex); // Remove [visual: and ]
@@ -91,7 +99,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     } else {
       setQuestionText(questionStr);
     }
-  }, [question.question, question.grade]);
+  }, [question]);
   
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);
@@ -252,7 +260,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     >
       <div className="flex justify-between items-center mb-4">
         <span className="bg-primary bg-opacity-10 text-primary font-bold py-1 px-3 rounded-full text-sm">
-          {getCategoryLabel(question.category)}
+          {question?.category ? getCategoryLabel(question.category) : 'Math'}
         </span>
         {/* No question number displayed here as per requirements */}
       </div>
@@ -277,26 +285,40 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
         >
           {questionText}
         </motion.h3>
-        <p className="text-gray-500">Solve the {question.category} problem</p>
+        <p className="text-gray-500">
+          Solve the {question?.category ? getCategoryLabel(question.category) : 'math'} problem
+        </p>
       </div>
       
       <div className="grid grid-cols-2 gap-4 mt-6">
-        {question.options.map((option, index) => (
-          <motion.button
-            key={index}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={selectedOption !== null}
-            onClick={() => handleSelectOption(option)}
-            className={`
-              arcade-btn bg-white border-2 shadow-md hover:shadow-lg
-              ${selectedOption === option ? 'border-primary' : 'border-gray-200 hover:border-primary'} 
-              text-dark font-bold py-3 rounded-xl text-xl transition transform hover:scale-103
-            `}
-          >
-            {option}
-          </motion.button>
-        ))}
+        {question?.options && question.options.length > 0 ? (
+          question.options.map((option, index) => (
+            <motion.button
+              key={index}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={selectedOption !== null}
+              onClick={() => handleSelectOption(option)}
+              className={`
+                arcade-btn bg-white border-2 shadow-md hover:shadow-lg
+                ${selectedOption === option ? 'border-primary' : 'border-gray-200 hover:border-primary'} 
+                text-dark font-bold py-3 rounded-xl text-xl transition transform hover:scale-103
+              `}
+            >
+              {option}
+            </motion.button>
+          ))
+        ) : (
+          // If no options are provided, show an input field
+          <div className="col-span-2">
+            <input
+              type="text"
+              placeholder="Type your answer here"
+              onKeyDown={(e) => e.key === 'Enter' && handleSelectOption(e.currentTarget.value)}
+              className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-center text-lg"
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );

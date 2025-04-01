@@ -62,7 +62,7 @@ export function useQuestionWithHistory(
   };
   
   // Fetch a question
-  const { data, isLoading, error } = useQuery<Question, Error>({ 
+  const { data, isLoading, error } = useQuery<{ question: Question } | Question, Error>({ 
     queryKey: [...queryKey, fetchTrigger],
     queryFn: async ({ signal }): Promise<Question> => {
       // Build query string
@@ -74,8 +74,9 @@ export function useQuestionWithHistory(
         throw new Error('Failed to fetch question');
       }
       
-      const responseData = await response.json() as ApiResponse;
-      return responseData.question;
+      // Handle both response formats: { question: Question } or Question directly
+      const responseData = await response.json();
+      return responseData.question || responseData;
     },
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // Questions are fresh for 5 minutes
