@@ -1,0 +1,747 @@
+import { Question } from '@shared/schema';
+
+/**
+ * Default questions for the math learning platform
+ * This is an expanded set to reduce repetition and provide more variety
+ */
+export const defaultQuestions: Question[] = [
+  // Addition - Kindergarten
+  {
+    id: 101,
+    category: "addition",
+    grade: "K",
+    difficulty: 1,
+    question: "1 + 1 = ?",
+    answer: "2",
+    options: ["1", "2", "3", "4"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 102,
+    category: "addition",
+    grade: "K",
+    difficulty: 1, 
+    question: "2 + 1 = ?",
+    answer: "3",
+    options: ["2", "3", "4", "5"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 103,
+    category: "addition",
+    grade: "K",
+    difficulty: 1,
+    question: "3 + 1 = ?",
+    answer: "4",
+    options: ["3", "4", "5", "6"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 104,
+    category: "addition",
+    grade: "K",
+    difficulty: 1,
+    question: "2 + 2 = ?",
+    answer: "4",
+    options: ["2", "3", "4", "5"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Subtraction - Kindergarten
+  {
+    id: 105,
+    category: "subtraction",
+    grade: "K",
+    difficulty: 1,
+    question: "2 - 1 = ?",
+    answer: "1",
+    options: ["0", "1", "2", "3"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 106,
+    category: "subtraction",
+    grade: "K",
+    difficulty: 1,
+    question: "3 - 1 = ?",
+    answer: "2",
+    options: ["1", "2", "3", "4"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 107,
+    category: "subtraction",
+    grade: "K",
+    difficulty: 1,
+    question: "4 - 1 = ?",
+    answer: "3",
+    options: ["2", "3", "4", "5"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Addition - Grade 1
+  {
+    id: 108,
+    category: "addition",
+    grade: "1",
+    difficulty: 2,
+    question: "5 + 2 = ?",
+    answer: "7",
+    options: ["6", "7", "8", "9"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 109,
+    category: "addition",
+    grade: "1",
+    difficulty: 2,
+    question: "4 + 3 = ?",
+    answer: "7",
+    options: ["6", "7", "8", "9"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 110,
+    category: "addition",
+    grade: "1",
+    difficulty: 2,
+    question: "6 + 3 = ?",
+    answer: "9",
+    options: ["8", "9", "10", "11"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 111,
+    category: "addition",
+    grade: "1",
+    difficulty: 2,
+    question: "4 + 4 = ?",
+    answer: "8",
+    options: ["7", "8", "9", "10"],
+    concepts: ["addition", "counting", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Subtraction - Grade 1
+  {
+    id: 112,
+    category: "subtraction",
+    grade: "1",
+    difficulty: 2,
+    question: "9 - 3 = ?",
+    answer: "6",
+    options: ["5", "6", "7", "8"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 113,
+    category: "subtraction",
+    grade: "1",
+    difficulty: 2,
+    question: "10 - 4 = ?",
+    answer: "6",
+    options: ["5", "6", "7", "8"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 114,
+    category: "subtraction",
+    grade: "1", 
+    difficulty: 2,
+    question: "8 - 5 = ?",
+    answer: "3",
+    options: ["2", "3", "4", "5"],
+    concepts: ["subtraction", "counting", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Addition - Grade 2
+  {
+    id: 115,
+    category: "addition",
+    grade: "2",
+    difficulty: 3,
+    question: "12 + 8 = ?",
+    answer: "20",
+    options: ["18", "19", "20", "21"],
+    concepts: ["addition", "double-digit", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 116,
+    category: "addition",
+    grade: "2",
+    difficulty: 3,
+    question: "15 + 7 = ?",
+    answer: "22",
+    options: ["21", "22", "23", "24"],
+    concepts: ["addition", "double-digit", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 117,
+    category: "addition",
+    grade: "2",
+    difficulty: 3,
+    question: "14 + 9 = ?",
+    answer: "23",
+    options: ["21", "22", "23", "24"],
+    concepts: ["addition", "double-digit", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Subtraction - Grade 2
+  {
+    id: 118,
+    category: "subtraction",
+    grade: "2",
+    difficulty: 3,
+    question: "20 - 8 = ?",
+    answer: "12",
+    options: ["10", "11", "12", "13"],
+    concepts: ["subtraction", "double-digit", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 119,
+    category: "subtraction",
+    grade: "2",
+    difficulty: 3,
+    question: "15 - 7 = ?",
+    answer: "8",
+    options: ["7", "8", "9", "10"],
+    concepts: ["subtraction", "double-digit", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 120,
+    category: "subtraction", 
+    grade: "2",
+    difficulty: 3,
+    question: "18 - 9 = ?",
+    answer: "9",
+    options: ["7", "8", "9", "10"],
+    concepts: ["subtraction", "double-digit", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Multiplication - Grade 3
+  {
+    id: 121,
+    category: "multiplication",
+    grade: "3",
+    difficulty: 3,
+    question: "3 × 4 = ?",
+    answer: "12",
+    options: ["10", "11", "12", "15"],
+    concepts: ["multiplication", "repeated addition", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 122,
+    category: "multiplication",
+    grade: "3",
+    difficulty: 3,
+    question: "5 × 5 = ?",
+    answer: "25",
+    options: ["20", "25", "30", "35"],
+    concepts: ["multiplication", "repeated addition", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 123,
+    category: "multiplication",
+    grade: "3",
+    difficulty: 3,
+    question: "2 × 9 = ?",
+    answer: "18",
+    options: ["16", "17", "18", "19"],
+    concepts: ["multiplication", "repeated addition", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Division - Grade 3
+  {
+    id: 124,
+    category: "division",
+    grade: "3",
+    difficulty: 3,
+    question: "8 ÷ 2 = ?",
+    answer: "4",
+    options: ["3", "4", "5", "6"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 125,
+    category: "division",
+    grade: "3",
+    difficulty: 3,
+    question: "10 ÷ 5 = ?",
+    answer: "2",
+    options: ["1", "2", "3", "4"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 126,
+    category: "division",
+    grade: "3",
+    difficulty: 3,
+    question: "12 ÷ 4 = ?",
+    answer: "3",
+    options: ["2", "3", "4", "5"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Addition - Grade 4  
+  {
+    id: 127,
+    category: "addition",
+    grade: "4",
+    difficulty: 4,
+    question: "125 + 136 = ?",
+    answer: "261",
+    options: ["251", "261", "271", "361"],
+    concepts: ["addition", "three-digit", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 128,
+    category: "addition",
+    grade: "4",
+    difficulty: 4,
+    question: "234 + 129 = ?",
+    answer: "363",
+    options: ["353", "363", "373", "463"],
+    concepts: ["addition", "three-digit", "sum"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Subtraction - Grade 4
+  {
+    id: 129,
+    category: "subtraction",
+    grade: "4",
+    difficulty: 4,
+    question: "245 - 128 = ?",
+    answer: "117",
+    options: ["107", "117", "127", "137"],
+    concepts: ["subtraction", "three-digit", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 130,
+    category: "subtraction",
+    grade: "4",
+    difficulty: 4,
+    question: "356 - 182 = ?",
+    answer: "174",
+    options: ["164", "174", "184", "194"],
+    concepts: ["subtraction", "three-digit", "difference"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Multiplication - Grade 4
+  {
+    id: 131,
+    category: "multiplication",
+    grade: "4",
+    difficulty: 4,
+    question: "7 × 8 = ?",
+    answer: "56",
+    options: ["48", "54", "56", "64"],
+    concepts: ["multiplication", "tables", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 132,
+    category: "multiplication",
+    grade: "4",
+    difficulty: 4,
+    question: "12 × 6 = ?",
+    answer: "72",
+    options: ["62", "72", "82", "92"],
+    concepts: ["multiplication", "tables", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Division - Grade 4
+  {
+    id: 133,
+    category: "division",
+    grade: "4",
+    difficulty: 4,
+    question: "63 ÷ 9 = ?",
+    answer: "7",
+    options: ["6", "7", "8", "9"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 134,
+    category: "division",
+    grade: "4",
+    difficulty: 4,
+    question: "56 ÷ 8 = ?",
+    answer: "7",
+    options: ["6", "7", "8", "9"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Multiplication - Grade 5
+  {
+    id: 135,
+    category: "multiplication",
+    grade: "5",
+    difficulty: 5,
+    question: "12 × 11 = ?",
+    answer: "132",
+    options: ["122", "132", "142", "152"],
+    concepts: ["multiplication", "tables", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 136,
+    category: "multiplication",
+    grade: "5",
+    difficulty: 5,
+    question: "15 × 9 = ?",
+    answer: "135",
+    options: ["125", "135", "145", "155"],
+    concepts: ["multiplication", "tables", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Division - Grade 5
+  {
+    id: 137,
+    category: "division",
+    grade: "5", 
+    difficulty: 5,
+    question: "72 ÷ 9 = ?",
+    answer: "8",
+    options: ["7", "8", "9", "10"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 138,
+    category: "division",
+    grade: "5",
+    difficulty: 5,
+    question: "96 ÷ 8 = ?",
+    answer: "12",
+    options: ["10", "11", "12", "14"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Fractions - Grade 5
+  {
+    id: 139,
+    category: "fractions",
+    grade: "5",
+    difficulty: 5,
+    question: "1/4 + 1/2 = ?",
+    answer: "3/4",
+    options: ["2/6", "3/4", "4/8", "5/6"],
+    concepts: ["fractions", "addition", "common denominator"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 140,
+    category: "fractions",
+    grade: "5",
+    difficulty: 5,
+    question: "2/3 - 1/3 = ?",
+    answer: "1/3",
+    options: ["0", "1/3", "2/3", "3/3"],
+    concepts: ["fractions", "subtraction", "common denominator"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Multiplication - Grade 6
+  {
+    id: 141,
+    category: "multiplication",
+    grade: "6",
+    difficulty: 5,
+    question: "25 × 24 = ?",
+    answer: "600",
+    options: ["580", "600", "620", "650"],
+    concepts: ["multiplication", "two-digit", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 142,
+    category: "multiplication",
+    grade: "6",
+    difficulty: 5,
+    question: "32 × 18 = ?",
+    answer: "576",
+    options: ["496", "556", "576", "596"],
+    concepts: ["multiplication", "two-digit", "product"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Division - Grade 6
+  {
+    id: 143,
+    category: "division",
+    grade: "6",
+    difficulty: 5,
+    question: "144 ÷ 12 = ?",
+    answer: "12",
+    options: ["10", "11", "12", "14"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 144,
+    category: "division",
+    grade: "6",
+    difficulty: 5,
+    question: "225 ÷ 15 = ?",
+    answer: "15",
+    options: ["13", "14", "15", "16"],
+    concepts: ["division", "sharing", "quotient"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Fractions - Grade 6
+  {
+    id: 145,
+    category: "fractions",
+    grade: "6",
+    difficulty: 5,
+    question: "2/3 + 1/6 = ?",
+    answer: "5/6",
+    options: ["3/6", "3/9", "5/6", "3/4"],
+    concepts: ["fractions", "addition", "common denominator"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 146,
+    category: "fractions", 
+    grade: "6",
+    difficulty: 5,
+    question: "3/4 - 1/4 = ?",
+    answer: "1/2",
+    options: ["1/4", "1/2", "2/4", "3/8"],
+    concepts: ["fractions", "subtraction", "common denominator"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Decimal problems - Grade 6
+  {
+    id: 147,
+    category: "decimals",
+    grade: "6",
+    difficulty: 5,
+    question: "0.25 + 0.75 = ?",
+    answer: "1",
+    options: ["0.8", "0.9", "1", "1.1"],
+    concepts: ["decimals", "addition", "place value"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 148,
+    category: "decimals",
+    grade: "6",
+    difficulty: 5,
+    question: "1.5 - 0.75 = ?",
+    answer: "0.75",
+    options: ["0.65", "0.7", "0.75", "0.8"],
+    concepts: ["decimals", "subtraction", "place value"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  
+  // Percentages - Grade 6
+  {
+    id: 149,
+    category: "percentages",
+    grade: "6",
+    difficulty: 5,
+    question: "25% of 80 = ?",
+    answer: "20",
+    options: ["15", "20", "25", "30"],
+    concepts: ["percentages", "fractions", "proportion"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  {
+    id: 150,
+    category: "percentages",
+    grade: "6",
+    difficulty: 5,
+    question: "10% of 250 = ?",
+    answer: "25",
+    options: ["20", "25", "30", "35"],
+    concepts: ["percentages", "fractions", "proportion"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  }
+];

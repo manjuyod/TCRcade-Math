@@ -1897,6 +1897,15 @@ export class MemStorage implements IStorage {
   }
 
   private seedQuestions() {
+    // Import expanded question set with 50 varied questions
+    const { defaultQuestions } = require('./data/questions');
+    
+    // Add all default questions to the map
+    for (const question of defaultQuestions) {
+      this.questions.set(question.id, question);
+    }
+    
+    // Keep the original questions for backward compatibility
     // Addition - Grade K-2
     const additionK2 = [
       {

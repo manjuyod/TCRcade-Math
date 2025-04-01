@@ -199,16 +199,17 @@ export default function HomePage() {
     }
   }, [currentModuleId]);
   
-  // Fetch a question (now with module category filtering)
-  // Using a simple key structure and manual refetching only
-  const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ['/api/questions/next', currentModuleCategory], 
-    queryFn: () => fetchQuestion([], true, currentModuleCategory),
-    refetchOnWindowFocus: false,
-    staleTime: Infinity, // Cache the result indefinitely until manually refetched
-    retry: 1, // Only retry once to avoid overwhelming the server
-    enabled: !sessionCompleted && false // Don't automatically fetch, we'll do it manually
-  });
+  // Use our enhanced question hook with duplicate prevention
+  // This is more reliable than the previous code
+  const {
+    question,
+    loading: isLoading, 
+    fetchNewQuestion,
+    seenQuestions
+  } = useQuestionWithHistory(
+    user?.grade || '3',
+    currentModuleCategory
+  );
   
   // Submit answer mutation
   const answerMutation = useMutation({
@@ -376,7 +377,7 @@ export default function HomePage() {
     }
   };
   
-  // Improved version with loading state to prevent question shuffling
+  // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
@@ -388,47 +389,18 @@ export default function HomePage() {
     setShowFeedback(false);
     setFeedbackData(null);
     
-    // Use a Promise to ensure we get a response before updating the UI
-    new Promise((resolve, reject) => {
-      // Simple direct fetch to get a question with forceDynamic and timestamp to prevent caching
-      fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true&t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store' // Prevent browser caching
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Get the new question
-          const newQuestion = data.question || data;
-          
-          // Only update the state once we have the full response
-          resolve(newQuestion);
-        })
-        .catch(error => {
-          console.error('Error fetching question:', error);
-          reject(error);
-        });
-    })
-    .then(newQuestion => {
-      // Set the question in the cache
-      queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
-      
-      // After a short delay to ensure it's loaded, turn off loading state
-      setTimeout(() => {
-        setIsManuallyLoading(false);
-      }, 100);
-    })
-    .catch(() => {
-      // Turn off loading state even if there's an error
-      setIsManuallyLoading(false);
-    });
+    // Use the improved fetchNewQuestion method from our custom hook
+    // This handles all the caching and duplicate prevention automatically
+    fetchNewQuestion(true)
+      .finally(() => {
+        // Set loading to false after a brief delay to prevent flickering
+        setTimeout(() => {
+          setIsManuallyLoading(false);
+        }, 100);
+      });
   };
   
-  // Improved version with loading state for starting a new session
+  // Simpler version with our improved hook
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
@@ -444,44 +416,15 @@ export default function HomePage() {
     // Set loading to show spinner during fetch
     setIsManuallyLoading(true);
     
-    // Use a Promise to ensure we get a response before updating the UI
-    new Promise((resolve, reject) => {
-      // Simple direct fetch to get a fresh question with forceDynamic
-      fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true&t=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store' // Prevent browser caching
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Get the new question
-          const newQuestion = data.question || data;
-          
-          // Only update the state once we have the full response
-          resolve(newQuestion);
-        })
-        .catch(error => {
-          console.error('Error fetching question:', error);
-          reject(error);
-        });
-    })
-    .then(newQuestion => {
-      // Set the question in the cache
-      queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
-      
-      // After a short delay to ensure it's loaded, turn off loading state
-      setTimeout(() => {
-        setIsManuallyLoading(false);
-      }, 100);
-    })
-    .catch(() => {
-      // Turn off loading state even if there's an error
-      setIsManuallyLoading(false);
-    });
+    // Use the improved hook's fetchNewQuestion function with forceDynamic=true
+    // This handles all the caching and duplicate prevention automatically
+    fetchNewQuestion(true)
+      .finally(() => {
+        // Turn off loading after a short delay
+        setTimeout(() => {
+          setIsManuallyLoading(false);
+        }, 100);
+      });
   };
   
   // Using progress percentage from the timer hook instead of manual calculation
@@ -489,50 +432,22 @@ export default function HomePage() {
   // Check if current question has already been answered in this session
   useEffect(() => {
     if (question && answeredQuestionIds.includes(question.id) && answeredQuestionIds.length < 100) {
-      // If we've already seen this question, fetch a new one directly
-      console.log("Duplicate question detected, fetching new one");
+      // If we've already seen this question in this session, fetch a new one
+      console.log("Duplicate question detected in current session, fetching new one");
       
       // Set loading state to prevent showing the duplicate
       setIsManuallyLoading(true);
       
-      // Use a Promise to ensure we get a response before updating the UI
-      new Promise((resolve, reject) => {
-        // Simple direct fetch to get a fresh question with cache busting
-        fetch(`/api/questions/next?category=${currentModuleCategory || ''}&forceDynamic=true&t=${Date.now()}`, {
-          credentials: 'include',
-          cache: 'no-store' // Prevent browser caching
-        })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Network response was not ok');
-            }
-            return response.json();
-          })
-          .then(data => {
-            // Get the new question
-            const newQuestion = data.question || data;
-            resolve(newQuestion);
-          })
-          .catch(error => {
-            console.error('Error fetching new question:', error);
-            reject(error);
-          });
-      })
-      .then(newQuestion => {
-        // Update the query client directly with the fetched data
-        queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
-        
-        // Turn off loading after a short delay
-        setTimeout(() => {
-          setIsManuallyLoading(false);
-        }, 100);
-      })
-      .catch(() => {
-        // Turn off loading even if there's an error
-        setIsManuallyLoading(false);
-      });
+      // Use our improved question hook to fetch a new question with duplicate prevention
+      fetchNewQuestion(true)
+        .finally(() => {
+          // Turn off loading after a short delay
+          setTimeout(() => {
+            setIsManuallyLoading(false);
+          }, 100);
+        });
     }
-  }, [question, answeredQuestionIds, currentModuleCategory]);
+  }, [question, answeredQuestionIds, fetchNewQuestion]);
   
   return (
     <div className="flex flex-col min-h-screen">

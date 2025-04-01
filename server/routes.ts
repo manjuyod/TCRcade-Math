@@ -179,8 +179,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Removed the slower version of /api/questions/next
-  // The faster version is implemented below (line ~490)
+  // Better question fetching endpoint that uses session tracking to prevent duplicates
+  app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
+    const userId = req.user!.id;
+    const grade = req.query.grade as string || req.user!.grade || "3";
+    const category = req.query.category as string;
+    const forceDynamic = req.query.forceDynamic === 'true';
+
+    // Initialize session tracking for seen questions if it doesn't exist
+    if (!req.session.seenQuestions) {
+      req.session.seenQuestions = [];
+    }
+    
+    // Extract excluded question IDs from query parameter
+    const excludeParam = req.query.exclude as string;
+    let explicitExcludeIds: number[] = [];
+    
+    if (excludeParam) {
+      try {
+        // Support both comma-separated and single ID
+        if (excludeParam.includes(',')) {
+          explicitExcludeIds = excludeParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+        } else {
+          const id = parseInt(excludeParam);
+          if (!isNaN(id)) {
+            explicitExcludeIds = [id];
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse exclude IDs:", e);
+      }
+    }
+    
+    try {
+      // Combine explicit exclude IDs with session's seen questions
+      // But limit the session history to the last 20 questions to avoid
+      // running out of questions in small datasets
+      const sessionHistory = req.session.seenQuestions.slice(-20);
+      const allExcludeIds = [...new Set([...explicitExcludeIds, ...sessionHistory])];
+      
+      // Maximum retry attempts to find a non-duplicate question
+      const maxRetries = 15;
+      let question = null;
+      let attempts = 0;
+      
+      // Try to find a question that hasn't been seen recently
+      while (attempts < maxRetries && !question) {
+        // Get an adaptive question matching the requested category if available
+        // Pass our exclude list to prevent duplicates
+        question = await storage.getAdaptiveQuestion(
+          userId, 
+          grade, 
+          forceDynamic || attempts > 0, // Force dynamic generation on retry
+          category,
+          allExcludeIds
+        );
+        
+        attempts++;
+        
+        // If we still got a question we've seen, try again
+        if (question && sessionHistory.includes(question.id)) {
+          question = null;
+        }
+      }
+      
+      if (!question) {
+        return res.status(404).json({ message: "No questions found for your grade level and selected category" });
+      }
+      
+      // Add this question to the session's seen list
+      req.session.seenQuestions.push(question.id);
+      
+      // Save the session to persist the update
+      req.session.save(err => {
+        if (err) {
+          console.error("Error saving session:", err);
+        }
+      });
+      
+      res.json(question);
+    } catch (error) {
+      console.error("Error fetching next question:", error);
+      res.status(500).json({ message: "Failed to fetch question" });
+    }
+  });
   
   // Get questions by concept for practice mode
   app.get("/api/questions/concept/:grade/:concept", ensureAuthenticated, async (req, res) => {
