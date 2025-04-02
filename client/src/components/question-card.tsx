@@ -52,11 +52,12 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
       return;
     }
     
-    // Use our new image utilities to get a Base64 image for the question if applicable
-    const base64Image = getQuestionImage(questionStr);
+    // Use our new image utilities to get a Base64 image for the question
+    // Pass both the question text and the storyImage from the server
+    const base64Image = getQuestionImage(questionStr, question.storyImage);
     if (base64Image) {
-      console.log("Found Base64 image for question text:", questionStr);
-      // Override the storyImage with our Base64 image
+      console.log("Found image for question text:", questionStr.substring(0, 50) + '...');
+      // Store the image in the question object
       if (question) {
         question.storyImage = base64Image;
       }

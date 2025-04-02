@@ -259,7 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               storyId: null,
               storyNode: null,
               storyText: null,
-              storyImage: null
+              storyImage: generatedQuestion.storyImage || null
             };
             
             questionSource = "openai";
@@ -426,7 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             storyId: null,
             storyNode: null,
             storyText: null,
-            storyImage: null
+            storyImage: generatedQuestion.storyImage || null
           };
           
           console.log("Last-resort OpenAI generation successful");

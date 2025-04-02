@@ -13,60 +13,70 @@ function questionReferencesImage(questionText: string): boolean {
   // Common phrases that indicate a visual element is needed
   const visualReferencePatterns = [
     // Explicit image references
-    /look at the (image|picture|photo|figure|diagram)/i,
-    /look at these (shapes|circles|squares|triangles)/i,
-    /refer to the (image|picture|photo|figure|diagram)/i,
-    /based on the (image|picture|photo|figure|diagram)/i,
-    /in the (image|picture|photo|figure|diagram)/i,
-    /shown in the (image|picture|photo|figure|diagram)/i,
-    /from the (image|picture|photo|figure|diagram)/i,
-    /using the (image|picture|photo|figure|diagram)/i,
-    /the (image|picture|photo|figure|diagram) shows/i,
+    /look at (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /refer to (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /based on (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /in (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /shown in (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /from (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /using (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
+    /(the|these|this) (image|picture|photo|figure|diagram|drawing) shows/i,
+    
+    // Shape references with visual cues
+    /look at (the|these|this) shapes/i,
+    /look at (the|these) (circles|squares|triangles|stars)/i,
+    /do you see/i,
+    /can you (see|find|count)/i,
     
     // Shape descriptions and counting
     /count the number of/i,
     /how many.*can you see/i,
     /how many.*are there/i,
+    /how many.*do you see/i,
     /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares|apples|bananas)/i,
     /below are/i,
     /these shapes/i,
     
     // Color and shape combinations
-    /red (circle|square|triangle|shape)/i,
-    /blue (circle|square|triangle|shape)/i,
-    /green (circle|square|triangle|shape)/i,
-    /yellow (circle|square|triangle|shape)/i,
-    /purple (circle|square|triangle|shape)/i,
-    /orange (circle|square|triangle|shape)/i,
+    /(red|blue|green|yellow|purple|orange) (circle|square|triangle|shape|star|dot)/i,
     
-    // Object descriptions
-    /look at the shapes/i,
-    /there are (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i,
-    /you can see (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i,
+    // Object descriptions - more specific patterns
+    /there are (several|some|many|two|three|four|five|six|[\d]+) (circles|squares|triangles|shapes|stars)/i,
+    /you can see (several|some|many|two|three|four|five|six|[\d]+) (circles|squares|triangles|shapes|stars)/i,
     
-    // Shape identification questions
-    /which (one|shape) is a (square|circle|triangle|rectangle)/i,
-    /identify the (square|circle|triangle|rectangle)/i,
-    /find the (square|circle|triangle|rectangle)/i,
-    /which of these is a (square|circle|triangle|rectangle)/i,
-    /which (shape|triangle|circle|square) is (smallest|largest|biggest)/i,
+    // Shape identification questions - expanded patterns
+    /which (one|shape) is a (square|circle|triangle|rectangle|star)/i, 
+    /which (one|shape) is (small|big|large)/i,
+    /identify the (square|circle|triangle|rectangle|star)/i,
+    /find the (square|circle|triangle|rectangle|star)/i,
+    /which of these is a (square|circle|triangle|rectangle|star)/i,
+    /which (shape|triangle|circle|square|star) is (smallest|largest|biggest)/i,
+    /(how many|which|what) (small|big|large|red|blue|green|yellow)? (shapes|triangles|circles|squares|stars)/i,
     
-    // Fruit counting questions
-    /count the (apples|bananas|oranges|fruits)/i,
-    /how many (apples|bananas|oranges|fruits)/i
+    // Comparison questions that need visual support
+    /which (group|shape|set) has (more|less|fewer)/i,
+    /(more|less|fewer) (shapes|objects|items|circles|squares|triangles)/i,
+    
+    // Counting questions with options
+    /(3|4|5|6|three|four|five|six) or (5|6|7|8|five|six|seven|eight)/i,
+    
+    // Fruit and object counting questions
+    /count the (apples|bananas|oranges|fruits|blocks|cars|toys)/i,
+    /how many (apples|bananas|oranges|fruits|blocks|cars|toys)/i
   ];
   
   // Shape counting pattern (e.g., "two red squares, three blue circles")
-  const complexShapeMatch = questionText.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|apples?|bananas?)/gi);
+  const complexShapeMatch = questionText.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|stars?|apples?|bananas?)/gi);
   if (complexShapeMatch && complexShapeMatch.length > 0) {
     console.log("Complex shape description detected:", complexShapeMatch);
     return true;
   }
   
-  // For shape identification questions where they need to select from options
+  // For shape identification questions with explicit visual references
   if (/look at the shapes/i.test(questionText) || 
       /look at these shapes/i.test(questionText) ||
-      (/shapes/.test(questionText) && /below/.test(questionText))) {
+      (/shapes/.test(questionText) && (/below/.test(questionText) || /above/.test(questionText))) ||
+      (/these/.test(questionText) && (/triangles|circles|squares|stars/.test(questionText)))) {
     console.log("Shape identification question detected");
     return true;
   }
@@ -75,6 +85,14 @@ function questionReferencesImage(questionText: string): boolean {
   const matchingPattern = visualReferencePatterns.find(pattern => pattern.test(questionText));
   if (matchingPattern) {
     console.log("Visual reference pattern matched:", matchingPattern);
+    return true;
+  }
+  
+  // Add a fallback for questions with options that might be about counting shapes
+  if ((/\d+\s*,\s*\d+\s*,\s*\d+\s*(or|and)\s*\d+/i.test(questionText) || 
+      /\d+\s*or\s*\d+\s*or\s*\d+\s*or\s*\d+/i.test(questionText)) && 
+      (/how many/i.test(questionText) || /count/i.test(questionText))) {
+    console.log("Counting question with multiple choice options detected");
     return true;
   }
   
