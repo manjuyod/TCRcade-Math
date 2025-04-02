@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { getCategoryLabel } from '@/lib/questions';
+import { getQuestionImage } from '@/lib/imageUtils';
 
 type QuestionCardProps = {
   question: Question;
@@ -46,6 +47,19 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     if (question.storyImage && question.storyImage.includes('<svg')) {
       // For dynamically generated questions, they'll have an SVG in storyImage
       // Just set the question text normally, we'll render the SVG separately
+      setVisualInfo(null); // Clear any previous visual info
+      setQuestionText(questionStr);
+      return;
+    }
+    
+    // Use our new image utilities to get a Base64 image for the question if applicable
+    const base64Image = getQuestionImage(questionStr);
+    if (base64Image) {
+      console.log("Found Base64 image for question text:", questionStr);
+      // Override the storyImage with our Base64 image
+      if (question) {
+        question.storyImage = base64Image;
+      }
       setVisualInfo(null); // Clear any previous visual info
       setQuestionText(questionStr);
       return;
