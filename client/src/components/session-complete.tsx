@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { playSound, stopAllSounds } from '@/lib/sounds';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
@@ -27,17 +27,32 @@ export default function SessionComplete({
   const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
   
   // Award bonus tokens for perfect score (only once when component mounts)
+  // Using a ref to track if we've already awarded the bonus
+  const bonusAwardedRef = useRef(false);
+  
   useEffect(() => {
-    if (isPerfectScore && user) {
-      // Award 20 bonus tokens for perfect score
-      const perfectScoreBonus = 20;
-      
-      // Update user tokens in the cache
-      queryClient.setQueryData(['/api/user'], {
-        ...user,
-        tokens: user.tokens + perfectScoreBonus
-      });
+    // Skip if we've already awarded the bonus or if conditions aren't met
+    if (bonusAwardedRef.current || !isPerfectScore || !user) {
+      return;
     }
+    
+    // Award 20 bonus tokens for perfect score
+    const perfectScoreBonus = 20;
+    
+    // Mark that we've awarded the bonus to prevent infinite loop
+    bonusAwardedRef.current = true;
+    
+    // Update user tokens in the cache
+    queryClient.setQueryData(['/api/user'], (oldData: any) => {
+      // If there's no previous data, do nothing
+      if (!oldData) return oldData;
+      
+      // Return the updated data
+      return {
+        ...oldData,
+        tokens: oldData.tokens + perfectScoreBonus
+      };
+    });
   }, [isPerfectScore, user]);
   
   // Add state to manage cleanup
