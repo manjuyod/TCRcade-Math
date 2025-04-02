@@ -204,15 +204,24 @@ export async function fetchRecommendations(regenerate: boolean = false): Promise
 }
 
 // Submit an answer to a question
-export async function submitAnswer(questionId: number, answer: string): Promise<{
+export async function submitAnswer(
+  questionId: number, 
+  answer: string, 
+  originalAnswer?: string,
+  originalQuestion?: string
+): Promise<{
   correct: boolean;
   tokensEarned: number;
   totalTokens: number;
   correctAnswer: string;
 }> {
+  // For dynamically generated questions, we need to pass the original answer
+  // to ensure proper validation
   const response = await apiRequest('POST', '/api/answer', {
     questionId,
-    answer
+    answer,
+    originalAnswer, // Pass the expected correct answer to the server
+    originalQuestion // Pass the original question text for reference
   });
   
   return await response.json();

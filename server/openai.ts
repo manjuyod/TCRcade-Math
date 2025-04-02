@@ -35,11 +35,24 @@ function questionReferencesImage(questionText: string): boolean {
     // Object descriptions
     /look at the shapes/i,
     /there are (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i,
-    /you can see (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i
+    /you can see (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i,
+    
+    // Shape identification questions
+    /which (one|shape) is a (square|circle|triangle|rectangle)/i,
+    /identify the (square|circle|triangle|rectangle)/i,
+    /find the (square|circle|triangle|rectangle)/i,
+    /which of these is a (square|circle|triangle|rectangle)/i
   ];
   
   // Shape counting pattern (e.g., "two red squares, three blue circles")
   if (/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(questionText)) {
+    return true;
+  }
+  
+  // For shape identification questions where they need to select from options
+  if (/look at the shapes/i.test(questionText) && 
+      /(square|circle|triangle|rectangle)/i.test(questionText) &&
+      /which/i.test(questionText)) {
     return true;
   }
   

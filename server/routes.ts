@@ -589,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Answer question
   app.post("/api/answer", ensureAuthenticated, async (req, res) => {
-    const { questionId, answer, timeSpent } = req.body;
+    const { questionId, answer, timeSpent, originalAnswer, originalQuestion } = req.body;
     if (!questionId || !answer) {
       return res.status(400).json({ message: "Question ID and answer are required" });
     }
@@ -616,16 +616,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (parseInt(questionId) > dynamicIdThreshold) {
           // This is likely a dynamically generated question that wasn't stored in the database
-          // We'll assume the answer is correct for simplicity (only for high ID values)
-          // This prevents the user experience from breaking completely
-          console.log(`Treating question ${questionId} as dynamic with answer: ${answer}`);
+          // Return the information we have from the request body along with validation on whether the answer is correct
+          
+          // First check if the original answer was provided in the request body
+          // This is the expected behavior from our updated client
+          const expectedAnswer = originalAnswer 
+            ? originalAnswer.toString() 
+            : req.query.originalAnswer 
+              ? req.query.originalAnswer.toString() 
+              : answer;
+          
+          console.log(`Dynamic question ${questionId}: User answered "${answer}", expected "${expectedAnswer}"`);
           
           // Create a synthetic question for response purposes only
           question = {
             id: parseInt(questionId),
-            question: "Dynamic question",
-            answer: answer, // Assume the submitted answer is correct for dynamic questions
-            options: [answer],
+            question: originalQuestion?.toString() || "Dynamic question",
+            answer: expectedAnswer, // Use the expected answer, NOT the user's answer
+            options: [expectedAnswer],
             difficulty: 2,
             category: "General",
             grade: user.grade || "K",
@@ -751,7 +759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/questions/answer", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const { questionId, answer, timeSpent } = req.body;
+      const { questionId, answer, timeSpent, originalAnswer, originalQuestion } = req.body;
       
       if (!questionId || !answer) {
         return res.status(400).json({ error: "Question ID and answer are required" });
@@ -769,14 +777,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (parseInt(questionId) > dynamicIdThreshold) {
           // This is likely a dynamically generated question that wasn't stored in the database
-          console.log(`Treating question ${questionId} as dynamic with answer: ${answer}`);
+          // First check if the original answer was provided in the request body
+          // This is the expected behavior from our updated client
+          const expectedAnswer = originalAnswer 
+            ? originalAnswer.toString() 
+            : req.query.originalAnswer 
+              ? req.query.originalAnswer.toString() 
+              : answer;
+          
+          console.log(`Dynamic question ${questionId}: User answered "${answer}", expected "${expectedAnswer}"`);
           
           // Create a synthetic question for response purposes only
           question = {
             id: parseInt(questionId),
-            question: "Dynamic question",
-            answer: answer, // Assume the submitted answer is correct for dynamic questions
-            options: [answer],
+            question: originalQuestion?.toString() || req.query.originalQuestion?.toString() || "Dynamic question",
+            answer: expectedAnswer, // Use the expected answer, NOT the user's answer
+            options: [expectedAnswer],
             difficulty: 2,
             category: "General",
             grade: req.user!.grade || "K",

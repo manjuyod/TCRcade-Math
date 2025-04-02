@@ -216,9 +216,23 @@ export default function HomePage() {
   const answerMutation = useMutation({
     mutationFn: async ({ questionId, answer }: { questionId: number; answer: string }) => {
       console.log(`Submitting answer for question ID: ${questionId}, answer: ${answer}`);
+      
       try {
-        const result = await submitAnswer(questionId, answer);
-        return result;
+        // For dynamic questions, we need to include the correct answer with the submission
+        // to ensure proper validation
+        if (question && questionId === question.id) {
+          const result = await submitAnswer(
+            questionId, 
+            answer, 
+            question.answer,  // Pass the original correct answer
+            question.question // Pass the original question text
+          );
+          return result;
+        } else {
+          // Fallback if we don't have the current question context
+          const result = await submitAnswer(questionId, answer);
+          return result;
+        }
       } catch (error) {
         console.error(`Error submitting answer: ${error}`);
         // Force a new dynamic question when an error occurs
