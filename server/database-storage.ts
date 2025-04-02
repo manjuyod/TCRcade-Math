@@ -439,11 +439,11 @@ export class DatabaseStorage implements IStorage {
     
     // Create the new challenge
     const newChallenge = {
-      id: Date.now(), // Use timestamp as ID
+      // Don't need to set ID as it's auto-incremented
       date: today,
       title: `Daily Math Challenge - ${today.toLocaleDateString()}`,
       description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
-      questions: questions,
+      questions: JSON.stringify(questions), // Convert to JSON string
       questionIds: questionIds,
       difficulty: "medium",
       difficultyBonus: 1,
@@ -462,9 +462,25 @@ export class DatabaseStorage implements IStorage {
       return insertedChallenge;
     } catch (error) {
       console.error("Error creating daily challenge:", error);
-      // Return the new challenge even if we failed to insert it
-      // This ensures the user always gets a challenge
-      return newChallenge as any;
+      
+      // Create a fallback in-memory challenge that matches the schema
+      const fallbackChallenge = {
+        id: Math.floor(Date.now() / 1000), // Use timestamp as ID
+        date: today,
+        title: `Daily Math Challenge - ${today.toLocaleDateString()}`,
+        description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
+        questions: questions,
+        questionIds: questionIds,
+        difficulty: "medium",
+        difficultyBonus: 1,
+        tokenReward: 25,
+        questionCount: 5,
+        category: null,
+        requiredGrade: null,
+        specialReward: null
+      };
+      
+      return fallbackChallenge as DailyChallenge;
     }
   }
 
