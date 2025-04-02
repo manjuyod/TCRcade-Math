@@ -10,90 +10,73 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 function questionReferencesImage(questionText: string): boolean {
   console.log("Checking if question references an image:", questionText);
   
-  // Common phrases that indicate a visual element is needed
-  const visualReferencePatterns = [
-    // Explicit image references
-    /look at (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /refer to (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /based on (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /in (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /shown in (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /from (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /using (the|these|this) (image|picture|photo|figure|diagram|drawing)/i,
-    /(the|these|this) (image|picture|photo|figure|diagram|drawing) shows/i,
+  // Define very specific patterns for allowed visual questions
+  const allowedVisualPatterns = [
+    // Counting specific shapes
+    /how many (triangles?|circles?|squares?|stars?|shapes?) are there/i,
+    /count the (triangles?|circles?|squares?|stars?|shapes?)/i,
+    /how many (triangles?|circles?|squares?|stars?|shapes?) do you see/i,
+    /how many (triangles?|circles?|squares?|stars?|shapes?) can you see/i,
     
-    // Shape references with visual cues
-    /look at (the|these|this) shapes/i,
-    /look at (the|these) (circles|squares|triangles|stars)/i,
-    /do you see/i,
-    /can you (see|find|count)/i,
+    // Shape identification/recognition
+    /which (shape|one) is a (triangle|circle|square|star)/i,
+    /identify the (triangle|circle|square|star)/i,
+    /what shape is (shown|this)/i,
     
-    // Shape descriptions and counting
-    /count the number of/i,
-    /how many.*can you see/i,
-    /how many.*are there/i,
-    /how many.*do you see/i,
-    /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares|apples|bananas)/i,
-    /below are/i,
-    /these shapes/i,
-    
-    // Color and shape combinations
-    /(red|blue|green|yellow|purple|orange) (circle|square|triangle|shape|star|dot)/i,
-    
-    // Object descriptions - more specific patterns
-    /there are (several|some|many|two|three|four|five|six|[\d]+) (circles|squares|triangles|shapes|stars)/i,
-    /you can see (several|some|many|two|three|four|five|six|[\d]+) (circles|squares|triangles|shapes|stars)/i,
-    
-    // Shape identification questions - expanded patterns
-    /which (one|shape) is a (square|circle|triangle|rectangle|star)/i, 
-    /which (one|shape) is (small|big|large)/i,
-    /identify the (square|circle|triangle|rectangle|star)/i,
-    /find the (square|circle|triangle|rectangle|star)/i,
-    /which of these is a (square|circle|triangle|rectangle|star)/i,
-    /which (shape|triangle|circle|square|star) is (smallest|largest|biggest)/i,
-    /(how many|which|what) (small|big|large|red|blue|green|yellow)? (shapes|triangles|circles|squares|stars)/i,
-    
-    // Comparison questions that need visual support
-    /which (group|shape|set) has (more|less|fewer)/i,
-    /(more|less|fewer) (shapes|objects|items|circles|squares|triangles)/i,
-    
-    // Counting questions with options
-    /(3|4|5|6|three|four|five|six) or (5|6|7|8|five|six|seven|eight)/i,
-    
-    // Fruit and object counting questions
-    /count the (apples|bananas|oranges|fruits|blocks|cars|toys)/i,
-    /how many (apples|bananas|oranges|fruits|blocks|cars|toys)/i
+    // Fractions with visual references
+    /what fraction is shaded/i,
+    /what fraction of the (shape|circle|square|rectangle|figure) is (shaded|colored)/i,
+    /which fraction (represents|shows) the shaded part/i,
+    /shade the part that represents (\d+)\/(\d+)/i
   ];
   
-  // Shape counting pattern (e.g., "two red squares, three blue circles")
-  const complexShapeMatch = questionText.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|stars?|apples?|bananas?)/gi);
-  if (complexShapeMatch && complexShapeMatch.length > 0) {
-    console.log("Complex shape description detected:", complexShapeMatch);
+  // Check for these specific patterns
+  const matchedPattern = allowedVisualPatterns.find(pattern => pattern.test(questionText));
+  if (matchedPattern) {
+    console.log("Question matches allowed visual pattern:", matchedPattern);
     return true;
   }
   
-  // For shape identification questions with explicit visual references
-  if (/look at the shapes/i.test(questionText) || 
-      /look at these shapes/i.test(questionText) ||
-      (/shapes/.test(questionText) && (/below/.test(questionText) || /above/.test(questionText))) ||
-      (/these/.test(questionText) && (/triangles|circles|squares|stars/.test(questionText)))) {
-    console.log("Shape identification question detected");
+  // Check for specific counting of colored shapes
+  const complexColorShapeMatch = questionText.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)\s+(triangles?|circles?|squares?|stars?)/i);
+  if (complexColorShapeMatch) {
+    console.log("Complex shape with color description detected:", complexColorShapeMatch[0]);
     return true;
   }
   
-  // Find matching pattern if any
-  const matchingPattern = visualReferencePatterns.find(pattern => pattern.test(questionText));
-  if (matchingPattern) {
-    console.log("Visual reference pattern matched:", matchingPattern);
+  // Check for specific counting patterns
+  const countingPattern = /how many (triangles?|circles?|squares?|stars?)/i;
+  if (countingPattern.test(questionText)) {
+    console.log("Counting question detected that needs visualization");
     return true;
   }
   
-  // Add a fallback for questions with options that might be about counting shapes
-  if ((/\d+\s*,\s*\d+\s*,\s*\d+\s*(or|and)\s*\d+/i.test(questionText) || 
-      /\d+\s*or\s*\d+\s*or\s*\d+\s*or\s*\d+/i.test(questionText)) && 
-      (/how many/i.test(questionText) || /count/i.test(questionText))) {
-    console.log("Counting question with multiple choice options detected");
+  // Check for fraction questions that specifically need visuals
+  if (/what fraction/i.test(questionText) && /shaded|colored/i.test(questionText)) {
+    console.log("Fraction question detected that needs visualization");
     return true;
+  }
+  
+  // Don't generate images for real-world object references
+  const realWorldObjectsPattern = /(chocolate|pizza|cake|cookie|car|book|apple|banana|toy|train|doll|pencil|marker|ball)/i;
+  if (realWorldObjectsPattern.test(questionText)) {
+    console.log("Question references real-world objects, not generating an image");
+    return false;
+  }
+  
+  // Do NOT generate images for word problems or numerical calculations
+  const wordProblemPatterns = [
+    /If .+ has .+ and/i,
+    /Jane has/i,
+    /John has/i,
+    /Tom has/i,
+    /Sarah has/i,
+    /A student has/i
+  ];
+  
+  if (wordProblemPatterns.some(pattern => pattern.test(questionText))) {
+    console.log("Word problem detected, not generating an image");
+    return false;
   }
   
   return false;
@@ -540,12 +523,19 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           4. ${questionFormat}
           5. ${selectedFactors} to make this question unique and engaging.
           6. NEVER repeat the same question patterns - create truly diverse content.
-          7. IMPORTANT ABOUT IMAGES: DO NOT create questions that reference images or pictures UNLESS you're creating:
-             - Counting problems (how many objects)
-             - Shape recognition (identifying shapes)
-             - Fraction visualization (parts of a whole)
-             The system can auto-generate images for these specific types, but other visual references will not display properly.
-          7. ${contextMessage}
+          7. STRICT INSTRUCTIONS ABOUT VISUAL REFERENCES:
+             a. ONLY create questions that reference visuals for these specific types:
+                - Counting problems: "How many [shapes] are there?" with a specific number (must use triangles, circles, squares, or stars)
+                - Shape recognition: "Which shape is a [triangle/circle/square]?" (must use standard shapes, not real-world objects)
+                - Fraction visualization: "What fraction is shaded?" (must use a specific fraction like 1/4, 2/3, etc.)
+             b. For visual questions, ALWAYS ensure the question, answer, and all options are perfectly aligned
+                - If asking about counting 3 triangles, the answer MUST be exactly "3"
+                - If asking about shapes, all options MUST be actual shape names (circle, square, triangle, star)
+                - If asking about fractions, answer MUST be in the format "1/4" (not "one-fourth" or "0.25")
+             c. For counting questions, use ONLY numbers 1-5 for Kindergarten, 1-10 for Grade 1, and up to 20 for higher grades
+             d. DO NOT reference real-world objects in visual questions (no chocolate bars, toy trains, pizzas, etc.)
+             e. NEVER use terms like "below", "above", "pictured", or "illustrated" unless specifically creating one of the allowed visual types
+          8. ${contextMessage}
           
           Format your response as a JSON object with these fields:
           - question: The actual question text (detailed, clear, and engaging)
@@ -645,23 +635,60 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       }
       // Check for counting questions
       else if (/how many/i.test(parsedResponse.question)) {
-        const objectMatches = parsedResponse.question.match(/how many (.*?) are there/i);
-        const objectType = objectMatches ? objectMatches[1] : "circles";
-        const count = Math.floor(Math.random() * 5) + 2; // 2-6 objects
-        imageContent = [objectType, count];
-        
-        // Make sure the answer matches the count
-        if (/how many/i.test(parsedResponse.question)) {
-          parsedResponse.answer = count.toString();
-          
-          // Update options to include the correct answer and nearby numbers
-          parsedResponse.options = [
-            count.toString(),
-            (count + 1).toString(),
-            (count - 1 > 0 ? count - 1 : count + 2).toString(),
-            (count + 2).toString()
-          ];
+        // Extract correct answer from question or use a reasonable count
+        let count = 0;
+        // First try to get the correct answer from parsedResponse
+        if (parsedResponse.answer && /^\d+$/.test(parsedResponse.answer)) {
+          count = parseInt(parsedResponse.answer);
+        } else {
+          // Default to a reasonable count
+          count = Math.floor(Math.random() * 3) + 2; // 2-4 objects (keeping it simple)
         }
+        
+        // Extract object type from question
+        const objectMatches = parsedResponse.question.match(/how many (triangles?|circles?|squares?|stars?|shapes?|red|blue|green|yellow)/i);
+        let objectType = "circles";
+        
+        if (objectMatches && objectMatches[1]) {
+          objectType = objectMatches[1].toLowerCase();
+          // Remove trailing 's' if present
+          if (objectType.endsWith('s')) {
+            objectType = objectType.slice(0, -1);
+          }
+        }
+        
+        // Set image content based on the correct answer
+        imageContent = [objectType, count];
+        console.log(`Setting image content for counting question: ${objectType}, count: ${count}`);
+        
+        // Always ensure the answer matches the count in the image
+        parsedResponse.answer = count.toString();
+        
+        // Generate reasonable options
+        const options = new Set<string>();
+        options.add(count.toString()); // Add correct answer
+        
+        // Add some reasonable alternatives
+        if (count > 1) options.add((count - 1).toString()); // One less
+        options.add((count + 1).toString()); // One more
+        if (count > 2) options.add((count - 2).toString()); // Two less
+        options.add((count + 2).toString()); // Two more
+        
+        // If we still need more options
+        if (options.size < 4) {
+          if (count > 3) options.add((count - 3).toString());
+          options.add((count + 3).toString());
+        }
+        
+        // Convert to array and keep only 4 options
+        parsedResponse.options = Array.from(options).slice(0, 4);
+        
+        // If we don't have enough options, add some more
+        while (parsedResponse.options.length < 4) {
+          parsedResponse.options.push((parseInt(parsedResponse.options[0]) + parsedResponse.options.length).toString());
+        }
+        
+        console.log(`Updated options for counting question: ${parsedResponse.options.join(', ')}`);
       } 
       // Check for shape-related questions
       else if (/shape|triangle|circle|square/i.test(parsedResponse.question)) {
@@ -674,58 +701,190 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
         const squareCount = (parsedResponse.question.match(/squares?/gi) || []).length;
         
         // Check for questions asking about specific counts of shapes
-        if (/how many (small|large|big)? triangles/i.test(parsedResponse.question)) {
-          // Extract the number from the answer
-          const countMatch = parsedResponse.answer.match(/^\d+$/);
-          const count = countMatch ? parseInt(countMatch[0]) : 6; // Default to 6 if not found
+        if (/how many (small|large|big)? triangles/i.test(parsedResponse.question) ||
+            /count the (small|large|big)? triangles/i.test(parsedResponse.question)) {
+          // Extract the number from the answer if available
+          let count = 3; // Default reasonable value for triangles
+          
+          if (parsedResponse.answer && /^\d+$/.test(parsedResponse.answer)) {
+            count = parseInt(parsedResponse.answer);
+          }
           
           // Generate an image with the exact number of triangles
           imageType = "countObjects";
           imageContent = ["triangle", count];
+          console.log(`Setting image content for triangle question: count: ${count}`);
           
-          // Update options to include the correct answer and reasonable alternatives
-          parsedResponse.options = [
-            count.toString(),
-            (count + 1).toString(),
-            (count - 1 > 0 ? count - 1 : count + 2).toString(),
-            (count + 2).toString()
-          ].sort(() => Math.random() - 0.5);
+          // Make sure the answer matches the image content
+          parsedResponse.answer = count.toString();
+          
+          // Generate reasonable options
+          const options = new Set<string>();
+          options.add(count.toString()); // Add correct answer
+          
+          // Add some reasonable alternatives
+          if (count > 1) options.add((count - 1).toString()); // One less
+          options.add((count + 1).toString()); // One more
+          if (count > 2) options.add((count - 2).toString()); // Two less
+          options.add((count + 2).toString()); // Two more
+          
+          // Convert to array and keep only 4 options
+          parsedResponse.options = Array.from(options).slice(0, 4);
+          
+          // If we don't have enough options, add some more
+          while (parsedResponse.options.length < 4) {
+            parsedResponse.options.push((parseInt(parsedResponse.options[0]) + parsedResponse.options.length).toString());
+          }
+          
+          console.log(`Updated options for triangle counting: ${parsedResponse.options.join(', ')}`);
         }
-        else if (/how many (small|large|big)? circles/i.test(parsedResponse.question)) {
-          const countMatch = parsedResponse.answer.match(/^\d+$/);
-          const count = countMatch ? parseInt(countMatch[0]) : 5;
+        else if (/how many (small|large|big)? circles/i.test(parsedResponse.question) ||
+                /count the (small|large|big)? circles/i.test(parsedResponse.question)) {
+          // Extract the number from the answer if available
+          let count = 3; // Default reasonable value for circles
+          
+          if (parsedResponse.answer && /^\d+$/.test(parsedResponse.answer)) {
+            count = parseInt(parsedResponse.answer);
+          }
           
           imageType = "countObjects";
           imageContent = ["circle", count];
+          console.log(`Setting image content for circle question: count: ${count}`);
           
-          parsedResponse.options = [
-            count.toString(),
-            (count + 1).toString(),
-            (count - 1 > 0 ? count - 1 : count + 2).toString(),
-            (count + 2).toString()
-          ].sort(() => Math.random() - 0.5);
+          // Make sure the answer matches the image content
+          parsedResponse.answer = count.toString();
+          
+          // Generate reasonable options
+          const options = new Set<string>();
+          options.add(count.toString()); // Add correct answer
+          
+          // Add some reasonable alternatives
+          if (count > 1) options.add((count - 1).toString()); // One less
+          options.add((count + 1).toString()); // One more
+          if (count > 2) options.add((count - 2).toString()); // Two less
+          options.add((count + 2).toString()); // Two more
+          
+          // Convert to array and keep only 4 options
+          parsedResponse.options = Array.from(options).slice(0, 4);
+          
+          // If we don't have enough options, add some more
+          while (parsedResponse.options.length < 4) {
+            parsedResponse.options.push((parseInt(parsedResponse.options[0]) + parsedResponse.options.length).toString());
+          }
+          
+          console.log(`Updated options for circle counting: ${parsedResponse.options.join(', ')}`);
         }
-        else if (/how many (small|large|big)? squares/i.test(parsedResponse.question)) {
-          const countMatch = parsedResponse.answer.match(/^\d+$/);
-          const count = countMatch ? parseInt(countMatch[0]) : 4;
+        else if (/how many (small|large|big)? squares/i.test(parsedResponse.question) ||
+                /count the (small|large|big)? squares/i.test(parsedResponse.question)) {
+          // Extract the number from the answer if available
+          let count = 3; // Default reasonable value for squares
+          
+          if (parsedResponse.answer && /^\d+$/.test(parsedResponse.answer)) {
+            count = parseInt(parsedResponse.answer);
+          }
           
           imageType = "countObjects";
           imageContent = ["square", count];
+          console.log(`Setting image content for square question: count: ${count}`);
           
-          parsedResponse.options = [
-            count.toString(),
-            (count + 1).toString(),
-            (count - 1 > 0 ? count - 1 : count + 2).toString(),
-            (count + 2).toString()
-          ].sort(() => Math.random() - 0.5);
+          // Make sure the answer matches the image content
+          parsedResponse.answer = count.toString();
+          
+          // Generate reasonable options
+          const options = new Set<string>();
+          options.add(count.toString()); // Add correct answer
+          
+          // Add some reasonable alternatives
+          if (count > 1) options.add((count - 1).toString()); // One less
+          options.add((count + 1).toString()); // One more
+          if (count > 2) options.add((count - 2).toString()); // Two less
+          options.add((count + 2).toString()); // Two more
+          
+          // Convert to array and keep only 4 options
+          parsedResponse.options = Array.from(options).slice(0, 4);
+          
+          // If we don't have enough options, add some more
+          while (parsedResponse.options.length < 4) {
+            parsedResponse.options.push((parseInt(parsedResponse.options[0]) + parsedResponse.options.length).toString());
+          }
+          
+          console.log(`Updated options for square counting: ${parsedResponse.options.join(', ')}`);
         }
       }
       // Check for fraction-related questions
       else if (/fraction|part/i.test(parsedResponse.question)) {
         imageType = "fractions";
-        const num = Math.floor(Math.random() * 3) + 1; // 1-3
-        const denom = 4;
-        imageContent = [num, denom];
+        
+        // Try to extract the fraction from the question or answer
+        let numerator = 1;
+        let denominator = 4;
+        
+        // First check if the answer contains a fraction
+        if (parsedResponse.answer && /^(\d+)\/(\d+)$/.test(parsedResponse.answer)) {
+          const fractionMatch = parsedResponse.answer.match(/^(\d+)\/(\d+)$/);
+          if (fractionMatch) {
+            numerator = parseInt(fractionMatch[1]);
+            denominator = parseInt(fractionMatch[2]);
+          }
+        } 
+        // Otherwise check if the question mentions a specific fraction
+        else {
+          const fractionMatch = parsedResponse.question.match(/(\d+)\/(\d+)/);
+          if (fractionMatch) {
+            numerator = parseInt(fractionMatch[1]);
+            denominator = parseInt(fractionMatch[2]);
+          }
+        }
+        
+        // Ensure reasonable values
+        if (numerator >= denominator) {
+          numerator = Math.floor(denominator / 2);
+        }
+        
+        // Set the image content based on the fraction
+        imageContent = [numerator, denominator];
+        console.log(`Setting fraction image content: ${numerator}/${denominator}`);
+        
+        // Make sure the answer matches our visualization
+        const fractionAnswer = `${numerator}/${denominator}`;
+        parsedResponse.answer = fractionAnswer;
+        
+        // Check if options include fractions and update them if needed
+        let hasOptions = Array.isArray(parsedResponse.options) && parsedResponse.options.length > 0;
+        let hasFractionOptions = hasOptions && parsedResponse.options.some((opt: string) => /^\d+\/\d+$/.test(opt));
+        
+        if (!hasFractionOptions) {
+          // Generate reasonable fraction options
+          const options = new Set<string>();
+          options.add(fractionAnswer); // Add correct answer
+          
+          // Add some reasonable alternatives
+          if (numerator > 1) options.add(`${numerator - 1}/${denominator}`);
+          if (numerator < denominator - 1) options.add(`${numerator + 1}/${denominator}`);
+          if (denominator > 2) options.add(`${numerator}/${denominator - 1}`);
+          options.add(`${numerator}/${denominator + 1}`);
+          
+          // Convert to array and keep only 4 options
+          parsedResponse.options = Array.from(options).slice(0, 4);
+          
+          // If we don't have enough options, add some more
+          while (parsedResponse.options.length < 4) {
+            // Add reasonable fractions
+            const n = Math.max(1, Math.min(3, numerator + (parsedResponse.options.length % 3) - 1));
+            const d = Math.max(2, Math.min(6, denominator + (parsedResponse.options.length % 3)));
+            
+            // Make sure we don't add the same fraction twice
+            const newFraction = `${n}/${d}`;
+            if (!parsedResponse.options.includes(newFraction) && n < d) {
+              parsedResponse.options.push(newFraction);
+            } else {
+              // If we can't add a reasonable fraction, add a whole number
+              parsedResponse.options.push(String(parsedResponse.options.length));
+            }
+          }
+          
+          console.log(`Updated options for fraction question: ${parsedResponse.options.join(', ')}`);
+        }
       }
       
       // Generate the image
