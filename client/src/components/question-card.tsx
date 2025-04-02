@@ -282,17 +282,25 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
       
       <div className="text-center my-4">
         {/* Display SVG from storyImage if present */}
-        {question?.storyImage && question.storyImage.includes('<svg') && (
+        {question?.storyImage && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mb-4 flex justify-center"
           >
-            <div 
-              dangerouslySetInnerHTML={{ __html: question.storyImage }} 
-              className="svg-container max-w-full"
-            />
+            {question.storyImage.includes('<svg') ? (
+              <div 
+                dangerouslySetInnerHTML={{ __html: question.storyImage }} 
+                className="svg-container max-w-full"
+              />
+            ) : question.storyImage.includes('data:image/svg+xml') ? (
+              <img 
+                src={question.storyImage} 
+                alt="Question visual" 
+                className="max-w-full max-h-64 object-contain"
+              />
+            ) : null}
           </motion.div>
         )}
         

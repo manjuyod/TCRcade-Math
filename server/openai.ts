@@ -24,13 +24,15 @@ function questionReferencesImage(questionText: string): boolean {
     /count the number of/i,
     /how many.*can you see/i,
     /how many.*are there/i,
-    /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares)/i,
+    /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares|apples|bananas)/i,
     
     // Color and shape combinations
     /red (circle|square|triangle|shape)/i,
     /blue (circle|square|triangle|shape)/i,
     /green (circle|square|triangle|shape)/i,
     /yellow (circle|square|triangle|shape)/i,
+    /purple (circle|square|triangle|shape)/i,
+    /orange (circle|square|triangle|shape)/i,
     
     // Object descriptions
     /look at the shapes/i,
@@ -41,11 +43,16 @@ function questionReferencesImage(questionText: string): boolean {
     /which (one|shape) is a (square|circle|triangle|rectangle)/i,
     /identify the (square|circle|triangle|rectangle)/i,
     /find the (square|circle|triangle|rectangle)/i,
-    /which of these is a (square|circle|triangle|rectangle)/i
+    /which of these is a (square|circle|triangle|rectangle)/i,
+    /which (shape|triangle|circle|square) is (smallest|largest|biggest)/i,
+    
+    // Fruit counting questions
+    /count the (apples|bananas|oranges|fruits)/i,
+    /how many (apples|bananas|oranges|fruits)/i
   ];
   
   // Shape counting pattern (e.g., "two red squares, three blue circles")
-  if (/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(questionText)) {
+  if (/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|apples?|bananas?)/i.test(questionText)) {
     return true;
   }
   
@@ -543,7 +550,7 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
         // Parse the shapes from the description
         const shapes: Array<{type: string, color: string, count: number}> = [];
         
-        complexShapeMatch.forEach(match => {
+        complexShapeMatch.forEach((match: string) => {
           // Extract count, color, and shape type
           const parts = match.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
           if (parts) {
