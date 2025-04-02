@@ -8,11 +8,24 @@ import { Loader2, BookOpenCheck } from "lucide-react";
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
+// Define Question type for better type safety
+interface Question {
+  id: number;
+  grade: string;
+  category: string;
+  question: string;
+  answer: string;
+  concepts?: string[];
+  difficulty: number;
+  options?: string[];
+}
+
 export default function AiTutorPage() {
-  const [currentQuestionId, setCurrentQuestionId] = useState<number | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [selectedGrade, setSelectedGrade] = useState("3");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch categories for this grade
   const { 
@@ -26,30 +39,11 @@ export default function AiTutorPage() {
     }
   });
 
-  // Fetch selected question with a refetch key to prevent stale data
-  const [refetchKey, setRefetchKey] = useState(0);
-  
-  const { 
-    data: currentQuestion,
-    isLoading: questionLoading,
-  } = useQuery({
-    queryKey: ['/api/questions', currentQuestionId, refetchKey],
-    queryFn: async () => {
-      if (!currentQuestionId) return null;
-      console.log(`Actually fetching question ID: ${currentQuestionId} with refetch key ${refetchKey}`);
-      const res = await apiRequest('GET', `/api/questions/${currentQuestionId}`);
-      const data = await res.json();
-      console.log("API returned question data:", data);
-      return data;
-    },
-    enabled: !!currentQuestionId,
-    refetchOnWindowFocus: false,
-  });
-
   const fetchNewQuestion = async () => {
     try {
       // First show loading state
-      setCurrentQuestionId(null);
+      setIsLoading(true);
+      setCurrentQuestion(null);
       
       // Construct parameters for the API request
       const params = new URLSearchParams();
@@ -65,8 +59,8 @@ export default function AiTutorPage() {
       params.append('forceDynamic', 'true');
       
       // Avoid getting the same question by tracking previous IDs
-      if (currentQuestionId) {
-        params.append('exclude', currentQuestionId.toString());
+      if (currentQuestion?.id) {
+        params.append('exclude', currentQuestion.id.toString());
       }
       
       console.log(`AI Tutor: Fetching new question with params: ${params.toString()}`);
@@ -87,18 +81,13 @@ export default function AiTutorPage() {
       if (data && data.id) {
         console.log("New question received:", data);
         
-        // Increase refetch key to force a new fetch from API
-        setRefetchKey(prev => prev + 1);
+        // Store the complete question object directly
+        setCurrentQuestion(data);
         
-        // Delay slightly to ensure UI state change is visible
-        setTimeout(() => {
-          setCurrentQuestionId(data.id);
-          
-          toast({
-            title: "New problem ready!",
-            description: "A fresh math problem has been generated for you.",
-          });
-        }, 500);
+        toast({
+          title: "New problem ready!",
+          description: "A fresh math problem has been generated for you.",
+        });
       } else {
         toast({
           title: "No questions found",
@@ -106,8 +95,12 @@ export default function AiTutorPage() {
           variant: "destructive",
         });
       }
+      
+      // Turn off loading state
+      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching question:", error);
+      setIsLoading(false);
       toast({
         title: "Error",
         description: "Failed to fetch a question. Please try again.",
@@ -119,12 +112,12 @@ export default function AiTutorPage() {
   const handleGradeChange = (grade: string) => {
     setSelectedGrade(grade);
     setSelectedCategory(undefined);
-    setCurrentQuestionId(null);
+    setCurrentQuestion(null);
   };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    setCurrentQuestionId(null);
+    setCurrentQuestion(null);
   };
 
   // No longer using a static sample question
@@ -326,7 +319,7 @@ export default function AiTutorPage() {
                 concept={currentQuestion.concepts?.[0]}
               />
             </>
-          ) : questionLoading ? (
+          ) : isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 bg-white/50 rounded-lg shadow-sm">
               <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
               <p className="text-muted-foreground font-medium">Loading your math problem...</p>
