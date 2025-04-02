@@ -1399,6 +1399,11 @@ export class MemStorage implements IStorage {
     if (!challenge) {
       // Create a new challenge for today
       challenge = this.createDailyChallenge(today);
+      
+      // Make sure to properly seed the challenge - ensure we actually store it
+      this.dailyChallenges.set(challenge.id, challenge);
+      
+      console.log(`Created new daily challenge with ID ${challenge.id} with ${challenge.questions?.length || 0} questions`);
     }
     
     return challenge;
