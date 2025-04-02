@@ -10,6 +10,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 function questionReferencesImage(questionText: string): boolean {
   // Common phrases that indicate a visual element is needed
   const visualReferencePatterns = [
+    // Explicit image references
     /look at the (image|picture|photo|figure|diagram)/i,
     /refer to the (image|picture|photo|figure|diagram)/i,
     /based on the (image|picture|photo|figure|diagram)/i,
@@ -18,10 +19,29 @@ function questionReferencesImage(questionText: string): boolean {
     /from the (image|picture|photo|figure|diagram)/i,
     /using the (image|picture|photo|figure|diagram)/i,
     /the (image|picture|photo|figure|diagram) shows/i,
+    
+    // Shape descriptions and counting
     /count the number of/i,
     /how many.*can you see/i,
-    /how many.*are there/i
+    /how many.*are there/i,
+    /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares)/i,
+    
+    // Color and shape combinations
+    /red (circle|square|triangle|shape)/i,
+    /blue (circle|square|triangle|shape)/i,
+    /green (circle|square|triangle|shape)/i,
+    /yellow (circle|square|triangle|shape)/i,
+    
+    // Object descriptions
+    /look at the shapes/i,
+    /there are (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i,
+    /you can see (several|some|many|two|three|four|five) (circles|squares|triangles|shapes)/i
   ];
+  
+  // Shape counting pattern (e.g., "two red squares, three blue circles")
+  if (/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(questionText)) {
+    return true;
+  }
   
   // Return true if any pattern matches
   return visualReferencePatterns.some(pattern => pattern.test(questionText));
@@ -45,7 +65,89 @@ function generateSVGImage(content: any, type: string): string {
   const svgFooter = `</svg>`;
   
   // Generate appropriate content based on type
-  if (type === "countObjects") {
+  if (type === "multipleShapes") {
+    // For complex shape arrangements with multiple colors and types
+    // content is expected to be an array of objects: {type, color, count}
+    if (!Array.isArray(content)) {
+      content = [{type: "circle", color: "blue", count: 3}]; // Default
+    }
+    
+    // Keep track of total shapes for layout
+    let totalShapes = 0;
+    for (const shape of content) {
+      totalShapes += shape.count;
+    }
+    
+    // Calculate the layout 
+    const itemsPerRow = Math.min(5, totalShapes);
+    const rows = Math.ceil(totalShapes / itemsPerRow);
+    const spacing = svgWidth / (itemsPerRow + 1);
+    const verticalSpacing = svgHeight / (rows + 1);
+    
+    // Create a color mapping
+    const colorMap: {[key: string]: string} = {
+      "red": "#FF5733",
+      "blue": "#3498DB",
+      "green": "#2ECC71",
+      "yellow": "#F1C40F",
+      "purple": "#9B59B6",
+      "orange": "#FF9500"
+    };
+    
+    // Draw each set of shapes
+    let shapesDrawn = 0;
+    
+    // Add a title showing the shapes being displayed
+    svgContent += `<text x="${svgWidth/2}" y="20" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Shape Collection</text>`;
+    
+    for (const shapeSet of content) {
+      for (let i = 0; i < shapeSet.count; i++) {
+        const row = Math.floor(shapesDrawn / itemsPerRow);
+        const col = shapesDrawn % itemsPerRow;
+        const x = spacing * (col + 1);
+        const y = verticalSpacing * (row + 1);
+        
+        // Get the fill color (use default if not specified)
+        const fillColor = colorMap[shapeSet.color] || colorMap.blue;
+        
+        // Draw the appropriate shape type
+        if (shapeSet.type === "circle") {
+          svgContent += `<circle cx="${x}" cy="${y}" r="20" fill="${fillColor}" />`;
+        } else if (shapeSet.type === "square") {
+          svgContent += `<rect x="${x-20}" y="${y-20}" width="40" height="40" fill="${fillColor}" />`;
+        } else if (shapeSet.type === "triangle") {
+          svgContent += `<polygon points="${x},${y-20} ${x-20},${y+15} ${x+20},${y+15}" fill="${fillColor}" />`;
+        }
+        
+        shapesDrawn++;
+      }
+    }
+    
+    // Add a legend to explain the colors and shapes
+    svgContent += `<rect x="10" y="${svgHeight - 60}" width="${svgWidth - 20}" height="50" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5" />`;
+    
+    let legendX = 20;
+    const legendY = svgHeight - 40;
+    
+    for (const shapeSet of content) {
+      // Skip if we've already added this type-color combo
+      const fillColor = colorMap[shapeSet.color] || colorMap.blue;
+      
+      // Add the legend item
+      if (shapeSet.type === "circle") {
+        svgContent += `<circle cx="${legendX + 10}" cy="${legendY}" r="8" fill="${fillColor}" />`;
+      } else if (shapeSet.type === "square") {
+        svgContent += `<rect x="${legendX + 2}" y="${legendY - 8}" width="16" height="16" fill="${fillColor}" />`;
+      } else if (shapeSet.type === "triangle") {
+        svgContent += `<polygon points="${legendX + 10},${legendY - 8} ${legendX},${legendY + 8} ${legendX + 20},${legendY + 8}" fill="${fillColor}" />`;
+      }
+      
+      svgContent += `<text x="${legendX + 25}" y="${legendY + 5}" font-family="Arial" font-size="12">${shapeSet.color} ${shapeSet.type}${shapeSet.count > 1 ? 's' : ''}</text>`;
+      
+      legendX += 100; // Move to the next legend item
+    }
+    
+  } else if (type === "countObjects") {
     // Count objects is expecting an array: [object type, count]
     const [objectType, count] = Array.isArray(content) ? content : ["circle", 5];
     const objects = parseInt(count.toString()) || 5;
@@ -419,8 +521,72 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       let imageType = "countObjects";
       let imageContent: any = ["circle", 5];
 
+      // Check for complex shape descriptions like "Look at the shapes: two red squares, two blue circles"
+      const complexShapeMatch = parsedResponse.question.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/gi);
+      if (complexShapeMatch && complexShapeMatch.length > 0) {
+        console.log("Complex shape description detected:", complexShapeMatch);
+        imageType = "multipleShapes";
+        
+        // Parse the shapes from the description
+        const shapes: Array<{type: string, color: string, count: number}> = [];
+        
+        complexShapeMatch.forEach(match => {
+          // Extract count, color, and shape type
+          const parts = match.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
+          if (parts) {
+            let count = parts[1].toLowerCase();
+            // Convert text numbers to digits
+            if (count === "one") count = "1";
+            if (count === "two") count = "2";
+            if (count === "three") count = "3";
+            if (count === "four") count = "4";
+            if (count === "five") count = "5";
+            
+            const color = parts[2] || "blue"; // Default color if none specified
+            let type = parts[3].toLowerCase();
+            
+            // Normalize singular/plural
+            if (type.endsWith('s')) type = type.slice(0, -1);
+            
+            shapes.push({
+              type, 
+              color, 
+              count: parseInt(count)
+            });
+          }
+        });
+        
+        imageContent = shapes;
+        
+        // If the question is asking about counting a specific shape, find the answer
+        if (/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(parsedResponse.question)) {
+          const targetMatch = parsedResponse.question.match(/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
+          if (targetMatch) {
+            const targetColor = targetMatch[1] || null;
+            let targetType = targetMatch[2].toLowerCase();
+            if (targetType.endsWith('s')) targetType = targetType.slice(0, -1);
+            
+            // Find the matching shape and count
+            let count = 0;
+            for (const shape of shapes) {
+              if ((!targetColor || shape.color === targetColor) && shape.type === targetType) {
+                count += shape.count;
+              }
+            }
+            
+            // Update the answer and options
+            parsedResponse.answer = count.toString();
+            parsedResponse.options = [
+              count.toString(),
+              (count + 1).toString(),
+              (count - 1 > 0 ? count - 1 : count + 2).toString(),
+              (count + 2).toString()
+            ];
+          }
+        }
+      }
       // Check for counting questions
-      if (/how many/i.test(parsedResponse.question)) {
+      else if (/how many/i.test(parsedResponse.question)) {
         const objectMatches = parsedResponse.question.match(/how many (.*?) are there/i);
         const objectType = objectMatches ? objectMatches[1] : "circles";
         const count = Math.floor(Math.random() * 5) + 2; // 2-6 objects
