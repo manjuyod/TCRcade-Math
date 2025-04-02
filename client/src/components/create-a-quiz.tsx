@@ -29,7 +29,10 @@ export default function CreateAQuiz() {
     queryKey: ['/api/categories', selectedGrade],
     queryFn: async () => {
       const res = await apiRequest('GET', `/api/categories?grade=${selectedGrade}`);
-      return await res.json();
+      const data = await res.json();
+      // When grade changes, reset the category selection to 'all'
+      setSelectedCategory('all');
+      return data;
     },
     enabled: !!selectedGrade
   });
@@ -44,64 +47,83 @@ export default function CreateAQuiz() {
     enabled: !!selectedGrade
   });
 
-  // Fetch practice questions
+  // Fetch practice questions with improved loading performance
   const fetchQuestions = async () => {
+    // Show loading indicator to the user
+    toast({
+      title: "Creating Quiz",
+      description: "Loading questions for your quiz..."
+    });
+
     try {
+      // Step 1: Fetch existing questions from the database
       let url = `/api/questions/grade/${selectedGrade}`;
       if (selectedCategory && selectedCategory !== 'all') {
         url += `?category=${selectedCategory}`;
       }
       
       const res = await apiRequest('GET', url);
-      const data = await res.json();
+      const existingQuestions = await res.json();
       
-      // Check if we have enough questions
-      if (Array.isArray(data) && data.length > 0) {
-        // If we don't have enough questions, let's generate new ones or fetch more
-        if (data.length < 5) {
-          // We need to fetch dynamically generated questions to fill out the quiz
-          console.log(`Only ${data.length} questions available, generating additional questions`);
-          try {
-            const additionalQuestionsNeeded = 5 - data.length;
-            const additionalQuestions = [];
-            
-            // Generate additional questions using OpenAI
-            for (let i = 0; i < additionalQuestionsNeeded; i++) {
-              // Generate each additional question
-              const dynamicRes = await apiRequest('GET', 
-                `/api/questions/next?grade=${selectedGrade}${selectedCategory !== 'all' ? `&category=${selectedCategory}` : ''}&forceDynamic=true`);
-              const dynamicQuestion = await dynamicRes.json();
-              
-              if (dynamicQuestion && dynamicQuestion.id) {
-                additionalQuestions.push(dynamicQuestion);
-              }
-            }
-            
-            // Combine original questions with additional ones
-            const allQuestions = [...data, ...additionalQuestions];
-            console.log(`Quiz now has ${allQuestions.length} total questions`);
-            
-            // Shuffle the questions to randomize the order
-            const shuffled = allQuestions.sort(() => Math.random() - 0.5);
-            
-            // Use all questions, ensuring we have at least 5 (or all that we could get)
-            setSessionQuestions(shuffled.slice(0, Math.max(5, shuffled.length)));
-          } catch (dynamicError) {
-            console.error("Error generating additional questions:", dynamicError);
-            // If we fail to generate more, use what we have
-            setSessionQuestions(data);
-          }
-        } else {
-          // We have enough questions, so shuffle them and take 5
-          const shuffled = [...data].sort(() => Math.random() - 0.5);
-          setSessionQuestions(shuffled.slice(0, 5));
+      // Check if we have any questions
+      if (Array.isArray(existingQuestions) && existingQuestions.length > 0) {
+        // Shuffle existing questions first for better randomization
+        const shuffledExisting = [...existingQuestions].sort(() => Math.random() - 0.5);
+        
+        // If we have enough questions from the database (5+), just use those
+        if (shuffledExisting.length >= 5) {
+          // Take 5 random questions and use those
+          setSessionQuestions(shuffledExisting.slice(0, 5));
+          
+          // Reset quiz state
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          setShowResults(false);
+          return;
         }
         
-        // Reset quiz state
-        setCurrentQuestionIndex(0);
-        setUserAnswers([]);
-        setShowResults(false);
+        // We don't have enough questions (< 5), so generate additional ones
+        console.log(`Only ${shuffledExisting.length} questions available, generating additional questions`);
+        
+        try {
+          const additionalQuestionsNeeded = 5 - shuffledExisting.length;
+          
+          // Generate all additional questions in parallel (much faster)
+          const questionPromises = Array(additionalQuestionsNeeded).fill(0).map(() => {
+            return apiRequest('GET', 
+              `/api/questions/next?grade=${selectedGrade}${selectedCategory !== 'all' ? `&category=${selectedCategory}` : ''}&forceDynamic=true&t=${Date.now()}`)
+              .then(res => res.json());
+          });
+          
+          // Wait for all questions to be generated
+          const additionalQuestions = await Promise.all(questionPromises);
+          
+          // Filter out any failed or invalid questions
+          const validAdditionalQuestions = additionalQuestions.filter(q => q && q.id);
+          
+          // Combine all questions and shuffle again
+          const allQuestions = [...shuffledExisting, ...validAdditionalQuestions];
+          console.log(`Quiz now has ${allQuestions.length} total questions`);
+          
+          // Use all questions up to 5
+          setSessionQuestions(allQuestions.slice(0, Math.min(5, allQuestions.length)));
+          
+          // Reset quiz state
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          setShowResults(false);
+        } catch (dynamicError) {
+          console.error("Error generating additional questions:", dynamicError);
+          // If we fail to generate more, use what we have
+          setSessionQuestions(shuffledExisting);
+          
+          // Reset quiz state
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          setShowResults(false);
+        }
       } else {
+        // No questions available for this grade/category
         toast({
           title: "No questions available",
           description: "There are no questions available for the selected criteria. Try another grade or category.",
@@ -241,136 +263,27 @@ export default function CreateAQuiz() {
               {/* Show loading indicator while fetching categories */}
               {isCategoriesLoading ? (
                 <option disabled>Loading topics...</option>
-              ) : (
+              ) : categories.length > 0 ? (
                 <>
-                  {/* Grade-specific topics based on curriculum standards */}
-                  {selectedGrade === 'K' && (
-                    <>
-                      <option value="counting">Counting</option>
-                      <option value="addition">Addition</option>
-                      <option value="subtraction">Subtraction</option>
-                      <option value="shapes">Shapes</option>
-                      <option value="measurement">Measurement</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '1' && (
-                    <>
-                      <option value="addition">Addition</option>
-                      <option value="subtraction">Subtraction</option>
-                      <option value="place-value">Place Value</option>
-                      <option value="measurement">Measurement</option>
-                      <option value="time">Time</option>
-                      <option value="money">Money</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '2' && (
-                    <>
-                      <option value="addition">Addition</option>
-                      <option value="subtraction">Subtraction</option>
-                      <option value="place-value">Place Value</option>
-                      <option value="measurement">Measurement</option>
-                      <option value="time">Time</option>
-                      <option value="money">Money</option>
-                      <option value="multiplication">Multiplication</option>
-                      <option value="geometry">Geometry</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '3' && (
-                    <>
-                      <option value="addition">Addition</option>
-                      <option value="subtraction">Subtraction</option>
-                      <option value="multiplication">Multiplication</option>
-                      <option value="division">Division</option>
-                      <option value="fractions">Fractions</option>
-                      <option value="measurement">Measurement</option>
-                      <option value="time">Time</option>
-                      <option value="money">Money</option>
-                      <option value="geometry">Geometry</option>
-                      <option value="word-problems">Word Problems</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '4' && (
-                    <>
-                      <option value="addition">Addition</option>
-                      <option value="subtraction">Subtraction</option>
-                      <option value="multiplication">Multiplication</option>
-                      <option value="division">Division</option>
-                      <option value="fractions">Fractions</option>
-                      <option value="decimals">Decimals</option>
-                      <option value="measurement">Measurement</option>
-                      <option value="geometry">Geometry</option>
-                      <option value="patterns">Patterns & Sequences</option>
-                      <option value="word-problems">Word Problems</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '5' && (
-                    <>
-                      <option value="multiplication">Multiplication</option>
-                      <option value="division">Division</option>
-                      <option value="fractions">Fractions</option>
-                      <option value="decimals">Decimals</option>
-                      <option value="percentages">Percentages</option>
-                      <option value="geometry">Geometry</option>
-                      <option value="measurement">Measurement</option>
-                      <option value="algebra">Algebra</option>
-                      <option value="patterns">Patterns & Sequences</option>
-                      <option value="statistics">Statistics & Data</option>
-                      <option value="word-problems">Word Problems</option>
-                    </>
-                  )}
-                  
-                  {selectedGrade === '6' && (
-                    <>
-                      <option value="fractions">Fractions</option>
-                      <option value="decimals">Decimals</option>
-                      <option value="percentages">Percentages</option>
-                      <option value="ratios">Ratios & Proportions</option>
-                      <option value="geometry">Geometry</option>
-                      <option value="algebra">Algebra</option>
-                      <option value="statistics">Statistics & Data</option>
-                      <option value="probability">Probability</option>
-                      <option value="word-problems">Word Problems</option>
-                      <option value="critical-thinking">Critical Thinking</option>
-                    </>
-                  )}
-                  
-                  {/* Dynamically load any additional categories from the server that aren't already included */}
-                  {categories
-                    .filter(cat => {
-                      // Get the list of topics already displayed for current grade
-                      let currentGradeTopics = [];
-                      
-                      if (selectedGrade === 'K') {
-                        currentGradeTopics = ['counting', 'addition', 'subtraction', 'shapes', 'measurement'];
-                      } else if (selectedGrade === '1') {
-                        currentGradeTopics = ['addition', 'subtraction', 'place-value', 'measurement', 'time', 'money'];
-                      } else if (selectedGrade === '2') {
-                        currentGradeTopics = ['addition', 'subtraction', 'place-value', 'measurement', 'time', 'money', 'multiplication', 'geometry'];
-                      } else if (selectedGrade === '3') {
-                        currentGradeTopics = ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement', 'time', 'money', 'geometry', 'word-problems'];
-                      } else if (selectedGrade === '4') {
-                        currentGradeTopics = ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'decimals', 'measurement', 'geometry', 'patterns', 'word-problems'];
-                      } else if (selectedGrade === '5') {
-                        currentGradeTopics = ['multiplication', 'division', 'fractions', 'decimals', 'percentages', 'geometry', 'measurement', 'algebra', 'patterns', 'statistics', 'word-problems'];
-                      } else if (selectedGrade === '6') {
-                        currentGradeTopics = ['fractions', 'decimals', 'percentages', 'ratios', 'geometry', 'algebra', 'statistics', 'probability', 'word-problems', 'critical-thinking'];
-                      }
-                      
-                      // Only show if not already in the grade-specific list
-                      return !currentGradeTopics.includes(cat.toLowerCase());
-                    })
-                    .map((category: string) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))
-                  }
+                  {/* Display only categories that actually exist in the database for this grade */}
+                  {categories.map((category: string) => (
+                    <option key={category} value={category}>
+                      {/* Format the category name nicely */}
+                      {category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ')}
+                    </option>
+                  ))}
                 </>
+              ) : (
+                <option disabled>No topics available for this grade</option>
               )}
             </select>
+            {isCategoriesLoading ? (
+              <p className="text-xs text-gray-500 mt-1">Loading available topics...</p>
+            ) : categories.length === 0 ? (
+              <p className="text-xs text-orange-500 mt-1">No topics available for this grade. Try selecting a different grade.</p>
+            ) : (
+              <p className="text-xs text-gray-500 mt-1">Only showing topics with available questions for grade {selectedGrade}</p>
+            )}
           </div>
           
           <Button 
