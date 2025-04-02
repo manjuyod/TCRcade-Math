@@ -114,8 +114,8 @@ export function useSessionTimer() {
     };
   }, []);
   
-  // Calculate progress percentage (using fixed target value of 60 minutes for a daily session)
-  const progressPercentage = Math.min(100, (timeData.todayMinutes / 60) * 100);
+  // Calculate progress percentage (using fixed target value of 30 minutes for a daily session)
+  const progressPercentage = Math.min(100, (timeData.todayMinutes / 30) * 100);
   
   return {
     minutesPlayed: timeData.todayMinutes,

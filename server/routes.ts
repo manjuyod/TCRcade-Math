@@ -305,7 +305,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let conditions = [eq(questions.grade, grade)];
       
       if (category && category !== 'all') {
-        conditions.push(eq(questions.category, category));
+        // Normalize category name for consistent comparisons (lowercase and trim)
+        const normalizedCategory = category.toLowerCase().trim();
+        
+        // Just use the direct matching for simplicity
+        conditions.push(eq(questions.category, normalizedCategory));
       }
       
       if (excludeIds.length > 0) {
@@ -611,8 +615,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check if answer is correct - use case-insensitive comparison with trimming
-      const isCorrect = question.answer.toLowerCase().trim() === answer.toLowerCase().trim();
+      // Check if answer is correct - use strict validation with proper normalization
+      let isCorrect = false;
+      
+      if (question && question.answer) {
+        const correctAnswer = question.answer.toString();
+        const userAnswer = answer.toString();
+        
+        // 1. Normalize both answers for comparison
+        const normalizedCorrect = correctAnswer.toLowerCase().trim().replace(/\s+/g, ' ');
+        const normalizedUser = userAnswer.toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        // 2. Check for exact match first (most strict)
+        isCorrect = normalizedCorrect === normalizedUser;
+        
+        // 3. Check for numerical equivalence if not an exact match (handle 3 vs 3.0 vs "3")
+        if (!isCorrect && !isNaN(Number(normalizedCorrect)) && !isNaN(Number(normalizedUser))) {
+          // Handle numeric answers - compare as numbers to catch equivalence
+          const numericCorrect = Number(normalizedCorrect);
+          const numericUser = Number(normalizedUser);
+          isCorrect = Math.abs(numericCorrect - numericUser) < 0.001; // Allow for tiny floating point differences
+        }
+        
+        // 4. Handle fraction equivalence if not already matched
+        if (!isCorrect && normalizedCorrect.includes('/') && normalizedUser.includes('/')) {
+          try {
+            // Parse fractions and compare
+            const [correctNum, correctDenom] = normalizedCorrect.split('/').map(Number);
+            const [userNum, userDenom] = normalizedUser.split('/').map(Number);
+            
+            if (!isNaN(correctNum) && !isNaN(correctDenom) && !isNaN(userNum) && !isNaN(userDenom) &&
+                correctDenom !== 0 && userDenom !== 0) {
+              // Compare the reduced fractions
+              isCorrect = (correctNum * userDenom) === (userNum * correctDenom);
+            }
+          } catch (e) {
+            // If there's an error parsing fractions, fall back to the strict comparison
+            console.log(`Error parsing fractions for comparison: ${e}`);
+          }
+        }
+        
+        console.log(`Answer validation: "${normalizedUser}" against "${normalizedCorrect}" => ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+      }
       
       // Update user stats
       const questionsAnswered = user.questionsAnswered + 1;
@@ -722,8 +766,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check if answer is correct - use case-insensitive comparison with trimming
-      const isCorrect = question.answer.toLowerCase().trim() === answer.toLowerCase().trim();
+      // Check if answer is correct - use strict validation with proper normalization
+      let isCorrect = false;
+      
+      if (question && question.answer) {
+        const correctAnswer = question.answer.toString();
+        const userAnswer = answer.toString();
+        
+        // 1. Normalize both answers for comparison
+        const normalizedCorrect = correctAnswer.toLowerCase().trim().replace(/\s+/g, ' ');
+        const normalizedUser = userAnswer.toLowerCase().trim().replace(/\s+/g, ' ');
+        
+        // 2. Check for exact match first (most strict)
+        isCorrect = normalizedCorrect === normalizedUser;
+        
+        // 3. Check for numerical equivalence if not an exact match (handle 3 vs 3.0 vs "3")
+        if (!isCorrect && !isNaN(Number(normalizedCorrect)) && !isNaN(Number(normalizedUser))) {
+          // Handle numeric answers - compare as numbers to catch equivalence
+          const numericCorrect = Number(normalizedCorrect);
+          const numericUser = Number(normalizedUser);
+          isCorrect = Math.abs(numericCorrect - numericUser) < 0.001; // Allow for tiny floating point differences
+        }
+        
+        // 4. Handle fraction equivalence if not already matched
+        if (!isCorrect && normalizedCorrect.includes('/') && normalizedUser.includes('/')) {
+          try {
+            // Parse fractions and compare
+            const [correctNum, correctDenom] = normalizedCorrect.split('/').map(Number);
+            const [userNum, userDenom] = normalizedUser.split('/').map(Number);
+            
+            if (!isNaN(correctNum) && !isNaN(correctDenom) && !isNaN(userNum) && !isNaN(userDenom) &&
+                correctDenom !== 0 && userDenom !== 0) {
+              // Compare the reduced fractions
+              isCorrect = (correctNum * userDenom) === (userNum * correctDenom);
+            }
+          } catch (e) {
+            // If there's an error parsing fractions, fall back to the strict comparison
+            console.log(`Error parsing fractions for comparison: ${e}`);
+          }
+        }
+        
+        console.log(`Answer validation: "${normalizedUser}" against "${normalizedCorrect}" => ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+      }
       
       // Update user progress
       const category = question.category;

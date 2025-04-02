@@ -237,8 +237,33 @@ export default function CreateAQuiz() {
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="all">All Topics</option>
-              {!isCategoriesLoading && categories.map((category: string) => (
-                <option key={category} value={category}>{category}</option>
+              {/* Include core math topics as static options to ensure variety */}
+              <option value="addition">Addition</option>
+              <option value="subtraction">Subtraction</option>
+              <option value="multiplication">Multiplication</option>
+              <option value="division">Division</option>
+              <option value="fractions">Fractions</option>
+              <option value="decimals">Decimals</option>
+              <option value="percentages">Percentages</option>
+              <option value="geometry">Geometry</option>
+              <option value="measurement">Measurement</option>
+              <option value="time">Time</option>
+              <option value="money">Money</option>
+              <option value="algebra">Algebra</option>
+              <option value="patterns">Patterns & Sequences</option>
+              <option value="statistics">Statistics & Data</option>
+              <option value="probability">Probability</option>
+              <option value="word-problems">Word Problems</option>
+              <option value="critical-thinking">Critical Thinking</option>
+              {/* Dynamically load additional categories from the server */}
+              {!isCategoriesLoading && categories
+                .filter(cat => !['addition', 'subtraction', 'multiplication', 'division', 
+                                 'fractions', 'decimals', 'percentages', 'geometry', 'measurement', 
+                                 'time', 'money', 'algebra', 'patterns', 'statistics', 'probability',
+                                 'word-problems', 'critical-thinking']
+                           .includes(cat.toLowerCase()))
+                .map((category: string) => (
+                  <option key={category} value={category}>{category}</option>
               ))}
             </select>
           </div>
