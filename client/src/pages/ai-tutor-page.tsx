@@ -127,15 +127,7 @@ export default function AiTutorPage() {
     setCurrentQuestionId(null);
   };
 
-  // Sample question for demo (will be replaced with API data)
-  const sampleQuestion = {
-    id: 1,
-    question: "If John has 8 apples and gives 3 to his friend, how many apples does John have left?",
-    correctAnswer: "5",
-    grade: "3",
-    concepts: ["Subtraction"],
-    category: "Operations"
-  };
+  // No longer using a static sample question
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-6xl">
@@ -341,32 +333,37 @@ export default function AiTutorPage() {
             </div>
           ) : (
             <>
-              <Card className="shadow-md mb-6 overflow-hidden">
+              <Card className="shadow-md mb-6 overflow-hidden" id="problem-card">
                 <CardHeader className="bg-primary/10 pb-4">
                   <CardTitle className="text-xl flex items-center">
                     <BookOpenCheck className="h-5 w-5 mr-2 text-primary" />
-                    Sample Problem
+                    Get Started
                   </CardTitle>
-                  <CardDescription className="flex items-center mt-1">
-                    <span className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-                      Grade {sampleQuestion.grade}
-                    </span>
-                    <span className="mx-2 text-muted-foreground">&bull;</span>
-                    <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                      {sampleQuestion.category}
-                    </span>
+                  <CardDescription>
+                    Select a grade level and category, then click "Get New Problem" to begin.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-lg font-medium">{sampleQuestion.question}</p>
+                <CardContent className="p-6 text-center">
+                  <div className="flex flex-col items-center justify-center h-32">
+                    <p className="text-muted-foreground mb-3">
+                      Click the "Get New Problem" button to generate a math problem
+                    </p>
+                    <Button 
+                      onClick={fetchNewQuestion} 
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Get New Problem
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
+              {/* Empty AI Math Tutor shows instructions */}
               <AIMathTutor 
-                question={sampleQuestion.question}
-                correctAnswer={sampleQuestion.correctAnswer}
-                grade={sampleQuestion.grade}
-                concept={sampleQuestion.concepts[0]}
+                question=""
+                correctAnswer=""
+                grade="3"
+                concept="waiting"
               />
               
               <div className="mt-4 text-center text-sm flex flex-col items-center justify-center bg-muted/30 p-3 rounded-lg">

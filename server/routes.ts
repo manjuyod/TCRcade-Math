@@ -515,6 +515,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add endpoint to fetch a question by ID
+  app.get("/api/questions/:id", ensureAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid question ID" });
+      }
+      
+      const question = await storage.getQuestion(id);
+      if (!question) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+      
+      return res.json(question);
+    } catch (error) {
+      console.error("Error fetching question by ID:", error);
+      return res.status(500).json({ error: "Failed to fetch question" });
+    }
+  });
+  
   // Get available categories for a grade
   app.get("/api/categories", ensureAuthenticated, async (req, res) => {
     try {
