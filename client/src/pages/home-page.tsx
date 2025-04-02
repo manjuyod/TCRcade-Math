@@ -63,8 +63,7 @@ export default function HomePage() {
   
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
-  const [showStreakAnimation, setShowStreakAnimation] = useState<boolean>(false);
-  const [streakMilestone, setStreakMilestone] = useState<number>(0);
+  // Streak animation removed - keeping counter for token bonus calculations only
   
   // Time achievement tracking
   const [timeAchievement, setTimeAchievement] = useState<number>(0);
@@ -271,24 +270,13 @@ export default function HomePage() {
                 tokens: user.tokens + bonusTokens
               });
               
-              // Set milestone in state
-              setStreakMilestone(milestone);
+              // Streak animation completely removed - all state updates removed
               
-              // Only show streak animation for certain milestones (not EVERY answer)
-              // and only when feedback is visible to avoid conflicts
-              console.log(`Processing streak animation for ${newStreakCount} streak`);
+              // STREAK ANIMATION REMOVED - Don't show any streak animations
+              // They were causing React maximum update depth errors
+              console.log(`Reached ${newStreakCount} streak milestone, awarding bonus tokens only`);
               
-              // Set milestone state, but ONLY show the animation under safe conditions
-              if (showFeedback && !isManuallyLoading && milestone === newStreakCount) {
-                console.log(`Showing streak animation for ${newStreakCount} streak milestone`);
-                
-                // Wait until feedback had time to render
-                setTimeout(() => {
-                  if (!showStreakAnimation) { // Only set this once to avoid loops
-                    setShowStreakAnimation(true);
-                  }
-                }, 1000);
-              }
+              // NO ANIMATIONS, just silently award the bonus tokens
             }
           } catch (e) {
             console.error("Error handling streak bonus:", e);
@@ -646,20 +634,7 @@ export default function HomePage() {
       
       <Navigation active="play" />
       
-      {/* Streak animation - SIMPLIFIED to prevent React infinite loops */}
-      {showStreakAnimation && (
-        <StreakAnimation 
-          streakCount={currentStreak}
-          milestone={streakMilestone}
-          onAnimationComplete={() => {
-            // Immediately set to false without any side effects
-            setShowStreakAnimation(false);
-            
-            // Stop any further state updates in this render cycle
-            return;
-          }} 
-        />
-      )}
+      {/* Streak animation completely removed to prevent React infinite loops */}
       
       {/* Time achievement animation - also using simplified pattern */}
       {showTimeAchievement && (
