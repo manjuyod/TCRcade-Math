@@ -649,6 +649,58 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       else if (/shape|triangle|circle|square/i.test(parsedResponse.question)) {
         imageType = "shapes";
         imageContent = "labeled";
+        
+        // Extract specific information about the shapes from the question
+        const triangleCount = (parsedResponse.question.match(/triangles?/gi) || []).length;
+        const circleCount = (parsedResponse.question.match(/circles?/gi) || []).length;
+        const squareCount = (parsedResponse.question.match(/squares?/gi) || []).length;
+        
+        // Check for questions asking about specific counts of shapes
+        if (/how many (small|large|big)? triangles/i.test(parsedResponse.question)) {
+          // Extract the number from the answer
+          const countMatch = parsedResponse.answer.match(/^\d+$/);
+          const count = countMatch ? parseInt(countMatch[0]) : 6; // Default to 6 if not found
+          
+          // Generate an image with the exact number of triangles
+          imageType = "countObjects";
+          imageContent = ["triangle", count];
+          
+          // Update options to include the correct answer and reasonable alternatives
+          parsedResponse.options = [
+            count.toString(),
+            (count + 1).toString(),
+            (count - 1 > 0 ? count - 1 : count + 2).toString(),
+            (count + 2).toString()
+          ].sort(() => Math.random() - 0.5);
+        }
+        else if (/how many (small|large|big)? circles/i.test(parsedResponse.question)) {
+          const countMatch = parsedResponse.answer.match(/^\d+$/);
+          const count = countMatch ? parseInt(countMatch[0]) : 5;
+          
+          imageType = "countObjects";
+          imageContent = ["circle", count];
+          
+          parsedResponse.options = [
+            count.toString(),
+            (count + 1).toString(),
+            (count - 1 > 0 ? count - 1 : count + 2).toString(),
+            (count + 2).toString()
+          ].sort(() => Math.random() - 0.5);
+        }
+        else if (/how many (small|large|big)? squares/i.test(parsedResponse.question)) {
+          const countMatch = parsedResponse.answer.match(/^\d+$/);
+          const count = countMatch ? parseInt(countMatch[0]) : 4;
+          
+          imageType = "countObjects";
+          imageContent = ["square", count];
+          
+          parsedResponse.options = [
+            count.toString(),
+            (count + 1).toString(),
+            (count - 1 > 0 ? count - 1 : count + 2).toString(),
+            (count + 2).toString()
+          ].sort(() => Math.random() - 0.5);
+        }
       }
       // Check for fraction-related questions
       else if (/fraction|part/i.test(parsedResponse.question)) {

@@ -48,12 +48,32 @@ export const getQuestionImage = (questionText: string): string | null => {
   }
   
   // 3. Check for counting specific shapes
-  const shapeCountMatch = questionText.match(/how many (circles|squares|triangles|rectangles|stars)/i);
+  const shapeCountMatch = questionText.match(/how many (small|big|large)?\s*(circles|squares|triangles|rectangles|stars)/i);
   if (shapeCountMatch) {
-    const shape = shapeCountMatch[1].toLowerCase();
+    const shapeSize = (shapeCountMatch[1] || "").toLowerCase();
+    const shapeType = (shapeCountMatch[2] || "").toLowerCase();
     
-    // Look for a number in the question or answer
-    const countMatch = questionText.match(/(\d+|one|two|three|four|five) (circles|squares|triangles|rectangles|stars)/i);
+    // Look for options like "5, 6, 7, or 8" in the question text - this could indicate answer choices
+    const optionsMatch = questionText.match(/(\d+)\s*,?\s*(\d+)\s*,?\s*(\d+)\s*,?\s*(or|and|&|\d+)/i);
+    if (optionsMatch) {
+      // Extract potential counts from the options
+      const potentialCounts = [];
+      for (let i = 1; i <= 4; i++) {
+        if (optionsMatch[i] && /^\d+$/.test(optionsMatch[i])) {
+          potentialCounts.push(parseInt(optionsMatch[i]));
+        }
+      }
+      
+      // If we have potential counts, use the smallest valid one for the image
+      if (potentialCounts.length > 0) {
+        const count = Math.min(...potentialCounts);
+        console.log(`Found shape count options ${potentialCounts}, using ${count} for ${shapeType}`);
+        return getCountingImage(count, shapeType.replace(/s$/, ''));
+      }
+    }
+    
+    // Look for a number in the question text itself
+    const countMatch = questionText.match(/(\d+|one|two|three|four|five)\s+(small|big|large)?\s*(circles|squares|triangles|rectangles|stars)/i);
     if (countMatch) {
       const countMap: { [key: string]: number } = {
         'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5
@@ -62,14 +82,14 @@ export const getQuestionImage = (questionText: string): string | null => {
         ? parseInt(countMatch[1]) 
         : countMap[countMatch[1].toLowerCase()] || 3;
       
-      return getCountingImage(count, shape.replace(/s$/, ''));
+      return getCountingImage(count, shapeType.replace(/s$/, ''));
     }
     
-    // Default image based on shape type
-    if (shape.includes('circle')) return images.threeCircles;
-    if (shape.includes('square')) return images.fourSquares;
-    if (shape.includes('triangle')) return images.twoTriangles;
-    if (shape.includes('star')) return images.fiveStars;
+    // Generate specific count images based on shape type
+    if (shapeType.includes('circle')) return getCountingImage(4, 'circle');
+    if (shapeType.includes('square')) return getCountingImage(5, 'square');
+    if (shapeType.includes('triangle')) return getCountingImage(6, 'triangle');
+    if (shapeType.includes('star')) return getCountingImage(5, 'star');
     
     return images.coloredShapes;
   }
