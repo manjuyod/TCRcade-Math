@@ -102,8 +102,14 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
   }, [question]);
   
   const handleSelectOption = (option: string) => {
+    // Set the selected option first
     setSelectedOption(option);
-    onAnswerSubmit(option);
+    // Log the selected answer for debugging
+    console.log(`Selected answer: ${option} for question ID: ${question?.id}`);
+    // Submit the answer after a slight delay to ensure UI updates first
+    setTimeout(() => {
+      onAnswerSubmit(option);
+    }, 100);
   };
   
   // Generate emojis for common objects

@@ -214,8 +214,18 @@ export default function HomePage() {
   
   // Submit answer mutation
   const answerMutation = useMutation({
-    mutationFn: ({ questionId, answer }: { questionId: number; answer: string }) => 
-      submitAnswer(questionId, answer),
+    mutationFn: async ({ questionId, answer }: { questionId: number; answer: string }) => {
+      console.log(`Submitting answer for question ID: ${questionId}, answer: ${answer}`);
+      try {
+        const result = await submitAnswer(questionId, answer);
+        return result;
+      } catch (error) {
+        console.error(`Error submitting answer: ${error}`);
+        // Force a new dynamic question when an error occurs
+        fetchNewQuestion(true);
+        throw error;
+      }
+    },
     onSuccess: (data) => {
       // Play sound based on result
       playSound(data.correct ? 'correct' : 'incorrect');
