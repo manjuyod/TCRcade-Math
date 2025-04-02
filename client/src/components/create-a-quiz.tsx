@@ -237,34 +237,139 @@ export default function CreateAQuiz() {
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="all">All Topics</option>
-              {/* Include core math topics as static options to ensure variety */}
-              <option value="addition">Addition</option>
-              <option value="subtraction">Subtraction</option>
-              <option value="multiplication">Multiplication</option>
-              <option value="division">Division</option>
-              <option value="fractions">Fractions</option>
-              <option value="decimals">Decimals</option>
-              <option value="percentages">Percentages</option>
-              <option value="geometry">Geometry</option>
-              <option value="measurement">Measurement</option>
-              <option value="time">Time</option>
-              <option value="money">Money</option>
-              <option value="algebra">Algebra</option>
-              <option value="patterns">Patterns & Sequences</option>
-              <option value="statistics">Statistics & Data</option>
-              <option value="probability">Probability</option>
-              <option value="word-problems">Word Problems</option>
-              <option value="critical-thinking">Critical Thinking</option>
-              {/* Dynamically load additional categories from the server */}
-              {!isCategoriesLoading && categories
-                .filter(cat => !['addition', 'subtraction', 'multiplication', 'division', 
-                                 'fractions', 'decimals', 'percentages', 'geometry', 'measurement', 
-                                 'time', 'money', 'algebra', 'patterns', 'statistics', 'probability',
-                                 'word-problems', 'critical-thinking']
-                           .includes(cat.toLowerCase()))
-                .map((category: string) => (
-                  <option key={category} value={category}>{category}</option>
-              ))}
+              
+              {/* Show loading indicator while fetching categories */}
+              {isCategoriesLoading ? (
+                <option disabled>Loading topics...</option>
+              ) : (
+                <>
+                  {/* Grade-specific topics based on curriculum standards */}
+                  {selectedGrade === 'K' && (
+                    <>
+                      <option value="counting">Counting</option>
+                      <option value="addition">Addition</option>
+                      <option value="subtraction">Subtraction</option>
+                      <option value="shapes">Shapes</option>
+                      <option value="measurement">Measurement</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '1' && (
+                    <>
+                      <option value="addition">Addition</option>
+                      <option value="subtraction">Subtraction</option>
+                      <option value="place-value">Place Value</option>
+                      <option value="measurement">Measurement</option>
+                      <option value="time">Time</option>
+                      <option value="money">Money</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '2' && (
+                    <>
+                      <option value="addition">Addition</option>
+                      <option value="subtraction">Subtraction</option>
+                      <option value="place-value">Place Value</option>
+                      <option value="measurement">Measurement</option>
+                      <option value="time">Time</option>
+                      <option value="money">Money</option>
+                      <option value="multiplication">Multiplication</option>
+                      <option value="geometry">Geometry</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '3' && (
+                    <>
+                      <option value="addition">Addition</option>
+                      <option value="subtraction">Subtraction</option>
+                      <option value="multiplication">Multiplication</option>
+                      <option value="division">Division</option>
+                      <option value="fractions">Fractions</option>
+                      <option value="measurement">Measurement</option>
+                      <option value="time">Time</option>
+                      <option value="money">Money</option>
+                      <option value="geometry">Geometry</option>
+                      <option value="word-problems">Word Problems</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '4' && (
+                    <>
+                      <option value="addition">Addition</option>
+                      <option value="subtraction">Subtraction</option>
+                      <option value="multiplication">Multiplication</option>
+                      <option value="division">Division</option>
+                      <option value="fractions">Fractions</option>
+                      <option value="decimals">Decimals</option>
+                      <option value="measurement">Measurement</option>
+                      <option value="geometry">Geometry</option>
+                      <option value="patterns">Patterns & Sequences</option>
+                      <option value="word-problems">Word Problems</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '5' && (
+                    <>
+                      <option value="multiplication">Multiplication</option>
+                      <option value="division">Division</option>
+                      <option value="fractions">Fractions</option>
+                      <option value="decimals">Decimals</option>
+                      <option value="percentages">Percentages</option>
+                      <option value="geometry">Geometry</option>
+                      <option value="measurement">Measurement</option>
+                      <option value="algebra">Algebra</option>
+                      <option value="patterns">Patterns & Sequences</option>
+                      <option value="statistics">Statistics & Data</option>
+                      <option value="word-problems">Word Problems</option>
+                    </>
+                  )}
+                  
+                  {selectedGrade === '6' && (
+                    <>
+                      <option value="fractions">Fractions</option>
+                      <option value="decimals">Decimals</option>
+                      <option value="percentages">Percentages</option>
+                      <option value="ratios">Ratios & Proportions</option>
+                      <option value="geometry">Geometry</option>
+                      <option value="algebra">Algebra</option>
+                      <option value="statistics">Statistics & Data</option>
+                      <option value="probability">Probability</option>
+                      <option value="word-problems">Word Problems</option>
+                      <option value="critical-thinking">Critical Thinking</option>
+                    </>
+                  )}
+                  
+                  {/* Dynamically load any additional categories from the server that aren't already included */}
+                  {categories
+                    .filter(cat => {
+                      // Get the list of topics already displayed for current grade
+                      let currentGradeTopics = [];
+                      
+                      if (selectedGrade === 'K') {
+                        currentGradeTopics = ['counting', 'addition', 'subtraction', 'shapes', 'measurement'];
+                      } else if (selectedGrade === '1') {
+                        currentGradeTopics = ['addition', 'subtraction', 'place-value', 'measurement', 'time', 'money'];
+                      } else if (selectedGrade === '2') {
+                        currentGradeTopics = ['addition', 'subtraction', 'place-value', 'measurement', 'time', 'money', 'multiplication', 'geometry'];
+                      } else if (selectedGrade === '3') {
+                        currentGradeTopics = ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement', 'time', 'money', 'geometry', 'word-problems'];
+                      } else if (selectedGrade === '4') {
+                        currentGradeTopics = ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'decimals', 'measurement', 'geometry', 'patterns', 'word-problems'];
+                      } else if (selectedGrade === '5') {
+                        currentGradeTopics = ['multiplication', 'division', 'fractions', 'decimals', 'percentages', 'geometry', 'measurement', 'algebra', 'patterns', 'statistics', 'word-problems'];
+                      } else if (selectedGrade === '6') {
+                        currentGradeTopics = ['fractions', 'decimals', 'percentages', 'ratios', 'geometry', 'algebra', 'statistics', 'probability', 'word-problems', 'critical-thinking'];
+                      }
+                      
+                      // Only show if not already in the grade-specific list
+                      return !currentGradeTopics.includes(cat.toLowerCase());
+                    })
+                    .map((category: string) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))
+                  }
+                </>
+              )}
             </select>
           </div>
           

@@ -264,10 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             questionSource = "openai";
             console.log("Successfully generated new question via OpenAI");
-            return res.json({
-              ...newQuestion,
-              source: questionSource // Include the source for analytics 
-            });
+            
+            // Return just the question, not wrapped in another object
+            return res.json(newQuestion);
           }
         } catch (openaiError) {
           console.error("OpenAI question generation failed:", openaiError);
@@ -321,10 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (matchingQuestions.length > 0) {
         const shuffledQuestions = shuffle(matchingQuestions);
-        return res.json({
-          ...shuffledQuestions[0],
-          source: "database_exact_match"
-        });
+        // Return just the question without wrapping it
+        return res.json(shuffledQuestions[0]);
       }
       
       // Strategy 2: If no matches with category, try just grade filter (maintaining exclusions)
@@ -338,10 +335,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (gradeQuestions.length > 0) {
         const shuffledGradeQuestions = shuffle(gradeQuestions);
-        return res.json({
-          ...shuffledGradeQuestions[0],
-          source: "database_grade_match"
-        });
+        // Return just the question without wrapping it
+        return res.json(shuffledGradeQuestions[0]);
       }
       
       // Strategy 3: If still no matches, try adjacent grades (still excluding seen questions)
@@ -370,10 +365,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (adjacentGradeQuestions.length > 0) {
         const shuffledAdjacentQuestions = shuffle(adjacentGradeQuestions);
-        return res.json({
-          ...shuffledAdjacentQuestions[0],
-          source: "database_adjacent_grade"
-        });
+        // Return just the question without wrapping it
+        return res.json(shuffledAdjacentQuestions[0]);
       }
       
       // Strategy 4: If we've exhausted all unseen questions, allow repeats but prioritize least recently seen
@@ -392,20 +385,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const oldId of oldestFirst) {
             const matchingOld = allGradeQuestions.find(q => q.id === oldId);
             if (matchingOld) {
-              return res.json({
-                ...matchingOld,
-                source: "database_repeat_oldest"
-              });
+              // Return just the question without wrapping it
+              return res.json(matchingOld);
             }
           }
         }
         
         // If no matching old questions, return a random one
         const shuffledQuestions = shuffle(allGradeQuestions);
-        return res.json({
-          ...shuffledQuestions[0],
-          source: "database_random_repeat"
-        }); 
+        // Return just the question without wrapping it
+        return res.json(shuffledQuestions[0]); 
       }
       
       // Strategy 5: Last resort - force OpenAI generation
@@ -441,10 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           console.log("Last-resort OpenAI generation successful");
-          return res.json({
-            ...newQuestion,
-            source: "openai_last_resort"
-          });
+          // Return just the question object without wrapping it
+          return res.json(newQuestion);
         }
       } catch (finalOpenAiError) {
         console.error("Final OpenAI generation attempt failed:", finalOpenAiError);

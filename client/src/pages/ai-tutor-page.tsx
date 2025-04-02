@@ -69,7 +69,7 @@ export default function AiTutorPage() {
         params.append('exclude', currentQuestionId.toString());
       }
       
-      console.log(`Fetching new question with params: ${params.toString()}`);
+      console.log(`AI Tutor: Fetching new question with params: ${params.toString()}`);
       
       // Show loading feedback
       toast({
@@ -80,15 +80,19 @@ export default function AiTutorPage() {
       const res = await apiRequest('GET', `/api/questions/next?${params}`);
       const data = await res.json();
       
-      if (data.question && data.question.id) {
-        console.log("New question received:", data.question);
+      // Debug the response
+      console.log("AI Tutor API response:", data);
+      
+      // Check if we received a valid question
+      if (data && data.id) {
+        console.log("New question received:", data);
         
         // Increase refetch key to force a new fetch from API
         setRefetchKey(prev => prev + 1);
         
         // Delay slightly to ensure UI state change is visible
         setTimeout(() => {
-          setCurrentQuestionId(data.question.id);
+          setCurrentQuestionId(data.id);
           
           toast({
             title: "New problem ready!",
