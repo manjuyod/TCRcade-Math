@@ -195,7 +195,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.query.exclude) {
         try {
           const excludeString = req.query.exclude as string;
-          excludeIds.push(...excludeString.split(',').map(id => parseInt(id.trim())));
+          excludeIds.push(...excludeString.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)));
+          
+          // Remove any invalid IDs (non-numbers, etc)
+          const validExcludeIds = excludeIds.filter(id => id > 0);
+          
+          if (validExcludeIds.length !== excludeIds.length) {
+            console.warn(`Removed ${excludeIds.length - validExcludeIds.length} invalid exclude IDs`);
+          }
         } catch (e) {
           console.warn("Failed to parse excluded question IDs:", e);
         }
@@ -203,38 +210,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}`);
       
-      // Try using OpenAI for generating new questions if forced or have many exclusions
-      if (forceDynamic || excludeIds.length > 15) {
+      // Track the method used to obtain the question for analytics 
+      let questionSource = "database";
+      
+      // Determine if we should use OpenAI to generate fresh question
+      // More aggressive now - use OpenAI more often to ensure variety
+      const shouldUseOpenAI = 
+        forceDynamic || // Explicit request for dynamic content
+        excludeIds.length > 30 || // User has seen a lot of questions already
+        Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
+        
+      // Try using OpenAI for generating new questions 
+      if (shouldUseOpenAI) {
         try {
           const openaiService = await import('./openai');
-          console.log("Attempting to generate question via OpenAI...");
+          console.log("Generating new question via OpenAI...");
+          
+          // Mix student skill level based on how many questions they've seen
+          const estimatedSkillLevel = Math.min(5, Math.max(1, 2 + Math.floor(excludeIds.length / 20)));
+          
+          // Dynamic difficulty - gradually increase difficulty with experience
+          // Start easier, get harder as the student sees more questions
+          const dynamicDifficulty = Math.min(5, Math.max(1, 2 + Math.floor(excludeIds.length / 30)));
           
           const generatedQuestion = await openaiService.generateAdaptiveQuestion({
             grade,
             category,
-            previousQuestions: excludeIds.slice(0, 10), // Send a sample of previous questions
-            difficulty: 3 // Medium difficulty by default
+            studentLevel: estimatedSkillLevel,
+            difficulty: dynamicDifficulty,
+            previousQuestions: excludeIds.slice(-10), // Send the most recent questions
           });
           
           if (generatedQuestion && generatedQuestion.question) {
+            // Get the unique ID either from the model or generate one
+            const uniqueId = generatedQuestion.id || Date.now() + Math.floor(Math.random() * 10000);
+            
             // Create a properly formatted question object
             const newQuestion = {
-              id: Date.now(), // Use timestamp as unique ID
+              id: uniqueId, 
               category: generatedQuestion.category || category || "general",
               grade,
-              difficulty: generatedQuestion.difficulty || 3,
+              difficulty: generatedQuestion.difficulty || dynamicDifficulty,
               question: generatedQuestion.question,
               answer: generatedQuestion.answer,
               options: generatedQuestion.options || [],
               concepts: generatedQuestion.concepts || [],
+              explanation: generatedQuestion.explanation || null,
               storyId: null,
               storyNode: null,
               storyText: null,
               storyImage: null
             };
             
+            questionSource = "openai";
             console.log("Successfully generated new question via OpenAI");
-            return res.json(newQuestion);
+            return res.json({
+              ...newQuestion,
+              source: questionSource // Include the source for analytics 
+            });
           }
         } catch (openaiError) {
           console.error("OpenAI question generation failed:", openaiError);
@@ -242,81 +275,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Build database query with exclusions
-      let query = db.select().from(questions);
+      // If OpenAI fails or wasn't used, try database with shuffling for better randomization
+      // We create a custom Fisher-Yates shuffle for true randomness
+      const shuffle = (array: any[]) => {
+        // First, ensure we have a copy to avoid mutating the original
+        const shuffled = [...array];
+        
+        // Perform Fisher-Yates shuffle with entropy source changes
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          // Add Date.now() for additional entropy to prevent patterns
+          const entropy = Date.now() % 100;
+          const j = Math.floor((Math.random() * 1000 + entropy) % (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        // Second shuffle pass with different entropy source
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const entropy = (Date.now() % 97) * (i % 7 + 1); // Use different prime numbers
+          const j = Math.floor((Math.random() * 997 + entropy) % (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        return shuffled;
+      };
       
-      // Add grade filter
-      let conditions = [];
-      conditions.push(eq(questions.grade, grade));
+      // Database query with multiple fallback strategies
       
-      // Add category filter if specified
+      // Strategy 1: Get questions with exact grade and category, excluding seen questions
+      let conditions = [eq(questions.grade, grade)];
+      
       if (category && category !== 'all') {
         conditions.push(eq(questions.category, category));
       }
       
-      // Exclude previously seen questions if we have IDs to exclude
       if (excludeIds.length > 0) {
         conditions.push(notInArray(questions.id, excludeIds));
       }
       
-      // Execute the query with all conditions
-      const matchingQuestions = await query.where(and(...conditions));
+      const matchingQuestions = await db.select().from(questions).where(and(...conditions));
       console.log(`Found ${matchingQuestions.length} matching questions (excluding ${excludeIds.length} seen IDs)`);
       
-      // BETTER RANDOMIZATION: Fisher-Yates shuffle for true randomness
-      const shuffle = (array: any[]) => {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      };
-      
       if (matchingQuestions.length > 0) {
-        // Shuffle ALL matching questions for better randomization
-        const shuffledQuestions = shuffle([...matchingQuestions]);
-        // Return the first question after shuffling
-        return res.json(shuffledQuestions[0]);
+        const shuffledQuestions = shuffle(matchingQuestions);
+        return res.json({
+          ...shuffledQuestions[0],
+          source: "database_exact_match"
+        });
       }
       
-      // If no matching questions with all filters, try just by grade (still excluding seen questions)
-      const gradeConditions = [eq(questions.grade, grade)];
+      // Strategy 2: If no matches with category, try just grade filter (maintaining exclusions)
+      const gradeOnlyConditions = [eq(questions.grade, grade)];
       
-      // Still exclude previously seen questions
       if (excludeIds.length > 0) {
-        gradeConditions.push(notInArray(questions.id, excludeIds));
+        gradeOnlyConditions.push(notInArray(questions.id, excludeIds));
       }
       
-      const gradeQuestions = await db.select().from(questions).where(and(...gradeConditions));
+      const gradeQuestions = await db.select().from(questions).where(and(...gradeOnlyConditions));
       
       if (gradeQuestions.length > 0) {
-        const shuffledQuestions = shuffle([...gradeQuestions]);
-        return res.json(shuffledQuestions[0]);
+        const shuffledGradeQuestions = shuffle(gradeQuestions);
+        return res.json({
+          ...shuffledGradeQuestions[0],
+          source: "database_grade_match"
+        });
       }
       
-      // If we've exhausted all unseen questions, prioritize questions of the requested grade
-      // but don't filter by previously seen (this means we'll show repeats as last resort)
-      console.log("No unseen questions available, falling back to previously seen questions");
+      // Strategy 3: If still no matches, try adjacent grades (still excluding seen questions)
+      const adjacentGrades = [];
+      const gradeNum = parseInt(grade);
+      
+      if (!isNaN(gradeNum)) {
+        // Try one grade level up and down
+        if (gradeNum > 0) adjacentGrades.push(`${gradeNum - 1}`);
+        adjacentGrades.push(`${gradeNum + 1}`);
+      } else if (grade === 'K') {
+        adjacentGrades.push('1');
+      } else {
+        // Handle non-numeric grades
+        adjacentGrades.push('K', '1', '2');
+      }
+      
+      const adjacentGradeConditions = [inArray(questions.grade, adjacentGrades)];
+      
+      if (excludeIds.length > 0) {
+        adjacentGradeConditions.push(notInArray(questions.id, excludeIds));
+      }
+      
+      const adjacentGradeQuestions = await db.select().from(questions)
+        .where(and(...adjacentGradeConditions));
+      
+      if (adjacentGradeQuestions.length > 0) {
+        const shuffledAdjacentQuestions = shuffle(adjacentGradeQuestions);
+        return res.json({
+          ...shuffledAdjacentQuestions[0],
+          source: "database_adjacent_grade"
+        });
+      }
+      
+      // Strategy 4: If we've exhausted all unseen questions, allow repeats but prioritize least recently seen
+      console.log("No unseen questions available, trying to find oldest seen questions");
+      
+      // Get all grade-appropriate questions
       const allGradeQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
       
       if (allGradeQuestions.length > 0) {
-        const shuffledQuestions = shuffle([...allGradeQuestions]);
-        return res.json(shuffledQuestions[0]); 
+        if (excludeIds.length > 0) {
+          // Sort exclude IDs to prioritize showing questions seen longest ago
+          // Simply reverse the excludeIds array since it's typically sorted by recency
+          const oldestFirst = [...excludeIds].reverse();
+          
+          // Find a matching question ID that was seen longest ago
+          for (const oldId of oldestFirst) {
+            const matchingOld = allGradeQuestions.find(q => q.id === oldId);
+            if (matchingOld) {
+              return res.json({
+                ...matchingOld,
+                source: "database_repeat_oldest"
+              });
+            }
+          }
+        }
+        
+        // If no matching old questions, return a random one
+        const shuffledQuestions = shuffle(allGradeQuestions);
+        return res.json({
+          ...shuffledQuestions[0],
+          source: "database_random_repeat"
+        }); 
       }
       
-      // Last resort - try to use OpenAI even if we didn't initially
+      // Strategy 5: Last resort - force OpenAI generation
       try {
         const openaiService = await import('./openai');
         console.log("Attempting last-resort OpenAI question generation...");
         
+        // Force a new unique question with higher temperature for variability
         const generatedQuestion = await openaiService.generateAdaptiveQuestion({
           grade,
-          category
+          category,
+          // Send all recent IDs to ensure we get something different
+          previousQuestions: excludeIds.slice(-20)
         });
         
         if (generatedQuestion && generatedQuestion.question) {
+          const uniqueId = generatedQuestion.id || (Date.now() + Math.floor(Math.random() * 10000));
+          
           const newQuestion = {
-            id: Date.now() + Math.floor(Math.random() * 10000), // Add randomness to ensure unique ID
+            id: uniqueId,
             category: generatedQuestion.category || category || "general",
             grade,
             difficulty: generatedQuestion.difficulty || 3,
@@ -324,6 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             answer: generatedQuestion.answer,
             options: generatedQuestion.options || [],
             concepts: generatedQuestion.concepts || [],
+            explanation: generatedQuestion.explanation || null,
             storyId: null,
             storyNode: null,
             storyText: null,
@@ -331,22 +437,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           console.log("Last-resort OpenAI generation successful");
-          return res.json(newQuestion);
+          return res.json({
+            ...newQuestion,
+            source: "openai_last_resort"
+          });
         }
       } catch (finalOpenAiError) {
         console.error("Final OpenAI generation attempt failed:", finalOpenAiError);
       }
       
-      // Absolute last resort - hardcoded emergency question with randomized ID
-      // This should rarely be reached with all our fallbacks
+      // Final fallback - dynamically generated question that changes each time
+      // Uses the current timestamp for the ID to ensure it's always unique
+      const num1 = Math.floor(Math.random() * 10) + 1;
+      const num2 = Math.floor(Math.random() * 10) + 1;
+      
       const emergencyQuestion = {
-        id: 999000 + Math.floor(Math.random() * 1000), // Add randomness to ID
+        id: Date.now(), // Always unique
         category: category || "addition",
         grade: grade,
-        difficulty: 2,
-        question: `What is ${Math.floor(Math.random() * 10) + 1} + ${Math.floor(Math.random() * 10) + 1}?`,
-        answer: "Dynamic", // This will be handled on client-side to be computed correctly
-        options: ["Dynamic"],
+        difficulty: 1,
+        question: `What is ${num1} + ${num2}?`,
+        answer: `${num1 + num2}`,
+        options: [
+          `${num1 + num2}`, 
+          `${num1 + num2 + 1}`,
+          `${num1 + num2 - 1}`,
+          `${num1 + num2 + 2}`
+        ],
         concepts: ["addition", "counting"],
         storyId: null,
         storyNode: null,

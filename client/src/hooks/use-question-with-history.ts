@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Question } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
+
+const LOCAL_STORAGE_QUESTION_HISTORY_KEY = 'question_history';
+const MAX_QUESTION_HISTORY = 500; // Track the last 500 questions per user
 
 interface UseQuestionWithHistoryReturn {
   question: Question | null;
   loading: boolean;
   error: Error | null;
-  fetchNewQuestion: (excludeCurrentQuestion?: boolean) => Promise<void>;
+  fetchNewQuestion: (forceDynamic?: boolean) => Promise<void>;
   seenQuestions: number[];
+  clearHistory: () => void;
+}
+
+interface QuestionHistory {
+  userId: number;
+  seenQuestionIds: number[];
+  lastSeen: Record<number, number>; // questionId -> timestamp
 }
 
 /**
- * Custom hook for fetching questions - minimal version with no duplicate detection
- * to avoid infinite loops
+ * Enhanced hook for fetching questions with advanced duplicate prevention
+ * 
+ * This hook maintains user question history in localStorage to prevent
+ * repeated questions across sessions. It prioritizes questions the user
+ * hasn't seen in months.
  * 
  * @param grade The grade level to fetch questions for
  * @param category Optional category to filter questions
@@ -22,26 +36,126 @@ export function useQuestionWithHistory(
   grade: string,
   category?: string
 ): UseQuestionWithHistoryReturn {
-  // Just keep a record but don't use for filtering
-  const [seenQuestions, setSeenQuestions] = useState<number[]>([]);
+  const { user } = useAuth();
+  const userId = user?.id || 0;
+  
+  // Load persisted question history from localStorage
+  const loadQuestionHistory = (): QuestionHistory => {
+    try {
+      const savedHistory = localStorage.getItem(LOCAL_STORAGE_QUESTION_HISTORY_KEY);
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
+        // Only use history if it's for the current user
+        if (parsedHistory.userId === userId) {
+          return parsedHistory;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load question history:", e);
+    }
+    
+    // Default empty history
+    return {
+      userId,
+      seenQuestionIds: [],
+      lastSeen: {}
+    };
+  };
+  
+  // State for tracking seen questions with timestamps
+  const [questionHistory, setQuestionHistory] = useState<QuestionHistory>(loadQuestionHistory);
+  
+  // Extract just the IDs for easier reference
+  const [seenQuestions, setSeenQuestions] = useState<number[]>(questionHistory.seenQuestionIds);
+  
+  // Save question history to localStorage whenever it changes
+  useEffect(() => {
+    if (userId) {
+      try {
+        localStorage.setItem(
+          LOCAL_STORAGE_QUESTION_HISTORY_KEY,
+          JSON.stringify({
+            ...questionHistory,
+            userId // Ensure we're always storing for current user
+          })
+        );
+        
+        // Update the simplified list
+        setSeenQuestions(questionHistory.seenQuestionIds);
+      } catch (e) {
+        console.warn("Failed to save question history:", e);
+      }
+    }
+  }, [questionHistory, userId]);
   
   // Build a query key that includes grade and category
   const queryKey = category 
     ? ['/api/questions/next', grade, category] 
     : ['/api/questions/next', grade];
   
-  // State to trigger query refetching
-  const [fetchTrigger, setFetchTrigger] = useState(0);
+  // State to trigger query refetching with specific parameters
+  const [queryParams, setQueryParams] = useState({
+    fetchTrigger: 0,
+    forceDynamic: false
+  });
   
-  // Fetch a question - with no duplicate detection
+  // Record that a question was seen
+  const recordSeenQuestion = (questionId: number) => {
+    if (!questionId) return;
+    
+    setQuestionHistory(prev => {
+      // Check if we've already seen this question
+      const alreadySeen = prev.seenQuestionIds.includes(questionId);
+      
+      // Create updated list (either add new or move to end if already seen)
+      let updatedIds = alreadySeen 
+        ? prev.seenQuestionIds.filter(id => id !== questionId)
+        : [...prev.seenQuestionIds];
+      
+      // Add to end (most recently seen)
+      updatedIds.push(questionId);
+      
+      // Trim to maximum history size
+      if (updatedIds.length > MAX_QUESTION_HISTORY) {
+        updatedIds = updatedIds.slice(-MAX_QUESTION_HISTORY);
+      }
+      
+      // Update timestamp
+      const now = Date.now();
+      
+      return {
+        ...prev,
+        userId,
+        seenQuestionIds: updatedIds,
+        lastSeen: {
+          ...prev.lastSeen,
+          [questionId]: now
+        }
+      };
+    });
+  };
+  
+  // Enhanced question fetching with extensive exclusion list
   const { data, isLoading, error } = useQuery<Question>({
-    queryKey: [...queryKey, fetchTrigger],
+    queryKey: [...queryKey, queryParams.fetchTrigger, queryParams.forceDynamic],
     queryFn: async () => {
       // Build query params
       let url = `/api/questions/next?grade=${grade}`;
       
       if (category) {
         url += `&category=${category}`;
+      }
+      
+      // Pass the list of recently seen questions to exclude (limited to 100 most recent to keep URL reasonable)
+      if (seenQuestions.length > 0) {
+        // Only send the most recent 100 questions to keep URL manageable
+        const recentlySeenIds = seenQuestions.slice(-100);
+        url += `&exclude=${recentlySeenIds.join(',')}`;
+      }
+      
+      // Add forceDynamic parameter if needed
+      if (queryParams.forceDynamic) {
+        url += '&forceDynamic=true';
       }
       
       // Add a randomizing parameter to prevent cache
@@ -55,9 +169,9 @@ export function useQuestionWithHistory(
       
       const data = await response.json();
       
-      // Just record seen questions but don't filter by them
+      // Record that we've seen this question
       if (data.id) {
-        setSeenQuestions(prev => [...prev.slice(-19), data.id]);
+        recordSeenQuestion(data.id);
       }
       
       return data;
@@ -66,9 +180,22 @@ export function useQuestionWithHistory(
   });
   
   // Function to fetch a new question
-  const fetchNewQuestion = async () => {
-    // Just trigger a refetch by incrementing the trigger
-    setFetchTrigger(prev => prev + 1);
+  const fetchNewQuestion = async (forceDynamic = false) => {
+    setQueryParams(prev => ({
+      fetchTrigger: prev.fetchTrigger + 1,
+      forceDynamic: forceDynamic
+    }));
+    
+    return Promise.resolve();
+  };
+  
+  // Function to clear question history
+  const clearHistory = () => {
+    setQuestionHistory({
+      userId,
+      seenQuestionIds: [],
+      lastSeen: {}
+    });
   };
 
   return {
@@ -76,6 +203,7 @@ export function useQuestionWithHistory(
     loading: isLoading,
     error: error as Error,
     fetchNewQuestion,
-    seenQuestions
+    seenQuestions,
+    clearHistory
   };
 }

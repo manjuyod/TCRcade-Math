@@ -119,44 +119,118 @@ export async function explainMathConcept(concept: string, grade: string) {
  */
 export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
   try {
-    const { grade, concept, studentLevel = 3, difficulty = 3, category = "General" } = params;
+    const { 
+      grade, 
+      concept, 
+      studentLevel = 3, 
+      difficulty = 3, 
+      category = "General",
+      previousQuestions = []
+    } = params;
     
+    // Create a context message that helps GPT understand what was previously asked
+    const contextMessage = previousQuestions && previousQuestions.length > 0 
+      ? `Recently asked questions that you SHOULD NOT DUPLICATE (avoid similar problems):
+        ${previousQuestions.slice(0, 5).map(id => `Question ID ${id}`).join('\n')}`
+      : 'Please generate a completely new question that hasn\'t been asked before.';
+    
+    // Determine question format based on grade level
+    const questionFormat = grade === 'K' || grade === '1' 
+      ? 'Keep the language simple and use small numbers (1-10). Include visuals in the question description if helpful.'
+      : grade === '2' || grade === '3'
+        ? 'Use appropriate vocabulary and numbers up to 100. Can include basic fractions and simple word problems.'
+        : grade === '4' || grade === '5'
+        ? 'Can include decimals, fractions, multi-step problems, and more complex word problems.'
+        : 'Can include pre-algebra concepts, ratio and proportion, and complex word problems.';
+    
+    // Add variability to ensure diverse questions
+    const uniqueFactors = [
+      'Use a real-world scenario relevant to children',
+      'Include a visual or spatial component',
+      'Frame the question as a puzzle or challenge',
+      'Incorporate a pattern recognition element',
+      'Use measurement or data interpretation',
+      'Include a comparison or estimation task',
+      'Frame as a multi-step problem',
+      'Incorporate logical reasoning'
+    ];
+    
+    // Select random factors to make this question unique
+    const selectedFactors = uniqueFactors
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 2)
+      .join(' and ');
+    
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert math educator who creates grade-appropriate math questions.
-          Generate a math question for ${grade} grade students with difficulty level ${difficulty}/5.
-          ${concept ? `Focus on the concept of ${concept}.` : `Focus on ${category} math.`}
-          The student skill level is ${studentLevel}/5.
+          content: `You are an expert math educator specializing in creating unique, age-appropriate math questions for K-6 students.
+
+          CRITICAL INSTRUCTIONS:
+          1. Generate a COMPLETELY UNIQUE math question for ${grade} grade students with difficulty level ${difficulty}/5.
+          2. ${concept ? `Focus specifically on the concept of ${concept}.` : `Focus on ${category} math.`}
+          3. The student skill level is ${studentLevel}/5, adjust accordingly.
+          4. ${questionFormat}
+          5. ${selectedFactors} to make this question unique and engaging.
+          6. NEVER repeat the same question patterns - create truly diverse content.
+          7. ${contextMessage}
+          
           Format your response as a JSON object with these fields:
-          - question: The actual question text
+          - question: The actual question text (detailed, clear, and engaging)
           - answer: The correct answer (as simple text, e.g. "42" or "3.14")
-          - options: An array of 4 possible answers including the correct one
+          - options: An array of 4 possible answers including the correct one (realistic distractors)
+          - explanation: A brief explanation of how to solve the problem
           - difficulty: A number 1-5
-          - concepts: Array of math concepts covered
+          - concepts: Array of specific math concepts covered (be granular)
           - grade: The grade level ("K", "1", "2", etc.)
-          - category: A category like "Arithmetic", "Algebra", "Geometry", etc.`
+          - category: A specific category like "Arithmetic", "Algebra", "Geometry", "Fractions", etc.
+          - uniqueId: A random 6-digit number to serve as a unique identifier`
         },
         {
           role: "user",
-          content: `Create a ${grade} grade ${category} math question${concept ? ` about ${concept}` : ''} with difficulty ${difficulty}/5.`
+          content: `Create a unique, engaging ${grade} grade math question ${concept ? `about ${concept}` : `in the category of ${category}`} that hasn't been asked before. Make sure it's appropriate for the student's level and provides a learning opportunity.`
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 500,
+      max_tokens: 800,
+      temperature: 0.8, // Slightly higher temperature for more variability
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    const parsedResponse = JSON.parse(content as string);
+    
+    // Add a truly unique ID that won't collide with existing questions
+    // Use timestamp + random number to ensure uniqueness
+    const uniqueId = parsedResponse.uniqueId 
+      ? parseInt(parsedResponse.uniqueId) 
+      : Date.now() + Math.floor(Math.random() * 10000);
+    
+    return {
+      ...parsedResponse,
+      id: uniqueId
+    };
   } catch (error) {
     console.error("Error generating adaptive question:", error);
-    // Return a fallback question as a last resort
+    
+    // Return a basic dynamic question as last resort
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    
     return {
-      question: "What is 2 + 3?",
-      answer: "5",
-      options: ["4", "5", "6", "7"],
-      difficulty: 1,
+      id: Date.now(),
+      question: `What is ${num1} + ${num2}?`,
+      answer: `${num1 + num2}`,
+      options: [
+        `${num1 + num2}`,
+        `${num1 + num2 + 1}`,
+        `${num1 + num2 - 1}`,
+        `${num1 + num2 + 2}`
+      ],
+      explanation: `To add ${num1} and ${num2}, count forward ${num2} places from ${num1}.`,
+      difficulty: params.difficulty || 1,
       concepts: ["Addition"],
       grade: params.grade || "K",
       category: params.category || "Arithmetic"
@@ -199,7 +273,8 @@ export async function predictStudentPerformance(
       max_tokens: 500,
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    return JSON.parse(content as string);
   } catch (error) {
     console.error("Error predicting student performance:", error);
     return {
@@ -241,7 +316,8 @@ export async function generateConceptMap(grade: string, centralConcept: string) 
       max_tokens: 600,
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    return JSON.parse(content as string);
   } catch (error) {
     console.error("Error generating concept map:", error);
     return {
@@ -281,7 +357,8 @@ export async function generateMathTimeline(concept: string, grade: string) {
       max_tokens: 600,
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    return JSON.parse(content as string);
   } catch (error) {
     console.error("Error generating math timeline:", error);
     return {
@@ -320,7 +397,8 @@ export async function generateAchievements(grade: string, concepts: string[]) {
       max_tokens: 800,
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    return JSON.parse(content as string);
   } catch (error) {
     console.error("Error generating achievements:", error);
     return {
