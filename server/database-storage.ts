@@ -350,12 +350,122 @@ export class DatabaseStorage implements IStorage {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // First, try to find an existing challenge for today
     const [challenge] = await db
       .select()
       .from(dailyChallenges)
       .where(eq(dailyChallenges.date, today));
     
-    return challenge;
+    // If we found a challenge, return it
+    if (challenge) {
+      console.log(`Found existing daily challenge for ${today.toLocaleDateString()}`, challenge);
+      return challenge;
+    }
+    
+    // No challenge found, create a new one
+    console.log(`Creating new daily challenge for ${today.toLocaleDateString()}`);
+    
+    // Generate 5 random questions for the daily challenge
+    const questionIds: number[] = [];
+    const questions: any[] = [];
+    
+    // Get 5 random questions from the database (one for each K-4 grade)
+    const randomQuestions = await db
+      .select()
+      .from(questions)
+      .limit(5);
+    
+    if (randomQuestions.length > 0) {
+      randomQuestions.forEach(q => {
+        questionIds.push(q.id);
+        questions.push(q);
+      });
+    } else {
+      // If no questions found, generate some hardcoded basic questions
+      // This is a fallback to ensure we always have questions
+      const fallbackQuestions = [
+        {
+          id: 1001,
+          question: "What is 2 + 2?",
+          answer: "4",
+          options: ["2", "3", "4", "5"],
+          category: "addition",
+          difficulty: 1,
+          grade: "K"
+        },
+        {
+          id: 1002,
+          question: "What is 5 - 3?",
+          answer: "2",
+          options: ["1", "2", "3", "4"],
+          category: "subtraction",
+          difficulty: 1,
+          grade: "1"
+        },
+        {
+          id: 1003,
+          question: "What is 3 × 4?",
+          answer: "12",
+          options: ["10", "11", "12", "13"],
+          category: "multiplication",
+          difficulty: 2,
+          grade: "2"
+        },
+        {
+          id: 1004,
+          question: "What is 10 ÷ 2?",
+          answer: "5",
+          options: ["4", "5", "6", "7"],
+          category: "division",
+          difficulty: 2,
+          grade: "3"
+        },
+        {
+          id: 1005,
+          question: "What is 1/2 + 1/4?",
+          answer: "3/4",
+          options: ["1/4", "2/4", "3/4", "4/4"],
+          category: "fractions",
+          difficulty: 3,
+          grade: "4"
+        }
+      ];
+      
+      fallbackQuestions.forEach(q => {
+        questionIds.push(q.id);
+        questions.push(q);
+      });
+    }
+    
+    // Create the new challenge
+    const newChallenge = {
+      id: Date.now(), // Use timestamp as ID
+      date: today,
+      title: `Daily Math Challenge - ${today.toLocaleDateString()}`,
+      description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
+      questions: questions,
+      questionIds: questionIds,
+      difficulty: "medium",
+      difficultyBonus: 1,
+      tokenReward: 25,
+      questionCount: 5
+    };
+    
+    try {
+      // Insert the new challenge into the database
+      const [insertedChallenge] = await db
+        .insert(dailyChallenges)
+        .values(newChallenge)
+        .returning();
+      
+      console.log(`Successfully created daily challenge with ID: ${insertedChallenge.id}`);
+      return insertedChallenge;
+    } catch (error) {
+      console.error("Error creating daily challenge:", error);
+      // Return the new challenge even if we failed to insert it
+      // This ensures the user always gets a challenge
+      return newChallenge as any;
+    }
   }
 
   async getUserDailyChallengeStatus(userId: number): Promise<{completed: boolean, currentStreak: number}> {
