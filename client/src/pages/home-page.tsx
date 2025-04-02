@@ -571,8 +571,54 @@ export default function HomePage() {
                 isLoading={false}
                 onAnswerSubmit={handleAnswerSubmit}
                 onTimeUp={() => {
-                  // Handle time up event by submitting a blank answer
-                  handleAnswerSubmit("");
+                  // Handle time up event by marking answer as incorrect
+                  // We need to submit the question and mark it as incorrect
+                  if (question) {
+                    playSound('incorrect');
+                    
+                    // Show incorrect feedback
+                    setFeedbackData({
+                      correct: false,
+                      tokensEarned: 0,
+                      correctAnswer: question.answer
+                    });
+                    
+                    setShowFeedback(true);
+                    
+                    // Add question to answered questions
+                    setAnsweredQuestionIds(prev => [...prev, question.id]);
+                    
+                    // Update session stats - this is a timeout, so it's incorrect
+                    setSessionStats(prev => ({
+                      questionsAnswered: prev.questionsAnswered + 1,
+                      correctAnswers: prev.correctAnswers,
+                      tokensEarned: prev.tokensEarned
+                    }));
+                    
+                    // Reset streak counter for timeouts
+                    setCurrentStreak(0);
+                    
+                    // Check if session is complete (5 questions)
+                    if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+                      // Update final session stats before showing session complete
+                      const finalStats = {
+                        questionsAnswered: sessionStats.questionsAnswered + 1,
+                        correctAnswers: sessionStats.correctAnswers,
+                        tokensEarned: sessionStats.tokensEarned
+                      };
+                      
+                      // Set the final stats
+                      setSessionStats(finalStats);
+                      
+                      setTimeout(() => {
+                        setSessionCompleted(true);
+                        setShowFeedback(false);
+                        
+                        // Play session complete sound
+                        playSound('sessionComplete');
+                      }, 2000); // Show feedback for 2 seconds before showing session complete
+                    }
+                  }
                 }}
               />
             ) : (

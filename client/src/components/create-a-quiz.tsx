@@ -55,8 +55,49 @@ export default function CreateAQuiz() {
       const res = await apiRequest('GET', url);
       const data = await res.json();
       
+      // Check if we have enough questions
       if (Array.isArray(data) && data.length > 0) {
-        setSessionQuestions(data.slice(0, 5)); // Limit to 5 questions per session
+        // If we don't have enough questions, let's generate new ones or fetch more
+        if (data.length < 5) {
+          // We need to fetch dynamically generated questions to fill out the quiz
+          console.log(`Only ${data.length} questions available, generating additional questions`);
+          try {
+            const additionalQuestionsNeeded = 5 - data.length;
+            const additionalQuestions = [];
+            
+            // Generate additional questions using OpenAI
+            for (let i = 0; i < additionalQuestionsNeeded; i++) {
+              // Generate each additional question
+              const dynamicRes = await apiRequest('GET', 
+                `/api/questions/next?grade=${selectedGrade}${selectedCategory !== 'all' ? `&category=${selectedCategory}` : ''}&forceDynamic=true`);
+              const dynamicQuestion = await dynamicRes.json();
+              
+              if (dynamicQuestion && dynamicQuestion.id) {
+                additionalQuestions.push(dynamicQuestion);
+              }
+            }
+            
+            // Combine original questions with additional ones
+            const allQuestions = [...data, ...additionalQuestions];
+            console.log(`Quiz now has ${allQuestions.length} total questions`);
+            
+            // Shuffle the questions to randomize the order
+            const shuffled = allQuestions.sort(() => Math.random() - 0.5);
+            
+            // Use all questions, ensuring we have at least 5 (or all that we could get)
+            setSessionQuestions(shuffled.slice(0, Math.max(5, shuffled.length)));
+          } catch (dynamicError) {
+            console.error("Error generating additional questions:", dynamicError);
+            // If we fail to generate more, use what we have
+            setSessionQuestions(data);
+          }
+        } else {
+          // We have enough questions, so shuffle them and take 5
+          const shuffled = [...data].sort(() => Math.random() - 0.5);
+          setSessionQuestions(shuffled.slice(0, 5));
+        }
+        
+        // Reset quiz state
         setCurrentQuestionIndex(0);
         setUserAnswers([]);
         setShowResults(false);
