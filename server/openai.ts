@@ -271,8 +271,14 @@ function generateSVGImage(content: any, type: string): string {
     svgContent += `<text x="${svgWidth/2}" y="${barY + barHeight + 25}" font-family="Arial" font-size="14" text-anchor="middle" fill="black">${num}/${denom}</text>`;
   }
   
-  // Combine all parts into the final SVG
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgHeader + svgContent + svgFooter)}`;
+  // Create the complete SVG string
+  const completeSvg = svgHeader + svgContent + svgFooter;
+  
+  // For debugging
+  console.log("Generated SVG:", completeSvg.substring(0, 100) + "...");
+  
+  // Return as a data URI
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(completeSvg)}`;
 }
 
 /**

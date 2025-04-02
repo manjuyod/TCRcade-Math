@@ -294,13 +294,17 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
                 dangerouslySetInnerHTML={{ __html: question.storyImage }} 
                 className="svg-container max-w-full"
               />
-            ) : question.storyImage.includes('data:image/svg+xml') ? (
+            ) : (
               <img 
                 src={question.storyImage} 
                 alt="Question visual" 
                 className="max-w-full max-h-64 object-contain"
+                onError={(e) => {
+                  console.error('Image failed to load:', question.storyImage);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
-            ) : null}
+            )}
           </motion.div>
         )}
         
