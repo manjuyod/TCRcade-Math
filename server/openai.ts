@@ -3,6 +3,179 @@ import OpenAI from "openai";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+/**
+ * Checks if a question text references an image or visual
+ * @param questionText The text of the question to check for image references
+ */
+function questionReferencesImage(questionText: string): boolean {
+  // Common phrases that indicate a visual element is needed
+  const visualReferencePatterns = [
+    /look at the (image|picture|photo|figure|diagram)/i,
+    /refer to the (image|picture|photo|figure|diagram)/i,
+    /based on the (image|picture|photo|figure|diagram)/i,
+    /in the (image|picture|photo|figure|diagram)/i,
+    /shown in the (image|picture|photo|figure|diagram)/i,
+    /from the (image|picture|photo|figure|diagram)/i,
+    /using the (image|picture|photo|figure|diagram)/i,
+    /the (image|picture|photo|figure|diagram) shows/i,
+    /count the number of/i,
+    /how many.*can you see/i,
+    /how many.*are there/i
+  ];
+  
+  // Return true if any pattern matches
+  return visualReferencePatterns.some(pattern => pattern.test(questionText));
+}
+
+/**
+ * Generates a simple SVG image for math questions
+ * @param content Content to be visualized (numbers, shapes, etc.)
+ * @param type Type of image to generate: "countObjects", "shapes", etc.
+ */
+function generateSVGImage(content: any, type: string): string {
+  const svgWidth = 300;
+  const svgHeight = 200;
+  let svgContent = '';
+  
+  // Start with SVG header
+  const svgHeader = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="white"/>`;
+  
+  // End with SVG footer
+  const svgFooter = `</svg>`;
+  
+  // Generate appropriate content based on type
+  if (type === "countObjects") {
+    // Count objects is expecting an array: [object type, count]
+    const [objectType, count] = Array.isArray(content) ? content : ["circle", 5];
+    const objects = parseInt(count.toString()) || 5;
+    const itemsPerRow = Math.min(5, objects);
+    const rows = Math.ceil(objects / itemsPerRow);
+    const spacing = svgWidth / (itemsPerRow + 1);
+    const verticalSpacing = svgHeight / (rows + 1);
+    
+    // Draw the objects
+    for (let i = 0; i < objects; i++) {
+      const row = Math.floor(i / itemsPerRow);
+      const col = i % itemsPerRow;
+      const x = spacing * (col + 1);
+      const y = verticalSpacing * (row + 1);
+      
+      // Different objects based on the type
+      if (objectType === "apple" || objectType === "apples") {
+        // Draw a red apple
+        svgContent += `
+          <circle cx="${x}" cy="${y}" r="15" fill="red" />
+          <rect x="${x-1}" y="${y-20}" width="2" height="10" fill="brown" />
+          <path d="M ${x-5} ${y-15} Q ${x} ${y-20} ${x+5} ${y-15}" stroke="green" stroke-width="1.5" fill="none" />
+        `;
+      } else if (objectType === "star" || objectType === "stars") {
+        // Draw a yellow star
+        const starPoints = getStarPoints(x, y, 15);
+        svgContent += `<polygon points="${starPoints}" fill="gold" stroke="orange" stroke-width="1" />`;
+      } else if (objectType === "triangle" || objectType === "triangles") {
+        // Draw a green triangle
+        svgContent += `<polygon points="${x},${y-15} ${x-15},${y+10} ${x+15},${y+10}" fill="green" />`;
+      } else if (objectType === "square" || objectType === "squares") {
+        // Draw a blue square
+        svgContent += `<rect x="${x-15}" y="${y-15}" width="30" height="30" fill="blue" />`;
+      } else if (objectType === "circle" || objectType === "circles") {
+        // Draw a purple circle
+        svgContent += `<circle cx="${x}" cy="${y}" r="15" fill="purple" />`;
+      } else {
+        // Default to a simple circle
+        svgContent += `<circle cx="${x}" cy="${y}" r="15" fill="#FF9500" />`;
+      }
+    }
+  } else if (type === "shapes") {
+    // Draw different shapes for shape recognition
+    const shapesData = [
+      { type: "circle", x: 75, y: 75, params: 30, fill: "#FF5733" },
+      { type: "square", x: 225, y: 75, size: 50, fill: "#33A8FF" },
+      { type: "triangle", x: 150, y: 125, size: 50, fill: "#4CAF50" }
+    ];
+    
+    // Draw each shape
+    for (const shape of shapesData) {
+      if (shape.type === "circle") {
+        svgContent += `<circle cx="${shape.x}" cy="${shape.y}" r="${shape.params}" fill="${shape.fill}" />`;
+      } else if (shape.type === "square") {
+        const halfSize = (shape.size || 40) / 2;
+        svgContent += `<rect x="${shape.x - halfSize}" y="${shape.y - halfSize}" width="${shape.size}" height="${shape.size}" fill="${shape.fill}" />`;
+      } else if (shape.type === "triangle") {
+        const size = shape.size || 40;
+        const halfSize = size / 2;
+        svgContent += `<polygon points="${shape.x},${shape.y - halfSize} ${shape.x - halfSize},${shape.y + halfSize} ${shape.x + halfSize},${shape.y + halfSize}" fill="${shape.fill}" />`;
+      }
+    }
+    
+    // Add labels if requested
+    if (content === "labeled") {
+      svgContent += `
+        <text x="75" y="125" font-family="Arial" font-size="12" text-anchor="middle" fill="black">Circle</text>
+        <text x="225" y="125" font-family="Arial" font-size="12" text-anchor="middle" fill="black">Square</text>
+        <text x="150" y="185" font-family="Arial" font-size="12" text-anchor="middle" fill="black">Triangle</text>
+      `;
+    }
+  } else if (type === "fractions") {
+    // Draw a fraction representation (e.g., 3/4 shows 3 out of 4 parts shaded)
+    const [numerator, denominator] = Array.isArray(content) ? content : [1, 4];
+    const num = parseInt(numerator.toString()) || 1;
+    const denom = parseInt(denominator.toString()) || 4;
+    
+    // Calculate dimensions for a horizontal bar representation
+    const barWidth = 240;
+    const barHeight = 40;
+    const barX = (svgWidth - barWidth) / 2;
+    const barY = (svgHeight - barHeight) / 2;
+    
+    // Draw the whole bar outline
+    svgContent += `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="none" stroke="black" stroke-width="2" />`;
+    
+    // Draw division lines
+    const sectionWidth = barWidth / denom;
+    for (let i = 1; i < denom; i++) {
+      const lineX = barX + (sectionWidth * i);
+      svgContent += `<line x1="${lineX}" y1="${barY}" x2="${lineX}" y2="${barY + barHeight}" stroke="black" stroke-width="2" />`;
+    }
+    
+    // Fill in the numerator parts
+    for (let i = 0; i < num; i++) {
+      const rectX = barX + (sectionWidth * i);
+      svgContent += `<rect x="${rectX}" y="${barY}" width="${sectionWidth}" height="${barHeight}" fill="#FFD700" stroke="none" />`;
+    }
+    
+    // Add fraction text
+    svgContent += `<text x="${svgWidth/2}" y="${barY + barHeight + 25}" font-family="Arial" font-size="14" text-anchor="middle" fill="black">${num}/${denom}</text>`;
+  }
+  
+  // Combine all parts into the final SVG
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgHeader + svgContent + svgFooter)}`;
+}
+
+/**
+ * Helper function to create star points
+ */
+function getStarPoints(centerX: number, centerY: number, size: number): string {
+  const outerRadius = size;
+  const innerRadius = size / 2.5;
+  const points = [];
+  
+  for (let i = 0; i < 10; i++) {
+    // Use outer or inner radius based on the current point
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    const angle = Math.PI * i / 5;
+    
+    // Calculate the point coordinates
+    const x = centerX + radius * Math.sin(angle);
+    const y = centerY - radius * Math.cos(angle);
+    
+    points.push(`${x},${y}`);
+  }
+  
+  return points.join(' ');
+}
+
 type AdaptiveQuestionParams = {
   grade: string;
   concept?: string;
@@ -207,6 +380,11 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           4. ${questionFormat}
           5. ${selectedFactors} to make this question unique and engaging.
           6. NEVER repeat the same question patterns - create truly diverse content.
+          7. IMPORTANT ABOUT IMAGES: DO NOT create questions that reference images or pictures UNLESS you're creating:
+             - Counting problems (how many objects)
+             - Shape recognition (identifying shapes)
+             - Fraction visualization (parts of a whole)
+             The system can auto-generate images for these specific types, but other visual references will not display properly.
           7. ${contextMessage}
           
           Format your response as a JSON object with these fields:
@@ -233,6 +411,54 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     const content = response.choices[0].message.content || '{}';
     const parsedResponse = JSON.parse(content as string);
     
+    // Check if the question references an image and handle it if needed
+    if (questionReferencesImage(parsedResponse.question)) {
+      console.log("Question references an image - generating a visual");
+      
+      // Determine what kind of image to generate
+      let imageType = "countObjects";
+      let imageContent: any = ["circle", 5];
+
+      // Check for counting questions
+      if (/how many/i.test(parsedResponse.question)) {
+        const objectMatches = parsedResponse.question.match(/how many (.*?) are there/i);
+        const objectType = objectMatches ? objectMatches[1] : "circles";
+        const count = Math.floor(Math.random() * 5) + 2; // 2-6 objects
+        imageContent = [objectType, count];
+        
+        // Make sure the answer matches the count
+        if (/how many/i.test(parsedResponse.question)) {
+          parsedResponse.answer = count.toString();
+          
+          // Update options to include the correct answer and nearby numbers
+          parsedResponse.options = [
+            count.toString(),
+            (count + 1).toString(),
+            (count - 1 > 0 ? count - 1 : count + 2).toString(),
+            (count + 2).toString()
+          ];
+        }
+      } 
+      // Check for shape-related questions
+      else if (/shape|triangle|circle|square/i.test(parsedResponse.question)) {
+        imageType = "shapes";
+        imageContent = "labeled";
+      }
+      // Check for fraction-related questions
+      else if (/fraction|part/i.test(parsedResponse.question)) {
+        imageType = "fractions";
+        const num = Math.floor(Math.random() * 3) + 1; // 1-3
+        const denom = 4;
+        imageContent = [num, denom];
+      }
+      
+      // Generate the image
+      const imageUrl = generateSVGImage(imageContent, imageType);
+      
+      // Add the image URL to the response
+      parsedResponse.storyImage = imageUrl;
+    }
+    
     // Add a truly unique ID that won't collide with existing questions
     // Use timestamp + random number to ensure uniqueness
     const uniqueId = parsedResponse.uniqueId 
@@ -249,6 +475,7 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     // Return a basic dynamic question as last resort - with grade-specific adjustments
     const grade = params.grade || "K";
     let num1, num2, questionText, options, explanation, category;
+    let storyImage = null; // For visual references
     
     // Adjust the fallback question based on grade level
     if (grade === "K") {
@@ -260,11 +487,13 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       const questionType = Math.floor(Math.random() * 3);
       
       if (questionType === 0) {
-        // Counting question
-        questionText = `How many stars are there? ${"★ ".repeat(num1)}`;
+        // Counting question with SVG image
+        questionText = `How many stars are there?`;
         options = [`${num1}`, `${num1+1}`, `${num1-1 > 0 ? num1-1 : num1+2}`, `${num1+2}`];
         explanation = `Count the stars one by one: ${Array.from({length: num1}, (_, i) => i+1).join(', ')}.`;
         category = "Counting";
+        // Generate a SVG image for the counting stars
+        storyImage = generateSVGImage(["star", num1], "countObjects");
       } else if (questionType === 1) {
         // Simple addition with visual cues
         questionText = `How many apples in total? ${num1} apples and ${num2} more apples.`;
@@ -272,13 +501,15 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
         explanation = `Count ${num1} apples, then count ${num2} more apples. ${num1} + ${num2} = ${num1 + num2}.`;
         category = "Addition";
       } else {
-        // Shape recognition
+        // Shape recognition with SVG image
         const shapes = ["circle", "square", "triangle"];
         const correctShape = shapes[Math.floor(Math.random() * shapes.length)];
         questionText = `Which shape is a ${correctShape}?`;
         options = shapes.sort(() => Math.random() - 0.5);
         explanation = `A ${correctShape} is a shape that looks like a ${correctShape}.`;
         category = "Geometry";
+        // Generate SVG image for shape recognition
+        storyImage = generateSVGImage(correctShape, "shapes");
       }
     } else {
       // For higher grades, use default addition questions with appropriate numbers
@@ -306,7 +537,8 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       difficulty: params.difficulty || 1,
       concepts: [category],
       grade: grade,
-      category: category
+      category: category,
+      storyImage: storyImage
     };
   }
 }

@@ -547,9 +547,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = await storage.getQuestionsByGrade(grade);
       
       // Extract unique categories
-      const categories = [...new Set(questions.map(q => q.category))];
+      const categoriesSet = new Set(questions.map(q => q.category));
       
-      res.json(categories);
+      // Format categories with proper capitalization
+      const formattedCategories = Array.from(categoriesSet).map(category => {
+        // Handle special cases
+        if (category.toLowerCase() === 'counting') {
+          return 'Counting';
+        } else if (category.toLowerCase() === 'place-value' || category.toLowerCase() === 'place_value') {
+          return 'Place Value';
+        } else {
+          // For other categories, ensure first letter is capitalized
+          const formattedCategory = category.charAt(0).toUpperCase() + category.slice(1);
+          // Replace hyphens with spaces
+          return formattedCategory.replace(/-/g, ' ');
+        }
+      });
+      
+      res.json(formattedCategories);
     } catch (error) {
       console.error("Error fetching categories:", error);
       res.status(500).json({ error: "Failed to fetch categories" });
