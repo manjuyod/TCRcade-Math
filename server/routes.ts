@@ -633,8 +633,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: parseInt(questionId),
             question: originalQuestion?.toString() || "Dynamic question",
             answer: expectedAnswer, // Use the expected answer, NOT the user's answer
-            options: [expectedAnswer],
-            difficulty: 2,
+            options: originalQuestion?.toString().includes(expectedAnswer) 
+              ? [expectedAnswer] 
+              : [expectedAnswer, (parseInt(expectedAnswer) + 1).toString(), (parseInt(expectedAnswer) - 1).toString()].filter(Boolean),
+            difficulty: 3, // Increase difficulty for more token rewards
             category: "General",
             grade: user.grade || "K",
             explanation: "Dynamic question explanation",
@@ -792,8 +794,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: parseInt(questionId),
             question: originalQuestion?.toString() || req.query.originalQuestion?.toString() || "Dynamic question",
             answer: expectedAnswer, // Use the expected answer, NOT the user's answer
-            options: [expectedAnswer],
-            difficulty: 2,
+            options: originalQuestion?.toString().includes(expectedAnswer) 
+              ? [expectedAnswer] 
+              : [expectedAnswer, (parseInt(expectedAnswer) + 1).toString(), (parseInt(expectedAnswer) - 1).toString()].filter(Boolean),
+            difficulty: 3, // Increase difficulty for more token rewards
             category: "General",
             grade: req.user!.grade || "K",
             explanation: "Dynamic question explanation",
@@ -850,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user progress
       const category = question.category;
       let progress = await storage.updateUserProgress(userId, category, {
-        score: isCorrect ? 10 : 0,
+        score: isCorrect ? 15 : 0, // Increased score for correct answers
         completedQuestions: 1
       });
       
@@ -868,12 +872,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user stats
       const user = await storage.getUser(userId);
       if (user) {
+        // Award tokens based on difficulty
+        const tokensEarned = isCorrect ? Math.min(question.difficulty * 2, 10) : 0;
+        
         await storage.updateUser(userId, {
           questionsAnswered: (user.questionsAnswered || 0) + 1,
           correctAnswers: (user.correctAnswers || 0) + (isCorrect ? 1 : 0),
-          tokens: (user.tokens || 0) + (isCorrect ? 10 : 0),
-          dailyTokensEarned: (user.dailyTokensEarned || 0) + (isCorrect ? 10 : 0),
-          dailyEngagementMinutes: (user.dailyEngagementMinutes || 0) + Math.ceil(timeSpent / 60)
+          tokens: (user.tokens || 0) + tokensEarned,
+          dailyTokensEarned: (user.dailyTokensEarned || 0) + tokensEarned,
+          dailyEngagementMinutes: (user.dailyEngagementMinutes || 0) + Math.ceil((timeSpent || 0) / 60)
         });
       }
       
@@ -893,7 +900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         correct: isCorrect,
         correctAnswer: question.answer,
-        tokensEarned: isCorrect ? 10 : 0,
+        tokensEarned: isCorrect ? Math.min(question.difficulty * 2, 10) : 0,
         analysis
       });
     } catch (error) {
