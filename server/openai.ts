@@ -8,10 +8,13 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param questionText The text of the question to check for image references
  */
 function questionReferencesImage(questionText: string): boolean {
+  console.log("Checking if question references an image:", questionText);
+  
   // Common phrases that indicate a visual element is needed
   const visualReferencePatterns = [
     // Explicit image references
     /look at the (image|picture|photo|figure|diagram)/i,
+    /look at these (shapes|circles|squares|triangles)/i,
     /refer to the (image|picture|photo|figure|diagram)/i,
     /based on the (image|picture|photo|figure|diagram)/i,
     /in the (image|picture|photo|figure|diagram)/i,
@@ -25,6 +28,8 @@ function questionReferencesImage(questionText: string): boolean {
     /how many.*can you see/i,
     /how many.*are there/i,
     /how many (shapes|objects|items|things|dots|stars|blocks|triangles|circles|squares|apples|bananas)/i,
+    /below are/i,
+    /these shapes/i,
     
     // Color and shape combinations
     /red (circle|square|triangle|shape)/i,
@@ -52,19 +57,28 @@ function questionReferencesImage(questionText: string): boolean {
   ];
   
   // Shape counting pattern (e.g., "two red squares, three blue circles")
-  if (/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|apples?|bananas?)/i.test(questionText)) {
+  const complexShapeMatch = questionText.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow|purple|orange)?\s*(squares?|circles?|triangles?|apples?|bananas?)/gi);
+  if (complexShapeMatch && complexShapeMatch.length > 0) {
+    console.log("Complex shape description detected:", complexShapeMatch);
     return true;
   }
   
   // For shape identification questions where they need to select from options
-  if (/look at the shapes/i.test(questionText) && 
-      /(square|circle|triangle|rectangle)/i.test(questionText) &&
-      /which/i.test(questionText)) {
+  if (/look at the shapes/i.test(questionText) || 
+      /look at these shapes/i.test(questionText) ||
+      (/shapes/.test(questionText) && /below/.test(questionText))) {
+    console.log("Shape identification question detected");
     return true;
   }
   
-  // Return true if any pattern matches
-  return visualReferencePatterns.some(pattern => pattern.test(questionText));
+  // Find matching pattern if any
+  const matchingPattern = visualReferencePatterns.find(pattern => pattern.test(questionText));
+  if (matchingPattern) {
+    console.log("Visual reference pattern matched:", matchingPattern);
+    return true;
+  }
+  
+  return false;
 }
 
 /**

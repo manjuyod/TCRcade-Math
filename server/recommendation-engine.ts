@@ -3,25 +3,60 @@ import { Question, Recommendation, ConceptMastery } from "@shared/schema";
 
 /**
  * Updates the concept mastery tracking when a user answers a question
+ * @param userId The user ID
+ * @param conceptsOrQuestionId Either an array of concepts or a question ID
+ * @param gradeOrIsCorrect Either the grade level (if concepts provided) or isCorrect flag (if questionId provided)
+ * @param isCorrect Optional isCorrect flag (only used when concepts are directly provided)
  */
 export async function updateConceptsFromAnswer(
   userId: number, 
-  questionId: number, 
-  isCorrect: boolean
+  conceptsOrQuestionId: number | string[],
+  gradeOrIsCorrect: string | boolean,
+  isCorrect?: boolean
 ): Promise<void> {
-  const question = await storage.getQuestion(questionId);
-  if (!question || !question.concepts || question.concepts.length === 0) {
+  // Get the user for grade info if not provided
+  const user = await storage.getUser(userId);
+  if (!user) {
+    console.error("User not found for concept mastery update");
     return;
   }
   
-  const user = await storage.getUser(userId);
-  if (!user || !user.grade) {
+  // Case 1: Direct concepts array provided
+  if (Array.isArray(conceptsOrQuestionId)) {
+    const concepts = conceptsOrQuestionId;
+    const grade = gradeOrIsCorrect as string;
+    const correct = isCorrect === undefined ? false : isCorrect;
+    
+    console.log(`Updating concept mastery for user ${userId} with concepts:`, concepts);
+    
+    // Update mastery for each concept directly
+    for (const concept of concepts) {
+      await storage.updateConceptMastery(userId, concept, grade, correct);
+    }
+    return;
+  }
+  
+  // Case 2: Question ID provided
+  const questionId = conceptsOrQuestionId as number;
+  const correct = gradeOrIsCorrect as boolean;
+  
+  console.log(`Updating concept mastery for user ${userId} from question ${questionId}`);
+  
+  // Fetch the question to get its concepts
+  const question = await storage.getQuestion(questionId);
+  if (!question || !question.concepts || question.concepts.length === 0) {
+    console.log(`No concepts found for question ${questionId}`);
+    return;
+  }
+  
+  if (!user.grade) {
+    console.error("User has no grade specified for concept mastery update");
     return;
   }
   
   // Update mastery for each concept in the question
   for (const concept of question.concepts) {
-    await storage.updateConceptMastery(userId, concept, user.grade, isCorrect);
+    await storage.updateConceptMastery(userId, concept, user.grade, correct);
   }
 }
 
