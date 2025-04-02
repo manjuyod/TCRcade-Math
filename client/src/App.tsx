@@ -12,23 +12,12 @@ import ModulesPage from "@/pages/modules-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
-import DailyChallengeComponent from "@/components/daily-challenge";
 import AvatarCreator from "@/components/avatar-creator";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
 import Navigation from "@/components/navigation";
 import ScrollToTop from "@/components/scroll-to-top";
-
-// Create wrapper components for advanced features
-const DailyChallengePage = () => (
-  <div className="flex flex-col min-h-screen">
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Daily Challenge</h1>
-      <DailyChallengeComponent />
-    </div>
-  </div>
-);
 
 
 
@@ -76,7 +65,6 @@ function Router() {
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
-      <ProtectedRoute path="/daily-challenge" component={DailyChallengePage} />
       <ProtectedRoute path="/avatar" component={AvatarPage} />
       <ProtectedRoute path="/multiplayer" component={MultiplayerPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
@@ -98,7 +86,6 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location === '/modules') return 'home';
     if (location === '/profile') return 'profile';
     if (location === '/leaderboard') return 'leaderboard';
-    if (location.includes('/daily-challenge')) return 'daily-challenge';
     if (location.includes('/avatar')) return 'avatar';
     if (location.includes('/multiplayer')) return 'multiplayer';
     if (location.includes('/analytics')) return 'analytics';

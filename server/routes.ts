@@ -959,7 +959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const averageTimePerQuestion = 25; // In seconds - would be calculated from actual data
       
       // Total session time in minutes
-      const totalSessionTime = users.reduce((sum, user) => sum + user.dailyGoalProgress, 0);
+      // Daily goal progress removed
+      const totalSessionTime = users.reduce((sum, user) => sum + (user.minutesStudied || 0), 0);
       
       // Most/least active grade
       const gradeDistribution = ['K', '1', '2', '3', '4', '5', '6'].map(grade => {
@@ -1135,7 +1136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           topStrengths,
           topWeaknesses,
           learningStyle: user.learningStyle,
-          timeSpent: user.dailyGoalProgress || 0,
+          timeSpent: user.minutesStudied || 0,
           dailyStreak: user.streakDays,
           inactiveStreak
         };

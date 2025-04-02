@@ -12,7 +12,7 @@ import StreakAnimation from '@/components/streak-animation';
 import TimeAchievement from '@/components/time-achievement';
 import LevelUpAnimation from '@/components/level-up-animation';
 import WordRaceGame from '@/components/word-race-game';
-import DailyChallengeComponent from '@/components/daily-challenge';
+// Daily Challenge removed as per user request
 import MathStorytelling from '@/components/math-storytelling';
 import AvatarCreator from '@/components/avatar-creator';
 import AiAnalytics from '@/components/ai-analytics';
@@ -27,7 +27,7 @@ import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, Che
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { minutesPlayed, displayMinutes, progressPercentage, dailyGoal } = useSessionTimer();
+  const { minutesPlayed, displayMinutes, progressPercentage } = useSessionTimer();
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
   const [feedbackData, setFeedbackData] = useState<{
     correct: boolean;
@@ -478,26 +478,18 @@ export default function HomePage() {
       <main className="flex-1 container mx-auto p-4">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-bold text-dark">Daily Goal</h2>
+            <h2 className="text-lg font-bold text-dark">Session Timer</h2>
             <span className="text-primary font-bold flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {displayMinutes}/{dailyGoal} minutes
+              {displayMinutes} minutes
             </span>
           </div>
-          <ProgressBar progress={progressPercentage} />
+          {/* Progress bar removed - daily goals removed as per user request */}
         </div>
         
         {/* Advanced features showcase */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/daily-challenge'}>
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Calendar className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Daily Challenge</h3>
-              <p className="text-xs text-gray-500">Earn bonus tokens every day</p>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Daily Challenge removed as per user request */}
           
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/practice'}>
             <div className="bg-primary/10 p-2 rounded-full">
@@ -679,13 +671,7 @@ export default function HomePage() {
           )}
         </div>
         
-        {/* Quick preview of daily challenge */}
-        <div className="mb-4">
-          <h2 className="text-lg font-bold mb-4">Today's Challenge</h2>
-          <div className="h-64 overflow-hidden">
-            <DailyChallengeComponent />
-          </div>
-        </div>
+        {/* Daily Challenge completely removed as per user request */}
       </main>
       
       <Navigation active="play" />

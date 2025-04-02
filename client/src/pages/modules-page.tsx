@@ -46,7 +46,7 @@ interface Module {
 export default function ModulesPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const { minutesPlayed, progressPercentage, dailyGoal } = useSessionTimer();
+  const { minutesPlayed, progressPercentage } = useSessionTimer();
   
   // Stats for the dashboard
   const userStats = {
@@ -250,12 +250,12 @@ export default function ModulesPage() {
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="flex items-center">
               <Clock className="h-5 w-5 text-primary mr-2" />
-              <h3 className="text-sm font-medium">Daily Progress</h3>
+              <h3 className="text-sm font-medium">Study Progress</h3>
             </div>
             <div className="mt-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-gray-600">Daily Goal</span>
-                <span className="text-xs font-medium">{Math.floor(userStats.minutesPlayed)}/{dailyGoal} min</span>
+                <span className="text-xs text-gray-600">Study Time</span>
+                <span className="text-xs font-medium">{Math.floor(userStats.minutesPlayed)} min</span>
               </div>
               <ProgressBar progress={timeProgress} height={10} />
             </div>

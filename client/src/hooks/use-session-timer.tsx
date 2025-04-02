@@ -2,25 +2,21 @@ import { useState, useEffect } from 'react';
 
 // Key for storing time data in localStorage
 const TIME_STORAGE_KEY = 'math_app_time_tracking';
-const DAILY_GOAL_MINUTES = 20;
-
 // Interface for time tracking data
 interface TimeTrackingData {
   todayMinutes: number;
   lastUpdate: string; // ISO string date
-  dailyGoal: number;
 }
 
 // Default initial data
 const defaultTimeData: TimeTrackingData = {
   todayMinutes: 0,
-  lastUpdate: new Date().toISOString(),
-  dailyGoal: DAILY_GOAL_MINUTES
+  lastUpdate: new Date().toISOString()
 };
 
 /**
  * Hook to track session time across the application
- * Returns current minutes played, progress percentage, and daily goal
+ * Returns current minutes played and progress percentage
  */
 export function useSessionTimer() {
   const [timeData, setTimeData] = useState<TimeTrackingData>(defaultTimeData);
@@ -118,13 +114,12 @@ export function useSessionTimer() {
     };
   }, []);
   
-  // Calculate progress percentage
-  const progressPercentage = Math.min(100, (timeData.todayMinutes / timeData.dailyGoal) * 100);
+  // Calculate progress percentage (using fixed target value of 60 minutes for a daily session)
+  const progressPercentage = Math.min(100, (timeData.todayMinutes / 60) * 100);
   
   return {
     minutesPlayed: timeData.todayMinutes,
     displayMinutes: Math.floor(timeData.todayMinutes),
-    progressPercentage,
-    dailyGoal: timeData.dailyGoal
+    progressPercentage
   };
 }
