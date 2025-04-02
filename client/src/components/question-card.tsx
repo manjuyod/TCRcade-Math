@@ -32,7 +32,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
   const [questionText, setQuestionText] = useState<string>(question?.question || "Loading question...");
   const [visualInfo, setVisualInfo] = useState<VisualInfo | null>(null);
   
-  // Parse question for visual cues
+  // Parse question for visual cues and check for SVG images
   useEffect(() => {
     // Guard against undefined question
     if (!question || !question.question) {
@@ -42,7 +42,16 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     
     const questionStr = question.question;
     
-    // Check if there's a visual instruction in the question
+    // First check if there's an SVG image from the server
+    if (question.storyImage && question.storyImage.includes('<svg')) {
+      // For dynamically generated questions, they'll have an SVG in storyImage
+      // Just set the question text normally, we'll render the SVG separately
+      setVisualInfo(null); // Clear any previous visual info
+      setQuestionText(questionStr);
+      return;
+    }
+    
+    // Otherwise, check if there's a visual instruction in the question
     if (questionStr && questionStr.startsWith('[visual:')) {
       const endIndex = questionStr.indexOf(']');
       if (endIndex > 0) {
@@ -272,6 +281,22 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
       </div>
       
       <div className="text-center my-4">
+        {/* Display SVG from storyImage if present */}
+        {question?.storyImage && question.storyImage.includes('<svg') && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mb-4 flex justify-center"
+          >
+            <div 
+              dangerouslySetInnerHTML={{ __html: question.storyImage }} 
+              className="svg-container max-w-full"
+            />
+          </motion.div>
+        )}
+        
+        {/* Display other types of visuals if present */}
         {visualInfo && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
