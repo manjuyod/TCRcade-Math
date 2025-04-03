@@ -15,10 +15,19 @@ interface UseQuestionWithHistoryReturn {
   clearHistory: () => void;
 }
 
+interface QuestionHistoryItem {
+  id: number;
+  question?: string;
+  mathOperations?: string[];
+  questionSignature?: string;
+  timestamp: number;
+}
+
 interface QuestionHistory {
   userId: number;
   seenQuestionIds: number[];
   lastSeen: Record<number, number>; // questionId -> timestamp
+  questionData: Record<number, QuestionHistoryItem>; // Detailed question data for better duplication detection
 }
 
 /**
@@ -58,7 +67,8 @@ export function useQuestionWithHistory(
     return {
       userId,
       seenQuestionIds: [],
-      lastSeen: {}
+      lastSeen: {},
+      questionData: {}
     };
   };
   
@@ -99,9 +109,11 @@ export function useQuestionWithHistory(
     forceDynamic: false
   });
   
-  // Record that a question was seen
-  const recordSeenQuestion = (questionId: number) => {
-    if (!questionId) return;
+  // Record that a question was seen, with full question data for better duplication detection
+  const recordSeenQuestion = (question: Question) => {
+    if (!question || !question.id) return;
+    
+    const questionId = question.id;
     
     setQuestionHistory(prev => {
       // Check if we've already seen this question
@@ -123,6 +135,63 @@ export function useQuestionWithHistory(
       // Update timestamp
       const now = Date.now();
       
+      // Extract mathematical operations from the question text (if available)
+      const mathOperations: string[] = [];
+      
+      if (question.question) {
+        // Extract operations using regex
+        const additionMatches = question.question.match(/(\d+)\s*\+\s*(\d+)/g) || [];
+        const subtractionMatches = question.question.match(/(\d+)\s*\-\s*(\d+)/g) || [];
+        const multiplicationMatches = question.question.match(/(\d+)\s*[×x\*]\s*(\d+)/g) || [];
+        const divisionMatches = question.question.match(/(\d+)\s*[÷\/]\s*(\d+)/g) || [];
+        
+        // Convert matches to standardized math facts
+        additionMatches.forEach(match => {
+          const parts = match.match(/(\d+)\s*\+\s*(\d+)/);
+          if (parts && parts.length >= 3) {
+            mathOperations.push(`${parts[1]}+${parts[2]}`);
+          }
+        });
+        
+        subtractionMatches.forEach(match => {
+          const parts = match.match(/(\d+)\s*\-\s*(\d+)/);
+          if (parts && parts.length >= 3) {
+            mathOperations.push(`${parts[1]}-${parts[2]}`);
+          }
+        });
+        
+        multiplicationMatches.forEach(match => {
+          const parts = match.match(/(\d+)\s*[×x\*]\s*(\d+)/);
+          if (parts && parts.length >= 3) {
+            mathOperations.push(`${parts[1]}×${parts[2]}`);
+          }
+        });
+        
+        divisionMatches.forEach(match => {
+          const parts = match.match(/(\d+)\s*[÷\/]\s*(\d+)/);
+          if (parts && parts.length >= 3) {
+            mathOperations.push(`${parts[1]}÷${parts[2]}`);
+          }
+        });
+      }
+      
+      // Generate a signature (normalized question text)
+      const questionSignature = question.question
+        ? question.question.toLowerCase().replace(/\s+/g, ' ').trim()
+        : '';
+      
+      // Store the question data
+      const questionData = {
+        ...prev.questionData,
+        [questionId]: {
+          id: questionId,
+          question: question.question,
+          mathOperations,
+          questionSignature,
+          timestamp: now
+        }
+      };
+      
       return {
         ...prev,
         userId,
@@ -130,7 +199,8 @@ export function useQuestionWithHistory(
         lastSeen: {
           ...prev.lastSeen,
           [questionId]: now
-        }
+        },
+        questionData
       };
     });
   };
@@ -169,9 +239,9 @@ export function useQuestionWithHistory(
       
       const data = await response.json();
       
-      // Record that we've seen this question
-      if (data.id) {
-        recordSeenQuestion(data.id);
+      // Record that we've seen this question with full data for better duplication detection
+      if (data && data.id) {
+        recordSeenQuestion(data);
       }
       
       return data;
@@ -194,7 +264,8 @@ export function useQuestionWithHistory(
     setQuestionHistory({
       userId,
       seenQuestionIds: [],
-      lastSeen: {}
+      lastSeen: {},
+      questionData: {}
     });
   };
 

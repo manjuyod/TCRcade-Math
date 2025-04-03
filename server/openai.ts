@@ -779,7 +779,13 @@ type AdaptiveQuestionParams = {
   grade: string;
   concept?: string;
   studentLevel?: number;
-  previousQuestions?: number[];
+  previousQuestions?: Array<number | { 
+    id?: number;
+    question?: string;
+    mathOperations?: string[];
+    questionSignature?: string;
+    [key: string]: any;
+  }>;
   difficulty?: number;
   category?: string;
 };
@@ -903,69 +909,94 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
   // The following code is kept for reference but will not be executed
   
   try {
-    // Create a context message that helps GPT understand what was previously asked
-    const contextMessage = previousQuestions && previousQuestions.length > 0 
+    // Extract full question data if available to avoid duplication
+    let previousQuestionData: string[] = [];
+    let previousMathFacts: string[] = [];
+    
+    if (Array.isArray(previousQuestions)) {
+      if (previousQuestions.length > 0) {
+        // Check if we have full question objects or just IDs
+        const hasFullQuestionData = previousQuestions.some(q => 
+          typeof q === 'object' && q !== null && q.hasOwnProperty('question'));
+          
+        if (hasFullQuestionData) {
+          // Extract the text and math facts to avoid repetition
+          previousQuestionData = previousQuestions
+            .filter(q => typeof q === 'object' && q !== null && q.hasOwnProperty('question'))
+            .map(q => (q as any).question as string)
+            .slice(-15); // Keep last 15 questions for context
+            
+          // Extract mathematical operations from previous questions
+          // This helps us avoid repeating the same math facts (like 3+2)
+          for (const prevQ of previousQuestions) {
+            if (typeof prevQ === 'object' && prevQ !== null && prevQ.hasOwnProperty('question')) {
+              const questionText = (prevQ as any).question as string;
+              
+              // Extract operations using regex
+              const additionMatches = [...questionText.matchAll(/(\d+)\s*\+\s*(\d+)/g)];
+              const subtractionMatches = [...questionText.matchAll(/(\d+)\s*\-\s*(\d+)/g)];
+              const multiplicationMatches = [...questionText.matchAll(/(\d+)\s*[×x\*]\s*(\d+)/g)];
+              const divisionMatches = [...questionText.matchAll(/(\d+)\s*[÷\/]\s*(\d+)/g)];
+              
+              // Convert matches to standardized math facts
+              additionMatches.forEach(m => previousMathFacts.push(`${m[1]}+${m[2]}`));
+              subtractionMatches.forEach(m => previousMathFacts.push(`${m[1]}-${m[2]}`));
+              multiplicationMatches.forEach(m => previousMathFacts.push(`${m[1]}×${m[2]}`));
+              divisionMatches.forEach(m => previousMathFacts.push(`${m[1]}÷${m[2]}`));
+            }
+          }
+        }
+      }
+    }
+    
+    // Create detailed context to prevent repetition
+    const contextMessage = previousQuestionData.length > 0
       ? `Recently asked questions that you SHOULD NOT DUPLICATE (avoid similar problems):
-        ${previousQuestions.slice(0, 5).map(id => `Question ID ${id}`).join('\n')}`
+         ${previousQuestionData.slice(-7).map((q, i) => `Question ${i+1}: "${q}"`).join('\n')}
+         
+         DO NOT repeat these exact math operations:
+         ${previousMathFacts.slice(-10).join(', ')}
+         
+         Create something completely different using different numbers and contexts.`
       : 'Please generate a completely new question that hasn\'t been asked before.';
     
     // Determine question format based on grade level - with STRICT K grading enforcement
     const questionFormat = grade === 'K'
-      ? 'KINDERGARTEN LEVEL ONLY: Keep language EXTREMELY simple with 1-2 sentences max. Use ONLY numbers 1-5. NO complex patterns, NO advanced vocabulary, NO word problems with abstract concepts. Focus on counting, shape recognition, and very basic comparisons (more/less). Questions should be solvable by 5-year-olds with minimal reading ability. Include simple visual descriptions (like "count the apples" or "which shape is a circle?"). NEVER use complex problems or abstract concepts for this grade level.'
+      ? 'KINDERGARTEN LEVEL ONLY: Keep language EXTREMELY simple with 1-2 sentences max. Use ONLY numbers 1-10. NO complex patterns, NO advanced vocabulary, NO word problems with abstract concepts. Focus on basic addition/subtraction and very basic comparisons (more/less). Questions should be solvable by 5-year-olds with minimal reading ability. NEVER use complex problems or abstract concepts for this grade level.'
       : grade === '1' 
-      ? 'FIRST GRADE LEVEL ONLY: Keep language simple and use small numbers (1-10). Include visuals in the question description if helpful. Focus on basic addition/subtraction, simple patterns, and shape recognition. Questions should be solvable by 6-7 year olds.'
+      ? 'FIRST GRADE LEVEL ONLY: Keep language simple and use small numbers (1-20). Focus on basic addition/subtraction and simple number patterns. Questions should be solvable by 6-7 year olds. Use simple word problems with familiar contexts.'
       : grade === '2' || grade === '3'
-        ? 'Use appropriate vocabulary and numbers up to 100. Can include basic fractions and simple word problems.'
+        ? 'Use appropriate vocabulary and numbers up to 100. Can include basic multiplication/division, simple fractions, and word problems with real-world contexts.'
         : grade === '4' || grade === '5'
-        ? 'Can include decimals, fractions, multi-step problems, and more complex word problems.'
-        : 'Can include pre-algebra concepts, ratio and proportion, and complex word problems.';
+        ? 'Can include decimals, fractions, multi-step problems, and more complex word problems. Also include basic order of operations and pre-algebraic thinking.'
+        : 'Can include pre-algebra concepts, ratio and proportion, complex word problems, and multi-step equations.';
     
-    // Add variability to ensure diverse questions - adjust based on grade level
-    let uniqueFactors = [];
+    // Add seeds for unique question types to ensure diversity
+    // Specifically designed for computational problems without visual elements
+    const uniqueFactors = [
+      // These factors focus on pure computational problems without visual elements
+      `Use numbers that are different from these recently used calculations: ${previousMathFacts.slice(-5).join(', ')}`,
+      'Create a problem using different operation(s) than recent questions',
+      'Frame the question in a different real-world context',
+      'Use a step-by-step word problem requiring careful reading',
+      'Present a pattern or sequence where student must find the next number',
+      'Include a simple mental math strategy',
+      'Create a multi-step calculation problem',
+      'Use different wording than previous problems for the same operation',
+      'Incorporate an estimation component',
+      'Present a comparison between two quantities',
+      'Create a problem about equivalence or equality',
+      'Include a number-only pattern recognition element'
+    ];
     
-    if (grade === 'K') {
-      // For kindergarten, use extremely simple factors only
-      uniqueFactors = [
-        'Use simple counting of objects (1-5 only)',
-        'Include a very basic shape recognition element',
-        'Use simple comparisons (more/less/same)',
-        'Show familiar objects like animals or toys',
-        'Ask about colors or basic patterns',
-        'Use simple size comparison (big/small)',
-        'Focus on matching similar items',
-        'Ask about simple sorting (by color or shape)'
-      ];
-    } else if (grade === '1') {
-      // For 1st grade, use basic factors
-      uniqueFactors = [
-        'Use simple counting up to 10',
-        'Include very basic addition or subtraction',
-        'Use familiar objects for counting',
-        'Include simple shape recognition',
-        'Use basic patterns',
-        'Focus on simple comparisons',
-        'Include visual elements',
-        'Use simple sorting activities'
-      ];
-    } else {
-      // For higher grades, use more advanced factors
-      uniqueFactors = [
-        'Use a real-world scenario relevant to children',
-        'Include a visual or spatial component',
-        'Frame the question as a puzzle or challenge',
-        'Incorporate a pattern recognition element',
-        'Use measurement or data interpretation',
-        'Include a comparison or estimation task',
-        'Frame as a multi-step problem',
-        'Incorporate logical reasoning'
-      ];
-    }
-    
-    // Select random factors to make this question unique
+    // Select random factors to ensure question diversity
     const selectedFactors = uniqueFactors
       .sort(() => Math.random() - 0.5)
-      .slice(0, 2)
-      .join(' and ');
+      .slice(0, 3)
+      .join(', ');
+    
+    // Get a timestamp to ensure uniqueness
+    const timestamp = Date.now();
     
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
     const response = await openai.chat.completions.create({
@@ -980,10 +1011,10 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           2. ${concept ? `Focus specifically on the concept of ${concept}.` : `Focus on ${category} math.`}
           3. The student skill level is ${studentLevel}/5, adjust accordingly.
           4. ${questionFormat}
-          5. ${selectedFactors} to make this question unique and engaging.
-          6. NEVER repeat the same question patterns - create truly diverse content.
+          5. Create diversity by: ${selectedFactors}.
+          6. NEVER repeat the same question patterns, numbers, or contexts - create truly unique content.
           7. STRICT INSTRUCTIONS ABOUT QUESTION TYPES:
-             a. ONLY create text-based computational problems (e.g., "4 - 2 = ?")
+             a. ONLY create text-based computational problems (e.g. calculations, word problems)
              b. DO NOT create questions that reference visuals, shapes, images, or currency
              c. DO NOT create counting problems that would require visual elements
              d. DO NOT create questions about identifying shapes
@@ -992,7 +1023,13 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
              g. Do not reference colors or position of objects
              h. Only use fractions expressed as numbers (1/2, 3/4, etc.)
              i. DO NOT include money questions (no coins, dollars, cents, bills, currency)
-          8. ${contextMessage}
+          8. CRITICAL: DO NOT give away the answer in the question itself:
+             a. DO NOT use phrasing like "If 5+7=12, what is 5+7?" or similar constructions
+             b. DO NOT include the answer in the question stem accidentally
+             c. Make sure the student must perform the computation themselves
+             d. For word problems, do not state the operation result in the setup
+             e. Check that the question actually requires calculation and isn't self-evident
+          9. ${contextMessage}
           
           Format your response as a JSON object with these fields:
           - question: The actual question text (detailed, clear, and engaging)
@@ -1002,17 +1039,23 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           - difficulty: A number 1-5
           - concepts: Array of specific math concepts covered (be granular)
           - grade: The grade level ("K", "1", "2", etc.)
-          - category: A specific category like "Arithmetic", "Algebra", "Geometry", "Fractions", etc.
+          - category: A specific category like "Arithmetic", "Algebra", "Fractions", etc.
           - uniqueId: A random 6-digit number to serve as a unique identifier`
         },
         {
           role: "user",
-          content: `Create a unique, engaging ${grade} grade math question ${concept ? `about ${concept}` : `in the category of ${category}`} that hasn't been asked before. Make sure it's appropriate for the student's level and provides a learning opportunity.`
+          content: `Create a unique, engaging ${grade} grade math question ${concept ? `about ${concept}` : `in the category of ${category}`} that hasn't been asked before. 
+          
+It must be completely different from all recent questions.
+
+Timestamp for uniqueness: ${timestamp}
+
+Make sure it's appropriate for the student's level and provides a learning opportunity.`
         }
       ],
       response_format: { type: "json_object" },
       max_tokens: 800,
-      temperature: 0.8, // Slightly higher temperature for more variability
+      temperature: 0.9, // Higher temperature for more diversity
     });
 
     const content = response.choices[0].message.content || '{}';
@@ -1635,10 +1678,55 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     const uniqueId = parsedResponse.uniqueId 
       ? parseInt(parsedResponse.uniqueId) 
       : Date.now() + Math.floor(Math.random() * 10000);
+      
+    // Extract key mathematical operations for tracking question uniqueness
+    const mathOperations: string[] = [];
+    
+    // Look for basic arithmetic operations in the question
+    if (typeof parsedResponse.question === 'string') {
+      // Extract operations using regex
+      const additionMatches = [...parsedResponse.question.matchAll(/(\d+)\s*\+\s*(\d+)/g)];
+      const subtractionMatches = [...parsedResponse.question.matchAll(/(\d+)\s*\-\s*(\d+)/g)];
+      const multiplicationMatches = [...parsedResponse.question.matchAll(/(\d+)\s*[×x\*]\s*(\d+)/g)];
+      const divisionMatches = [...parsedResponse.question.matchAll(/(\d+)\s*[÷\/]\s*(\d+)/g)];
+      
+      // Convert matches to standardized math facts
+      additionMatches.forEach(m => mathOperations.push(`${m[1]}+${m[2]}`));
+      subtractionMatches.forEach(m => mathOperations.push(`${m[1]}-${m[2]}`));
+      multiplicationMatches.forEach(m => mathOperations.push(`${m[1]}×${m[2]}`));
+      divisionMatches.forEach(m => mathOperations.push(`${m[1]}÷${m[2]}`));
+    }
+    
+    // Check for fractions in the question
+    const fractionMatches = typeof parsedResponse.question === 'string'
+      ? [...parsedResponse.question.matchAll(/(\d+)\/(\d+)/g)]
+      : [];
+    fractionMatches.forEach(m => mathOperations.push(`fraction:${m[1]}/${m[2]}`));
+    
+    // Log for debugging
+    if (mathOperations.length > 0) {
+      console.log("Checking if question references an image - disabled per user request");
+      console.log(`Generated question with math operations: ${mathOperations.join(', ')}`);
+    } else {
+      console.log("Checking if question references an image - disabled per user request");
+    }
+    
+    // Generate hash signature of the question text (ignoring whitespace and capitalization)
+    // This helps identify almost identical questions even if wording varies slightly
+    const questionSignature = typeof parsedResponse.question === 'string' 
+      ? parsedResponse.question
+          .toLowerCase()
+          .replace(/\s+/g, ' ')
+          .trim()
+      : '';
+          
+    console.log("Successfully generated new question via OpenAI");
     
     return {
       ...parsedResponse,
-      id: uniqueId
+      id: uniqueId,
+      mathOperations: mathOperations.length > 0 ? mathOperations : undefined,
+      questionSignature: questionSignature || undefined
     };
   } catch (error) {
     console.error("Error generating adaptive question:", error);

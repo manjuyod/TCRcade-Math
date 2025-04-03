@@ -233,12 +233,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Start easier, get harder as the student sees more questions
           const dynamicDifficulty = Math.min(5, Math.max(1, 2 + Math.floor(excludeIds.length / 30)));
           
+          // Get recent questions from database for improved duplication prevention
+          let previousQuestionDetails = [];
+          
+          try {
+            // If we have excluded IDs, fetch the actual questions to provide more context
+            if (excludeIds.length > 0) {
+              // Get the most recent 15 questions for context
+              const recentExcludeIds = excludeIds.slice(-15);
+              
+              // Fetch actual questions in batches to avoid overloading the system
+              const detailedQuestions = await Promise.all(
+                recentExcludeIds.map(async (id) => {
+                  try {
+                    // Get question details from database
+                    const questionDetails = await storage.getQuestion(id);
+                    return questionDetails || { id };
+                  } catch (e) {
+                    console.warn(`Failed to fetch question details for ID ${id}:`, e);
+                    return { id };
+                  }
+                })
+              );
+              
+              // Filter out any failed lookups
+              previousQuestionDetails = detailedQuestions.filter(q => q !== null);
+              
+              console.log(`Fetched ${previousQuestionDetails.length} detailed questions for context`);
+            }
+          } catch (e) {
+            console.warn("Failed to fetch previous question details:", e);
+          }
+          
           const generatedQuestion = await openaiService.generateAdaptiveQuestion({
             grade,
             category,
             studentLevel: estimatedSkillLevel,
             difficulty: dynamicDifficulty,
-            previousQuestions: excludeIds.slice(-10), // Send the most recent questions
+            // Send detailed question history - or just IDs if we couldn't fetch details
+            previousQuestions: previousQuestionDetails.length > 0 
+              ? previousQuestionDetails 
+              : excludeIds.slice(-15), // Send the most recent questions
           });
           
           if (generatedQuestion && generatedQuestion.question) {
@@ -406,8 +441,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const generatedQuestion = await openaiService.generateAdaptiveQuestion({
           grade,
           category,
-          // Send all recent IDs to ensure we get something different
-          previousQuestions: excludeIds.slice(-20)
+          // Use the previously fetched question details if available
+          previousQuestions: previousQuestionDetails.length > 0 
+            ? previousQuestionDetails 
+            : excludeIds.slice(-20) // Send IDs if details not available
         });
         
         if (generatedQuestion && generatedQuestion.question) {
@@ -723,14 +760,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Award tokens for correct answers (max 200 per day)
       let tokensEarned = 0;
-      let dailyTokensEarned = user.dailyTokensEarned;
+      let dailyTokensEarned = user.dailyTokensEarned || 0;
       
-      if (isCorrect && dailyTokensEarned < 200) {
-        // Award tokens based on difficulty
-        tokensEarned = Math.min(question.difficulty * 2, 10);
-        // Make sure we don't exceed daily limit
-        tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
-        dailyTokensEarned += tokensEarned;
+      if (isCorrect) {
+        // Award tokens based on difficulty, ensuring a minimum of 1 token even for easy questions
+        const difficulty = question?.difficulty || 1;
+        tokensEarned = Math.max(1, Math.min(difficulty * 2, 10)); 
+        
+        // Add streak bonus (extra tokens if user has answered multiple questions correctly in a row)
+        const streakDays = user.streakDays || 0;
+        const streakBonus = streakDays > 3 ? 1 : 0; // +1 token for 3+ day streaks
+        tokensEarned += streakBonus;
+        
+        // Ensure we don't exceed daily limit (200 tokens)
+        if (dailyTokensEarned < 200) {
+          tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
+          dailyTokensEarned += tokensEarned;
+        } else {
+          // User already hit daily limit
+          tokensEarned = 0;
+        }
+        
+        console.log(`Awarded ${tokensEarned} tokens for correct answer (difficulty: ${difficulty})`);
       }
       
       // Update user data
@@ -899,8 +950,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user stats
       const user = await storage.getUser(userId);
       if (user) {
-        // Award tokens based on difficulty
-        const tokensEarned = isCorrect ? Math.min(question.difficulty * 2, 10) : 0;
+        // Award tokens based on difficulty, ensuring a minimum of 1 token for correct answers
+        let tokensEarned = 0;
+        
+        if (isCorrect) {
+          // Base token calculation with minimum of 1 token
+          tokensEarned = Math.max(1, Math.min(question.difficulty * 2, 10));
+          
+          // Add streak bonus tokens
+          const streakDays = user.streakDays || 0;
+          if (streakDays >= 3) {
+            tokensEarned += 1; // Add bonus token for 3+ day streak
+          }
+          
+          // Limit to daily max (200)
+          const dailyTokensEarned = user.dailyTokensEarned || 0;
+          if (dailyTokensEarned >= 200) {
+            tokensEarned = 0; // Already at daily limit
+          } else {
+            tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
+          }
+          
+          console.log(`Awarded ${tokensEarned} tokens for correct answer (API: /questions/answer)`);
+        }
         
         await storage.updateUser(userId, {
           questionsAnswered: (user.questionsAnswered || 0) + 1,
@@ -927,7 +999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         correct: isCorrect,
         correctAnswer: question.answer,
-        tokensEarned: isCorrect ? Math.min(question.difficulty * 2, 10) : 0,
+        tokensEarned, // Use the calculated tokensEarned value from above
         analysis
       });
     } catch (error) {
