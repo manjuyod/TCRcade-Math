@@ -1089,72 +1089,74 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
         imageType = "countObjects";
         imageContent = ["circle", 5];
 
-      // Check for complex shape descriptions like "Look at the shapes: two red squares, two blue circles"
-      const complexShapeMatch = parsedResponse.question.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/gi);
-      if (complexShapeMatch && complexShapeMatch.length > 0) {
-        console.log("Complex shape description detected:", complexShapeMatch);
-        imageType = "multipleShapes";
-        
-        // Parse the shapes from the description
-        const shapes: Array<{type: string, color: string, count: number}> = [];
-        
-        complexShapeMatch.forEach((match: string) => {
-          // Extract count, color, and shape type
-          const parts = match.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
-          if (parts) {
-            let count = parts[1].toLowerCase();
-            // Convert text numbers to digits
-            if (count === "one") count = "1";
-            if (count === "two") count = "2";
-            if (count === "three") count = "3";
-            if (count === "four") count = "4";
-            if (count === "five") count = "5";
-            
-            const color = parts[2] || "blue"; // Default color if none specified
-            let type = parts[3].toLowerCase();
-            
-            // Normalize singular/plural
-            if (type.endsWith('s')) type = type.slice(0, -1);
-            
-            shapes.push({
-              type, 
-              color, 
-              count: parseInt(count)
-            });
-          }
-        });
-        
-        imageContent = shapes;
-        
-        // If the question is asking about counting a specific shape, find the answer
-        if (/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(parsedResponse.question)) {
-          const targetMatch = parsedResponse.question.match(/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
-          if (targetMatch) {
-            const targetColor = targetMatch[1] || null;
-            let targetType = targetMatch[2].toLowerCase();
-            if (targetType.endsWith('s')) targetType = targetType.slice(0, -1);
-            
-            // Find the matching shape and count
-            let count = 0;
-            for (const shape of shapes) {
-              if ((!targetColor || shape.color === targetColor) && shape.type === targetType) {
-                count += shape.count;
-              }
+        // Check for complex shape descriptions like "Look at the shapes: two red squares, two blue circles"
+        const complexShapeMatch = parsedResponse.question.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/gi);
+        if (complexShapeMatch && complexShapeMatch.length > 0) {
+          console.log("Complex shape description detected:", complexShapeMatch);
+          imageType = "multipleShapes";
+          
+          // Parse the shapes from the description
+          const shapes: Array<{type: string, color: string, count: number}> = [];
+          
+          complexShapeMatch.forEach((match: string) => {
+            // Extract count, color, and shape type
+            const parts = match.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
+            if (parts) {
+              let count = parts[1].toLowerCase();
+              // Convert text numbers to digits
+              if (count === "one") count = "1";
+              if (count === "two") count = "2";
+              if (count === "three") count = "3";
+              if (count === "four") count = "4";
+              if (count === "five") count = "5";
+              
+              const color = parts[2] || "blue"; // Default color if none specified
+              let type = parts[3].toLowerCase();
+              
+              // Normalize singular/plural
+              if (type.endsWith('s')) type = type.slice(0, -1);
+              
+              shapes.push({
+                type, 
+                color, 
+                count: parseInt(count)
+              });
             }
-            
-            // Update the answer and options
-            parsedResponse.answer = count.toString();
-            parsedResponse.options = [
-              count.toString(),
-              (count + 1).toString(),
-              (count - 1 > 0 ? count - 1 : count + 2).toString(),
-              (count + 2).toString()
-            ];
+          });
+          
+          imageContent = shapes;
+          
+          // If the question is asking about counting a specific shape, find the answer
+          if (/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i.test(parsedResponse.question)) {
+            const targetMatch = parsedResponse.question.match(/how many (red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/i);
+            if (targetMatch) {
+              const targetColor = targetMatch[1] || null;
+              let targetType = targetMatch[2].toLowerCase();
+              if (targetType.endsWith('s')) targetType = targetType.slice(0, -1);
+              
+              // Find the matching shape and count
+              let count = 0;
+              for (const shape of shapes) {
+                if ((!targetColor || shape.color === targetColor) && shape.type === targetType) {
+                  count += shape.count;
+                }
+              }
+              
+              // Update the answer and options
+              parsedResponse.answer = count.toString();
+              parsedResponse.options = [
+                count.toString(),
+                (count + 1).toString(),
+                (count - 1 > 0 ? count - 1 : count + 2).toString(),
+                (count + 2).toString()
+              ];
+            }
           }
         }
       }
+      
       // Check for counting questions
-      else if (/how many/i.test(parsedResponse.question)) {
+      if (/how many/i.test(parsedResponse.question)) {
         // Extract correct answer from question or use a reasonable count
         let count = 0;
         // First try to get the correct answer from parsedResponse
