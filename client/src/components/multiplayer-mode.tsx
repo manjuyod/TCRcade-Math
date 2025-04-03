@@ -947,6 +947,124 @@ export default function MultiplayerMode() {
       );
     }
     
+    // Finished view with room-specific leaderboard
+    if (gameState.status === 'finished') {
+      // Sort players by score for the leaderboard
+      const sortedPlayers = [...activeRoom.players].sort((a, b) => (b.score || 0) - (a.score || 0));
+      
+      return (
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center">
+                <Trophy className="h-5 w-5 mr-2 text-primary" />
+                Room Leaderboard
+              </CardTitle>
+            </div>
+            <CardDescription>
+              Game results for room: {activeRoom.name}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold">Final Rankings</h3>
+              
+              <div className="space-y-2">
+                {sortedPlayers.map((player, index) => (
+                  <div 
+                    key={player.id}
+                    className={`
+                      flex items-center p-4 rounded-lg
+                      ${index === 0 ? 'bg-amber-100 border border-amber-300' : 
+                        index === 1 ? 'bg-gray-100 border border-gray-300' : 
+                        index === 2 ? 'bg-orange-100 border border-orange-300' : 'bg-muted'}
+                      ${player.id === user?.id ? 'border-2 border-primary' : ''}
+                    `}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary mr-3">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {player.username}
+                        {player.id === user?.id && <span className="ml-2 text-primary">(You)</span>}
+                      </div>
+                      {player.grade && (
+                        <div className="text-xs text-muted-foreground">
+                          Grade {player.grade}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">{player.score || 0}</div>
+                      <div className="text-xs text-muted-foreground">points</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {activeRoom.isHost && (
+                <div className="mt-6">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      // Reset the game for a new round
+                      setGameState({
+                        ...gameState,
+                        status: 'waiting'
+                      });
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Play Again
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={handleLeaveRoom}>
+              Leave Room
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="secondary">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Results
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Share Your Results</DialogTitle>
+                </DialogHeader>
+                <div className="bg-muted p-3 rounded-md">
+                  <p>
+                    I just played a math game and scored {currentPlayer?.score || 0} points!
+                    Join me for another round with code: {activeRoom.roomCode}
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => {
+                    navigator.clipboard.writeText(
+                      `I just played a math game and scored ${currentPlayer?.score || 0} points! Join me for another round with code: ${activeRoom.roomCode}`
+                    );
+                    toast({
+                      title: 'Copied to clipboard',
+                      description: 'You can now paste and share your results!',
+                      variant: 'default',
+                    });
+                  }}>
+                    Copy to Clipboard
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardFooter>
+        </Card>
+      );
+    }
+    
     // Waiting room view
     return (
       <Card>
@@ -1016,6 +1134,11 @@ export default function MultiplayerMode() {
                   </div>
                   {player.isHost && (
                     <Badge>Host</Badge>
+                  )}
+                  {gameState.status === 'finished' && (
+                    <div className="ml-2 font-medium text-right">
+                      <div className="text-primary font-bold">{player.score || 0} pts</div>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1147,16 +1270,13 @@ export default function MultiplayerMode() {
           {activeRoom.isHost && (
             <Button 
               onClick={handleStartGame}
-              disabled={
-                activeRoom.players.length < 2 || 
-                startGameMutation.isPending
-              }
+              disabled={startGameMutation.isPending}
             >
               {startGameMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {activeRoom.players.length < 2 
-                ? 'Need at least 2 players'
+              {activeRoom.players.length === 1 
+                ? 'Start Single-Player Mode' 
                 : 'Start Game'}
             </Button>
           )}

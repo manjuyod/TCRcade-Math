@@ -2054,9 +2054,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Only the host can start the game" });
       }
       
-      // Check if there are at least 2 players
-      if (room.participants.length < 2) {
-        return res.status(400).json({ error: "At least 2 players are required" });
+      // Allow single-player mode as requested
+      if (room.participants.length < 1) {
+        return res.status(400).json({ error: "At least 1 player is required" });
       }
       
       // Update room status
