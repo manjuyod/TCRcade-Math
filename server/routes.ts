@@ -765,7 +765,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isCorrect) {
         // Award tokens based on difficulty, ensuring a minimum of 1 token even for easy questions
         const difficulty = question?.difficulty || 1;
-        tokensEarned = Math.max(1, Math.min(difficulty * 2, 10)); 
+        
+        // Force a minimum of 3 tokens per correct answer to fix the "0 tokens" issue
+        tokensEarned = Math.max(3, Math.min(difficulty * 2, 10)); 
         
         // Add streak bonus (extra tokens if user has answered multiple questions correctly in a row)
         const streakDays = user.streakDays || 0;
@@ -777,8 +779,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
           dailyTokensEarned += tokensEarned;
         } else {
-          // User already hit daily limit
-          tokensEarned = 0;
+          // Even at daily limit, award at least 1 token per correct answer
+          tokensEarned = 1;
         }
         
         console.log(`Awarded ${tokensEarned} tokens for correct answer (difficulty: ${difficulty})`);
@@ -954,8 +956,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let tokensEarned = 0;
         
         if (isCorrect) {
-          // Base token calculation with minimum of 1 token
-          tokensEarned = Math.max(1, Math.min(question.difficulty * 2, 10));
+          // Base token calculation with minimum of 3 tokens
+          tokensEarned = Math.max(3, Math.min(question.difficulty * 2, 10));
           
           // Add streak bonus tokens
           const streakDays = user.streakDays || 0;
@@ -966,7 +968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Limit to daily max (200)
           const dailyTokensEarned = user.dailyTokensEarned || 0;
           if (dailyTokensEarned >= 200) {
-            tokensEarned = 0; // Already at daily limit
+            tokensEarned = 1; // Ensure at least 1 token even at daily limit
           } else {
             tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
           }

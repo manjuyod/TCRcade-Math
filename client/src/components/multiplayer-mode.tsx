@@ -145,6 +145,7 @@ export default function MultiplayerMode() {
         title: 'Room created',
         description: `Room "${data.name}" has been created. Share code: ${data.roomCode}`,
         variant: 'default',
+        dismissTimeout: 3000 // Auto-dismiss after 3 seconds
       });
     },
     onError: (error) => {
@@ -152,6 +153,7 @@ export default function MultiplayerMode() {
         title: 'Error creating room',
         description: error.message,
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     }
   });
@@ -170,6 +172,7 @@ export default function MultiplayerMode() {
         title: 'Joined room',
         description: 'You have joined the multiplayer room',
         variant: 'default',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
       playSound('levelUp');
     },
@@ -178,6 +181,7 @@ export default function MultiplayerMode() {
         title: 'Error joining room',
         description: error.message,
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     }
   });
@@ -197,6 +201,7 @@ export default function MultiplayerMode() {
         title: 'Left room',
         description: 'You have left the multiplayer room',
         variant: 'default',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     },
     onError: (error) => {
@@ -204,6 +209,7 @@ export default function MultiplayerMode() {
         title: 'Error leaving room',
         description: error.message,
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     }
   });
@@ -231,11 +237,11 @@ export default function MultiplayerMode() {
         }));
       }
       
-      // Toast is auto-dismissed after 3 seconds (configured in use-toast.ts)
       toast({
         title: 'Game started',
         description: 'The multiplayer game has started!',
         variant: 'default',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
       
       playSound('levelUp');
@@ -282,6 +288,7 @@ export default function MultiplayerMode() {
         title: data.correct ? 'Correct!' : 'Incorrect',
         description: data.correct ? '+1 point' : 'Better luck on the next question',
         variant: data.correct ? 'default' : 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     },
     onError: (error) => {
@@ -289,6 +296,7 @@ export default function MultiplayerMode() {
         title: 'Error submitting answer',
         description: error.message,
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     }
   });
@@ -314,6 +322,7 @@ export default function MultiplayerMode() {
         title: 'Settings updated',
         description: 'Room settings have been updated',
         variant: 'default',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     },
     onError: (error) => {
@@ -321,6 +330,7 @@ export default function MultiplayerMode() {
         title: 'Error updating settings',
         description: error.message,
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
     }
   });
@@ -405,6 +415,7 @@ export default function MultiplayerMode() {
         title: 'Error',
         description: 'Please enter a room name',
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
       return;
     }
@@ -429,6 +440,7 @@ export default function MultiplayerMode() {
         title: 'Error',
         description: 'Please enter a room code',
         variant: 'destructive',
+        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
       return;
     }
