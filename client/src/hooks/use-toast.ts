@@ -5,8 +5,13 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 5  // Increased limit to allow multiple notifications
+const TOAST_REMOVE_DELAY = 3000
+
+// Extended ToastProps to include dismissTimeout
+export interface ExtendedToastProps extends ToastProps {
+  dismissTimeout?: number; // Time in ms after which toast auto-dismisses
+}
 
 type ToasterToast = ToastProps & {
   id: string
@@ -149,6 +154,10 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
+  // Auto-dismiss toast after a timeout
+  const DEFAULT_DISMISS_TIMEOUT = 3000 // 3 seconds
+  const dismissTimeout = props.dismissTimeout || DEFAULT_DISMISS_TIMEOUT
+  
   dispatch({
     type: "ADD_TOAST",
     toast: {
@@ -160,6 +169,13 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+  
+  // Auto-dismiss after the timeout (if not disabled)
+  if (dismissTimeout > 0) {
+    setTimeout(() => {
+      dismiss()
+    }, dismissTimeout)
+  }
 
   return {
     id: id,

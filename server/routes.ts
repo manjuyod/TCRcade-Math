@@ -2059,14 +2059,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least 1 player is required" });
       }
       
-      // Update room status
+      // Fetch questions for the game
+      const questionCount = room.settings?.questionCount || 10;
+      const grade = room.grade || 'K';
+      const category = room.category || 'all';
+      
+      // Fetch questions for the game
+      const questions = [];
+      for (let i = 0; i < questionCount; i++) {
+        try {
+          const question = await storage.getAdaptiveQuestion(req.user!.id, grade, true, category);
+          if (question) {
+            questions.push(question);
+          }
+        } catch (err) {
+          console.error("Error fetching question:", err);
+        }
+      }
+      
+      // Update room status with questions and set current question
       const updatedRoom = await storage.updateMultiplayerRoom(roomId, {
         status: "playing",
         gameState: {
           startedAt: new Date(),
+          status: "playing",
           currentQuestionIndex: 0,
+          currentQuestion: questions.length > 0 ? questions[0] : null,
           playerAnswers: {},
-          questions: []
+          questions: questions,
+          timeRemaining: room.settings?.timeLimit || 30,
+          totalQuestions: questions.length
         }
       });
       
@@ -2106,12 +2128,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Game is not in progress" });
       }
       
-      // Process answer (in a real implementation, we would check the answer against the current question)
-      const isCorrect = Math.random() > 0.3; // Placeholder for demonstration
+      // Check if the game state exists and has questions
+      if (!room.gameState || !room.gameState.questions || !room.gameState.questions.length) {
+        return res.status(400).json({ error: "No questions available" });
+      }
+      
+      // Get the current question
+      const currentQuestion = room.gameState.questions[room.gameState.currentQuestionIndex || 0];
+      if (!currentQuestion) {
+        return res.status(400).json({ error: "Current question not found" });
+      }
+      
+      // Process answer - compare with the current question's answer
+      const isCorrect = answer.trim().toLowerCase() === currentQuestion.answer.trim().toLowerCase();
+      
+      // Update player score
+      const playerAnswers = room.gameState.playerAnswers || {};
+      playerAnswers[req.user!.id] = {
+        ...playerAnswers[req.user!.id],
+        answeredQuestions: [...(playerAnswers[req.user!.id]?.answeredQuestions || []), {
+          questionId: currentQuestion.id,
+          answer,
+          isCorrect,
+          timeSpent: room.gameState.timeLimit - (room.gameState.timeRemaining || 0)
+        }]
+      };
+      
+      // Update user score
+      if (isCorrect) {
+        await storage.updateUser(req.user!.id, {
+          tokens: req.user!.tokens + 1
+        });
+      }
+      
+      // Determine if the quiz is over or we should advance to the next question
+      const isLastQuestion = (room.gameState.currentQuestionIndex || 0) >= room.gameState.questions.length - 1;
+      let nextQuestion = null;
+      let gameOver = false;
+      
+      if (isLastQuestion) {
+        // End the game
+        gameOver = true;
+        
+        // Calculate final scores for each player
+        const finalScores: { [userId: number]: { correct: number, incorrect: number, score: number } } = {};
+        
+        Object.keys(playerAnswers).forEach(userId => {
+          const userAnswers = playerAnswers[parseInt(userId)].answeredQuestions || [];
+          const correctCount = userAnswers.filter(a => a.isCorrect).length;
+          
+          finalScores[parseInt(userId)] = {
+            correct: correctCount,
+            incorrect: userAnswers.length - correctCount,
+            score: correctCount
+          };
+        });
+        
+        // Sort by score to determine ranks
+        const rankedPlayers = Object.keys(finalScores)
+          .map(userId => ({ 
+            id: parseInt(userId), 
+            ...finalScores[parseInt(userId)]
+          }))
+          .sort((a, b) => b.score - a.score);
+          
+        rankedPlayers.forEach((player, index) => {
+          finalScores[player.id].rank = index + 1;
+        });
+        
+        // Update room status
+        await storage.updateMultiplayerRoom(roomId, {
+          status: "finished",
+          gameState: {
+            ...room.gameState,
+            status: "finished",
+            playerAnswers,
+            results: rankedPlayers
+          }
+        });
+      } else {
+        // Move to the next question
+        const nextIndex = (room.gameState.currentQuestionIndex || 0) + 1;
+        nextQuestion = room.gameState.questions[nextIndex];
+        
+        await storage.updateMultiplayerRoom(roomId, {
+          gameState: {
+            ...room.gameState,
+            currentQuestionIndex: nextIndex,
+            currentQuestion: nextQuestion,
+            playerAnswers,
+            timeRemaining: room.settings?.timeLimit || 30
+          }
+        });
+      }
       
       res.json({
         success: true,
-        correct: isCorrect
+        correct: isCorrect,
+        nextQuestion: nextQuestion,
+        gameOver: gameOver
       });
     } catch (error) {
       console.error("Error submitting multiplayer answer:", error);

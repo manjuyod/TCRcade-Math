@@ -39,6 +39,7 @@ type GameState = {
   totalQuestions: number;
   timeRemaining: number;
   players: Player[];
+  questions?: Question[];
   results: {
     id: number;
     score: number;
@@ -214,13 +215,29 @@ export default function MultiplayerMode() {
       if (!res.ok) throw new Error('Failed to start game');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       refetchActiveRoom();
+      
+      // Set the game state to playing immediately without waiting for the next poll
+      if (data?.room?.gameState?.questions?.length > 0) {
+        setGameState(prev => ({
+          ...prev,
+          status: 'playing',
+          currentQuestionIndex: 0,
+          currentQuestion: data.room.gameState.questions[0],
+          totalQuestions: data.room.gameState.questions.length,
+          timeRemaining: data.room.settings?.timeLimit || 30,
+          questions: data.room.gameState.questions
+        }));
+      }
+      
+      // Toast is auto-dismissed after 3 seconds (configured in use-toast.ts)
       toast({
         title: 'Game started',
         description: 'The multiplayer game has started!',
         variant: 'default',
       });
+      
       playSound('levelUp');
     },
     onError: (error) => {
@@ -237,13 +254,35 @@ export default function MultiplayerMode() {
     mutationFn: async (data: { roomId: number; answer: string }) => {
       const res = await apiRequest('POST', '/api/multiplayer/answer', data);
       if (!res.ok) throw new Error('Failed to submit answer');
-      return res.json() as Promise<{ correct: boolean }>;
+      return res.json() as Promise<{ correct: boolean, nextQuestion?: Question, gameOver?: boolean }>;
     },
     onSuccess: (data) => {
       // Play sound based on correctness
       data.correct ? playSound('correct') : playSound('incorrect');
       
+      // Update game state if there's a next question
+      if (data.nextQuestion) {
+        setGameState(prev => ({
+          ...prev,
+          currentQuestion: data.nextQuestion,
+          currentQuestionIndex: prev.currentQuestionIndex + 1,
+          timeRemaining: activeRoom?.settings?.timeLimit || 30
+        }));
+      } else if (data.gameOver) {
+        setGameState(prev => ({
+          ...prev,
+          status: 'finished'
+        }));
+      }
+      
       refetchActiveRoom();
+      
+      // Show a toast notification for the answer result that auto-dismisses
+      toast({
+        title: data.correct ? 'Correct!' : 'Incorrect',
+        description: data.correct ? '+1 point' : 'Better luck on the next question',
+        variant: data.correct ? 'default' : 'destructive',
+      });
     },
     onError: (error) => {
       toast({
@@ -296,8 +335,12 @@ export default function MultiplayerMode() {
         currentQuestionIndex: activeRoom.gameState.currentQuestionIndex || 0,
         totalQuestions: activeRoom.settings?.questionCount || 10,
         players: activeRoom.players || [],
+        questions: activeRoom.gameState.questions || [],
         results: activeRoom.gameState.results || []
       }));
+      
+      // Log game state for debugging
+      console.log('Game state updated:', activeRoom.gameState);
     } else if (activeRoom) {
       setGameState(prev => ({
         ...prev,
