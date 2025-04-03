@@ -8,7 +8,7 @@ import { getGradeLabel } from '@/lib/utils';
 import { getCategoryLabel } from '@/lib/questions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Edit } from 'lucide-react';
+import { Loader2, Settings, Edit, Flame, HelpCircle, Coins, Star, Award, Medal } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -349,7 +349,7 @@ export default function ProfilePage() {
               {user.streakDays >= 3 && (
                 <div className="flex flex-col items-center">
                   <div className="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <i className="ri-fire-line text-2xl text-primary"></i>
+                    <Flame className="h-8 w-8 text-primary" />
                   </div>
                   <span className="text-xs text-center text-gray-700">On Fire!</span>
                 </div>
@@ -358,7 +358,7 @@ export default function ProfilePage() {
               {user.questionsAnswered >= 50 && (
                 <div className="flex flex-col items-center">
                   <div className="w-16 h-16 bg-secondary bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <i className="ri-question-line text-2xl text-secondary"></i>
+                    <HelpCircle className="h-8 w-8 text-secondary" />
                   </div>
                   <span className="text-xs text-center text-gray-700">Question Master</span>
                 </div>
@@ -367,7 +367,7 @@ export default function ProfilePage() {
               {user.tokens >= 100 && (
                 <div className="flex flex-col items-center">
                   <div className="w-16 h-16 bg-accent bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <i className="ri-coin-line text-2xl text-accent"></i>
+                    <Coins className="h-8 w-8 text-accent" />
                   </div>
                   <span className="text-xs text-center text-gray-700">Token Collector</span>
                 </div>

@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Users, Brain, Pencil, GraduationCap } from 'lucide-react';
+import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Users, Brain, Pencil, GraduationCap, X } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -32,48 +32,56 @@ export default function Navigation({ active }: NavigationProps) {
           
           {/* Feature Menu Button */}
           <li className="flex flex-col items-center">
-            <Sheet>
-              <SheetTrigger asChild>
-                <button className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${isAdvancedFeatureActive ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
-                  <Menu className={`${isAdvancedFeatureActive ? 'h-5 w-5' : 'h-4 w-4'}`} />
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto rounded-t-3xl">
-                <div className="flex flex-wrap justify-around py-4 px-1 mb-6 mt-2">
-                  {/* Daily Challenge removed as per user request */}
+            {/* Custom Sheet implementation that won't shadow out the background */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsFeatureMenuOpen(!isFeatureMenuOpen)}
+                className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${isAdvancedFeatureActive ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}
+              >
+                <Menu className={`${isAdvancedFeatureActive ? 'h-5 w-5' : 'h-4 w-4'}`} />
+              </button>
+              
+              {isFeatureMenuOpen && (
+                <div className="fixed inset-x-0 bottom-12 z-50 bg-white border-t border-gray-200 shadow-xl rounded-t-3xl px-4 py-4 transition-all duration-300 ease-in-out">
+                  <button 
+                    className="absolute right-4 top-3 text-gray-400 hover:text-gray-600" 
+                    onClick={() => setIsFeatureMenuOpen(false)}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                   
-                  {/* Avatar functionality has been removed */}
-                  
-                  <Link href="/multiplayer" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
-                    <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs text-center">Multiplayer</span>
-                  </Link>
-                  
-                  <Link href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
-                    <div className={`p-2 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Brain className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs text-center">AI Analytics</span>
-                  </Link>
+                  <div className="flex flex-wrap justify-around py-2 mt-2">
+                    <Link href="/multiplayer" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                      <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs text-center">Multiplayer</span>
+                    </Link>
+                    
+                    <Link href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                      <div className={`p-2 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                        <Brain className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs text-center">AI Analytics</span>
+                    </Link>
 
-                  <Link href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
-                    <div className={`p-2 rounded-full ${active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Pencil className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs text-center">Create-A-Quiz</span>
-                  </Link>
-                  
-                  <Link href="/tutor" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
-                    <div className={`p-2 rounded-full ${active === 'tutor' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <GraduationCap className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs text-center">AI Tutor</span>
-                  </Link>
+                    <Link href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                      <div className={`p-2 rounded-full ${active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                        <Pencil className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs text-center">Create-A-Quiz</span>
+                    </Link>
+                    
+                    <Link href="/tutor" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                      <div className={`p-2 rounded-full ${active === 'tutor' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                        <GraduationCap className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs text-center">AI Tutor</span>
+                    </Link>
+                  </div>
                 </div>
-              </SheetContent>
-            </Sheet>
+              )}
+            </div>
             <span className={`text-[8px] ${isAdvancedFeatureActive ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>More</span>
           </li>
           
