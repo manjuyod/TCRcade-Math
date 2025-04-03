@@ -13,21 +13,28 @@ function questionReferencesImage(questionText: string): boolean {
   // Define very specific patterns for allowed visual questions
   const allowedVisualPatterns = [
     // Counting specific shapes
-    /how many (triangles?|circles?|squares?|stars?|shapes?) are there/i,
-    /count the (triangles?|circles?|squares?|stars?|shapes?)/i,
-    /how many (triangles?|circles?|squares?|stars?|shapes?) do you see/i,
-    /how many (triangles?|circles?|squares?|stars?|shapes?) can you see/i,
+    /how many (triangles?|circles?|squares?|stars?|shapes?|rectangles?|pentagons?|hexagons?|octagons?|ovals?)/i,
+    /count the (triangles?|circles?|squares?|stars?|shapes?|rectangles?|pentagons?|hexagons?|octagons?|ovals?)/i,
+    /total number of (triangles?|circles?|squares?|stars?|shapes?|rectangles?|pentagons?|hexagons?|octagons?|ovals?)/i,
     
     // Shape identification/recognition
-    /which (shape|one) is a (triangle|circle|square|star)/i,
-    /identify the (triangle|circle|square|star)/i,
-    /what shape is (shown|this)/i,
+    /which (shape|one) is a (triangle|circle|square|star|rectangle|pentagon|hexagon|octagon|oval)/i,
+    /identify the (triangle|circle|square|star|rectangle|pentagon|hexagon|octagon|oval)/i,
+    /what shape is (shown|this|pictured|displayed)/i,
+    /name the shape/i,
+    /which of these shapes/i,
+
+    // Shape attribute questions
+    /which shape has (\d+) sides/i,
+    /how many sides does a (triangle|square|pentagon|hexagon|octagon) have/i,
+    /which shape is (round|circular|rectangular|triangular|square)/i,
     
     // Fractions with visual references
     /what fraction is shaded/i,
     /what fraction of the (shape|circle|square|rectangle|figure) is (shaded|colored)/i,
-    /which fraction (represents|shows) the shaded part/i,
-    /shade the part that represents (\d+)\/(\d+)/i
+    /which fraction (represents|shows|equals|is) the shaded part/i,
+    /shade the part that represents (\d+)\/(\d+)/i,
+    /which model (shows|represents) (\d+)\/(\d+)/i
   ];
   
   // Check for these specific patterns
@@ -37,10 +44,62 @@ function questionReferencesImage(questionText: string): boolean {
     return true;
   }
   
-  // Check for specific counting of colored shapes
-  const complexColorShapeMatch = questionText.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)\s+(triangles?|circles?|squares?|stars?)/i);
-  if (complexColorShapeMatch) {
-    console.log("Complex shape with color description detected:", complexColorShapeMatch[0]);
+  // Check for specific counting of colored shapes - flexible pattern matching
+  const colorWords = /red|blue|green|yellow|purple|orange|pink|brown|black|white|gray|grey/i;
+  const shapeWords = /triangles?|circles?|squares?|stars?|rectangles?|pentagons?|hexagons?|octagons?|ovals?|shapes?/i;
+  const numberWords = /\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|several|many|few/i;
+  
+  // Test various patterns that mix colors and shapes
+  const colorPatterns = [
+    // Number + color + shape ("3 red circles")
+    new RegExp(`(${numberWords.source})\\s+(${colorWords.source})\\s+(${shapeWords.source})`, 'i'),
+    
+    // Color + shape + number/quantifier ("red circles that have 5 sides")
+    new RegExp(`(${colorWords.source})\\s+(${shapeWords.source})`, 'i'),
+    
+    // Various ways of asking about colored shapes
+    /identify the (red|blue|green|yellow|purple) shapes?/i,
+    /which shapes? is (red|blue|green|yellow|purple)/i,
+    /how many (red|blue|green|yellow|purple) shapes?/i,
+    /count the (red|blue|green|yellow|purple) shapes?/i,
+    /(red|blue|green|yellow|purple) colored shapes?/i
+  ];
+  
+  // Check if any color pattern is found
+  for (const pattern of colorPatterns) {
+    if (pattern.test(questionText)) {
+      console.log("Colored shape question detected with pattern:", pattern);
+      return true;
+    }
+  }
+  
+  // Special handling for Money-related questions
+  const moneyTerms = [
+    /coins?/i, /bills?/i, /dollars?/i, /cents?/i, /money/i, 
+    /penny|pennies/i, /nickel/i, /dime/i, /quarter/i,
+    /\$\d+/i, /\d+\s*cents/i, /\$(\d+)\.(\d+)/i
+  ];
+  
+  // Money-specific question patterns
+  const moneyQuestionPatterns = [
+    /how much money/i,
+    /how many (cents|pennies|nickels|dimes|quarters)/i,
+    /what is the (total|value)/i,
+    /count the (money|coins|bills)/i,
+    /how much (does .+ cost|is .+ worth)/i,
+    /what coins make/i,
+    /which coins would you use/i,
+    /can you make \$[\d\.]+/i,
+    /show the coins that equal/i,
+    /if you have .+ coins/i
+  ];
+  
+  // Check if it's a money-related question
+  if (moneyTerms.some(term => term.test(questionText)) && 
+      (moneyQuestionPatterns.some(pattern => pattern.test(questionText)) || 
+       /how many|count|total|value|worth|cost/i.test(questionText) || 
+       /\d+.*and.*\d+/.test(questionText))) {
+    console.log("Money-related question detected for 'Money Matters' category");
     return true;
   }
   
@@ -51,8 +110,20 @@ function questionReferencesImage(questionText: string): boolean {
     return true;
   }
   
-  // Check for fraction questions that specifically need visuals
-  if (/what fraction/i.test(questionText) && /shaded|colored/i.test(questionText)) {
+  // Specific patterns for fraction-related questions needing visuals
+  const fractionVisualPatterns = [
+    /what fraction (is|of|represents)/i,
+    /fraction model/i,
+    /which model shows/i,
+    /shade (\d+\/\d+) of the/i,
+    /represent the fraction/i,
+    /(\d+)\/(\d+) of the (circle|square|shape|rectangle|figure|model)/i,
+    /equivalent fractions?/i,
+    /equal parts/i
+  ];
+
+  if ((fractionVisualPatterns.some(pattern => pattern.test(questionText)) || 
+      (/fraction/i.test(questionText) && /shaded|colored|show|model|visual|diagram|part/i.test(questionText)))) {
     console.log("Fraction question detected that needs visualization");
     return true;
   }
@@ -100,7 +171,181 @@ function generateSVGImage(content: any, type: string): string {
   const svgFooter = `</svg>`;
   
   // Generate appropriate content based on type
-  if (type === "multipleShapes") {
+  if (type === "money") {
+    // Special case for money visuals (US currency)
+    // Content is expected to be an array of objects with type and count properties
+    
+    // Define currency properties - Money visualization settings
+    
+    // Parse and standardize the money items based on different possible input formats
+    let moneyItems: Array<{type: string, count: number}>;
+    
+    // Handle different input formats
+    if (Array.isArray(content) && content.length === 2 && typeof content[1] === 'number') {
+      // Simple [type, count] format - e.g. ["penny", 3]
+      const [type, count] = content;
+      moneyItems = [{ type, count }];
+    } else if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+      // Object with multiple denominations - e.g. {penny: 2, nickel: 1}
+      moneyItems = [];
+      for (const [type, count] of Object.entries(content)) {
+        moneyItems.push({ type, count: Number(count) });
+      }
+    } else if (Array.isArray(content) && content.length > 0 && 
+               content.every(item => typeof item === 'object' && item !== null && 'type' in item && 'count' in item)) {
+      // Already in the correct format - e.g. [{type: "penny", count: 2}, {type: "nickel", count: 1}]
+      moneyItems = [];
+      for (const item of content) {
+        if (typeof item === 'object' && item !== null && 'type' in item && 'count' in item) {
+          moneyItems.push({
+            type: String(item.type),
+            count: Number(item.count)
+          });
+        }
+      }
+    } else {
+      // Default fallback - show a mix of coins
+      moneyItems = [
+        { type: 'penny', count: 2 },
+        { type: 'nickel', count: 1 },
+        { type: 'dime', count: 1 }
+      ];
+    }
+    
+    // Define properties of each currency type
+    const currencyProps = {
+      'penny': { color: '#B87333', value: '1¢', radius: 15, label: 'Penny' },
+      'nickel': { color: '#A8A9AD', value: '5¢', radius: 17, label: 'Nickel' },
+      'dime': { color: '#A8A9AD', value: '10¢', radius: 14, label: 'Dime' },
+      'quarter': { color: '#A8A9AD', value: '25¢', radius: 19, label: 'Quarter' },
+      '$1': { color: '#EADDCA', value: '$1', width: 60, height: 25, label: 'One Dollar' },
+      '$5': { color: '#B3D9B3', value: '$5', width: 62, height: 26, label: 'Five Dollars' },
+      '$10': { color: '#F9E076', value: '$10', width: 64, height: 27, label: 'Ten Dollars' },
+      '$20': { color: '#B1CAE5', value: '$20', width: 66, height: 28, label: 'Twenty Dollars' }
+    };
+    
+    // Count total items
+    let totalItems = 0;
+    moneyItems.forEach(item => { totalItems += item.count; });
+    
+    // Layout settings
+    const itemsPerRow = Math.min(5, totalItems);
+    const rows = Math.ceil(totalItems / itemsPerRow);
+    const spacing = svgWidth / (itemsPerRow + 1);
+    const verticalSpacing = Math.min(40, (svgHeight - 60) / (rows + 1));
+    
+    // Add a title
+    svgContent += `<text x="${svgWidth/2}" y="20" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">US Currency</text>`;
+    
+    // Draw the items
+    let itemsDrawn = 0;
+    for (const item of moneyItems) {
+      for (let i = 0; i < item.count; i++) {
+        const row = Math.floor(itemsDrawn / itemsPerRow);
+        const col = itemsDrawn % itemsPerRow;
+        const x = spacing * (col + 1);
+        const y = verticalSpacing * (row + 1) + 30; // Add offset for title
+        
+        // Get currency properties
+        const props = currencyProps[item.type as keyof typeof currencyProps] || currencyProps['penny'];
+        
+        // Draw the appropriate currency
+        if (['penny', 'nickel', 'dime', 'quarter'].includes(item.type)) {
+          // Draw a coin
+          // Use a type guard to ensure the correct property access
+          if ('radius' in props) {
+            svgContent += `
+              <circle cx="${x}" cy="${y}" r="${props.radius}" fill="${props.color}" stroke="#333" stroke-width="1" />
+              <text x="${x}" y="${y+1}" font-family="Arial" font-size="8" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+            `;
+          } else {
+            // Fallback if for some reason we get the wrong type of props
+            svgContent += `
+              <circle cx="${x}" cy="${y}" r="15" fill="${props.color}" stroke="#333" stroke-width="1" />
+              <text x="${x}" y="${y+1}" font-family="Arial" font-size="8" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+            `;
+          }
+        } else {
+          // Draw a bill
+          // Use a type guard to ensure the correct property access
+          if ('width' in props && 'height' in props) {
+            const width = props.width;
+            const height = props.height;
+            svgContent += `
+              <rect x="${x - width/2}" y="${y - height/2}" width="${width}" height="${height}" fill="${props.color}" stroke="#333" stroke-width="1" rx="2" />
+              <text x="${x}" y="${y+1}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+            `;
+          } else {
+            // Fallback if for some reason we get the wrong type of props
+            svgContent += `
+              <rect x="${x - 30}" y="${y - 15}" width="60" height="30" fill="${props.color}" stroke="#333" stroke-width="1" rx="2" />
+              <text x="${x}" y="${y+1}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+            `;
+          }
+        }
+        
+        itemsDrawn++;
+      }
+    }
+    
+    // Add a legend explaining the currency
+    svgContent += `<rect x="10" y="${svgHeight - 60}" width="${svgWidth - 20}" height="50" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5" />`;
+    
+    let legendX = 20;
+    const legendY = svgHeight - 40;
+    let legendCount = 0;
+    
+    for (const item of moneyItems) {
+      if (legendCount < 3) { // Limit to 3 legend items to avoid crowding
+        const props = currencyProps[item.type as keyof typeof currencyProps] || currencyProps['penny'];
+        
+        // Add icon to legend
+        if (['penny', 'nickel', 'dime', 'quarter'].includes(item.type)) {
+          svgContent += `<circle cx="${legendX + 10}" cy="${legendY}" r="8" fill="${props.color}" stroke="#333" stroke-width="0.5" />`;
+        } else {
+          svgContent += `<rect x="${legendX}" y="${legendY-6}" width="20" height="12" fill="${props.color}" stroke="#333" stroke-width="0.5" rx="1" />`;
+        }
+        
+        // Add label
+        svgContent += `<text x="${legendX + 25}" y="${legendY + 4}" font-family="Arial" font-size="11">${props.label}${item.count > 1 ? 's' : ''} (${item.count})</text>`;
+        
+        legendX += 100;
+        legendCount++;
+      }
+    }
+    
+    // Add total value if there are mixed denominations
+    if (moneyItems.length > 1) {
+      let totalValue = 0;
+      for (const item of moneyItems) {
+        let value = 0;
+        switch (item.type) {
+          case 'penny': value = 1; break;
+          case 'nickel': value = 5; break;
+          case 'dime': value = 10; break;
+          case 'quarter': value = 25; break;
+          case '$1': value = 100; break;
+          case '$5': value = 500; break;
+          case '$10': value = 1000; break;
+          case '$20': value = 2000; break;
+        }
+        totalValue += value * item.count;
+      }
+      
+      // Format as dollars and cents
+      let formattedValue = '';
+      if (totalValue >= 100) {
+        const dollars = Math.floor(totalValue / 100);
+        const cents = totalValue % 100;
+        formattedValue = `$${dollars}.${cents.toString().padStart(2, '0')}`;
+      } else {
+        formattedValue = `${totalValue}¢`;
+      }
+      
+      svgContent += `<text x="${svgWidth-20}" y="${svgHeight - 40}" font-family="Arial" font-size="12" font-weight="bold" text-anchor="end">Total: ${formattedValue}</text>`;
+    }
+  }
+  else if (type === "multipleShapes") {
     // For complex shape arrangements with multiple colors and types
     // content is expected to be an array of objects: {type, color, count}
     if (!Array.isArray(content)) {
@@ -810,6 +1055,99 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           
           console.log(`Updated options for square counting: ${parsedResponse.options.join(', ')}`);
         }
+      }
+      // Check for money-related questions
+      else if (/coins?|bills?|dollars?|cents?|money|penny|pennies|nickel|dime|quarter|\$\d+|\d+\s*cents/i.test(parsedResponse.question)) {
+        console.log("Money question detected, creating appropriate visualization");
+        imageType = "money";
+        
+        // Default to generic money content if we can't parse specifics
+        let moneyContent: any = [
+          { type: 'penny', count: 3 },
+          { type: 'nickel', count: 1 }
+        ];
+        
+        // Try to parse the specific coins/bills from the question
+        const pennyMatch = parsedResponse.question.match(/(\d+)\s*(pennies|penny|cents?)/i);
+        const nickelMatch = parsedResponse.question.match(/(\d+)\s*nickels?/i);
+        const dimeMatch = parsedResponse.question.match(/(\d+)\s*dimes?/i);
+        const quarterMatch = parsedResponse.question.match(/(\d+)\s*quarters?/i);
+        const dollarMatch = parsedResponse.question.match(/(\d+)\s*dollars?|(\d+)\s*\$|\$\s*(\d+)/i);
+        
+        // If we have specific coin/bill counts, use those
+        if (pennyMatch || nickelMatch || dimeMatch || quarterMatch || dollarMatch) {
+          moneyContent = [];
+          
+          if (pennyMatch) moneyContent.push({ type: 'penny', count: parseInt(pennyMatch[1]) });
+          if (nickelMatch) moneyContent.push({ type: 'nickel', count: parseInt(nickelMatch[1]) });
+          if (dimeMatch) moneyContent.push({ type: 'dime', count: parseInt(dimeMatch[1]) });
+          if (quarterMatch) moneyContent.push({ type: 'quarter', count: parseInt(quarterMatch[1]) });
+          if (dollarMatch) {
+            const amount = parseInt(dollarMatch[1] || dollarMatch[2] || dollarMatch[3]);
+            moneyContent.push({ type: '$1', count: amount }); // Simplify by just showing $1 bills
+          }
+        } else {
+          // Check for total money amounts
+          const totalDollarsMatch = parsedResponse.question.match(/total of \$(\d+)/i);
+          const totalCentsMatch = parsedResponse.question.match(/total of (\d+) cents/i);
+          
+          if (totalDollarsMatch) {
+            const dollars = parseInt(totalDollarsMatch[1]);
+            if (dollars <= 5) {
+              moneyContent = [{ type: '$1', count: dollars }];
+            } else {
+              moneyContent = [
+                { type: '$5', count: Math.floor(dollars / 5) },
+                { type: '$1', count: dollars % 5 }
+              ].filter(item => item.count > 0);
+            }
+          } else if (totalCentsMatch) {
+            let totalCents = parseInt(totalCentsMatch[1]);
+            moneyContent = [];
+            
+            if (totalCents >= 25) {
+              moneyContent.push({ type: 'quarter', count: Math.floor(totalCents / 25) });
+              totalCents %= 25;
+            }
+            if (totalCents >= 10) {
+              moneyContent.push({ type: 'dime', count: Math.floor(totalCents / 10) });
+              totalCents %= 10;
+            }
+            if (totalCents >= 5) {
+              moneyContent.push({ type: 'nickel', count: Math.floor(totalCents / 5) });
+              totalCents %= 5;
+            }
+            if (totalCents > 0) {
+              moneyContent.push({ type: 'penny', count: totalCents });
+            }
+          }
+        }
+        
+        // Make sure the answer is a number for counting questions
+        if (/how many|count/i.test(parsedResponse.question)) {
+          let totalCount = 0;
+          moneyContent.forEach((item: any) => { totalCount += item.count; });
+          parsedResponse.answer = totalCount.toString();
+          
+          // Generate options for counting money questions
+          const options = new Set<string>();
+          options.add(totalCount.toString()); // Add correct answer
+          options.add((totalCount - 1).toString()); // One less
+          options.add((totalCount + 1).toString()); // One more
+          options.add((totalCount + 2).toString()); // Two more
+          
+          // Convert to array and keep only 4 options
+          parsedResponse.options = Array.from(options).slice(0, 4);
+          
+          // If we still need more options, add some
+          while (parsedResponse.options.length < 4) {
+            const newOption = Math.max(1, totalCount - parsedResponse.options.length);
+            parsedResponse.options.push(newOption.toString());
+          }
+        }
+        
+        imageContent = moneyContent;
+        console.log(`Setting money image content:`, JSON.stringify(moneyContent));
       }
       // Check for fraction-related questions
       else if (/fraction|part/i.test(parsedResponse.question)) {
