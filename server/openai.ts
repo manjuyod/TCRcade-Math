@@ -299,16 +299,84 @@ function generateSVGImage(content: any, type: string): string {
       ];
     }
     
-    // Define properties of each currency type
+    // Define properties of each currency type with more realistic designs
     const currencyProps = {
-      'penny': { color: '#B87333', value: '1¢', radius: 15, label: 'Penny' },
-      'nickel': { color: '#A8A9AD', value: '5¢', radius: 17, label: 'Nickel' },
-      'dime': { color: '#A8A9AD', value: '10¢', radius: 14, label: 'Dime' },
-      'quarter': { color: '#A8A9AD', value: '25¢', radius: 19, label: 'Quarter' },
-      '$1': { color: '#EADDCA', value: '$1', width: 60, height: 25, label: 'One Dollar' },
-      '$5': { color: '#B3D9B3', value: '$5', width: 62, height: 26, label: 'Five Dollars' },
-      '$10': { color: '#F9E076', value: '$10', width: 64, height: 27, label: 'Ten Dollars' },
-      '$20': { color: '#B1CAE5', value: '$20', width: 66, height: 28, label: 'Twenty Dollars' }
+      'penny': { 
+        color: '#B87333', 
+        innerColor: '#B5714C', 
+        edgeColor: '#A05C2C', 
+        value: '1¢', 
+        radius: 15, 
+        label: 'Penny',
+        detail: '🛡️' // Lincoln memorial or shield
+      },
+      'nickel': { 
+        color: '#A8A9AD', 
+        innerColor: '#B5B5B5', 
+        edgeColor: '#A0A0A0', 
+        value: '5¢', 
+        radius: 17, 
+        label: 'Nickel',
+        detail: '👤' // Jefferson profile
+      },
+      'dime': { 
+        color: '#A8A9AD', 
+        innerColor: '#D5D5D5', 
+        edgeColor: '#A0A0A0', 
+        value: '10¢', 
+        radius: 14, 
+        label: 'Dime',
+        detail: '🔥' // Roosevelt profile
+      },
+      'quarter': { 
+        color: '#A8A9AD', 
+        innerColor: '#C0C0C0', 
+        edgeColor: '#909090', 
+        value: '25¢', 
+        radius: 19, 
+        label: 'Quarter',
+        detail: '🦅' // Eagle/state design 
+      },
+      '$1': { 
+        color: '#E8E8E0', 
+        borderColor: '#2D6440', 
+        textColor: '#2D6440',
+        value: '$1', 
+        width: 60, 
+        height: 25, 
+        label: 'One Dollar',
+        seal: '🦅'
+      },
+      '$5': { 
+        color: '#E8E8E0', 
+        borderColor: '#6B3E8F', 
+        textColor: '#6B3E8F',
+        value: '$5', 
+        width: 62, 
+        height: 26, 
+        label: 'Five Dollars',
+        seal: '🦅'
+      },
+      '$10': { 
+        color: '#E8E8E0', 
+        borderColor: '#945A35', 
+        textColor: '#945A35',
+        value: '$10', 
+        width: 64, 
+        height: 27, 
+        label: 'Ten Dollars',
+        seal: '🦅'
+      },
+      '$20': { 
+        color: '#E8E8E0', 
+        borderColor: '#1A472A', 
+        textColor: '#1A472A',
+        value: '$20', 
+        width: 66, 
+        height: 28, 
+        label: 'Twenty Dollars',
+        seal: '🦅'
+      }
     };
     
     // Count total items
@@ -338,12 +406,27 @@ function generateSVGImage(content: any, type: string): string {
         
         // Draw the appropriate currency
         if (['penny', 'nickel', 'dime', 'quarter'].includes(item.type)) {
-          // Draw a coin
+          // Draw a coin with more realistic details
           // Use a type guard to ensure the correct property access
-          if ('radius' in props) {
+          if ('radius' in props && 'innerColor' in props && 'edgeColor' in props) {
+            // Draw outer edge of coin
             svgContent += `
-              <circle cx="${x}" cy="${y}" r="${props.radius}" fill="${props.color}" stroke="#333" stroke-width="1" />
-              <text x="${x}" y="${y+1}" font-family="Arial" font-size="8" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+              <circle cx="${x}" cy="${y}" r="${props.radius}" fill="${props.edgeColor}" />
+              
+              <!-- Draw inner part of coin -->
+              <circle cx="${x}" cy="${y}" r="${props.radius - 1.5}" fill="${props.innerColor}" />
+              
+              <!-- Draw inner circle for design -->
+              <circle cx="${x}" cy="${y}" r="${props.radius - 3.5}" fill="${props.color}" />
+              
+              <!-- Add ridged edge effect -->
+              <circle cx="${x}" cy="${y}" r="${props.radius}" fill="none" stroke="${props.edgeColor}" stroke-width="1" stroke-dasharray="1,1" />
+              
+              <!-- Coin value -->
+              <text x="${x}" y="${y-2}" font-family="Arial" font-size="8" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+              
+              <!-- Coin detail/symbol -->
+              <text x="${x}" y="${y+6}" font-family="Arial" font-size="7" text-anchor="middle" dominant-baseline="middle">${props.detail || ""}</text>
             `;
           } else {
             // Fallback if for some reason we get the wrong type of props
@@ -353,14 +436,25 @@ function generateSVGImage(content: any, type: string): string {
             `;
           }
         } else {
-          // Draw a bill
+          // Draw a bill with more realistic details
           // Use a type guard to ensure the correct property access
-          if ('width' in props && 'height' in props) {
+          if ('width' in props && 'height' in props && 'borderColor' in props && 'textColor' in props) {
             const width = props.width;
             const height = props.height;
+            
+            // Draw the bill background
             svgContent += `
-              <rect x="${x - width/2}" y="${y - height/2}" width="${width}" height="${height}" fill="${props.color}" stroke="#333" stroke-width="1" rx="2" />
-              <text x="${x}" y="${y+1}" font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#333">${props.value}</text>
+              <!-- Main bill background -->
+              <rect x="${x - width/2}" y="${y - height/2}" width="${width}" height="${height}" fill="${props.color}" stroke="${props.borderColor}" stroke-width="1.5" rx="3" />
+              
+              <!-- Decorative border -->
+              <rect x="${x - width/2 + 2}" y="${y - height/2 + 2}" width="${width - 4}" height="${height - 4}" fill="none" stroke="${props.borderColor}" stroke-width="0.5" stroke-dasharray="2,1" rx="2" />
+              
+              <!-- Currency value -->
+              <text x="${x}" y="${y}" font-family="Georgia, serif" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="${props.textColor}">${props.value}</text>
+              
+              <!-- Small seal symbol -->
+              <text x="${x + width/4}" y="${y}" font-family="Arial" font-size="8" text-anchor="middle" dominant-baseline="middle">${props.seal || ""}</text>
             `;
           } else {
             // Fallback if for some reason we get the wrong type of props
@@ -386,11 +480,31 @@ function generateSVGImage(content: any, type: string): string {
       if (legendCount < 3) { // Limit to 3 legend items to avoid crowding
         const props = currencyProps[item.type as keyof typeof currencyProps] || currencyProps['penny'];
         
-        // Add icon to legend
+        // Add icon to legend with more realistic appearances
         if (['penny', 'nickel', 'dime', 'quarter'].includes(item.type)) {
-          svgContent += `<circle cx="${legendX + 10}" cy="${legendY}" r="8" fill="${props.color}" stroke="#333" stroke-width="0.5" />`;
+          // Draw a realistic miniature coin for the legend
+          svgContent += `
+            <!-- Outer edge of coin -->
+            <circle cx="${legendX + 10}" cy="${legendY}" r="8" fill="${props.edgeColor}" />
+            
+            <!-- Inner part of coin -->
+            <circle cx="${legendX + 10}" cy="${legendY}" r="7" fill="${props.innerColor}" />
+            
+            <!-- Inner circle -->
+            <circle cx="${legendX + 10}" cy="${legendY}" r="5" fill="${props.color}" />
+            
+            <!-- Ridged edge effect -->
+            <circle cx="${legendX + 10}" cy="${legendY}" r="8" fill="none" stroke="${props.edgeColor}" stroke-width="0.5" stroke-dasharray="0.7,0.7" />
+          `;
         } else {
-          svgContent += `<rect x="${legendX}" y="${legendY-6}" width="20" height="12" fill="${props.color}" stroke="#333" stroke-width="0.5" rx="1" />`;
+          // Draw a realistic miniature bill for the legend
+          svgContent += `
+            <!-- Main bill background -->
+            <rect x="${legendX}" y="${legendY-6}" width="20" height="12" fill="${props.color}" stroke="${props.borderColor}" stroke-width="0.8" rx="1" />
+            
+            <!-- Inner decoration -->
+            <rect x="${legendX + 1.5}" y="${legendY-4.5}" width="17" height="9" fill="none" stroke="${props.borderColor}" stroke-width="0.3" stroke-dasharray="1,0.5" rx="0.5" />
+          `;
         }
         
         // Add label
