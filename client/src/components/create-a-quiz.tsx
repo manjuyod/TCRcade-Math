@@ -269,7 +269,7 @@ export default function CreateAQuiz() {
                   {categories.map((category: string) => (
                     <option key={category} value={category}>
                       {/* Format the category name nicely */}
-                      {category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ')}
+                      {category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </option>
                   ))}
                 </>
@@ -302,7 +302,9 @@ export default function CreateAQuiz() {
                   Question {currentQuestionIndex + 1} of {sessionQuestions.length}
                 </span>
                 <span className="text-sm font-medium text-gray-600">
-                  {selectedCategory !== 'all' ? selectedCategory : 'Mixed'} - Grade {selectedGrade}
+                  {selectedCategory !== 'all' 
+                    ? selectedCategory.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+                    : 'Mixed'} - Grade {selectedGrade}
                 </span>
               </div>
               

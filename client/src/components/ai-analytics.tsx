@@ -458,7 +458,37 @@ export default function AiAnalytics() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  // Generate a custom study plan
+                  toast({
+                    title: "Study Plan Generated",
+                    description: "Your custom study plan has been created based on your learning patterns",
+                  });
+                  
+                  // Show a popup with recommended study concepts
+                  const studyPlan = analytics.conceptMasteries
+                    .filter(concept => concept.masteryLevel < 75)
+                    .slice(0, 5)
+                    .map(concept => concept.concept);
+                  
+                  // Format the study plan
+                  const formattedPlan = studyPlan.length > 0 
+                    ? `Focus on these areas: ${studyPlan.join(', ')}` 
+                    : "Continue practicing your current skills to maintain mastery";
+                  
+                  // Show detailed toast with the plan
+                  setTimeout(() => {
+                    toast({
+                      title: "Your Custom Study Plan",
+                      description: formattedPlan,
+                      duration: 5000,
+                    });
+                  }, 1000);
+                }}
+              >
                 <Zap className="h-4 w-4 mr-2" />
                 Generate Custom Study Plan
               </Button>

@@ -549,18 +549,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract unique categories
       const categoriesSet = new Set(questions.map(q => q.category));
       
+      // Add more advanced topics for grades 5 and 6
+      // These will generate questions on-the-fly if not in the database
+      if (grade === '5' || grade === '6') {
+        const advancedTopics = [
+          'decimals', 
+          'fractions', 
+          'ratio-and-proportion',
+          'percentages',
+          'algebraic-expressions',
+          'geometry',
+          'measurement',
+          'data-analysis',
+          'statistics',
+          'probability',
+          'coordinate-geometry'
+        ];
+        
+        // Add these topics to the set
+        advancedTopics.forEach(topic => categoriesSet.add(topic));
+      }
+      
       // Format categories with proper capitalization
       const formattedCategories = Array.from(categoriesSet).map(category => {
         // Handle special cases
         if (category.toLowerCase() === 'counting') {
-          return 'Counting';
+          return 'counting';
         } else if (category.toLowerCase() === 'place-value' || category.toLowerCase() === 'place_value') {
-          return 'Place Value';
+          return 'place-value';
+        } else if (category.toLowerCase() === 'ratio-and-proportion') {
+          return 'ratio-and-proportion';
+        } else if (category.toLowerCase() === 'algebraic-expressions') {
+          return 'algebraic-expressions';
+        } else if (category.toLowerCase() === 'coordinate-geometry') {
+          return 'coordinate-geometry';
+        } else if (category.toLowerCase() === 'data-analysis') {
+          return 'data-analysis';
         } else {
-          // For other categories, ensure first letter is capitalized
-          const formattedCategory = category.charAt(0).toUpperCase() + category.slice(1);
-          // Replace hyphens with spaces
-          return formattedCategory.replace(/-/g, ' ');
+          // Return the lowercase version for consistency
+          return category.toLowerCase();
         }
       });
       
