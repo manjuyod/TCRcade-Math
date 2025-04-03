@@ -465,7 +465,7 @@ export default function AiAnalytics() {
                   // Generate a custom study plan
                   toast({
                     title: "Study Plan Generated",
-                    description: "Creating your detailed study plan...",
+                    description: "Creating your detailed 5-10 bullet-point study plan strategy...",
                   });
                   
                   // Generate a comprehensive 5-10 bullet-point strategy

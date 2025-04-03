@@ -143,7 +143,7 @@ export async function generateRecommendations(userId: number): Promise<Recommend
   
   // If user is doing well in all categories, suggest more advanced ones
   if (suggestedCategories.length === 0) {
-    const validCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "geometry", "time", "money"];
+    const validCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "time"];
     
     // For K-1, focus on addition and subtraction
     if (user.grade === "K" || user.grade === "1") {
@@ -155,7 +155,7 @@ export async function generateRecommendations(userId: number): Promise<Recommend
     }
     // For higher grades, focus on fractions and advanced concepts
     else {
-      suggestedCategories.push("fractions", "geometry");
+      suggestedCategories.push("fractions");
     }
   }
   
@@ -167,13 +167,11 @@ export async function generateRecommendations(userId: number): Promise<Recommend
   // Grade-specific concepts to learn
   if (user.grade === "K") {
     if (!conceptsMastered.has("counting")) conceptsToLearn.push("counting");
-    if (!conceptsMastered.has("shapes")) conceptsToLearn.push("shapes");
   } else if (user.grade === "1") {
     if (!conceptsMastered.has("place value")) conceptsToLearn.push("place value");
     if (!conceptsMastered.has("measurement")) conceptsToLearn.push("measurement");
   } else if (user.grade === "2") {
     if (!conceptsMastered.has("arrays")) conceptsToLearn.push("arrays");
-    if (!conceptsMastered.has("money")) conceptsToLearn.push("money");
   } else if (user.grade === "3") {
     if (!conceptsMastered.has("fractions")) conceptsToLearn.push("fractions");
     if (!conceptsMastered.has("time calculation")) conceptsToLearn.push("time calculation");

@@ -841,9 +841,7 @@ export class DatabaseStorage implements IStorage {
       .map(p => p.category);
     
     const recommendedActivities = [
-      ...weaknesses.map(w => `Practice ${w}`),
-      "Try a daily challenge",
-      "Participate in a multiplayer game"
+      ...weaknesses.map(w => `Practice ${w}`)
     ];
     
     // Create a new analytics entry
@@ -954,7 +952,7 @@ export class DatabaseStorage implements IStorage {
     }, {} as Record<string, number>);
     
     // Categories with less activity should be recommended
-    const allCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "geometry", "time", "money"];
+    const allCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "time"];
     const suggestedCategories = allCategories
       .filter(c => !categoryCounts[c] || categoryCounts[c] < 3)
       .slice(0, 3);
