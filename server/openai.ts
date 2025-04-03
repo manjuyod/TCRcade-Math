@@ -170,11 +170,17 @@ function questionReferencesImage(questionText: string): boolean {
 }
 
 /**
- * Generates a simple SVG image for math questions
- * @param content Content to be visualized (numbers, shapes, etc.)
- * @param type Type of image to generate: "countObjects", "shapes", etc.
+ * Previously generated SVG images for math questions
+ * Now returns empty SVG per user request to remove all visual elements
+ * @param content Not used - visualization content has been disabled
+ * @param type Not used - visualization type has been disabled
  */
 function generateSVGImage(content: any, type: string): string {
+  // Per user request, return an empty SVG with no visual elements
+  console.log("SVG image generation disabled per user request");
+  return "";
+  
+  /* Original SVG generation code has been disabled
   const svgWidth = 300;
   const svgHeight = 200;
   let svgContent = '';
@@ -185,6 +191,7 @@ function generateSVGImage(content: any, type: string): string {
   
   // End with SVG footer
   const svgFooter = `</svg>`;
+  */
   
   // Generate appropriate content based on type
   if (type === "money") {
@@ -1061,9 +1068,9 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     const content = response.choices[0].message.content || '{}';
     const parsedResponse = JSON.parse(content as string);
     
-    // Check if the question references an image and handle it if needed
-    if (questionReferencesImage(parsedResponse.question)) {
-      console.log("Question references an image - generating a visual");
+    // Image generation is disabled per user request - this block will never execute
+    if (false) { // Was: questionReferencesImage(parsedResponse.question)
+      console.log("Image generation disabled per user request");
       
       // Check if the question has color-shape descriptions that give away the answer
       const colorShapePatterns = [
@@ -1666,11 +1673,11 @@ Make sure it's appropriate for the student's level and provides a learning oppor
         }
       }
       
-      // Generate the image
-      const imageUrl = generateSVGImage(imageContent, imageType);
+      // Image generation disabled per user request
+      console.log("Image generation is disabled - setting storyImage to null");
       
-      // Add the image URL to the response
-      parsedResponse.storyImage = imageUrl;
+      // Set story image to null
+      parsedResponse.storyImage = null;
     }
     
     // Add a truly unique ID that won't collide with existing questions
@@ -1746,29 +1753,51 @@ Make sure it's appropriate for the student's level and provides a learning oppor
       const questionType = Math.floor(Math.random() * 3);
       
       if (questionType === 0) {
-        // Counting question with SVG image
-        questionText = `How many stars are there?`;
+        // Text-only counting question (no visual)
+        questionText = `If you count from 1 to ${num1}, how many numbers will you say?`;
         options = [`${num1}`, `${num1+1}`, `${num1-1 > 0 ? num1-1 : num1+2}`, `${num1+2}`];
-        explanation = `Count the stars one by one: ${Array.from({length: num1}, (_, i) => i+1).join(', ')}.`;
+        explanation = `When counting from 1 to ${num1}, you say ${num1} numbers: ${Array.from({length: num1}, (_, i) => i+1).join(', ')}.`;
         category = "Counting";
-        // Generate a SVG image for the counting stars
-        storyImage = generateSVGImage(["star", num1], "countObjects");
+        // No images per user request
+        storyImage = null;
       } else if (questionType === 1) {
-        // Simple addition with visual cues
-        questionText = `How many apples in total? ${num1} apples and ${num2} more apples.`;
+        // Text-only addition question
+        questionText = `What is ${num1} + ${num2}?`;
         options = [`${num1 + num2}`, `${num1 + num2 + 1}`, `${num1 + num2 - 1 > 0 ? num1 + num2 - 1 : num1 + num2 + 2}`, `${num1 + num2 + 2}`];
-        explanation = `Count ${num1} apples, then count ${num2} more apples. ${num1} + ${num2} = ${num1 + num2}.`;
+        explanation = `To add ${num1} + ${num2}, combine the two numbers to get ${num1 + num2}.`;
         category = "Addition";
+        // No images per user request
+        storyImage = null;
       } else {
-        // Shape recognition with SVG image
+        // Text-only shape property question 
         const shapes = ["circle", "square", "triangle"];
         const correctShape = shapes[Math.floor(Math.random() * shapes.length)];
-        questionText = `Which shape is a ${correctShape}?`;
-        options = shapes.sort(() => Math.random() - 0.5);
-        explanation = `A ${correctShape} is a shape that looks like a ${correctShape}.`;
+        
+        // Create text-only properties questions rather than shape identification
+        const shapeProps = {
+          "circle": "How many sides does a circle have?",
+          "square": "How many sides does a square have?",
+          "triangle": "How many sides does a triangle have?"
+        };
+        
+        const shapeAnswers = {
+          "circle": "0",
+          "square": "4",
+          "triangle": "3"
+        };
+        
+        const shapeOptions = {
+          "circle": ["0", "1", "2", "4"],
+          "square": ["3", "4", "5", "6"],
+          "triangle": ["2", "3", "4", "5"]
+        };
+        
+        questionText = shapeProps[correctShape as keyof typeof shapeProps];
+        options = shapeOptions[correctShape as keyof typeof shapeOptions];
+        explanation = `A ${correctShape} has ${shapeAnswers[correctShape as keyof typeof shapeAnswers]} sides.`;
         category = "Geometry";
-        // Generate SVG image for shape recognition
-        storyImage = generateSVGImage(correctShape, "shapes");
+        // No images per user request
+        storyImage = null;
       }
     } else {
       // For higher grades, use default addition questions with appropriate numbers

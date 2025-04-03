@@ -460,10 +460,22 @@ export default function MultiplayerMode() {
   // Handle answering a question
   const handleAnswerSubmit = (answer: string) => {
     if (activeRoomId && gameState.status === 'playing') {
+      // Clear the countdown timer immediately when an answer is submitted
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Submit the answer
       submitAnswerMutation.mutate({
         roomId: activeRoomId,
         answer
       });
+      
+      // Set the timer to 0 to indicate we're ready for the next question
+      setGameState(prev => ({
+        ...prev,
+        timeRemaining: 0
+      }));
     }
   };
   
