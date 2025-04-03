@@ -112,7 +112,7 @@ export default function ModulesPage() {
     {
       id: 'fractions',
       name: 'Fraction Puzzle',
-      description: 'Master fractions with visual models and practical examples',
+      description: 'Master fractions with practical examples and computational practice',
       gameType: GameType.STANDARD,
       icon: <Puzzle className="h-12 w-12 text-blue-500" />,
       difficulty: 3,
@@ -142,17 +142,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-    {
-      id: 'geometry',
-      name: 'Geometry Concepts',
-      description: 'Practice with geometric concepts, formulas for area and perimeter',
-      gameType: GameType.STANDARD,
-      icon: <Dice5 className="h-12 w-12 text-pink-500" />,
-      difficulty: 2,
-      category: 'geometry',
-      locked: false,
-      completeCount: 0
-    },
+
     {
       id: 'time',
       name: 'Time Trials',

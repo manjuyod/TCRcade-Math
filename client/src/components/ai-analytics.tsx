@@ -663,7 +663,7 @@ function formatActivityName(activity: string): string {
     'gameBasedLearning': 'Math Games',
     'collaborativePractice': 'Partner Practice',
     'conceptMapping': 'Concept Mapping',
-    'timedChallenges': 'Speed Challenges',
+
     'realWorldApplications': 'Real-World Math',
   };
   
@@ -678,7 +678,7 @@ function getActivityDescription(activity: string): string {
     'gameBasedLearning': 'Fun, interactive challenges that reinforce key concepts',
     'collaborativePractice': 'Work with others to solve problems and share strategies',
     'conceptMapping': 'Connect related math concepts to build a stronger knowledge framework',
-    'timedChallenges': 'Build speed and accuracy under time constraints',
+
     'realWorldApplications': 'Apply math to everyday situations for practical understanding',
   };
   
