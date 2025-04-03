@@ -1024,7 +1024,8 @@ export class DatabaseStorage implements IStorage {
         // To avoid issues with possibly empty excludeIds array
         const filteredIds = excludeIds.filter(id => typeof id === 'number');
         if (filteredIds.length > 0) {
-          filters.push(inArray(questions.id, filteredIds).not());
+          // Use notInArray for cleaner syntax and better performance
+          filters.push(notInArray(questions.id, filteredIds));
         }
       }
       

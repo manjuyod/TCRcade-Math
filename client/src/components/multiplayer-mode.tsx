@@ -62,6 +62,11 @@ export default function MultiplayerMode() {
   const [gameMode, setGameMode] = useState<'cooperative' | 'competitive'>('competitive');
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [timeLimit, setTimeLimit] = useState<number>(30);
+  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
+  
+  // Use refs to track game state between renders
+  const submittedRef = useRef<number | null>(null); // Track which question ID has been answered
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Game state (would normally come from WebSocket)
   const [gameState, setGameState] = useState<GameState>({
@@ -73,9 +78,6 @@ export default function MultiplayerMode() {
     players: [],
     results: []
   });
-  
-  // Timer reference
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch available rooms
   const { 
@@ -266,6 +268,9 @@ export default function MultiplayerMode() {
       // Play sound based on correctness
       data.correct ? playSound('correct') : playSound('incorrect');
       
+      // Reset the "submitted" state for the next question
+      setIsAnswerSubmitted(false);
+      
       // Update game state if there's a next question
       if (data.nextQuestion) {
         setGameState(prev => ({
@@ -274,6 +279,9 @@ export default function MultiplayerMode() {
           currentQuestionIndex: prev.currentQuestionIndex + 1,
           timeRemaining: activeRoom?.settings?.timeLimit || 30
         }));
+        
+        // Reset the submitted ref for the next question
+        submittedRef.current = null;
       } else if (data.gameOver) {
         setGameState(prev => ({
           ...prev,
@@ -342,11 +350,11 @@ export default function MultiplayerMode() {
         ...prev,
         status: activeRoom.gameState.status || 'waiting',
         currentQuestion: activeRoom.gameState.currentQuestion,
-        currentQuestionIndex: activeRoom.gameState.currentQuestionIndex || 0,
+        currentQuestionIndex: activeRoom.gameState?.currentQuestionIndex || 0,
         totalQuestions: activeRoom.settings?.questionCount || 10,
         players: activeRoom.players || [],
-        questions: activeRoom.gameState.questions || [],
-        results: activeRoom.gameState.results || []
+        questions: activeRoom.gameState?.questions || [],
+        results: activeRoom.gameState?.results || []
       }));
       
       // Log game state for debugging
@@ -368,6 +376,9 @@ export default function MultiplayerMode() {
         clearInterval(timerRef.current);
       }
       
+      // Reset the "submitted" state for each new question
+      setIsAnswerSubmitted(false);
+      
       // Set time remaining based on room settings
       setGameState(prev => ({
         ...prev,
@@ -382,10 +393,18 @@ export default function MultiplayerMode() {
           // If time runs out, submit a blank answer
           if (newTimeRemaining <= 0 && activeRoom) {
             clearInterval(timerRef.current!);
-            submitAnswerMutation.mutate({
-              roomId: activeRoom.id,
-              answer: ''
-            });
+            
+            // Only submit if we haven't already
+            if (submittedRef.current !== gameState.currentQuestion?.id) {
+              submittedRef.current = gameState.currentQuestion?.id;
+              setIsAnswerSubmitted(true);
+              
+              submitAnswerMutation.mutate({
+                roomId: activeRoom.id,
+                answer: ''
+              });
+            }
+            
             return {
               ...prev,
               timeRemaining: 0
@@ -472,10 +491,21 @@ export default function MultiplayerMode() {
   // Handle answering a question
   const handleAnswerSubmit = (answer: string) => {
     if (activeRoomId && gameState.status === 'playing') {
+      // Prevent multiple submissions for the same question
+      if (submittedRef.current === gameState.currentQuestion?.id) {
+        return;
+      }
+      
+      // Track that we've submitted an answer for this question
+      submittedRef.current = gameState.currentQuestion?.id;
+      
       // Clear the countdown timer immediately when an answer is submitted
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      
+      // Disable the answer options right away
+      setIsAnswerSubmitted(true);
       
       // Submit the answer
       submitAnswerMutation.mutate({
@@ -505,7 +535,27 @@ export default function MultiplayerMode() {
       });
     }
   };
-  
+
+  // Render the question card with disabled buttons if answer is submitted
+  const renderCurrentQuestion = () => {
+    if (!gameState.currentQuestion) return null;
+    
+    return (
+      <div className="flex flex-col">
+        <QuestionCard
+          question={gameState.currentQuestion}
+          onAnswer={handleAnswerSubmit}
+          disableOptions={isAnswerSubmitted}
+          showCorrectAnswer={isAnswerSubmitted}
+          showTimer={false}
+        />
+      </div>
+    );
+  };
+
+  // Rest of the component (render methods, etc.)
+  // ...
+
   // Browse rooms view
   if (view === 'browse') {
     return (
@@ -837,469 +887,217 @@ export default function MultiplayerMode() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center">
-              <Trophy className="h-6 w-6 mr-2 text-yellow-500" />
+              <Trophy className="text-yellow-500 h-6 w-6 mr-2" />
               Game Results
             </CardTitle>
             <CardDescription>
-              {activeRoom.name} • {gameState.totalQuestions} Questions
+              {activeRoom.gameType === 'competitive' ? 'Competitive' : 'Cooperative'} Mode • {activeRoom.grade} Grade
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Winner banner */}
-              {sortedResults.length > 0 && (
-                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 p-4 rounded-lg text-center">
-                  <Crown className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-                  <p className="font-bold text-lg">
-                    {sortedResults[0].id === user?.id ? 'You won!' : `${activeRoom.players.find(p => p.id === sortedResults[0].id)?.username || 'Player'} won!`}
-                  </p>
-                  <p className="text-sm text-yellow-800">with {sortedResults[0].score} points</p>
-                </div>
-              )}
-              
-              {/* Leaderboard */}
-              <div>
-                <h3 className="font-semibold mb-3 text-center">Leaderboard</h3>
-                <div className="space-y-2">
-                  {sortedResults.map((result, index) => {
-                    const player = activeRoom.players.find(p => p.id === result.id);
-                    const isCurrentUser = result.id === user?.id;
-                    
-                    return (
-                      <div 
-                        key={result.id}
-                        className={`
-                          flex items-center p-3 rounded-lg
-                          ${isCurrentUser ? 'bg-primary/10 border border-primary/20' : 'bg-muted'}
-                        `}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold mr-3">
-                          {index + 1}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Leaderboard</h3>
+              <div className="space-y-2">
+                {sortedResults.map((result, index) => {
+                  const player = activeRoom.players.find(p => p.id === result.id);
+                  const isCurrentUser = result.id === user?.id;
+                  
+                  return (
+                    <div 
+                      key={result.id}
+                      className={`flex items-center p-3 rounded-md ${isCurrentUser ? 'bg-primary/10' : 'bg-muted'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground font-bold mr-3">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center">
+                          {player?.username || 'Unknown Player'}
+                          {index === 0 && <Crown className="h-4 w-4 ml-1 text-yellow-500" />}
+                          {isCurrentUser && <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">You</span>}
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium">
-                            {player?.username || 'Player'} 
-                            {isCurrentUser && <span className="ml-2 text-primary">(You)</span>}
-                            {player?.isHost && (
-                              <Badge variant="outline" className="ml-2 text-xs">Host</Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {result.correct} correct • {result.incorrect} incorrect
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-lg">{result.score}</div>
-                          <div className="text-xs text-muted-foreground">points</div>
+                        <div className="text-sm text-muted-foreground">
+                          Score: {result.score} • Correct: {result.correct} • Incorrect: {result.incorrect}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-              
-              {/* Player stats */}
-              {currentPlayer && (
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{currentPlayer.correct}</div>
+            </div>
+            
+            {currentPlayer && (
+              <div className="mb-6 p-4 border rounded-lg bg-card">
+                <h3 className="text-lg font-semibold mb-2">Your Results</h3>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="text-2xl font-bold">{currentPlayer.score}</div>
+                    <div className="text-xs text-muted-foreground">Score</div>
+                  </div>
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="text-2xl font-bold text-green-500">{currentPlayer.correct}</div>
                     <div className="text-xs text-muted-foreground">Correct</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{currentPlayer.score}</div>
-                    <div className="text-xs text-muted-foreground">Points</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">{currentPlayer.rank}</div>
-                    <div className="text-xs text-muted-foreground">Rank</div>
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="text-2xl font-bold text-red-500">{currentPlayer.incorrect}</div>
+                    <div className="text-xs text-muted-foreground">Incorrect</div>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
-          <CardFooter className="flex justify-between">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share Results
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Share Your Results</DialogTitle>
-                  <DialogDescription>
-                    Copy this message to share your multiplayer results!
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="bg-muted p-3 rounded-md">
-                  <p>
-                    I just played a math game and scored {currentPlayer?.score || 0} points!
-                    Join me for another round with code: {activeRoom.roomCode}
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button onClick={() => {
-                    navigator.clipboard.writeText(
-                      `I just played a math game and scored ${currentPlayer?.score || 0} points! Join me for another round with code: ${activeRoom.roomCode}`
-                    );
-                    toast({
-                      title: 'Copied to clipboard',
-                      description: 'You can now paste and share your results!',
-                      variant: 'default',
-                    });
-                  }}>
-                    Copy to Clipboard
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button onClick={handleLeaveRoom}>Leave Room</Button>
+          <CardFooter className="flex flex-col space-y-2 items-center">
+            <Button 
+              className="w-full" 
+              variant="default" 
+              onClick={() => {
+                if (activeRoom.isHost) {
+                  handleStartGame();
+                } else {
+                  // Just reset the game state for the client to waiting
+                  setGameState(prev => ({
+                    ...prev,
+                    status: 'waiting'
+                  }));
+                }
+              }}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              {activeRoom.isHost ? 'Play Again' : 'Wait for Host'}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleLeaveRoom}
+              className="w-full"
+            >
+              Exit Game
+            </Button>
           </CardFooter>
         </Card>
       );
     }
     
-    // Playing view
-    if (gameState.status === 'playing' && gameState.currentQuestion) {
+    // Waiting room
+    if (gameState.status === 'waiting' || gameState.status === 'starting') {
       return (
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-primary" />
-                {activeRoom.name}
-              </CardTitle>
-              <Badge variant="outline" className="flex items-center">
-                <Clock className="h-3 w-3 mr-1" />
-                {gameState.timeRemaining}s
+              <CardTitle>{activeRoom.name}</CardTitle>
+              <Badge variant="outline">
+                {activeRoom.gameType === 'competitive' ? (
+                  <Trophy className="h-3 w-3 mr-1 text-yellow-500" />
+                ) : (
+                  <Shield className="h-3 w-3 mr-1 text-blue-500" />
+                )}
+                {activeRoom.gameType === 'competitive' ? 'Competitive' : 'Cooperative'}
               </Badge>
             </div>
-            <CardDescription>
-              Question {gameState.currentQuestionIndex + 1} of {gameState.totalQuestions}
+            <CardDescription className="flex items-center">
+              <span className="mr-3">Room Code: <span className="font-mono font-bold">{activeRoom.roomCode}</span></span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 px-2" 
+                onClick={() => {
+                  navigator.clipboard.writeText(activeRoom.roomCode);
+                  toast({
+                    title: 'Copied!',
+                    description: 'Room code copied to clipboard',
+                    variant: 'default',
+                    dismissTimeout: 3000, // Auto-dismiss after 3 seconds
+                  });
+                }}
+              >
+                <Share2 className="h-3 w-3" />
+              </Button>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ProgressBar 
-              progress={(gameState.currentQuestionIndex / gameState.totalQuestions) * 100}
-              height={8}
-              color="bg-primary"
-              className="mb-6"
-            />
-            
-            <QuestionCard
-              question={gameState.currentQuestion}
-              onAnswerSubmit={handleAnswerSubmit}
-            />
-            
-            <div className="mt-6 flex justify-between text-sm text-muted-foreground">
-              <div className="flex items-center">
-                <Users className="h-4 w-4 mr-1" />
-                {gameState.players.length} players
-              </div>
-              {activeRoom.gameType === 'competitive' ? (
-                <div className="flex items-center">
-                  <Trophy className="h-4 w-4 mr-1 text-yellow-500" />
-                  Competitive Mode
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <Shield className="h-4 w-4 mr-1 text-blue-500" />
-                  Cooperative Mode
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-    
-    // Finished view with room-specific leaderboard
-    if (gameState.status === 'finished') {
-      // Sort players by score for the leaderboard
-      const sortedPlayers = [...activeRoom.players].sort((a, b) => (b.score || 0) - (a.score || 0));
-      
-      return (
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center">
-                <Trophy className="h-5 w-5 mr-2 text-primary" />
-                Room Leaderboard
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Game results for room: {activeRoom.name}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold">Final Rankings</h3>
-              
-              <div className="space-y-2">
-                {sortedPlayers.map((player, index) => (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-2">Players ({activeRoom.players.length}/{activeRoom.maxParticipants})</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {activeRoom.players.map((player) => (
                   <div 
-                    key={player.id}
-                    className={`
-                      flex items-center p-4 rounded-lg
-                      ${index === 0 ? 'bg-amber-100 border border-amber-300' : 
-                        index === 1 ? 'bg-gray-100 border border-gray-300' : 
-                        index === 2 ? 'bg-orange-100 border border-orange-300' : 'bg-muted'}
-                      ${player.id === user?.id ? 'border-2 border-primary' : ''}
-                    `}
+                    key={player.id} 
+                    className={`flex items-center p-2 rounded-md ${player.isHost ? 'bg-primary/10' : 'bg-muted'}`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary mr-3">
-                      {index + 1}
+                    <div className="mr-2 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center uppercase font-bold">
+                      {player.username.charAt(0)}
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate flex items-center">
                         {player.username}
-                        {player.id === user?.id && <span className="ml-2 text-primary">(You)</span>}
+                        {player.isHost && <Crown className="h-3 w-3 ml-1 text-yellow-500" />}
                       </div>
-                      {player.grade && (
-                        <div className="text-xs text-muted-foreground">
-                          Grade {player.grade}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">{player.score || 0}</div>
-                      <div className="text-xs text-muted-foreground">points</div>
+                      <div className="text-xs text-muted-foreground">
+                        {player.grade ? `Grade ${player.grade}` : ''} {player.isReady && '• Ready'}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-              
-              {activeRoom.isHost && (
-                <div className="mt-6">
-                  <Button 
-                    className="w-full" 
-                    variant="outline"
-                    onClick={() => {
-                      // Reset the game for a new round
-                      setGameState({
-                        ...gameState,
-                        status: 'waiting'
-                      });
-                    }}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Play Again
-                  </Button>
-                </div>
-              )}
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handleLeaveRoom}>
-              Leave Room
-            </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="secondary">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share Results
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Share Your Results</DialogTitle>
-                </DialogHeader>
-                <div className="bg-muted p-3 rounded-md">
-                  <p>
-                    I just played a math game and scored {currentPlayer?.score || 0} points!
-                    Join me for another round with code: {activeRoom.roomCode}
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button onClick={() => {
-                    navigator.clipboard.writeText(
-                      `I just played a math game and scored ${currentPlayer?.score || 0} points! Join me for another round with code: ${activeRoom.roomCode}`
-                    );
-                    toast({
-                      title: 'Copied to clipboard',
-                      description: 'You can now paste and share your results!',
-                      variant: 'default',
-                    });
-                  }}>
-                    Copy to Clipboard
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardFooter>
-        </Card>
-      );
-    }
-    
-    // Waiting room view
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>{activeRoom.name}</CardTitle>
-            <Badge variant="outline">
-              {activeRoom.players.length}/{activeRoom.maxPlayers || 4} Players
-            </Badge>
-          </div>
-          <CardDescription>
-            {activeRoom.grade} Grade • {activeRoom.category || 'All Categories'} •
-            {activeRoom.gameType === 'competitive' ? ' Competitive' : ' Cooperative'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">Room Code</h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(activeRoom.roomCode);
-                  toast({
-                    title: 'Copied to clipboard',
-                    description: 'Room code copied!',
-                    variant: 'default',
-                  });
-                }}
-              >
-                Copy
-              </Button>
-            </div>
-            <div className="bg-muted rounded-md p-4 text-center mb-4">
-              <span className="text-2xl font-mono tracking-widest">{activeRoom.roomCode}</span>
-              <p className="text-xs text-muted-foreground mt-1">
-                Share this code with friends to invite them
-              </p>
-            </div>
-          </div>
-          
-          <div className="mb-6">
-            <h3 className="font-semibold mb-3">Players</h3>
-            <div className="space-y-2">
-              {activeRoom.players.map(player => (
-                <div 
-                  key={player.id}
-                  className={`
-                    flex items-center p-3 rounded-lg
-                    ${player.id === user?.id ? 'bg-primary/10 border border-primary/20' : 'bg-muted'}
-                  `}
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary mr-3">
-                    {player.username.charAt(0).toUpperCase()}
+            
+            {activeRoom.isHost && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">Game Settings</h3>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="p-3 bg-muted rounded-md">
+                    <div className="text-xs text-muted-foreground">Questions</div>
+                    <div className="font-semibold">{activeRoom.settings?.questionCount || 10}</div>
                   </div>
-                  <div className="flex-1">
-                    <div>
-                      {player.username} 
-                      {player.id === user?.id && <span className="ml-2 text-primary">(You)</span>}
-                    </div>
-                    {player.grade && (
-                      <div className="text-xs text-muted-foreground">
-                        Grade {player.grade}
-                      </div>
-                    )}
+                  <div className="p-3 bg-muted rounded-md">
+                    <div className="text-xs text-muted-foreground">Time Limit</div>
+                    <div className="font-semibold">{activeRoom.settings?.timeLimit || 30}s</div>
                   </div>
-                  {player.isHost && (
-                    <Badge>Host</Badge>
-                  )}
-                  {gameState.status === 'finished' && (
-                    <div className="ml-2 font-medium text-right">
-                      <div className="text-primary font-bold">{player.score || 0} pts</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {/* Empty slots */}
-              {Array.from({ length: (activeRoom.maxPlayers || 4) - activeRoom.players.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="border border-dashed border-muted-foreground/20 rounded-lg p-3 flex items-center">
-                  <div className="w-8 h-8 rounded-full border border-dashed border-muted-foreground/30 mr-3"></div>
-                  <div className="text-muted-foreground">Waiting for player...</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {activeRoom.isHost && (
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3">Game Settings</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-questions">Questions</Label>
-                  <Select 
-                    value={questionCount.toString()} 
-                    onValueChange={(value) => setQuestionCount(parseInt(value))}
-                  >
-                    <SelectTrigger id="edit-questions">
-                      <SelectValue placeholder="# of questions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[5, 10, 15, 20].map(num => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} questions
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
                 
-                <div>
-                  <Label htmlFor="edit-time">Time per Question</Label>
-                  <Select 
-                    value={timeLimit.toString()} 
-                    onValueChange={(value) => setTimeLimit(parseInt(value))}
-                  >
-                    <SelectTrigger id="edit-time">
-                      <SelectValue placeholder="Time limit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[10, 15, 20, 30, 45, 60].map(num => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} seconds
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="edit-players">Max Players</Label>
-                  <Select 
-                    value={maxPlayers.toString()} 
-                    onValueChange={(value) => setMaxPlayers(parseInt(value))}
-                  >
-                    <SelectTrigger id="edit-players">
-                      <SelectValue placeholder="Max players" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2, 3, 4, 5, 6].map(num => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} players
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="edit-mode">Game Mode</Label>
-                  <Select 
-                    value={gameMode} 
-                    onValueChange={(value: 'competitive' | 'cooperative') => setGameMode(value)}
-                  >
-                    <SelectTrigger id="edit-mode">
-                      <SelectValue placeholder="Game mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="competitive">Competitive</SelectItem>
-                      <SelectItem value="cooperative">Cooperative</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="questionCount">Questions</Label>
+                    <Select 
+                      value={questionCount.toString()} 
+                      onValueChange={(value) => setQuestionCount(parseInt(value))}
+                    >
+                      <SelectTrigger id="questionCount">
+                        <SelectValue placeholder="Number of Questions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[5, 10, 15, 20].map(num => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} questions
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="timeLimit">Time Limit</Label>
+                    <Select 
+                      value={timeLimit.toString()} 
+                      onValueChange={(value) => setTimeLimit(parseInt(value))}
+                    >
+                      <SelectTrigger id="timeLimit">
+                        <SelectValue placeholder="Seconds per Question" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[10, 15, 20, 30, 45, 60].map(num => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} seconds
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 
                 <Button 
-                  className="col-span-2 mt-2"
+                  variant="outline" 
+                  size="sm" 
                   onClick={handleUpdateSettings}
+                  className="w-full mb-4"
                   disabled={updateSettingsMutation.isPending}
                 >
                   {updateSettingsMutation.isPending && (
@@ -1308,54 +1106,146 @@ export default function MultiplayerMode() {
                   Update Settings
                 </Button>
               </div>
-            </div>
-          )}
-          
-          <div className="bg-muted p-4 rounded-lg text-sm">
-            <h4 className="font-semibold mb-2">Game Details</h4>
-            <ul className="space-y-1">
-              <li className="flex items-center">
-                <span className="w-24 text-muted-foreground">Questions:</span>
-                <span>{activeRoom.settings?.questionCount || 10}</span>
-              </li>
-              <li className="flex items-center">
-                <span className="w-24 text-muted-foreground">Time Limit:</span>
-                <span>{activeRoom.settings?.timeLimit || 30} seconds per question</span>
-              </li>
-              <li className="flex items-center">
-                <span className="w-24 text-muted-foreground">Mode:</span>
-                <span>{activeRoom.gameType === 'competitive' ? 'Competitive' : 'Cooperative'}</span>
-              </li>
-            </ul>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleLeaveRoom}>
-            Leave Room
-          </Button>
-          
-          {activeRoom.isHost && (
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            {activeRoom.isHost ? (
+              <Button 
+                className="w-full" 
+                onClick={handleStartGame}
+                disabled={
+                  gameState.status === 'starting' || 
+                  startGameMutation.isPending ||
+                  activeRoom.players.length < 1
+                }
+              >
+                {(gameState.status === 'starting' || startGameMutation.isPending) ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-2" />
+                )}
+                {activeRoom.players.length < 1 
+                  ? 'Waiting for Players...' 
+                  : (gameState.status === 'starting' || startGameMutation.isPending) 
+                    ? 'Starting Game...' 
+                    : 'Start Game'
+                }
+              </Button>
+            ) : (
+              <Button 
+                className="w-full" 
+                disabled
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Waiting for Host to Start
+              </Button>
+            )}
             <Button 
-              onClick={handleStartGame}
-              disabled={startGameMutation.isPending}
+              variant="outline" 
+              className="w-full"
+              onClick={handleLeaveRoom}
             >
-              {startGameMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {activeRoom.players.length === 1 
-                ? 'Start Single-Player Mode' 
-                : 'Start Game'}
+              Leave Room
             </Button>
-          )}
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      );
+    }
+    
+    // Playing view
+    return (
+      <div className="game-view">
+        <div className="relative">
+          <div className="flex justify-between items-center mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLeaveRoom}
+              disabled={submitAnswerMutation.isPending}
+            >
+              Leave Game
+            </Button>
+            
+            <div className="text-center">
+              <div className="text-sm font-medium mb-1">
+                Question {gameState.currentQuestionIndex + 1} of {gameState.totalQuestions}
+              </div>
+              <div className="w-32 mx-auto">
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
+                    style={{ width: `${((gameState.currentQuestionIndex + 1) / gameState.totalQuestions) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-1" />
+              <span className={`font-mono ${gameState.timeRemaining < 5 ? 'text-red-500 animate-pulse' : ''}`}>
+                {gameState.timeRemaining}s
+              </span>
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <ProgressBar
+              progress={gameState.timeRemaining / (activeRoom.settings?.timeLimit || 30) * 100}
+              height={8}
+              color={gameState.timeRemaining < 5 ? 'red' : 'green'}
+              className="w-full"
+            />
+          </div>
+        </div>
+        
+        {/* Render the question card with the current question */}
+        {renderCurrentQuestion()}
+        
+        <div className="mt-4">
+          <h3 className="text-sm font-medium mb-2">Players</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {activeRoom.players.map((player) => {
+              // Find player answer status for current question
+              const hasAnswered = activeRoom.gameState?.playerAnswers?.[player.id]?.answer !== undefined;
+              
+              return (
+                <div 
+                  key={player.id}
+                  className={`flex items-center p-2 rounded-md ${hasAnswered ? 'bg-primary/10' : 'bg-muted'}`}
+                >
+                  <div className="mr-2 w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold uppercase">
+                    {player.username.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate flex items-center">
+                      {player.username}
+                      {player.isHost && <Crown className="h-3 w-3 ml-1 text-yellow-500" />}
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Score: {player.score}</span>
+                      {hasAnswered && (
+                        <Badge variant="outline" className="text-xs">
+                          Answered
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     );
   }
   
-  // Fallback to browse view
+  // Fallback
   return (
-    <Button onClick={() => setView('browse')}>
-      Browse Rooms
-    </Button>
+    <div className="flex flex-col items-center justify-center h-64">
+      <p className="text-muted-foreground mb-4">Something went wrong with the multiplayer mode.</p>
+      <Button onClick={() => setView('browse')}>
+        Back to Browse
+      </Button>
+    </div>
   );
 }

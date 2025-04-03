@@ -2068,16 +2068,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fetch questions for the game
       const questions = [];
-      for (let i = 0; i < questionCount; i++) {
+      const usedQuestionIds = new Set(); // Track question IDs to avoid duplicates
+      
+      // Try to get unique questions up to the requested count
+      // Add a safety limit to prevent infinite loops
+      let attempts = 0;
+      const maxAttempts = questionCount * 3; // Allow up to 3 attempts per question
+      
+      while (questions.length < questionCount && attempts < maxAttempts) {
         try {
-          const question = await storage.getAdaptiveQuestion(req.user!.id, grade, true, category);
-          if (question) {
+          // Pass the already used question IDs as exclusions
+          const excludeIds = Array.from(usedQuestionIds);
+          
+          // Get a question specifically for the requested category
+          const question = await storage.getAdaptiveQuestion(
+            req.user!.id, 
+            grade, 
+            true, // Force dynamic generation for variety
+            category,
+            excludeIds // Exclude questions we've already selected
+          );
+          
+          if (question && !usedQuestionIds.has(question.id)) {
+            // Add this question to our selection
             questions.push(question);
+            // Track its ID to avoid duplicates
+            usedQuestionIds.add(question.id);
           }
         } catch (err) {
           console.error("Error fetching question:", err);
         }
+        
+        attempts++;
       }
+      
+      console.log(`Selected ${questions.length} unique questions for multiplayer game (category: ${category}, grade: ${grade})`);
+      
       
       // Update room status with questions and set current question
       const updatedRoom = await storage.updateMultiplayerRoom(roomId, {
