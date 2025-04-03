@@ -176,6 +176,39 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
+      id: 'decimals',
+      name: 'Decimal Defender',
+      description: 'Learn to add, subtract, and compare decimal numbers',
+      gameType: GameType.STANDARD,
+      icon: <UserRoundCheck className="h-12 w-12 text-cyan-500" />,
+      difficulty: 4,
+      category: 'decimals',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'measurement',
+      name: 'Measurement Mastery',
+      description: 'Convert between units of length, volume, and weight',
+      gameType: GameType.STANDARD,
+      icon: <Sparkles className="h-12 w-12 text-purple-500" />,
+      difficulty: 4,
+      category: 'measurement',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'ratios',
+      name: 'Ratio Ranger',
+      description: 'Understand and solve problems with ratios and proportions',
+      gameType: GameType.STANDARD,
+      icon: <BarChart4 className="h-12 w-12 text-amber-600" />,
+      difficulty: 5,
+      category: 'ratios',
+      locked: false,
+      completeCount: 0
+    },
+    {
       id: 'algebra',
       name: 'Pre-Algebra Basics',
       description: 'Solve for unknowns in equations with visual models',

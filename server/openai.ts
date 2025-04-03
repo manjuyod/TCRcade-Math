@@ -77,27 +77,33 @@ function questionReferencesImage(questionText: string): boolean {
   const moneyTerms = [
     /coins?/i, /bills?/i, /dollars?/i, /cents?/i, /money/i, 
     /penny|pennies/i, /nickel/i, /dime/i, /quarter/i,
-    /\$\d+/i, /\d+\s*cents/i, /\$(\d+)\.(\d+)/i
+    /\$\d+/i, /\d+\s*cents/i, /\$(\d+)\.(\d+)/i, /cash/i, /currency/i
   ];
   
   // Money-specific question patterns
   const moneyQuestionPatterns = [
     /how much money/i,
     /how many (cents|pennies|nickels|dimes|quarters)/i,
-    /what is the (total|value)/i,
+    /what is the (total|value|amount)/i,
     /count the (money|coins|bills)/i,
     /how much (does .+ cost|is .+ worth)/i,
     /what coins make/i,
     /which coins would you use/i,
     /can you make \$[\d\.]+/i,
     /show the coins that equal/i,
-    /if you have .+ coins/i
+    /if you have .+ coins/i,
+    /value of the (coins|bills|money)/i,
+    /calculate the (total|value|amount)/i,
+    /what is the change/i,
+    /how much more money/i,
+    /which coins add up to/i,
+    /find the (total|value|amount)/i
   ];
   
   // Check if it's a money-related question
   if (moneyTerms.some(term => term.test(questionText)) && 
       (moneyQuestionPatterns.some(pattern => pattern.test(questionText)) || 
-       /how many|count|total|value|worth|cost/i.test(questionText) || 
+       /how many|count|total|value|worth|cost|amount|add up|sum/i.test(questionText) || 
        /\d+.*and.*\d+/.test(questionText))) {
     console.log("Money-related question detected for 'Money Matters' category");
     return true;
@@ -175,21 +181,81 @@ function generateSVGImage(content: any, type: string): string {
     // Special case for money visuals (US currency)
     // Content is expected to be an array of objects with type and count properties
     
-    // Define currency properties - Money visualization settings
-    
     // Parse and standardize the money items based on different possible input formats
     let moneyItems: Array<{type: string, count: number}>;
     
-    // Handle different input formats
-    if (Array.isArray(content) && content.length === 2 && typeof content[1] === 'number') {
+    // Detect if the question is about coins generally without specifying types
+    const isGenericCoinQuestion = 
+      (typeof content === 'string' && 
+       (content.includes('coin') || content.includes('money') || content.includes('cents'))) ||
+      (typeof content === 'number' || 
+       (Array.isArray(content) && content.length === 1 && typeof content[0] === 'number'));
+    
+    if (isGenericCoinQuestion) {
+      // Create a standard representation of US coins for generic coin questions
+      const coinCount = typeof content === 'number' ? content : 
+                       (Array.isArray(content) && typeof content[0] === 'number' ? content[0] : 
+                       (typeof content === 'string' ? 3 : 3));
+      
+      if (coinCount <= 0 || coinCount > 10) {
+        // Sanity check - keep a reasonable number of coins
+        moneyItems = [{ type: 'penny', count: 3 }];
+      } else if (coinCount <= 5) {
+        // For small counts, just use pennies
+        moneyItems = [{ type: 'penny', count: coinCount }];
+      } else {
+        // For larger counts, mix coins
+        moneyItems = [
+          { type: 'penny', count: Math.ceil(coinCount / 2) },
+          { type: 'nickel', count: Math.floor(coinCount / 4) },
+          { type: 'dime', count: Math.floor(coinCount / 4) }
+        ];
+      }
+    } else if (Array.isArray(content) && content.length === 2 && typeof content[1] === 'number') {
       // Simple [type, count] format - e.g. ["penny", 3]
       const [type, count] = content;
-      moneyItems = [{ type, count }];
+      const coinType = String(type).toLowerCase();
+      
+      // Ensure we're using a valid coin type
+      if (['penny', 'pennies', 'nickel', 'nickels', 'dime', 'dimes', 'quarter', 'quarters'].includes(coinType)) {
+        // Normalize plurals to singular
+        let normalizedType = coinType;
+        if (coinType === 'pennies') normalizedType = 'penny';
+        if (coinType === 'nickels') normalizedType = 'nickel';
+        if (coinType === 'dimes') normalizedType = 'dime';
+        if (coinType === 'quarters') normalizedType = 'quarter';
+        
+        moneyItems = [{ type: normalizedType, count }];
+      } else {
+        // If not a valid coin, default to pennies
+        moneyItems = [{ type: 'penny', count: count || 3 }];
+      }
     } else if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
       // Object with multiple denominations - e.g. {penny: 2, nickel: 1}
       moneyItems = [];
       for (const [type, count] of Object.entries(content)) {
-        moneyItems.push({ type, count: Number(count) });
+        const coinType = String(type).toLowerCase();
+        
+        // Normalize plurals and check valid types
+        let normalizedType = coinType;
+        if (['penny', 'pennies', 'nickel', 'nickels', 'dime', 'dimes', 'quarter', 'quarters', 
+             '$1', '$5', '$10', '$20'].includes(coinType)) {
+          if (coinType === 'pennies') normalizedType = 'penny';
+          if (coinType === 'nickels') normalizedType = 'nickel';
+          if (coinType === 'dimes') normalizedType = 'dime';
+          if (coinType === 'quarters') normalizedType = 'quarter';
+          
+          moneyItems.push({ type: normalizedType, count: Number(count) });
+        }
+      }
+      
+      // If no valid coins were found, default to a mix
+      if (moneyItems.length === 0) {
+        moneyItems = [
+          { type: 'penny', count: 2 },
+          { type: 'nickel', count: 1 },
+          { type: 'dime', count: 1 }
+        ];
       }
     } else if (Array.isArray(content) && content.length > 0 && 
                content.every(item => typeof item === 'object' && item !== null && 'type' in item && 'count' in item)) {
@@ -197,11 +263,32 @@ function generateSVGImage(content: any, type: string): string {
       moneyItems = [];
       for (const item of content) {
         if (typeof item === 'object' && item !== null && 'type' in item && 'count' in item) {
-          moneyItems.push({
-            type: String(item.type),
-            count: Number(item.count)
-          });
+          const coinType = String(item.type).toLowerCase();
+          
+          // Normalize plurals and check valid types
+          let normalizedType = coinType;
+          if (['penny', 'pennies', 'nickel', 'nickels', 'dime', 'dimes', 'quarter', 'quarters', 
+               '$1', '$5', '$10', '$20'].includes(coinType)) {
+            if (coinType === 'pennies') normalizedType = 'penny';
+            if (coinType === 'nickels') normalizedType = 'nickel';
+            if (coinType === 'dimes') normalizedType = 'dime';
+            if (coinType === 'quarters') normalizedType = 'quarter';
+            
+            moneyItems.push({
+              type: normalizedType,
+              count: Number(item.count)
+            });
+          }
         }
+      }
+      
+      // If no valid coins were found, default to a mix
+      if (moneyItems.length === 0) {
+        moneyItems = [
+          { type: 'penny', count: 2 },
+          { type: 'nickel', count: 1 },
+          { type: 'dime', count: 1 }
+        ];
       }
     } else {
       // Default fallback - show a mix of coins
@@ -679,16 +766,20 @@ export async function explainMathConcept(concept: string, grade: string) {
  * Generates adaptive questions based on student parameters
  */
 export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
+  const { 
+    grade, 
+    concept, 
+    studentLevel = 3, 
+    difficulty = 3, 
+    category = "General",
+    previousQuestions = []
+  } = params;
+  
+  // Initialize variables for image generation
+  let imageType: string = "";
+  let imageContent: any = null;
+  
   try {
-    const { 
-      grade, 
-      concept, 
-      studentLevel = 3, 
-      difficulty = 3, 
-      category = "General",
-      previousQuestions = []
-    } = params;
-    
     // Create a context message that helps GPT understand what was previously asked
     const contextMessage = previousQuestions && previousQuestions.length > 0 
       ? `Recently asked questions that you SHOULD NOT DUPLICATE (avoid similar problems):
@@ -810,9 +901,193 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     if (questionReferencesImage(parsedResponse.question)) {
       console.log("Question references an image - generating a visual");
       
-      // Determine what kind of image to generate
-      let imageType = "countObjects";
-      let imageContent: any = ["circle", 5];
+      // Check if the question has color-shape descriptions that give away the answer
+      const colorShapePatterns = [
+        /here is a (red|blue|green|yellow|purple) (triangle|circle|square|star)/i,
+        /you see a (red|blue|green|yellow|purple) (triangle|circle|square|star)/i,
+        /this is a (red|blue|green|yellow|purple) (triangle|circle|square|star)/i
+      ];
+      
+      // If the question text describes the colors or shapes explicitly and then asks about them,
+      // modify the question to avoid giving away the answer
+      let questionModified = false;
+      for (const pattern of colorShapePatterns) {
+        if (pattern.test(parsedResponse.question)) {
+          const colorMatch = parsedResponse.question.match(/(red|blue|green|yellow|purple)/gi);
+          const shapeMatch = parsedResponse.question.match(/(triangle|circle|square|star)/gi);
+          
+          if (colorMatch && colorMatch.length > 0 && 
+              /what color is/i.test(parsedResponse.question)) {
+            // If asking about color but giving it away in the description
+            parsedResponse.question = parsedResponse.question.replace(pattern, "Here is a shape.");
+            questionModified = true;
+          } 
+          else if (shapeMatch && shapeMatch.length > 0 && 
+                  /what shape is/i.test(parsedResponse.question)) {
+            // If asking about shape but giving it away in the description
+            parsedResponse.question = parsedResponse.question.replace(pattern, "Here is a colored object.");
+            questionModified = true;
+          }
+        }
+      }
+      
+      // Handle money-related questions to ensure proper currency visualization
+      const moneyTerms = [
+        /coins?/i, /money/i, /cents?/i, /penny|pennies/i, /nickel/i, /dime/i, /quarter/i,
+        /\$\d+/i, /\d+\s*cents/i
+      ];
+      
+      let moneyTypeDetected = false;
+      if (moneyTerms.some(term => term.test(parsedResponse.question))) {
+        console.log("Money-related question detected");
+        imageType = "money";
+        
+        // Try to extract specific coin types and counts
+        const coinMatches = {
+          pennies: parsedResponse.question.match(/(\d+)\s*penn(y|ies)/i),
+          nickels: parsedResponse.question.match(/(\d+)\s*nickel/i),
+          dimes: parsedResponse.question.match(/(\d+)\s*dime/i),
+          quarters: parsedResponse.question.match(/(\d+)\s*quarter/i)
+        };
+        
+        const coins: {[key: string]: number} = {};
+        let coinsFound = false;
+        
+        // Process each coin type if found
+        Object.entries(coinMatches).forEach(([type, match]) => {
+          if (match && match[1]) {
+            const count = parseInt(match[1]);
+            if (!isNaN(count)) {
+              coins[type === 'pennies' ? 'penny' : type.slice(0, -1)] = count;
+              coinsFound = true;
+            }
+          }
+        });
+        
+        if (coinsFound) {
+          imageContent = coins;
+          moneyTypeDetected = true;
+        } else {
+          // If no specific coins found, check for generic coin count
+          const genericCoinMatch = parsedResponse.question.match(/(\d+)\s*coins?/i);
+          if (genericCoinMatch && genericCoinMatch[1]) {
+            const count = parseInt(genericCoinMatch[1]);
+            if (!isNaN(count) && count > 0) {
+              if (count <= 5) {
+                imageContent = [{ type: 'penny', count }];
+              } else {
+                // For larger counts, mix coin types
+                imageContent = [
+                  { type: 'penny', count: Math.min(3, count) },
+                  { type: 'nickel', count: Math.min(2, Math.max(0, count - 3)) },
+                  { type: 'dime', count: Math.max(0, count - 5) }
+                ];
+              }
+              moneyTypeDetected = true;
+            }
+          }
+        }
+        
+        // Default for money questions if no specific coins detected
+        if (!moneyTypeDetected) {
+          imageContent = [
+            { type: 'penny', count: 3 },
+            { type: 'nickel', count: 1 },
+            { type: 'dime', count: 1 }
+          ];
+        }
+        
+        // Check for value-based questions about money (e.g., "How much money is shown?")
+        if (/how much|what is the value|worth/i.test(parsedResponse.question)) {
+          // Calculate the total value in cents
+          let totalCents = 0;
+          if (typeof imageContent === 'object') {
+            // Handle array of coin objects
+            if (Array.isArray(imageContent)) {
+              for (const item of imageContent) {
+                if (item && typeof item === 'object' && 'type' in item && 'count' in item) {
+                  const { type, count } = item;
+                  switch (type) {
+                    case 'penny': totalCents += 1 * count; break;
+                    case 'nickel': totalCents += 5 * count; break;
+                    case 'dime': totalCents += 10 * count; break;
+                    case 'quarter': totalCents += 25 * count; break;
+                    case '$1': totalCents += 100 * count; break;
+                    case '$5': totalCents += 500 * count; break;
+                    case '$10': totalCents += 1000 * count; break;
+                    case '$20': totalCents += 2000 * count; break;
+                  }
+                }
+              }
+            } 
+            // Handle object with coin type keys
+            else if (!Array.isArray(imageContent)) {
+              for (const [type, count] of Object.entries(imageContent)) {
+                switch (type) {
+                  case 'penny': totalCents += 1 * count; break;
+                  case 'nickel': totalCents += 5 * count; break;
+                  case 'dime': totalCents += 10 * count; break;
+                  case 'quarter': totalCents += 25 * count; break;
+                  case '$1': totalCents += 100 * count; break;
+                  case '$5': totalCents += 500 * count; break;
+                  case '$10': totalCents += 1000 * count; break;
+                  case '$20': totalCents += 2000 * count; break;
+                }
+              }
+            }
+          }
+          
+          // Format the value as dollars/cents
+          let valueStr: string;
+          if (totalCents >= 100) {
+            // Format as dollars
+            const dollars = Math.floor(totalCents / 100);
+            const cents = totalCents % 100;
+            valueStr = cents > 0 ? `$${dollars}.${cents.toString().padStart(2, '0')}` : `$${dollars}`;
+          } else {
+            // Format as cents
+            valueStr = `${totalCents}¢`;
+          }
+          
+          // Update the answer
+          parsedResponse.answer = valueStr;
+          
+          // Generate reasonable options for multiple choice
+          const values = [totalCents];
+          while (values.length < 4) {
+            // Generate a value that's within 50% of the correct value but different
+            let newVal;
+            do {
+              const adjustment = Math.random() > 0.5 ? 1 : -1;
+              const variance = Math.max(5, Math.floor(totalCents * 0.3));
+              newVal = totalCents + adjustment * (Math.floor(Math.random() * variance) + 1);
+              newVal = Math.max(1, newVal); // Ensure it's at least 1 cent
+            } while (values.includes(newVal));
+            values.push(newVal);
+          }
+          
+          // Format all values and scramble
+          const options = values.map(cents => {
+            if (cents >= 100) {
+              const dollars = Math.floor(cents / 100);
+              const remainingCents = cents % 100;
+              return remainingCents > 0 ? `$${dollars}.${remainingCents.toString().padStart(2, '0')}` : `$${dollars}`;
+            } else {
+              return `${cents}¢`;
+            }
+          }).sort(() => Math.random() - 0.5);
+          
+          // Ensure the correct answer is in the options
+          if (!options.includes(valueStr)) {
+            options[0] = valueStr;
+          }
+          
+          parsedResponse.options = options;
+        }
+      } else {
+        // For non-money questions
+        imageType = "countObjects";
+        imageContent = ["circle", 5];
 
       // Check for complex shape descriptions like "Look at the shapes: two red squares, two blue circles"
       const complexShapeMatch = parsedResponse.question.match(/(\d+|one|two|three|four|five)\s+(red|blue|green|yellow)?\s*(squares?|circles?|triangles?)/gi);
