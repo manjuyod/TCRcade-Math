@@ -481,18 +481,36 @@ export default function AiAnalytics() {
                     .slice(0, 3)
                     .map(concept => concept.concept);
                   
-                  // Create bullet points
+                  // Get the user's grade
+                  const grade = analytics.user?.grade || 'K';
+                  
+                  // Grade-specific topics mapping
+                  const gradeTopics: Record<string, string[]> = {
+                    'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
+                    '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
+                    '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
+                    '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
+                    '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
+                    '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
+                    '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
+                  };
+                  
+                  // Get relevant topics for the student's grade
+                  const relevantTopics = gradeTopics[grade] || 
+                    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
+                  
+                  // Create bullet points with grade-specific topics
                   const studyPlanBullets = [
-                    `• Focus on practicing ${needsWorkConcepts[0] || "basic concepts"} for 15 minutes daily`,
-                    `• Strengthen your understanding of ${needsWorkConcepts[1] || "core principles"} through practice problems`,
-                    `• Try solving ${needsWorkConcepts[2] || "word problems"} using step-by-step approaches`,
-                    `• Work on ${analytics.analytics.suggestedCategories?.[0] || "problem-solving"} exercises at current grade level`,
-                    `• Review and practice ${needsWorkConcepts[3] || "fundamental skills"} 3 times weekly`,
-                    `• Build on your strength in ${strengths[0] || "previous concepts"} to understand more advanced topics`,
-                    `• Create flash cards for ${needsWorkConcepts[4] || "challenging concepts"}`,
-                    `• Practice ${analytics.analytics.suggestedCategories?.[1] || "mental math"} for 5 minutes daily`,
-                    `• Explain concepts to someone else to strengthen your understanding`,
-                    `• Connect ${strengths[1] || "familiar concepts"} with ${needsWorkConcepts[0] || "new material"} to build relationships`
+                    `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
+                    `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
+                    `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
+                    `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
+                    `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
+                    `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
+                    `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
+                    `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
+                    `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
+                    `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
                   ];
                   
                   // Show detailed dialog with the plan

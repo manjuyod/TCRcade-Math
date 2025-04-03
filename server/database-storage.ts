@@ -840,8 +840,14 @@ export class DatabaseStorage implements IStorage {
       .filter(p => p.score > 100)
       .map(p => p.category);
     
+    // Map weaknesses to practice activities but also add common learning activities
+    // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
     const recommendedActivities = [
-      ...weaknesses.map(w => `Practice ${w}`)
+      ...weaknesses.map(w => `Practice ${w}`),
+      'flashcards',
+      'wordProblems',
+      'conceptMapping',
+      'realWorldApplications'
     ];
     
     // Create a new analytics entry
