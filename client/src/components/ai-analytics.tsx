@@ -43,15 +43,15 @@ export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomSt
     description: "Creating your personalized study plan based on your progress...",
   });
   
-  // Get concepts that need work
+  // Get concepts that need work and ensure none are "General"
   const needsWorkConcepts = analytics.conceptMasteries
-    .filter((concept: any) => concept.masteryLevel < 75)
+    .filter((concept: any) => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
     .slice(0, 5)
     .map((concept: any) => concept.concept);
   
-  // Get strengths to build on
+  // Get strengths to build on and ensure none are "General"
   const strengths = analytics.conceptMasteries
-    .filter((concept: any) => concept.masteryLevel >= 75)
+    .filter((concept: any) => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
     .slice(0, 3)
     .map((concept: any) => concept.concept);
   
@@ -73,18 +73,38 @@ export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomSt
   const relevantTopics = gradeTopics[grade] || 
     ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
   
-  // Create bullet points with grade-specific topics
+  // Function to get a specific topic (never "General")
+  const getSpecificTopic = (index: number, fallbackIndex: number = 0) => {
+    // If we have a valid non-general concept at this index, use it
+    if (needsWorkConcepts[index] && needsWorkConcepts[index].toLowerCase() !== 'general') {
+      return needsWorkConcepts[index];
+    }
+    // Otherwise use a topic from the grade-specific list
+    return relevantTopics[fallbackIndex % relevantTopics.length];
+  };
+  
+  // Function to get a specific strength (never "General")
+  const getSpecificStrength = (index: number, fallbackIndex: number = 0) => {
+    // If we have a valid non-general strength at this index, use it
+    if (strengths[index] && strengths[index].toLowerCase() !== 'general') {
+      return strengths[index];
+    }
+    // Otherwise use "basic operations" or another default
+    return relevantTopics[fallbackIndex % relevantTopics.length];
+  };
+  
+  // Create bullet points with grade-specific topics, avoiding "General"
   const studyPlanBullets = [
-    `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
-    `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
+    `• Focus daily: ${getSpecificTopic(0, 0)} - 15 minutes of practice with ${relevantTopics[1]} problems`,
+    `• Twice weekly: ${getSpecificTopic(1, 2)} - Use step-by-step problem solving approach`,
     `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
-    `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
-    `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
-    `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
-    `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
+    `• Tuesday/Thursday: Work on ${getSpecificTopic(2, 3)} problems at current grade level`,
+    `• Friday review: All topics covered during the week, especially ${getSpecificTopic(0, 0)}`,
+    `• Connect strong concept ${getSpecificStrength(0, 0)} with ${getSpecificTopic(0, 0)}`,
+    `• Create 10 flash cards focusing on ${getSpecificTopic(1, 2)} facts`,
     `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
-    `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
-    `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
+    `• Weekly assessment: Take a 10-question quiz on ${getSpecificTopic(0, 0)}`,
+    `• Build on your strength in ${getSpecificStrength(0, 0)} when learning ${getSpecificTopic(1, 1)}`
   ];
   
   // Update state with the new study plan after a short delay to simulate processing
@@ -186,15 +206,15 @@ export default function AiAnalytics() {
       description: "Creating your personalized study plan based on your progress...",
     });
     
-    // Get concepts that need work
+    // Get concepts that need work and ensure none are "General"
     const needsWorkConcepts = analytics.conceptMasteries
-      .filter(concept => concept.masteryLevel < 75)
+      .filter(concept => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
       .slice(0, 5)
       .map(concept => concept.concept);
     
-    // Get strengths to build on
+    // Get strengths to build on and ensure none are "General"
     const strengths = analytics.conceptMasteries
-      .filter(concept => concept.masteryLevel >= 75)
+      .filter(concept => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
       .slice(0, 3)
       .map(concept => concept.concept);
     
@@ -216,24 +236,45 @@ export default function AiAnalytics() {
     const relevantTopics = gradeTopics[grade] || 
       ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
     
-    // Create bullet points with grade-specific topics
+    // Function to get a specific topic (never "General")
+    const getSpecificTopic = (index: number, fallbackIndex: number = 0) => {
+      // If we have a valid non-general concept at this index, use it
+      if (needsWorkConcepts[index] && needsWorkConcepts[index].toLowerCase() !== 'general') {
+        return needsWorkConcepts[index];
+      }
+      // Otherwise use a topic from the grade-specific list
+      return relevantTopics[fallbackIndex % relevantTopics.length];
+    };
+    
+    // Function to get a specific strength (never "General")
+    const getSpecificStrength = (index: number, fallbackIndex: number = 0) => {
+      // If we have a valid non-general strength at this index, use it
+      if (strengths[index] && strengths[index].toLowerCase() !== 'general') {
+        return strengths[index];
+      }
+      // Otherwise use a topic from the grade-specific list
+      return relevantTopics[fallbackIndex % relevantTopics.length];
+    };
+    
+    // Create bullet points with grade-specific topics, avoiding "General"
     const studyPlanBullets = [
-      `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
-      `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
+      `• Focus daily: ${getSpecificTopic(0, 0)} - 15 minutes of practice with ${relevantTopics[1]} problems`,
+      `• Twice weekly: ${getSpecificTopic(1, 2)} - Use step-by-step problem solving approach`,
       `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
-      `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
-      `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
-      `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
-      `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
+      `• Tuesday/Thursday: Work on ${getSpecificTopic(2, 3)} problems at current grade level`,
+      `• Friday review: All topics covered during the week, especially ${getSpecificTopic(0, 0)}`,
+      `• Connect strong concept ${getSpecificStrength(0, 0)} with ${getSpecificTopic(0, 0)}`,
+      `• Create 10 flash cards focusing on ${getSpecificTopic(1, 2)} facts`,
       `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
-      `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
-      `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
+      `• Weekly assessment: Take a 10-question quiz on ${getSpecificTopic(0, 0)}`,
+      `• Build on your strength in ${getSpecificStrength(0, 0)} when learning ${getSpecificTopic(1, 1)}`
     ];
     
     // Update state with the new study plan
     setTimeout(() => {
       setCustomStudyPlan(studyPlanBullets);
       setIsGeneratingPlan(false);
+      playSound('levelUp');
       
       // Small toast to confirm completion
       toast({

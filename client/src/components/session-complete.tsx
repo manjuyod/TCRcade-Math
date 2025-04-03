@@ -53,6 +53,20 @@ export default function SessionComplete({
         tokens: oldData.tokens + perfectScoreBonus
       };
     });
+    
+    // After a perfect score, refresh the study plan to update recommendations
+    try {
+      // Dynamically import to avoid circular dependencies
+      import('@/lib/study-plan').then(module => {
+        module.refreshStudyPlan().then(success => {
+          if (success) {
+            console.log('Study plan refreshed successfully after perfect score');
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error refreshing study plan after perfect score:', error);
+    }
   }, [isPerfectScore, user]);
   
   // Add state to manage cleanup
@@ -186,6 +200,20 @@ export default function SessionComplete({
             onClick={() => {
               // Stop any playing sounds before starting a new session
               stopAllSounds();
+              
+              // Refresh study plan before starting a new session
+              try {
+                import('@/lib/study-plan').then(module => {
+                  module.refreshStudyPlan().then(success => {
+                    if (success) {
+                      console.log('Study plan refreshed successfully before new session');
+                    }
+                  });
+                });
+              } catch (error) {
+                console.error('Error refreshing study plan before new session:', error);
+              }
+              
               onStartNewSession();
             }}
             className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -201,13 +229,17 @@ export default function SessionComplete({
             </Button>
           </Link>
           
-          <Link href="/">
-            <Button 
-              className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              Return to Dashboard
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => {
+              // Stop any playing sounds before navigating
+              stopAllSounds();
+              // Use window.location to ensure full page refresh and proper state reset
+              window.location.href = '/';
+            }}
+            className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            Return to Dashboard
+          </Button>
         </div>
       </motion.div>
     </motion.div>
