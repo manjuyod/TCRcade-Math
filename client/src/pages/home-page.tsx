@@ -445,6 +445,20 @@ export default function HomePage() {
     // Set loading to show spinner during fetch
     setIsManuallyLoading(true);
     
+    // Refresh the study plan after a session completes
+    // This will update recommendations based on latest performance
+    try {
+      import('@/lib/study-plan').then(module => {
+        module.refreshStudyPlan().then(success => {
+          if (success) {
+            console.log('Study plan refreshed successfully after session');
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error refreshing study plan:', error);
+    }
+    
     // Use the improved hook's fetchNewQuestion function with forceDynamic=true
     // This handles all the caching and duplicate prevention automatically
     fetchNewQuestion(true)

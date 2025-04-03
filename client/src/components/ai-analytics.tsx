@@ -28,10 +28,89 @@ import {
   Lightbulb
 } from 'lucide-react';
 
+/**
+ * Generates a custom study plan based on user analytics
+ * This can be called when the user's data changes
+ * Exported to allow other components to trigger plan generation
+ */
+export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomStudyPlan: Function, setIsGeneratingPlan: Function, setActiveTab: Function, toast: any) {
+  // Update loading state
+  setIsGeneratingPlan(true);
+  
+  // Notify user that generation is in progress
+  toast({
+    title: "Generating Study Plan",
+    description: "Creating your personalized study plan based on your progress...",
+  });
+  
+  // Get concepts that need work
+  const needsWorkConcepts = analytics.conceptMasteries
+    .filter((concept: any) => concept.masteryLevel < 75)
+    .slice(0, 5)
+    .map((concept: any) => concept.concept);
+  
+  // Get strengths to build on
+  const strengths = analytics.conceptMasteries
+    .filter((concept: any) => concept.masteryLevel >= 75)
+    .slice(0, 3)
+    .map((concept: any) => concept.concept);
+  
+  // Get the user's grade
+  const grade = analytics.user?.grade || 'K';
+  
+  // Grade-specific topics mapping
+  const gradeTopics: Record<string, string[]> = {
+    'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
+    '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
+    '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
+    '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
+    '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
+    '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
+    '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
+  };
+  
+  // Get relevant topics for the student's grade
+  const relevantTopics = gradeTopics[grade] || 
+    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
+  
+  // Create bullet points with grade-specific topics
+  const studyPlanBullets = [
+    `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
+    `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
+    `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
+    `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
+    `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
+    `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
+    `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
+    `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
+    `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
+    `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
+  ];
+  
+  // Update state with the new study plan after a short delay to simulate processing
+  setTimeout(() => {
+    setCustomStudyPlan(studyPlanBullets);
+    setIsGeneratingPlan(false);
+    playSound('levelUp');
+    
+    // Small toast to confirm completion
+    toast({
+      title: "Study Plan Ready",
+      description: "Your personalized study plan has been generated",
+      duration: 3000,
+    });
+    
+    // Make sure the recommendations tab is active to show the plan
+    setActiveTab('recommendations');
+  }, 1000);
+}
+
 export default function AiAnalytics() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
+  const [customStudyPlan, setCustomStudyPlan] = useState<string[]>([]);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   
   // Fetch user's AI analytics
   const { 
@@ -79,6 +158,95 @@ export default function AiAnalytics() {
     } finally {
       setIsGenerating(false);
     }
+  };
+  
+  // Automatically generate a study plan when analytics data changes
+  useEffect(() => {
+    if (analytics && customStudyPlan.length === 0) {
+      // Only auto-generate if we don't already have a plan
+      generateCustomStudyPlanFromAnalytics(
+        analytics, 
+        setCustomStudyPlan, 
+        setIsGeneratingPlan, 
+        setActiveTab,
+        toast
+      );
+    }
+  }, [analytics, customStudyPlan.length, toast]);
+  
+  // Function to generate a custom study plan based on user data
+  const generateCustomStudyPlan = async () => {
+    if (!analytics) return;
+    
+    setIsGeneratingPlan(true);
+    
+    // Notify user that generation is in progress
+    toast({
+      title: "Generating Study Plan",
+      description: "Creating your personalized study plan based on your progress...",
+    });
+    
+    // Get concepts that need work
+    const needsWorkConcepts = analytics.conceptMasteries
+      .filter(concept => concept.masteryLevel < 75)
+      .slice(0, 5)
+      .map(concept => concept.concept);
+    
+    // Get strengths to build on
+    const strengths = analytics.conceptMasteries
+      .filter(concept => concept.masteryLevel >= 75)
+      .slice(0, 3)
+      .map(concept => concept.concept);
+    
+    // Get the user's grade
+    const grade = analytics.user?.grade || 'K';
+    
+    // Grade-specific topics mapping
+    const gradeTopics: Record<string, string[]> = {
+      'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
+      '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
+      '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
+      '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
+      '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
+      '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
+      '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
+    };
+    
+    // Get relevant topics for the student's grade
+    const relevantTopics = gradeTopics[grade] || 
+      ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
+    
+    // Create bullet points with grade-specific topics
+    const studyPlanBullets = [
+      `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
+      `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
+      `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
+      `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
+      `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
+      `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
+      `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
+      `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
+      `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
+      `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
+    ];
+    
+    // Update state with the new study plan
+    setTimeout(() => {
+      setCustomStudyPlan(studyPlanBullets);
+      setIsGeneratingPlan(false);
+      
+      // Small toast to confirm completion
+      toast({
+        title: "Study Plan Ready",
+        description: "Your personalized study plan has been updated",
+        duration: 3000,
+      });
+      
+      // Make sure the recommendations tab is active to show the plan
+      setActiveTab('recommendations');
+    }, 1000);
+    
+    return studyPlanBullets;
   };
   
   // Loading state
@@ -434,6 +602,24 @@ export default function AiAnalytics() {
                     </div>
                   )}
                 </div>
+
+                {/* Custom Study Plan */}
+                {customStudyPlan.length > 0 && (
+                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mt-4">
+                    <h3 className="font-semibold text-lg mb-3 flex items-center">
+                      <Zap className="h-5 w-5 mr-2 text-primary" />
+                      Your Custom Study Plan
+                    </h3>
+                    <div className="space-y-2">
+                      {customStudyPlan.map((bullet, i) => (
+                        <p key={i} className="text-sm">{bullet}</p>
+                      ))}
+                    </div>
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      <p>Generated based on your recent learning activity and progress</p>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="mt-8">
                   <h3 className="font-semibold text-lg mb-4">Study Schedule Suggestion</h3>
@@ -461,76 +647,15 @@ export default function AiAnalytics() {
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => {
-                  // Generate a custom study plan
-                  toast({
-                    title: "Study Plan Generated",
-                    description: "Creating your detailed 5-10 bullet-point study plan strategy...",
-                  });
-                  
-                  // Generate a comprehensive 5-10 bullet-point strategy
-                  // Get concepts that need work
-                  const needsWorkConcepts = analytics.conceptMasteries
-                    .filter(concept => concept.masteryLevel < 75)
-                    .slice(0, 5)
-                    .map(concept => concept.concept);
-                  
-                  // Get strengths to build on
-                  const strengths = analytics.conceptMasteries
-                    .filter(concept => concept.masteryLevel >= 75)
-                    .slice(0, 3)
-                    .map(concept => concept.concept);
-                  
-                  // Get the user's grade
-                  const grade = analytics.user?.grade || 'K';
-                  
-                  // Grade-specific topics mapping
-                  const gradeTopics: Record<string, string[]> = {
-                    'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
-                    '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
-                    '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
-                    '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
-                    '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
-                    '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
-                    '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
-                  };
-                  
-                  // Get relevant topics for the student's grade
-                  const relevantTopics = gradeTopics[grade] || 
-                    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
-                  
-                  // Create bullet points with grade-specific topics
-                  const studyPlanBullets = [
-                    `• Focus daily: ${needsWorkConcepts[0] || relevantTopics[0]} - 15 minutes of practice with ${relevantTopics[1]} problems`,
-                    `• Twice weekly: ${needsWorkConcepts[1] || relevantTopics[2]} - Use step-by-step problem solving approach`,
-                    `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
-                    `• Tuesday/Thursday: Work on ${needsWorkConcepts[2] || relevantTopics[3]} problems at current grade level`,
-                    `• Friday review: All topics covered during the week, especially ${needsWorkConcepts[0] || relevantTopics[0]}`,
-                    `• Connect strong concept ${strengths[0] || "basic operations"} with ${needsWorkConcepts[0] || relevantTopics[0]}`,
-                    `• Create 10 flash cards focusing on ${needsWorkConcepts[1] || relevantTopics[2]} facts`,
-                    `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
-                    `• Weekly assessment: Take a 10-question quiz on ${needsWorkConcepts[0] || relevantTopics[0]}`,
-                    `• Build on your strength in ${strengths[0] || relevantTopics[0]} when learning ${needsWorkConcepts[0] || relevantTopics[1]}`
-                  ];
-                  
-                  // Show detailed dialog with the plan
-                  setTimeout(() => {
-                    toast({
-                      title: "Your Custom Study Plan Strategy",
-                      description: (
-                        <div className="mt-2 space-y-1 text-sm">
-                          {studyPlanBullets.map((bullet, i) => (
-                            <p key={i}>{bullet}</p>
-                          ))}
-                        </div>
-                      ),
-                      duration: 10000,
-                    });
-                  }, 1000);
-                }}
+                disabled={isGeneratingPlan}
+                onClick={generateCustomStudyPlan}
               >
-                <Zap className="h-4 w-4 mr-2" />
-                Generate Custom Study Plan
+                {isGeneratingPlan ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-2" />
+                )}
+                {isGeneratingPlan ? 'Generating...' : 'Generate Custom Study Plan'}
               </Button>
             </CardFooter>
           </Card>

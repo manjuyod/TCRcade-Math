@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { getCategoryLabel } from '@/lib/questions';
@@ -32,6 +32,9 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState<string>(question?.question || "Loading question...");
   const [visualInfo, setVisualInfo] = useState<VisualInfo | null>(null);
+  
+  // Track answered questions for study plan refreshing
+  const answersCounter = useRef<number>(0);
   
   // Parse question for visual cues and check for SVG images
   useEffect(() => {
@@ -130,6 +133,27 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     setSelectedOption(option);
     // Log the selected answer for debugging
     console.log(`Selected answer: ${option} for question ID: ${question?.id}`);
+    
+    // Increment the answer counter
+    answersCounter.current += 1;
+    
+    // After every 5 answers, refresh the study plan
+    if (answersCounter.current % 5 === 0) {
+      console.log(`Refreshing study plan after ${answersCounter.current} answers`);
+      // Dynamically import the study plan module to avoid circular dependencies
+      try {
+        import('@/lib/study-plan').then(module => {
+          module.refreshStudyPlan().then(success => {
+            if (success) {
+              console.log('Study plan refreshed successfully');
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error refreshing study plan:', error);
+      }
+    }
+    
     // Submit the answer after a slight delay to ensure UI updates first
     setTimeout(() => {
       onAnswerSubmit(option);
