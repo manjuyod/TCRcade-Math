@@ -144,8 +144,8 @@ export default function ModulesPage() {
     },
     {
       id: 'geometry',
-      name: 'Shape Explorer',
-      description: 'Identify shapes, count sides, and calculate area and perimeter',
+      name: 'Geometry Concepts',
+      description: 'Practice with geometric concepts, formulas for area and perimeter',
       gameType: GameType.STANDARD,
       icon: <Dice5 className="h-12 w-12 text-pink-500" />,
       difficulty: 2,
@@ -161,17 +161,6 @@ export default function ModulesPage() {
       icon: <Clock className="h-12 w-12 text-amber-500" />,
       difficulty: 2,
       category: 'time',
-      locked: false,
-      completeCount: 0
-    },
-    {
-      id: 'money',
-      name: 'Money Matters',
-      description: 'Identify coins, count money, and calculate change',
-      gameType: GameType.STANDARD,
-      icon: <Shield className="h-12 w-12 text-green-500" />,
-      difficulty: 2,
-      category: 'money',
       locked: false,
       completeCount: 0
     },
@@ -211,7 +200,7 @@ export default function ModulesPage() {
     {
       id: 'algebra',
       name: 'Pre-Algebra Basics',
-      description: 'Solve for unknowns in equations with visual models',
+      description: 'Solve for unknowns in equations using algebraic principles',
       gameType: GameType.STANDARD,
       icon: <BarChart4 className="h-12 w-12 text-indigo-500" />,
       difficulty: 4,

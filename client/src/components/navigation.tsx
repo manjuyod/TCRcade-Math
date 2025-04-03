@@ -1,17 +1,17 @@
 import { Link } from 'wouter';
-import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Palette, Users, Brain, Pencil, GraduationCap } from 'lucide-react';
+import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Users, Brain, Pencil, GraduationCap } from 'lucide-react';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type NavigationProps = {
-  active: 'home' | 'play' | 'leaderboard' | 'profile' | 'avatar' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice' | 'tutor';
+  active: 'home' | 'play' | 'leaderboard' | 'profile' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice' | 'tutor';
 };
 
 export default function Navigation({ active }: NavigationProps) {
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   
   // Check if any of the advanced features is active
-  const isAdvancedFeatureActive = ['avatar', 'multiplayer', 'analytics', 'create-a-quiz', 'tutor'].includes(active);
+  const isAdvancedFeatureActive = ['multiplayer', 'analytics', 'create-a-quiz', 'tutor'].includes(active);
   
   return (
     <nav className="bg-white shadow-xl px-4 border-t border-gray-100 fixed bottom-0 left-0 right-0 z-[1000] print:hidden h-11">
@@ -42,12 +42,7 @@ export default function Navigation({ active }: NavigationProps) {
                 <div className="flex flex-wrap justify-around py-4 px-1 mb-6 mt-2">
                   {/* Daily Challenge removed as per user request */}
                   
-                  <Link href="/avatar" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
-                    <div className={`p-2 rounded-full ${active === 'avatar' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
-                      <Palette className="h-5 w-5" />
-                    </div>
-                    <span className="text-xs text-center">Avatar</span>
-                  </Link>
+                  {/* Avatar functionality has been removed */}
                   
                   <Link href="/multiplayer" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
                     <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>

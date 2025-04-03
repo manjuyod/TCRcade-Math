@@ -8,8 +8,14 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param questionText The text of the question to check for image references
  */
 function questionReferencesImage(questionText: string): boolean {
-  console.log("Checking if question references an image:", questionText);
+  console.log("Checking if question references an image - disabled per user request");
   
+  // All image generation is disabled - always return false
+  return false;
+  
+  // NOTE: Original pattern matching code has been commented out per user request
+  // to prevent all image generation and visual-based questions
+  /*
   // Define very specific patterns for allowed visual questions
   const allowedVisualPatterns = [
     // Counting specific shapes
@@ -98,17 +104,18 @@ function questionReferencesImage(questionText: string): boolean {
     /how much more money/i,
     /which coins add up to/i,
     /find the (total|value|amount)/i
-  ];
+  */
   
-  // Check if it's a money-related question
+  /* Money-related pattern matching has been disabled
   if (moneyTerms.some(term => term.test(questionText)) && 
       (moneyQuestionPatterns.some(pattern => pattern.test(questionText)) || 
        /how many|count|total|value|worth|cost|amount|add up|sum/i.test(questionText) || 
        /\d+.*and.*\d+/.test(questionText))) {
     console.log("Money-related question detected for 'Money Matters' category");
     return true;
-  }
+  }*/
   
+  /* All pattern matching code is disabled per user request
   // Check for specific counting patterns
   const countingPattern = /how many (triangles?|circles?|squares?|stars?)/i;
   if (countingPattern.test(questionText)) {
@@ -140,7 +147,9 @@ function questionReferencesImage(questionText: string): boolean {
     console.log("Question references real-world objects, not generating an image");
     return false;
   }
+  */
   
+  /* Word problem pattern matching has been disabled
   // Do NOT generate images for word problems or numerical calculations
   const wordProblemPatterns = [
     /If .+ has .+ and/i,
@@ -155,6 +164,7 @@ function questionReferencesImage(questionText: string): boolean {
     console.log("Word problem detected, not generating an image");
     return false;
   }
+  */
   
   return false;
 }
@@ -889,9 +899,8 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     previousQuestions = []
   } = params;
   
-  // Initialize variables for image generation
-  let imageType: string = "";
-  let imageContent: any = null;
+  // We are no longer using image generation per user request
+  // The following code is kept for reference but will not be executed
   
   try {
     // Create a context message that helps GPT understand what was previously asked
@@ -973,18 +982,16 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           4. ${questionFormat}
           5. ${selectedFactors} to make this question unique and engaging.
           6. NEVER repeat the same question patterns - create truly diverse content.
-          7. STRICT INSTRUCTIONS ABOUT VISUAL REFERENCES:
-             a. ONLY create questions that reference visuals for these specific types:
-                - Counting problems: "How many [shapes] are there?" with a specific number (must use triangles, circles, squares, or stars)
-                - Shape recognition: "Which shape is a [triangle/circle/square]?" (must use standard shapes, not real-world objects)
-                - Fraction visualization: "What fraction is shaded?" (must use a specific fraction like 1/4, 2/3, etc.)
-             b. For visual questions, ALWAYS ensure the question, answer, and all options are perfectly aligned
-                - If asking about counting 3 triangles, the answer MUST be exactly "3"
-                - If asking about shapes, all options MUST be actual shape names (circle, square, triangle, star)
-                - If asking about fractions, answer MUST be in the format "1/4" (not "one-fourth" or "0.25")
-             c. For counting questions, use ONLY numbers 1-5 for Kindergarten, 1-10 for Grade 1, and up to 20 for higher grades
-             d. DO NOT reference real-world objects in visual questions (no chocolate bars, toy trains, pizzas, etc.)
-             e. NEVER use terms like "below", "above", "pictured", or "illustrated" unless specifically creating one of the allowed visual types
+          7. STRICT INSTRUCTIONS ABOUT QUESTION TYPES:
+             a. ONLY create text-based computational problems (e.g., "4 - 2 = ?")
+             b. DO NOT create questions that reference visuals, shapes, images, or currency
+             c. DO NOT create counting problems that would require visual elements
+             d. DO NOT create questions about identifying shapes
+             e. DO NOT create fraction problems that ask "what fraction is shaded?"
+             f. NEVER use terms like "below", "above", "pictured", "illustrated", "shown", "image", or "diagram"
+             g. Do not reference colors or position of objects
+             h. Only use fractions expressed as numbers (1/2, 3/4, etc.)
+             i. DO NOT include money questions (no coins, dollars, cents, bills, currency)
           8. ${contextMessage}
           
           Format your response as a JSON object with these fields:

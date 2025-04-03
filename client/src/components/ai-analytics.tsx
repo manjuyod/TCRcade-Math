@@ -465,26 +465,48 @@ export default function AiAnalytics() {
                   // Generate a custom study plan
                   toast({
                     title: "Study Plan Generated",
-                    description: "Your custom study plan has been created based on your learning patterns",
+                    description: "Creating your detailed study plan...",
                   });
                   
-                  // Show a popup with recommended study concepts
-                  const studyPlan = analytics.conceptMasteries
+                  // Generate a comprehensive 5-10 bullet-point strategy
+                  // Get concepts that need work
+                  const needsWorkConcepts = analytics.conceptMasteries
                     .filter(concept => concept.masteryLevel < 75)
                     .slice(0, 5)
                     .map(concept => concept.concept);
                   
-                  // Format the study plan
-                  const formattedPlan = studyPlan.length > 0 
-                    ? `Focus on these areas: ${studyPlan.join(', ')}` 
-                    : "Continue practicing your current skills to maintain mastery";
+                  // Get strengths to build on
+                  const strengths = analytics.conceptMasteries
+                    .filter(concept => concept.masteryLevel >= 75)
+                    .slice(0, 3)
+                    .map(concept => concept.concept);
                   
-                  // Show detailed toast with the plan
+                  // Create bullet points
+                  const studyPlanBullets = [
+                    `• Focus on practicing ${needsWorkConcepts[0] || "basic concepts"} for 15 minutes daily`,
+                    `• Strengthen your understanding of ${needsWorkConcepts[1] || "core principles"} through practice problems`,
+                    `• Try solving ${needsWorkConcepts[2] || "word problems"} using step-by-step approaches`,
+                    `• Work on ${analytics.analytics.suggestedCategories?.[0] || "problem-solving"} exercises at current grade level`,
+                    `• Review and practice ${needsWorkConcepts[3] || "fundamental skills"} 3 times weekly`,
+                    `• Build on your strength in ${strengths[0] || "previous concepts"} to understand more advanced topics`,
+                    `• Create flash cards for ${needsWorkConcepts[4] || "challenging concepts"}`,
+                    `• Practice ${analytics.analytics.suggestedCategories?.[1] || "mental math"} for 5 minutes daily`,
+                    `• Explain concepts to someone else to strengthen your understanding`,
+                    `• Connect ${strengths[1] || "familiar concepts"} with ${needsWorkConcepts[0] || "new material"} to build relationships`
+                  ];
+                  
+                  // Show detailed dialog with the plan
                   setTimeout(() => {
                     toast({
-                      title: "Your Custom Study Plan",
-                      description: formattedPlan,
-                      duration: 5000,
+                      title: "Your Custom Study Plan Strategy",
+                      description: (
+                        <div className="mt-2 space-y-1 text-sm">
+                          {studyPlanBullets.map((bullet, i) => (
+                            <p key={i}>{bullet}</p>
+                          ))}
+                        </div>
+                      ),
+                      duration: 10000,
                     });
                   }, 1000);
                 }}
