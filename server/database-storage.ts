@@ -12,7 +12,7 @@ import {
   leaderboard, type Leaderboard
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray } from "drizzle-orm";
+import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
 import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
@@ -1024,8 +1024,8 @@ export class DatabaseStorage implements IStorage {
         // To avoid issues with possibly empty excludeIds array
         const filteredIds = excludeIds.filter(id => typeof id === 'number');
         if (filteredIds.length > 0) {
-          // Use notInArray for cleaner syntax and better performance
-          filters.push(notInArray(questions.id, filteredIds));
+          // Use not(inArray()) instead of notInArray which doesn't exist
+          filters.push(not(inArray(questions.id, filteredIds)));
         }
       }
       
