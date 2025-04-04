@@ -878,6 +878,32 @@ export class DatabaseStorage implements IStorage {
       }
     });
     
+    // Add default concepts for practice if user doesn't have enough weakness data
+    // This ensures the "Concepts that need more practice" section is always populated
+    if (weaknesses.length < 3) {
+      // Get the user's grade to provide grade-appropriate concepts
+      const grade = user.grade || '3';
+      
+      // Generate default concepts based on grade level
+      const defaultConcepts: {[key: string]: string[]} = {
+        'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
+        '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
+        '2': ['skip counting', 'mental math', 'money', 'basic fractions', 'place value'],
+        '3': ['multiplication', 'division', 'fractions', 'area', 'perimeter'],
+        '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors'],
+        '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
+        '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
+      };
+      
+      // Add grade-appropriate default concepts that aren't already in weaknesses
+      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['3'];
+      for (const concept of gradeSpecificConcepts) {
+        if (!weaknesses.includes(concept) && weaknesses.length < 5) {
+          weaknesses.push(concept);
+        }
+      }
+    }
+    
     // Get progress data
     const progress = await db
       .select()

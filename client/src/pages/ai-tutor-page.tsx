@@ -171,19 +171,21 @@ export default function AiTutorPage() {
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : categories && categories.length > 0 ? (
-                  <Tabs defaultValue={selectedCategory} onValueChange={handleCategoryChange}>
-                    <TabsList className="grid grid-cols-2 gap-2 bg-muted/30">
+                  <div className="max-h-60 overflow-y-auto pr-1 pb-2">
+                    <div className="grid grid-cols-1 gap-2">
                       {categories.map((category: string) => (
-                        <TabsTrigger 
+                        <Button 
                           key={category} 
-                          value={category}
-                          className="text-xs"
+                          variant={selectedCategory === category ? "default" : "outline"}
+                          size="sm"
+                          className="justify-start h-auto py-2 text-xs w-full"
+                          onClick={() => handleCategoryChange(category)}
                         >
-                          {category}
-                        </TabsTrigger>
+                          {category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ')}
+                        </Button>
                       ))}
-                    </TabsList>
-                  </Tabs>
+                    </div>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No categories available for this grade</p>
                 )}
@@ -205,84 +207,202 @@ export default function AiTutorPage() {
             </CardHeader>
             <CardContent className="pt-3">
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("addition");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Addition</div>
-                    <div className="text-xs text-muted-foreground truncate">Adding numbers</div>
-                  </div>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("subtraction");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Subtraction</div>
-                    <div className="text-xs text-muted-foreground truncate">Taking away</div>
-                  </div>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("multiplication");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Multiplication</div>
-                    <div className="text-xs text-muted-foreground truncate">Times tables</div>
-                  </div>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("division");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Division</div>
-                    <div className="text-xs text-muted-foreground truncate">Sharing equally</div>
-                  </div>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("fractions");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Fractions</div>
-                    <div className="text-xs text-muted-foreground truncate">Parts of a whole</div>
-                  </div>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
-                  onClick={() => {
-                    setSelectedCategory("measurement");
-                    fetchNewQuestion();
-                  }}
-                >
-                  <div className="text-left truncate w-full">
-                    <div className="font-medium truncate">Measurement</div>
-                    <div className="text-xs text-muted-foreground truncate">Size, weight, time</div>
-                  </div>
-                </Button>
+                {/* Grade K, 1, 2 topics */}
+                {(['K', '1', '2'].includes(selectedGrade)) && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("addition");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Addition</div>
+                        <div className="text-xs text-muted-foreground truncate">Adding numbers</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("subtraction");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Subtraction</div>
+                        <div className="text-xs text-muted-foreground truncate">Taking away</div>
+                      </div>
+                    </Button>
+                    {selectedGrade !== 'K' && (
+                      <Button 
+                        variant="outline" 
+                        className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                        onClick={() => {
+                          setSelectedCategory("place_value");
+                          fetchNewQuestion();
+                        }}
+                      >
+                        <div className="text-left truncate w-full">
+                          <div className="font-medium truncate">Place Value</div>
+                          <div className="text-xs text-muted-foreground truncate">Tens and ones</div>
+                        </div>
+                      </Button>
+                    )}
+                    {selectedGrade === 'K' && (
+                      <Button 
+                        variant="outline" 
+                        className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                        onClick={() => {
+                          setSelectedCategory("counting");
+                          fetchNewQuestion();
+                        }}
+                      >
+                        <div className="text-left truncate w-full">
+                          <div className="font-medium truncate">Counting</div>
+                          <div className="text-xs text-muted-foreground truncate">Numbers in order</div>
+                        </div>
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {/* Grade 3, 4 topics */}
+                {(['3', '4'].includes(selectedGrade)) && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("multiplication");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Multiplication</div>
+                        <div className="text-xs text-muted-foreground truncate">Times tables</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("division");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Division</div>
+                        <div className="text-xs text-muted-foreground truncate">Sharing equally</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("fractions");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Fractions</div>
+                        <div className="text-xs text-muted-foreground truncate">Parts of a whole</div>
+                      </div>
+                    </Button>
+                  </>
+                )}
+
+                {/* Grade 5 topics */}
+                {selectedGrade === '5' && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("decimals");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Decimals</div>
+                        <div className="text-xs text-muted-foreground truncate">Working with decimal numbers</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("fractions");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Fractions</div>
+                        <div className="text-xs text-muted-foreground truncate">Advanced fraction operations</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("geometry");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Geometry</div>
+                        <div className="text-xs text-muted-foreground truncate">Shapes and measurements</div>
+                      </div>
+                    </Button>
+                  </>
+                )}
+
+                {/* Grade 6 topics */}
+                {selectedGrade === '6' && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("algebra");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Algebra</div>
+                        <div className="text-xs text-muted-foreground truncate">Basic equations</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("percentages");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Percentages</div>
+                        <div className="text-xs text-muted-foreground truncate">Finding part of a whole</div>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto py-2 px-3 w-full overflow-hidden hover:bg-primary/5 border-primary/20" 
+                      onClick={() => {
+                        setSelectedCategory("ratios");
+                        fetchNewQuestion();
+                      }}
+                    >
+                      <div className="text-left truncate w-full">
+                        <div className="font-medium truncate">Ratios</div>
+                        <div className="text-xs text-muted-foreground truncate">Comparing quantities</div>
+                      </div>
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

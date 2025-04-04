@@ -2082,21 +2082,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let allQuestionsForGrade = await storage.getQuestionsByGrade(grade, category);
       console.log(`DIRECT DATABASE FETCH: Found ${allQuestionsForGrade.length} questions matching grade=${grade} and category=${category || 'all'}`);
       
-      // If we have too few questions, try getting questions without category filter
+      // If we have too few questions for the specified category, we'll now prioritize
+      // generating new questions with the correct category rather than mixing categories
       if (allQuestionsForGrade.length < questionCount && category && category !== 'all') {
-        console.log(`INSUFFICIENT QUESTIONS with category filter. Trying without category filter...`);
-        const additionalQuestions = await storage.getQuestionsByGrade(grade);
-        console.log(`BACKUP FETCH: Found ${additionalQuestions.length} total questions for grade=${grade} without category filter`);
+        console.log(`INSUFFICIENT QUESTIONS with category filter (${category}). Will generate questions specifically for this category...`);
         
-        // Add new questions that aren't already in our list
+        // Instead of mixing categories, we'll generate additional questions in the requested category
+        // We'll keep track of existing question IDs to avoid duplicates
         const existingIds = new Set(allQuestionsForGrade.map(q => q.id));
-        for (const q of additionalQuestions) {
-          if (!existingIds.has(q.id)) {
-            allQuestionsForGrade.push(q);
-            existingIds.add(q.id);
+        const neededQuestions = questionCount - allQuestionsForGrade.length;
+        
+        // Generate the needed questions with the correct category
+        console.log(`Attempting to generate ${neededQuestions} additional questions for category ${category}`);
+        
+        for (let i = 0; i < neededQuestions; i++) {
+          try {
+            // Generate a new question specifically for the requested category
+            const newQuestion = await storage.getAdaptiveQuestion(
+              req.user!.id, 
+              grade, 
+              true, // Force dynamic generation
+              category, // Ensure we're generating for the requested category
+              Array.from(existingIds) // Exclude existing questions
+            );
+            
+            if (newQuestion && !existingIds.has(newQuestion.id)) {
+              // Double-check the category matches what we requested
+              if (newQuestion.category === category) {
+                allQuestionsForGrade.push(newQuestion);
+                existingIds.add(newQuestion.id);
+                console.log(`GENERATED new ${category} question ID=${newQuestion.id} for game`);
+              } else {
+                console.log(`SKIPPING question with mismatched category: requested=${category}, got=${newQuestion.category}`);
+              }
+            }
+          } catch (err) {
+            console.error("Error generating question:", err);
           }
         }
-        console.log(`COMBINED FETCH: Now have ${allQuestionsForGrade.length} total questions after combining results`);
+        
+        console.log(`After generation attempts: Now have ${allQuestionsForGrade.length} questions for category ${category}`);
       }
       
       // If we still don't have enough, try to generate more via OpenAI

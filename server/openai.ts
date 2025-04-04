@@ -176,11 +176,11 @@ function questionReferencesImage(questionText: string): boolean {
  * @param type Not used - visualization type has been disabled
  */
 function generateSVGImage(content: any, type: string): string {
-  // Per user request, return an empty SVG with no visual elements
-  console.log("SVG image generation disabled per user request");
+  // Per user request, return an empty string with no visual elements at all
+  console.log("SVG image generation completely disabled per user request");
   return "";
   
-  /* Original SVG generation code has been disabled
+  /* Original SVG generation code has been disabled and will never execute
   const svgWidth = 300;
   const svgHeight = 200;
   let svgContent = '';
@@ -1741,7 +1741,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     // Return a basic dynamic question as last resort - with grade-specific adjustments
     const grade = params.grade || "K";
     let num1, num2, questionText, options, explanation, category;
-    let storyImage = null; // For visual references
+    // No visual elements per user request
     
     // Adjust the fallback question based on grade level
     if (grade === "K") {
@@ -1758,16 +1758,14 @@ Make sure it's appropriate for the student's level and provides a learning oppor
         options = [`${num1}`, `${num1+1}`, `${num1-1 > 0 ? num1-1 : num1+2}`, `${num1+2}`];
         explanation = `When counting from 1 to ${num1}, you say ${num1} numbers: ${Array.from({length: num1}, (_, i) => i+1).join(', ')}.`;
         category = "Counting";
-        // No images per user request
-        storyImage = null;
+        // No images per user request - disabled completely
       } else if (questionType === 1) {
         // Text-only addition question
         questionText = `What is ${num1} + ${num2}?`;
         options = [`${num1 + num2}`, `${num1 + num2 + 1}`, `${num1 + num2 - 1 > 0 ? num1 + num2 - 1 : num1 + num2 + 2}`, `${num1 + num2 + 2}`];
         explanation = `To add ${num1} + ${num2}, combine the two numbers to get ${num1 + num2}.`;
         category = "Addition";
-        // No images per user request
-        storyImage = null;
+        // No images per user request - disabled completely
       } else {
         // Text-only shape property question 
         const shapes = ["circle", "square", "triangle"];
@@ -1796,8 +1794,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
         options = shapeOptions[correctShape as keyof typeof shapeOptions];
         explanation = `A ${correctShape} has ${shapeAnswers[correctShape as keyof typeof shapeAnswers]} sides.`;
         category = "Geometry";
-        // No images per user request
-        storyImage = null;
+        // No images per user request - disabled completely
       }
     } else {
       // For higher grades, use default addition questions with appropriate numbers
@@ -1825,8 +1822,8 @@ Make sure it's appropriate for the student's level and provides a learning oppor
       difficulty: params.difficulty || 1,
       concepts: [category],
       grade: grade,
-      category: category,
-      storyImage: storyImage
+      category: category
+      // No storyImage - visual elements removed per user request
     };
   }
 }
