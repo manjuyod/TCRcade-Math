@@ -262,16 +262,26 @@ export default function MultiplayerMode() {
     mutationFn: async (data: { roomId: number; answer: string }) => {
       const res = await apiRequest('POST', '/api/multiplayer/answer', data);
       if (!res.ok) throw new Error('Failed to submit answer');
-      return res.json() as Promise<{ correct: boolean, nextQuestion?: Question, gameOver?: boolean }>;
+      return res.json() as Promise<{ 
+        correct: boolean, 
+        nextQuestion?: Question, 
+        gameOver?: boolean,
+        tokensEarned?: number
+      }>;
     },
     onSuccess: (data) => {
-      // Play sound based on correctness
+      // Play sound based on correctness immediately
       data.correct ? playSound('correct') : playSound('incorrect');
       
-      // Reset the "submitted" state for the next question
-      setIsAnswerSubmitted(false);
+      // Show a toast notification for the answer result that auto-dismisses immediately
+      toast({
+        title: data.correct ? 'Correct!' : 'Incorrect',
+        description: data.correct ? `+${data.tokensEarned || 1} points` : 'Better luck on the next question',
+        variant: data.correct ? 'default' : 'destructive',
+        dismissTimeout: 1500, // Short auto-dismiss after 1.5 seconds
+      });
       
-      // Update game state if there's a next question or game is over
+      // IMMEDIATE HANDLING: Update game state based on result
       if (data.gameOver) {
         console.log('Game is over, setting finished state');
         setGameState(prev => ({
@@ -279,9 +289,16 @@ export default function MultiplayerMode() {
           status: 'finished'
         }));
       } else {
-        // Always move to the next question, even if data.nextQuestion is undefined
-        // This fixes a critical bug where the game would get stuck if the server didn't return the next question
-        console.log('Moving to next question:', data.nextQuestion?.id || 'unknown');
+        // Always immediately move to the next question
+        console.log('IMMEDIATELY moving to next question:', data.nextQuestion?.id || 'unknown');
+        
+        // Reset the submitted ref for the next question
+        submittedRef.current = null;
+        
+        // Reset the "submitted" state for the next question
+        setIsAnswerSubmitted(false);
+        
+        // Update state with next question
         setGameState(prev => ({
           ...prev,
           currentQuestion: data.nextQuestion || null,
@@ -289,20 +306,9 @@ export default function MultiplayerMode() {
           timeRemaining: activeRoom?.settings?.timeLimit || 30
         }));
         
-        // Reset the submitted ref for the next question/state
-        submittedRef.current = null;
-        
         // Force a refetch to ensure we have the latest state
         refetchActiveRoom();
       }
-      
-      // Show a toast notification for the answer result that auto-dismisses
-      toast({
-        title: data.correct ? 'Correct!' : 'Incorrect',
-        description: data.correct ? '+1 point' : 'Better luck on the next question',
-        variant: data.correct ? 'default' : 'destructive',
-        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
-      });
     },
     onError: (error) => {
       toast({

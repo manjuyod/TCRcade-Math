@@ -2278,11 +2278,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Include token information in the response
+      let tokenReward = 0;
+      if (isCorrect) {
+        // Use the tokensEarned that was calculated earlier in the function
+        tokenReward = Math.max(3, Math.min(currentQuestion.difficulty * 2, 10));
+      }
+      
       res.json({
         success: true,
         correct: isCorrect,
         nextQuestion: nextQuestion,
-        gameOver: gameOver
+        gameOver: gameOver,
+        tokensEarned: tokenReward
       });
     } catch (error) {
       console.error("Error submitting multiplayer answer:", error);
