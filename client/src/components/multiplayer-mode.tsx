@@ -257,7 +257,7 @@ export default function MultiplayerMode() {
     }
   });
   
-  // Submit answer
+  // Submit answer - ULTRA AGGRESSIVE PROGRESSION
   const submitAnswerMutation = useMutation({
     mutationFn: async (data: { roomId: number; answer: string }) => {
       const res = await apiRequest('POST', '/api/multiplayer/answer', data);
@@ -273,50 +273,81 @@ export default function MultiplayerMode() {
       // Play sound based on correctness immediately
       data.correct ? playSound('correct') : playSound('incorrect');
       
-      // Show a toast notification for the answer result that auto-dismisses immediately
-      toast({
-        title: data.correct ? 'Correct!' : 'Incorrect',
-        description: data.correct ? `+${data.tokensEarned || 1} points` : 'Better luck on the next question',
-        variant: data.correct ? 'default' : 'destructive',
-        dismissTimeout: 1500, // Short auto-dismiss after 1.5 seconds
+      console.log('ANSWER PROCESSED! Handling answer result:', { 
+        correct: data.correct, 
+        gameOver: data.gameOver,
+        hasNextQuestion: !!data.nextQuestion,
+        nextQuestionId: data.nextQuestion?.id
       });
       
-      // IMMEDIATE HANDLING: Update game state based on result
+      // ULTRA FAST toast notification
+      toast({
+        title: data.correct ? 'Correct!' : 'Incorrect',
+        description: data.correct ? `+${data.tokensEarned || 1} tokens` : 'Keep going!',
+        variant: data.correct ? 'default' : 'destructive',
+        dismissTimeout: 750, // ULTRA short auto-dismiss - less than a second
+      });
+      
+      // ULTRA AGGRESSIVE IMMEDIATE HANDLING: 
       if (data.gameOver) {
-        console.log('Game is over, setting finished state');
+        console.log('Game is over, setting finished state IMMEDIATELY');
+        
+        // FORCE all game state to finished status
         setGameState(prev => ({
           ...prev,
           status: 'finished'
         }));
-      } else {
-        // Always immediately move to the next question
-        console.log('IMMEDIATELY moving to next question:', data.nextQuestion?.id || 'unknown');
         
-        // Reset the submitted ref for the next question
-        submittedRef.current = null;
+        // Immediately trigger a refetch to get final results
+        refetchActiveRoom();
+      } else if (data.nextQuestion) {
+        // ULTRA AGGRESSIVE immediate question transition
+        console.log('ULTRA AGGRESSIVELY moving to next question:', data.nextQuestion.id);
         
-        // Reset the "submitted" state for the next question
-        setIsAnswerSubmitted(false);
+        // 1. FORCE STOP any timers
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
         
-        // Update state with next question
+        // 2. RESET ALL answer submission state
+        submittedRef.current = null; // Clear submission tracking
+        setIsAnswerSubmitted(false); // Re-enable answer buttons
+        
+        // 3. IMMEDIATELY apply the next question in local state
+        // This happens BEFORE any server sync or refresh
         setGameState(prev => ({
           ...prev,
-          currentQuestion: data.nextQuestion || null,
+          currentQuestion: data.nextQuestion,
           currentQuestionIndex: prev.currentQuestionIndex + 1,
           timeRemaining: activeRoom?.settings?.timeLimit || 30
         }));
         
-        // Force a refetch to ensure we have the latest state
+        // 4. Forced refetch with minimal delay to synchronize other state (scores, etc.)
+        // But we don't wait for this to show the next question!
+        setTimeout(() => {
+          refetchActiveRoom();
+        }, 200);
+      } else {
+        console.error('CRITICAL ERROR: No next question received from server!');
+        
+        // Even though we have an error, try to refetch anyway to recover
         refetchActiveRoom();
       }
     },
     onError: (error) => {
+      // Clear submission state on error to allow retrying
+      submittedRef.current = null;
+      
       toast({
         title: 'Error submitting answer',
         description: error.message,
         variant: 'destructive',
-        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
+        dismissTimeout: 3000,
       });
+      
+      // Try to refetch to recover from error state
+      refetchActiveRoom();
     }
   });
   
@@ -354,13 +385,36 @@ export default function MultiplayerMode() {
     }
   });
   
-  // Update game state from active room data
+  // Update game state from active room data - MORE AGGRESSIVE ABOUT LOCAL STATE
   useEffect(() => {
     if (activeRoom?.gameState) {
+      // Determine if we should update the current question 
+      // We're now MORE aggressive about keeping local state in control when an answer is submitted
+      const isSubmitting = submittedRef.current !== null;
+      const isNewQuestion = activeRoom.gameState.currentQuestion?.id !== gameState.currentQuestion?.id;
+        
+      // If we're in the submission process, don't update ANY state except final results
+      if (isSubmitting && !isNewQuestion && activeRoom.gameState.status !== 'finished') {
+        console.log('PREVENTING state update during answer submission - maintaining local state control');
+        
+        // Only update the results if the game is finished - this is critical
+        if (activeRoom.gameState.status === 'finished') {
+          setGameState(prev => ({
+            ...prev,
+            status: 'finished',
+            results: activeRoom.gameState?.results || []
+          }));
+        }
+        
+        // Skip the rest of the state update
+        return;
+      }
+      
+      // Full state update for non-submission cases
       setGameState(prev => ({
         ...prev,
         status: activeRoom.gameState.status || 'waiting',
-        currentQuestion: activeRoom.gameState.currentQuestion,
+        currentQuestion: isNewQuestion ? activeRoom.gameState.currentQuestion : prev.currentQuestion,
         currentQuestionIndex: activeRoom.gameState?.currentQuestionIndex || 0,
         totalQuestions: activeRoom.settings?.questionCount || 10,
         players: activeRoom.players || [],
@@ -368,8 +422,13 @@ export default function MultiplayerMode() {
         results: activeRoom.gameState?.results || []
       }));
       
-      // Log game state for debugging
-      console.log('Game state updated:', activeRoom.gameState);
+      // Only log when actually updating
+      console.log('Game state updated:', {
+        currentQuestionId: activeRoom.gameState.currentQuestion?.id,
+        status: activeRoom.gameState.status,
+        isSubmitting,
+        isNewQuestion
+      });
     } else if (activeRoom) {
       setGameState(prev => ({
         ...prev,
@@ -377,7 +436,7 @@ export default function MultiplayerMode() {
         players: activeRoom.players || []
       }));
     }
-  }, [activeRoom]);
+  }, [activeRoom, gameState.currentQuestion?.id]);
   
   // Start the game countdown timer
   useEffect(() => {
@@ -499,36 +558,54 @@ export default function MultiplayerMode() {
     }
   };
   
-  // Handle answering a question
+  // Handle answering a question - ULTRA AGGRESSIVE IMMEDIATE PROGRESSION
   const handleAnswerSubmit = (answer: string) => {
     if (activeRoomId && gameState.status === 'playing') {
       // Prevent multiple submissions for the same question
       if (submittedRef.current === gameState.currentQuestion?.id) {
+        console.log('Preventing duplicate answer submission for question:', gameState.currentQuestion?.id);
         return;
       }
       
-      // Track that we've submitted an answer for this question
+      console.log('ULTRA AGGRESSIVE SUBMITTING ANSWER for question:', gameState.currentQuestion?.id);
+      
+      // Track that we've submitted an answer for this question IMMEDIATELY
       submittedRef.current = gameState.currentQuestion?.id;
       
-      // Clear the countdown timer immediately when an answer is submitted
+      // IMMEDIATELY kill timer - extremely important for UX
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null; // Full reset to null
       }
       
-      // Disable the answer options right away
+      // INSTANTLY disable answer options
       setIsAnswerSubmitted(true);
       
-      // Submit the answer
-      submitAnswerMutation.mutate({
-        roomId: activeRoomId,
-        answer
+      // Local check for instant feedback even before server responds
+      const isCorrect = answer.trim().toLowerCase() === gameState.currentQuestion?.answer.trim().toLowerCase();
+      
+      // IMMEDIATELY play sound - don't wait for server
+      isCorrect ? playSound('correct') : playSound('incorrect');
+      
+      // INSTANTLY show toast notification
+      toast({
+        title: isCorrect ? 'Correct!' : 'Incorrect',
+        description: isCorrect ? '+1 token' : 'Keep going!',
+        variant: isCorrect ? 'default' : 'destructive',
+        dismissTimeout: 750, // Ultra short auto-dismiss
       });
       
-      // Set the timer to 0 to indicate we're ready for the next question
+      // FORCE timer to 0 to give visual indication we're done with this question
       setGameState(prev => ({
         ...prev,
         timeRemaining: 0
       }));
+      
+      // Submit to server with minimal delay - this is the only network call
+      submitAnswerMutation.mutate({
+        roomId: activeRoomId,
+        answer
+      });
     }
   };
   
@@ -547,18 +624,34 @@ export default function MultiplayerMode() {
     }
   };
 
-  // Render the question card with disabled buttons if answer is submitted
+  // Render the question card with ULTRA AGGRESSIVE immediate feedback
   const renderCurrentQuestion = () => {
     if (!gameState.currentQuestion) return null;
+    
+    // ALWAYS show answer immediately after submission - CRITICAL for UX
+    // This is what the user specifically requested - instant answer display
+    const showAnswer = isAnswerSubmitted;
+    
+    // Create a unique key for EACH question to force complete re-render
+    // This ensures the component fully refreshes between questions
+    const questionKey = `question-${gameState.currentQuestion.id}-${isAnswerSubmitted ? 'answered' : 'unanswered'}`;
+    
+    console.log('RENDERING QUESTION WITH INSTANT FEEDBACK:', {
+      questionId: gameState.currentQuestion.id,
+      isAnswerSubmitted,
+      showAnswer,
+      uniqueKey: questionKey
+    });
     
     return (
       <div className="flex flex-col">
         <QuestionCard
+          key={questionKey} // Ultra aggressive unique key for proper re-rendering
           question={gameState.currentQuestion}
           onAnswer={handleAnswerSubmit}
-          disableOptions={isAnswerSubmitted}
-          showCorrectAnswer={isAnswerSubmitted}
-          showTimer={false}
+          disableOptions={isAnswerSubmitted} // Immediate disable after selection
+          showCorrectAnswer={showAnswer} // Immediately show correct answer
+          showTimer={false} // No timer display - user requested removal of waiting periods
         />
       </div>
     );
