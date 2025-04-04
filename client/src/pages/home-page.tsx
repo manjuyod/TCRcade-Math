@@ -644,7 +644,7 @@ export default function HomePage() {
             ) : (
               <QuestionCard
                 question={question}
-                onAnswerSubmit={handleAnswerSubmit}
+                onAnswer={handleAnswerSubmit}
               />
             )
           ) : (

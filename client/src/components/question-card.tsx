@@ -6,7 +6,10 @@ import { getQuestionImage } from '@/lib/imageUtils';
 
 type QuestionCardProps = {
   question: Question;
-  onAnswerSubmit: (answer: string) => void;
+  onAnswer: (answer: string) => void;
+  disableOptions?: boolean;
+  showCorrectAnswer?: boolean;
+  showTimer?: boolean;
 };
 
 type VisualInfo = {
@@ -27,7 +30,7 @@ type VisualInfo = {
   };
 };
 
-export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardProps) {
+export default function QuestionCard({ question, onAnswer, disableOptions, showCorrectAnswer, showTimer }: QuestionCardProps) {
   // Default to a safe fallback if question is undefined
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState<string>(question?.question || "Loading question...");
@@ -156,7 +159,7 @@ export default function QuestionCard({ question, onAnswerSubmit }: QuestionCardP
     
     // Submit the answer after a slight delay to ensure UI updates first
     setTimeout(() => {
-      onAnswerSubmit(option);
+      onAnswer(option);
     }, 100);
   };
   
