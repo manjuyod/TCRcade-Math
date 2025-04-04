@@ -2074,49 +2074,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = [];
       const usedQuestionIds = new Set(); // Track question IDs to avoid duplicates
       
-      // Try to get unique questions up to the requested count
-      // Add a safety limit to prevent infinite loops but make it much higher to ensure we get enough questions
-      let attempts = 0;
-      const maxAttempts = questionCount * 20; // Increase to 20 attempts per question to REALLY ensure we get enough
+      // Use a more reliable approach to get multiple questions at once
+      console.log(`ULTRA AGGRESSIVE: Fetching ${questionCount} questions for multiplayer game (category: ${category}, grade: ${grade})`);
       
-      while (questions.length < questionCount && attempts < maxAttempts) {
-        try {
-          // Pass the already used question IDs as exclusions
-          const excludeIds = Array.from(usedQuestionIds);
-          
-          // ULTRA AGGRESSIVE question fetching to ensure we get enough questions
-          // Get a question specifically for the requested category
-          const question = await storage.getAdaptiveQuestion(
-            req.user!.id, 
-            grade, 
-            true, // Force dynamic generation for variety
-            category,
-            excludeIds // Exclude questions we've already selected
-          );
-          
-          if (question && !usedQuestionIds.has(question.id)) {
-            // Add this question to our selection
-            questions.push(question);
-            // Track its ID to avoid duplicates
-            usedQuestionIds.add(question.id);
-            
-            // Log progress
-            if (questions.length % 5 === 0 || questions.length === questionCount) {
-              console.log(`Fetched ${questions.length}/${questionCount} questions for multiplayer game`);
-            }
-          }
-        } catch (err) {
-          console.error("Error fetching question:", err);
-        }
+      // First try: get questions with exact grade and category match
+      let allQuestionsForGrade = await storage.getQuestionsByGrade(grade, category);
+      console.log(`DIRECT DATABASE FETCH: Found ${allQuestionsForGrade.length} questions matching grade=${grade} and category=${category || 'all'}`);
+      
+      // If we have too few questions, try getting questions without category filter
+      if (allQuestionsForGrade.length < questionCount && category && category !== 'all') {
+        console.log(`INSUFFICIENT QUESTIONS with category filter. Trying without category filter...`);
+        const additionalQuestions = await storage.getQuestionsByGrade(grade);
+        console.log(`BACKUP FETCH: Found ${additionalQuestions.length} total questions for grade=${grade} without category filter`);
         
-        attempts++;
+        // Add new questions that aren't already in our list
+        const existingIds = new Set(allQuestionsForGrade.map(q => q.id));
+        for (const q of additionalQuestions) {
+          if (!existingIds.has(q.id)) {
+            allQuestionsForGrade.push(q);
+            existingIds.add(q.id);
+          }
+        }
+        console.log(`COMBINED FETCH: Now have ${allQuestionsForGrade.length} total questions after combining results`);
+      }
+      
+      // If we still don't have enough, try to generate more via OpenAI
+      if (allQuestionsForGrade.length < questionCount) {
+        console.log(`STILL INSUFFICIENT QUESTIONS. Will try to generate additional questions via OpenAI...`);
+        const attempts = questionCount - allQuestionsForGrade.length;
+        const existingIds = new Set(allQuestionsForGrade.map(q => q.id));
+        
+        for (let i = 0; i < attempts; i++) {
+          try {
+            const newQuestion = await storage.getAdaptiveQuestion(
+              req.user!.id, 
+              grade, 
+              true, // Force dynamic generation 
+              category,
+              Array.from(existingIds) // Exclude existing questions
+            );
+            
+            if (newQuestion && !existingIds.has(newQuestion.id)) {
+              allQuestionsForGrade.push(newQuestion);
+              existingIds.add(newQuestion.id);
+              console.log(`GENERATED new question ID=${newQuestion.id} for game`);
+            }
+          } catch (err) {
+            console.error("Error generating question:", err);
+          }
+        }
+      }
+      
+      // Shuffle the questions and select the number requested
+      allQuestionsForGrade = allQuestionsForGrade.sort(() => Math.random() - 0.5);
+      const selectedQuestions = allQuestionsForGrade.slice(0, questionCount);
+      
+      // Add selected questions to the original array
+      for (const q of selectedQuestions) {
+        questions.push(q);
       }
       
       // CRITICAL: Double check that we have enough questions
       console.log(`MULTIPLAYER GAME: Selected ${questions.length}/${questionCount} questions (category: ${category}, grade: ${grade})`);
       
+      // If we still have fewer than 3 questions, return an error
       if (questions.length < 3) {
-        return res.status(500).json({ error: "Failed to get enough questions for multiplayer game. Please try again." });
+        return res.status(500).json({ error: "Failed to get enough questions for multiplayer game. Please try again with a different category or grade." });
       }
       
       

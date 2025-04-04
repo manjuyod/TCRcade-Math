@@ -270,8 +270,7 @@ export default function MultiplayerMode() {
       }>;
     },
     onSuccess: (data) => {
-      // Play sound based on correctness immediately
-      data.correct ? playSound('correct') : playSound('incorrect');
+      // NO SOUND HERE - sound is already played in the handleAnswerClick function
       
       console.log('ANSWER PROCESSED! Handling answer result:', { 
         correct: data.correct, 
@@ -280,8 +279,9 @@ export default function MultiplayerMode() {
         nextQuestionId: data.nextQuestion?.id
       });
       
-      // ULTRA FAST toast notification
+      // Update existing toast instead of creating a new one
       toast({
+        id: `answer-${gameState.currentQuestion?.id}`, // Use ID to prevent duplicates
         title: data.correct ? 'Correct!' : 'Incorrect',
         description: data.correct ? `+${data.tokensEarned || 1} tokens` : 'Keep going!',
         variant: data.correct ? 'default' : 'destructive',
@@ -589,6 +589,7 @@ export default function MultiplayerMode() {
       
       // INSTANTLY show toast notification
       toast({
+        id: `answer-${gameState.currentQuestion?.id}`, // Use ID to prevent duplicates
         title: isCorrect ? 'Correct!' : 'Incorrect',
         description: isCorrect ? '+1 token' : 'Keep going!',
         variant: isCorrect ? 'default' : 'destructive',

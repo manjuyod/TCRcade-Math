@@ -101,16 +101,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
-    let query = db
-      .select()
-      .from(questions)
-      .where(eq(questions.grade, grade));
+    // Build filters first to make sure they're all applied correctly
+    const filters = [eq(questions.grade, grade)];
     
     if (category && category !== 'all') {
-      query = query.where(eq(questions.category, category));
+      filters.push(eq(questions.category, category));
     }
     
-    return query;
+    // Apply all filters at once
+    const result = await db
+      .select()
+      .from(questions)
+      .where(and(...filters));
+    
+    console.log(`getQuestionsByGrade: Found ${result.length} questions with grade=${grade}, category=${category || 'all'}`);
+    return result;
   }
 
   async getQuestionsByConcept(grade: string, concept: string): Promise<Question[]> {
