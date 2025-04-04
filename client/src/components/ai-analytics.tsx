@@ -642,33 +642,9 @@ export default function AiAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <h3 className="font-semibold text-lg">Recommended Focus Areas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {analytics.analytics.recommendedActivities?.slice(0, 4).map((activity, i) => (
-                    <Card key={i} className="overflow-hidden">
-                      <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4">
-                        <h4 className="font-medium">{formatActivityName(activity)}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {getActivityDescription(activity)}
-                        </p>
-                      </div>
-                      <CardFooter className="py-2 px-4 bg-muted/50 flex justify-between">
-                        <span className="text-sm text-muted-foreground">Priority: {i + 1}</span>
-                        <Button variant="ghost" size="sm">Start</Button>
-                      </CardFooter>
-                    </Card>
-                  )) || (
-                    <div className="text-center py-8 text-muted-foreground col-span-2">
-                      <Zap className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                      <p>No recommendations available yet</p>
-                      <p className="text-sm mt-1">Complete more questions to unlock personalized suggestions</p>
-                    </div>
-                  )}
-                </div>
-
                 {/* Custom Study Plan */}
                 {customStudyPlan.length > 0 && (
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mt-4">
+                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
                     <h3 className="font-semibold text-lg mb-3 flex items-center">
                       <Zap className="h-5 w-5 mr-2 text-primary" />
                       Your Custom Study Plan
@@ -684,7 +660,7 @@ export default function AiAnalytics() {
                   </div>
                 )}
                 
-                <div className="mt-8">
+                <div className="mt-4">
                   <h3 className="font-semibold text-lg mb-4">Study Schedule Suggestion</h3>
                   <div className="bg-muted rounded-lg p-4">
                     <p className="mb-3">Based on your learning patterns, we recommend:</p>
