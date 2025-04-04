@@ -348,28 +348,50 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-4">
               {user.streakDays >= 3 && (
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-primary bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <Flame className="h-8 w-8 text-primary" />
+                  <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
+                    {/* Flame animation with multiple flames */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Flame className="h-10 w-10 text-red-500 absolute animate-pulse" style={{ transform: 'translateY(-2px)' }} />
+                      <Flame className="h-8 w-8 text-yellow-400 absolute animate-bounce" />
+                      <Flame className="h-12 w-12 text-orange-600 absolute opacity-50" style={{ transform: 'translateY(2px)' }} />
+                    </div>
+                    <span className="text-white font-bold z-10">{user.streakDays}🔥</span>
                   </div>
-                  <span className="text-xs text-center text-gray-700">On Fire!</span>
+                  <span className="text-xs font-bold text-center text-gray-700">On Fire!</span>
                 </div>
               )}
               
               {user.questionsAnswered >= 50 && (
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-secondary bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <HelpCircle className="h-8 w-8 text-secondary" />
+                  <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
+                    {/* Multiple question marks in different positions */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <HelpCircle className="h-6 w-6 text-purple-300 absolute top-2 left-2 rotate-12" />
+                      <HelpCircle className="h-5 w-5 text-purple-200 absolute bottom-2 right-3 -rotate-12" />
+                      <HelpCircle className="h-4 w-4 text-purple-100 absolute bottom-3 left-4 rotate-45" />
+                      <HelpCircle className="h-7 w-7 text-white absolute" />
+                    </div>
+                    <span className="text-white font-bold z-10 text-xs absolute bottom-1">×{user.questionsAnswered}</span>
                   </div>
-                  <span className="text-xs text-center text-gray-700">Question Master</span>
+                  <span className="text-xs font-bold text-center text-gray-700">Question Master</span>
                 </div>
               )}
               
               {user.tokens >= 100 && (
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-accent bg-opacity-10 rounded-full flex items-center justify-center mb-2">
-                    <Coins className="h-8 w-8 text-accent" />
+                  <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
+                    {/* Multiple coins scattered around */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Coins className="h-5 w-5 text-yellow-300 absolute top-2 left-3 rotate-12" />
+                      <Coins className="h-4 w-4 text-yellow-200 absolute bottom-2 right-3 -rotate-12" />
+                      <Coins className="h-6 w-6 text-yellow-100 absolute top-4 right-2 rotate-45" />
+                      <Coins className="h-8 w-8 text-yellow-600 absolute" />
+                    </div>
+                    <div className="z-10 bg-yellow-600 text-white text-xs px-2 py-0.5 rounded-full absolute bottom-1">
+                      {user.tokens}
+                    </div>
                   </div>
-                  <span className="text-xs text-center text-gray-700">Token Collector</span>
+                  <span className="text-xs font-bold text-center text-gray-700">Token Collector</span>
                 </div>
               )}
               
