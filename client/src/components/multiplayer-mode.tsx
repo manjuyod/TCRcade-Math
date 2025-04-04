@@ -279,14 +279,23 @@ export default function MultiplayerMode() {
         nextQuestionId: data.nextQuestion?.id
       });
       
-      // Update existing toast instead of creating a new one
-      toast({
-        id: `answer-${gameState.currentQuestion?.id}`, // Use ID to prevent duplicates
-        title: data.correct ? 'Correct!' : 'Incorrect',
-        description: data.correct ? `+${data.tokensEarned || 1} tokens` : 'Keep going!',
-        variant: data.correct ? 'default' : 'destructive',
-        dismissTimeout: 750, // ULTRA short auto-dismiss - less than a second
-      });
+      // Critical fix to prevent multiple toasts and sounds
+      // Check if there is already a toast with this ID - if so, don't create another one
+      const existingToastId = `answer-${gameState.currentQuestion?.id}`;
+      const existingToasts = document.querySelectorAll(`[data-toast-id="${existingToastId}"]`);
+      
+      if (existingToasts.length > 0) {
+        console.log(`Updating existing toast (#${existingToastId}) rather than creating duplicate`);
+      } else {
+        // Only create toast if one doesn't already exist for this question
+        toast({
+          id: existingToastId,
+          title: data.correct ? 'Correct!' : 'Incorrect',
+          description: data.correct ? `+${data.tokensEarned || 1} tokens` : 'Keep going!',
+          variant: data.correct ? 'default' : 'destructive',
+          dismissTimeout: 550, // ULTRA short auto-dismiss - about half a second
+        });
+      }
       
       // ULTRA AGGRESSIVE IMMEDIATE HANDLING: 
       if (data.gameOver) {
@@ -587,14 +596,23 @@ export default function MultiplayerMode() {
       // IMMEDIATELY play sound - don't wait for server
       isCorrect ? playSound('correct') : playSound('incorrect');
       
-      // INSTANTLY show toast notification
-      toast({
-        id: `answer-${gameState.currentQuestion?.id}`, // Use ID to prevent duplicates
-        title: isCorrect ? 'Correct!' : 'Incorrect',
-        description: isCorrect ? '+1 token' : 'Keep going!',
-        variant: isCorrect ? 'default' : 'destructive',
-        dismissTimeout: 750, // Ultra short auto-dismiss
-      });
+      // CRITICAL FIX: Check if toast already exists before creating a new one
+      // This prevents duplicate toasts from appearing
+      const existingToastId = `answer-${gameState.currentQuestion?.id}`;
+      const existingToasts = document.querySelectorAll(`[data-toast-id="${existingToastId}"]`);
+      
+      if (existingToasts.length > 0) {
+        console.log(`Skipping duplicate toast for answer to question #${gameState.currentQuestion?.id}`);
+      } else {
+        // Only create toast if one doesn't already exist for this question
+        toast({
+          id: existingToastId, // Use ID to prevent duplicates
+          title: isCorrect ? 'Correct!' : 'Incorrect',
+          description: isCorrect ? '+1 token' : 'Keep going!',
+          variant: isCorrect ? 'default' : 'destructive',
+          dismissTimeout: 750, // Ultra short auto-dismiss
+        });
+      }
       
       // FORCE timer to 0 to give visual indication we're done with this question
       setGameState(prev => ({

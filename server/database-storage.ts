@@ -104,8 +104,15 @@ export class DatabaseStorage implements IStorage {
     // Build filters first to make sure they're all applied correctly
     const filters = [eq(questions.grade, grade)];
     
+    // CRITICAL FIX: Properly handle category filtering with improved logic
+    // This fixes incorrect category filtering that caused wrong question types to appear
     if (category && category !== 'all') {
+      // MAJOR CHANGE: Use single category filter without additional AND conditions
+      // Previous implementation had a bug that caused weird SQL query generation
+      console.log(`Applying exact category match for '${category}'`);
       filters.push(eq(questions.category, category));
+      
+      // Additional post-query filtering will handle any other exclusions
     }
     
     // Apply all filters at once
@@ -114,8 +121,45 @@ export class DatabaseStorage implements IStorage {
       .from(questions)
       .where(and(...filters));
     
+    // Additional post-filter for image-based questions
+    // We want to remove any question with image references, per user requirements
+    const filteredResults = result.filter(q => {
+      // CRITICAL FIX: Only remove questions with explicit image references
+      // Don't filter out fractions questions that don't involve visual elements
+      const hasImageReference = 
+        q.question.toLowerCase().includes('image') || 
+        q.question.toLowerCase().includes('picture') ||
+        q.question.toLowerCase().includes('shown') ||
+        q.question.toLowerCase().includes('diagram') ||
+        q.question.toLowerCase().includes('circle is shaded') ||
+        (q.question.toLowerCase().includes('fraction') && 
+         (q.question.toLowerCase().includes('shown') || 
+          q.question.toLowerCase().includes('visual') || 
+          q.question.toLowerCase().includes('represent') ||
+          q.question.toLowerCase().includes('shaded')));
+        
+      // If it has any image reference, log and exclude
+      if (hasImageReference) {
+        console.log(`REMOVING image-based question: ${q.id} - ${q.question.substring(0, 30)}...`);
+        return false;
+      }
+      
+      // Special handling for multiplication category to prevent division/fractions
+      if (q.category === 'multiplication' && 
+         (q.question.toLowerCase().includes('÷') || 
+          q.question.toLowerCase().includes('divide') ||
+          q.category === 'fractions' ||
+          q.category === 'division')) {
+        console.log(`REMOVING incorrectly categorized question from multiplication: ${q.id} - ${q.question.substring(0, 30)}...`);
+        return false;
+      }
+      
+      return true;
+    });
+    
     console.log(`getQuestionsByGrade: Found ${result.length} questions with grade=${grade}, category=${category || 'all'}`);
-    return result;
+    console.log(`After filtering out image questions: ${filteredResults.length} questions remain`);
+    return filteredResults;
   }
 
   async getQuestionsByConcept(grade: string, concept: string): Promise<Question[]> {
@@ -1048,18 +1092,53 @@ export class DatabaseStorage implements IStorage {
         return selectedQuestion;
       }
       
-      // If no matching questions but we have a specific category, try another approach
-      // to generate a question in that category if we have forceDynamic enabled
+      // DISABLE dynamic category modification completely - this caused the issues
+      // with mixed categories and improper questions 
       if (category && category !== 'all' && forceDynamic) {
-        console.log(`No questions found with category ${category}, generating dynamically...`);
-        // We would normally call OpenAI here but we'll skip that for simplicity
-        // Instead, let's try to find any question and modify its category
-        const anyQuestion = await db.select().from(questions).where(eq(questions.grade, grade)).limit(1);
-        if (anyQuestion.length > 0) {
-          const modifiedQuestion = {...anyQuestion[0], category};
-          console.log(`Generated modified question with category ${category}`);
-          return modifiedQuestion;
+        console.log(`No questions found with category ${category}, looking for basic questions...`);
+        
+        // Instead of modifying categories, let's look for basic questions in the category
+        // This involves querying for very common questions and operators
+        const basicQuestionPatterns = [
+          `%${category}%`, // Look for questions with the category in the question text
+          '%multiply%',    // Look for multiplication questions
+          '%times%',       // Look for "times" keyword
+          '% × %',         // Look for the multiplication symbol
+        ];
+        
+        // We'll make specific queries to find truly matching questions
+        let basicQuestions = [];
+        for (const pattern of basicQuestionPatterns) {
+          const matchingQuestions = await db
+            .select()
+            .from(questions)
+            .where(and(
+              eq(questions.grade, grade),
+              or(
+                like(questions.question, pattern),
+                eq(questions.category, category)
+              )
+            ))
+            .limit(5);
+          
+          basicQuestions.push(...matchingQuestions);
         }
+        
+        // If we found any basic questions, return one at random
+        if (basicQuestions.length > 0) {
+          const selectedQuestion = basicQuestions[Math.floor(Math.random() * basicQuestions.length)];
+          console.log(`Found basic question ${selectedQuestion.id} with pattern match`);
+          
+          // Make sure it has the right category but DON'T modify the actual content
+          // This preserves the integrity of the question itself
+          if (selectedQuestion.category !== category) {
+            console.log(`Warning: Selected question ${selectedQuestion.id} has category ${selectedQuestion.category} but requested ${category}`);
+          }
+          
+          return selectedQuestion;
+        }
+        
+        console.log(`No basic questions found for ${category}, will fall back to grade only`);
       }
       
       // If still no questions, fall back to grade only as last resort

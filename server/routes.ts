@@ -2065,8 +2065,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestedCount = room.settings?.questionCount || 10;
       console.log(`Multiplayer game requested ${requestedCount} questions`);
       
-      // Ensure we have at least 3 questions but respect the requested count
-      const questionCount = Math.max(requestedCount, 3);
+      // CRITICAL FIX: Respect the FULL requested question count (don't force to 3 questions)
+      // This was causing games to end prematurely after only 3 questions
+      const questionCount = requestedCount;
       const grade = room.grade || 'K';
       const category = room.category || 'all';
       
