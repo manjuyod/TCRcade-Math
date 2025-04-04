@@ -8,6 +8,8 @@ import type {
 const TOAST_LIMIT = 5  // Increased limit to allow multiple notifications
 const TOAST_REMOVE_DELAY = 3000
 
+
+
 // Extended ToastProps to include dismissTimeout
 export interface ExtendedToastProps extends ToastProps {
   dismissTimeout?: number; // Time in ms after which toast auto-dismisses
@@ -145,8 +147,59 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+  // Generate a unique ID for this toast
   const id = genId()
-
+  
+  // If there's already a toast with this exact message, don't add a duplicate
+  // This prevents double notifications on rapid repeated actions
+  const existingToasts = memoryState.toasts;
+  const existingTitleToastIndex = existingToasts.findIndex(
+    t => t.title === props.title && t.description === props.description
+  );
+  
+  // If we found an existing toast with the same content, just update it instead of adding a new one
+  if (existingTitleToastIndex >= 0) {
+    console.log(`Updating existing toast (#${existingToasts[existingTitleToastIndex].id}) rather than creating duplicate`);
+    const existingToast = existingToasts[existingTitleToastIndex];
+    
+    // Update the existing toast with any new props and reset its auto-dismiss timer
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { 
+        ...existingToast,
+        ...props,
+        id: existingToast.id,
+        open: true,
+      },
+    });
+    
+    // Reset the auto-dismiss timer by clearing and setting a new one
+    const existingId = existingToast.id;
+    if (toastTimeouts.has(existingId)) {
+      clearTimeout(toastTimeouts.get(existingId));
+      toastTimeouts.delete(existingId);
+    }
+    
+    // Auto-dismiss after the timeout (if not disabled)
+    const dismissTimeout = props.dismissTimeout || 3000;
+    if (dismissTimeout > 0) {
+      setTimeout(() => {
+        dispatch({ type: "DISMISS_TOAST", toastId: existingId })
+      }, dismissTimeout);
+    }
+    
+    // Return the existing toast controls
+    return {
+      id: existingId,
+      dismiss: () => dispatch({ type: "DISMISS_TOAST", toastId: existingId }),
+      update: (props: ToasterToast) => dispatch({
+        type: "UPDATE_TOAST",
+        toast: { ...props, id: existingId },
+      })
+    };
+  }
+  
+  // If no existing toast, create a new one
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",

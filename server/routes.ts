@@ -2061,8 +2061,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least 1 player is required" });
       }
       
-      // Fetch questions for the game
-      const questionCount = room.settings?.questionCount || 10;
+      // Fetch questions for the game - CRITICAL FIX FOR QUESTION COUNT
+      const requestedCount = room.settings?.questionCount || 10;
+      console.log(`Multiplayer game requested ${requestedCount} questions`);
+      
+      // Ensure we have at least 3 questions but respect the requested count
+      const questionCount = Math.max(requestedCount, 3);
       const grade = room.grade || 'K';
       const category = room.category || 'all';
       
@@ -2073,13 +2077,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to get unique questions up to the requested count
       // Add a safety limit to prevent infinite loops but make it much higher to ensure we get enough questions
       let attempts = 0;
-      const maxAttempts = questionCount * 10; // Allow up to 10 attempts per question to ensure we get enough
+      const maxAttempts = questionCount * 20; // Increase to 20 attempts per question to REALLY ensure we get enough
       
       while (questions.length < questionCount && attempts < maxAttempts) {
         try {
           // Pass the already used question IDs as exclusions
           const excludeIds = Array.from(usedQuestionIds);
           
+          // ULTRA AGGRESSIVE question fetching to ensure we get enough questions
           // Get a question specifically for the requested category
           const question = await storage.getAdaptiveQuestion(
             req.user!.id, 
@@ -2094,6 +2099,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             questions.push(question);
             // Track its ID to avoid duplicates
             usedQuestionIds.add(question.id);
+            
+            // Log progress
+            if (questions.length % 5 === 0 || questions.length === questionCount) {
+              console.log(`Fetched ${questions.length}/${questionCount} questions for multiplayer game`);
+            }
           }
         } catch (err) {
           console.error("Error fetching question:", err);
@@ -2102,10 +2112,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attempts++;
       }
       
-      console.log(`Selected ${questions.length} unique questions for multiplayer game (category: ${category}, grade: ${grade})`);
+      // CRITICAL: Double check that we have enough questions
+      console.log(`MULTIPLAYER GAME: Selected ${questions.length}/${questionCount} questions (category: ${category}, grade: ${grade})`);
+      
+      if (questions.length < 3) {
+        return res.status(500).json({ error: "Failed to get enough questions for multiplayer game. Please try again." });
+      }
       
       
-      // Update room status with questions and set current question
+      // Update room status with questions and set current question (with EXPLICIT totalQuestions)
       const updatedRoom = await storage.updateMultiplayerRoom(roomId, {
         status: "playing",
         gameState: {
@@ -2116,9 +2131,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           playerAnswers: {},
           questions: questions,
           timeRemaining: room.settings?.timeLimit || 30,
+          // Explicitly set totalQuestions to actual question count, not requested count
           totalQuestions: questions.length
         }
       });
+      
+      // Additional debug log to confirm game state
+      console.log(`MULTIPLAYER GAME STARTED: Room ID=${roomId}, Questions=${questions.length}, First question ID=${questions[0]?.id || 'none'}`);
+      
       
       res.json({
         success: true,
@@ -2218,10 +2238,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Determine if the quiz is over or we should advance to the next question
-      const isLastQuestion = (room.gameState.currentQuestionIndex || 0) >= room.gameState.questions.length - 1;
+      // Debug logs to track question progress
+      console.log(`Current question index: ${room.gameState.currentQuestionIndex || 0}, Total questions: ${room.gameState.questions.length}`);
+      
+      // More extensive debugging for question tracking
+      const currentIndex = room.gameState.currentQuestionIndex || 0;
+      const totalQuestions = room.gameState.questions.length;
+      console.log(`MULTIPLAYER GAME PROGRESS: Current index=${currentIndex}, Total questions=${totalQuestions}, Settings count=${room.settings?.questionCount || 10}`);
+      
+      // Fixed calculation to properly track the last question with an extra safety check
+      const isLastQuestion = currentIndex >= totalQuestions - 1;
       let nextQuestion = null;
       let gameOver = false;
       
+      // Explicitly check if questions are running out
       if (isLastQuestion) {
         // End the game
         gameOver = true;
@@ -2259,9 +2289,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...room.gameState,
             status: "finished",
             playerAnswers,
-            results: rankedPlayers
+            results: rankedPlayers,
+            // Maintain totalQuestions field for client display
+            totalQuestions: room.gameState.questions.length
           }
         });
+        
+        console.log(`MULTIPLAYER GAME FINISHED: Room ID=${roomId}, Total questions=${room.gameState.questions.length}, Player count=${Object.keys(playerAnswers).length}`);
+        
       } else {
         // Move to the next question
         const nextIndex = (room.gameState.currentQuestionIndex || 0) + 1;
@@ -2273,9 +2308,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             currentQuestionIndex: nextIndex,
             currentQuestion: nextQuestion,
             playerAnswers,
-            timeRemaining: room.settings?.timeLimit || 30
+            timeRemaining: room.settings?.timeLimit || 30,
+            // Maintain the totalQuestions field for client display
+            totalQuestions: room.gameState.questions.length
           }
         });
+        
+        console.log(`Advancing to next question: index=${nextIndex}, total=${room.gameState.questions.length}`);
+        
       }
       
       // Include token information in the response
@@ -2284,6 +2324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Use the tokensEarned that was calculated earlier in the function
         tokenReward = Math.max(3, Math.min(currentQuestion.difficulty * 2, 10));
       }
+      
+      console.log(`Question progress: index=${(room.gameState.currentQuestionIndex || 0) + 1}, total=${room.gameState.questions.length}, isLastQuestion=${isLastQuestion}, gameOver=${gameOver}`);
       
       res.json({
         success: true,
