@@ -56,8 +56,8 @@ export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomSt
     .slice(0, 3)
     .map((concept: any) => concept.concept);
   
-  // Get the user's grade
-  const grade = analytics.user?.grade || 'K';
+  // Get the user's grade from analytics (property no longer uses user object)
+  const grade = typeof analytics.grade === 'string' ? analytics.grade : 'K';
   
   // Grade-specific topics mapping
   const gradeTopics: Record<string, string[]> = {
@@ -222,8 +222,8 @@ export default function AiAnalytics() {
       .slice(0, 3)
       .map(concept => concept.concept);
     
-    // Get the user's grade
-    const grade = analytics.user?.grade || 'K';
+    // Get the user's grade from analytics (property no longer uses user object)
+    const grade = typeof analytics.analytics.grade === 'string' ? analytics.analytics.grade : 'K';
     
     // Grade-specific topics mapping
     const gradeTopics: Record<string, string[]> = {
@@ -511,18 +511,22 @@ export default function AiAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Always display strength concepts, either from API or fallback to grade-appropriate concepts */}
+                {/* Define fallback concepts directly from conceptMasteries to avoid relevantTopics error */}
                 {(analytics.analytics.strengthConcepts?.length ? 
                   analytics.analytics.strengthConcepts : 
-                  relevantTopics).slice(0, 5).map((concept, i) => (
+                  analytics.conceptMasteries
+                    .sort((a, b) => b.masteryLevel - a.masteryLevel)
+                    .map(mastery => mastery.concept)
+                    .filter((value, index, self) => self.indexOf(value) === index)
+                ).slice(0, 5).map((concept, i) => (
                   <div key={concept} className="space-y-2">
                     <div className="flex justify-between">
                       <h4 className="font-medium">{concept}</h4>
                       <Badge variant="outline" className="font-mono">
-                        {90 - i * 5}% Mastery
+                        {analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel || (90 - i * 5)}% Mastery
                       </Badge>
                     </div>
-                    <Progress value={90 - i * 5} className="h-2" />
+                    <Progress value={analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel || (90 - i * 5)} className="h-2" />
                     <p className="text-sm text-muted-foreground">
                       {getConceptDescription(concept)}
                     </p>
@@ -539,42 +543,29 @@ export default function AiAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
-                {/* Always show skills analysis data */}
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Problem Solving Speed</span>
-                    <span className="font-medium">Very Good</span>
+                {/* Generate skill ratings based on concept masteries data */}
+                {getSkillRatings(analytics.conceptMasteries).map((skill, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>{skill.name}</span>
+                      <span className="font-medium">{getRatingLabel(skill.value)}</span>
+                    </div>
+                    <Progress value={skill.value} className="h-2" />
                   </div>
-                  <Progress value={85} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Computational Accuracy</span>
-                    <span className="font-medium">Excellent</span>
-                  </div>
-                  <Progress value={92} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Critical Thinking</span>
-                    <span className="font-medium">Good</span>
-                  </div>
-                  <Progress value={78} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Pattern Recognition</span>
-                    <span className="font-medium">Very Good</span>
-                  </div>
-                  <Progress value={82} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Visual-Spatial Reasoning</span>
-                    <span className="font-medium">Good</span>
-                  </div>
-                  <Progress value={75} className="h-2" />
-                </div>
+                ))}
+                
+                {/* Display fallback if no data is available */}
+                {analytics.conceptMasteries.length === 0 && (
+                  <>
+                    <div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Complete more questions to see skills analysis</span>
+                        <span className="font-medium">-</span>
+                      </div>
+                      <Progress value={0} className="h-2" />
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -868,6 +859,63 @@ function getErrorAnalysis(error: string): string {
   };
   
   return analyses[error] || 'Focus on understanding the underlying concepts and practice with similar problem types.';
+}
+
+// Helper function to derive skill ratings from concept masteries
+function getSkillRatings(conceptMasteries: ConceptMastery[]): Array<{name: string, value: number}> {
+  // Default skills if there's no data
+  if (!conceptMasteries || conceptMasteries.length === 0) {
+    return [
+      { name: 'Problem Solving Speed', value: 0 },
+      { name: 'Computational Accuracy', value: 0 },
+      { name: 'Critical Thinking', value: 0 },
+      { name: 'Pattern Recognition', value: 0 },
+      { name: 'Math Fluency', value: 0 }
+    ];
+  }
+  
+  // Map concept types to skills
+  const skillMap: Record<string, string[]> = {
+    'Problem Solving Speed': ['Word Problems', 'Time', 'Money'],
+    'Computational Accuracy': ['Addition', 'Subtraction', 'Multiplication', 'Division'],
+    'Critical Thinking': ['Word Problems', 'Fractions', 'Percentages'],
+    'Pattern Recognition': ['Patterns', 'Sequences', 'Algebra'],
+    'Math Fluency': ['Addition', 'Subtraction', 'Multiplication', 'Division', 'Mental Math']
+  };
+  
+  return Object.entries(skillMap).map(([skillName, relatedConcepts]) => {
+    // Find mastery levels for all related concepts
+    const relevantMasteries = conceptMasteries.filter(mastery => 
+      relatedConcepts.some(concept => mastery.concept.toLowerCase().includes(concept.toLowerCase()))
+    );
+    
+    // Calculate average mastery level for this skill
+    let value = 0;
+    if (relevantMasteries.length > 0) {
+      value = Math.round(
+        relevantMasteries.reduce((sum, mastery) => sum + mastery.masteryLevel, 0) / 
+        relevantMasteries.length
+      );
+    } else {
+      // If no matching concepts, use all masteries with a lower weight
+      value = conceptMasteries.length > 0 
+        ? Math.round(conceptMasteries.reduce((sum, m) => sum + m.masteryLevel, 0) / conceptMasteries.length * 0.7)
+        : 65; // Default fallback value
+    }
+    
+    return { name: skillName, value };
+  });
+}
+
+// Helper function to convert numeric values to text labels
+function getRatingLabel(value: number): string {
+  if (value >= 90) return 'Excellent';
+  if (value >= 80) return 'Very Good';
+  if (value >= 70) return 'Good';
+  if (value >= 60) return 'Satisfactory';
+  if (value >= 50) return 'Developing';
+  if (value > 0) return 'Needs Practice';
+  return '-';
 }
 
 function formatActivityName(activity: string): string {

@@ -60,6 +60,7 @@ function Router() {
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
       <ProtectedRoute path="/practice" component={CreateQuizPage} />
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
+      <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

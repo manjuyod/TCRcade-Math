@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AIMathTutor } from '@/components/ai-math-tutor';
+import { AIMathTutorComponent } from '@/components/ai-math-tutor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, BookOpenCheck } from "lucide-react";
 import { apiRequest } from '@/lib/queryClient';
@@ -312,7 +312,7 @@ export default function AiTutorPage() {
                 </CardContent>
               </Card>
               
-              <AIMathTutor 
+              <AIMathTutorComponent 
                 question={currentQuestion.question}
                 correctAnswer={currentQuestion.answer}
                 grade={currentQuestion.grade}
@@ -352,7 +352,7 @@ export default function AiTutorPage() {
               </Card>
 
               {/* Empty AI Math Tutor shows instructions */}
-              <AIMathTutor 
+              <AIMathTutorComponent 
                 question=""
                 correctAnswer=""
                 grade="3"

@@ -14,7 +14,7 @@ import LevelUpAnimation from '@/components/level-up-animation';
 import WordRaceGame from '@/components/word-race-game';
 // Daily Challenge removed as per user request
 import MathStorytelling from '@/components/math-storytelling';
-import AvatarCreator from '@/components/avatar-creator';
+import AiMathTutor from '@/components/ai-math-tutor';
 import AiAnalytics from '@/components/ai-analytics';
 import MultiplayerMode from '@/components/multiplayer-mode';
 import { playSound, preloadSounds } from '@/lib/sounds';
@@ -23,7 +23,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { Button } from '@/components/ui/button';
 import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
-import { Loader2, Clock, Calendar, Book, Users, Brain, Palette, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
+import { Loader2, Clock, Calendar, Book, BookOpen, Users, Brain, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -529,13 +529,13 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/avatar'}>
+          <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/tutor'}>
             <div className="bg-primary/10 p-2 rounded-full">
-              <Palette className="h-5 w-5 text-primary" />
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">Avatar Creator</h3>
-              <p className="text-xs text-gray-500">Customize your character</p>
+              <h3 className="font-semibold">AI Math Tutor</h3>
+              <p className="text-xs text-gray-500">Get personalized help</p>
             </div>
           </div>
         </div>

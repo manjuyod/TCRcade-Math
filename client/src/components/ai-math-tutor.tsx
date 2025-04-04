@@ -16,7 +16,7 @@ type TutorProps = {
   concept?: string;
 }
 
-export function AIMathTutor({ question, correctAnswer, grade, concept }: TutorProps) {
+export function AIMathTutorComponent({ question, correctAnswer, grade, concept }: TutorProps) {
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -244,5 +244,30 @@ export function AIMathTutor({ question, correctAnswer, grade, concept }: TutorPr
         </div>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function AiMathTutor() {
+  return (
+    <div className="w-full">
+      <Card className="w-full mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl">AI Math Tutor</CardTitle>
+          <CardDescription>
+            Get personalized help with your math problems
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center mb-4">
+            The AI Math Tutor helps you with step-by-step explanations, hints, and personalized
+            assistance for any math problem you're working on.
+          </p>
+          <Button className="w-full" onClick={() => window.location.href = '/tutor'}>
+            <BookOpen className="mr-2 h-4 w-4" />
+            Go to AI Math Tutor
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
