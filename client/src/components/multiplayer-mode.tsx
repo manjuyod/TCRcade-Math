@@ -279,16 +279,15 @@ export default function MultiplayerMode() {
           status: 'finished'
         }));
       } else {
-        // Either we move to the next question, or we refetch to get the latest state
-        if (data.nextQuestion) {
-          console.log('Moving to next question:', data.nextQuestion.id);
-          setGameState(prev => ({
-            ...prev,
-            currentQuestion: data.nextQuestion,
-            currentQuestionIndex: prev.currentQuestionIndex + 1,
-            timeRemaining: activeRoom?.settings?.timeLimit || 30
-          }));
-        }
+        // Always move to the next question, even if data.nextQuestion is undefined
+        // This fixes a critical bug where the game would get stuck if the server didn't return the next question
+        console.log('Moving to next question:', data.nextQuestion?.id || 'unknown');
+        setGameState(prev => ({
+          ...prev,
+          currentQuestion: data.nextQuestion || null,
+          currentQuestionIndex: prev.currentQuestionIndex + 1,
+          timeRemaining: activeRoom?.settings?.timeLimit || 30
+        }));
         
         // Reset the submitted ref for the next question/state
         submittedRef.current = null;

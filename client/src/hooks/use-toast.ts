@@ -13,7 +13,7 @@ export interface ExtendedToastProps extends ToastProps {
   dismissTimeout?: number; // Time in ms after which toast auto-dismisses
 }
 
-type ToasterToast = ToastProps & {
+type ToasterToast = ExtendedToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode

@@ -2071,9 +2071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const usedQuestionIds = new Set(); // Track question IDs to avoid duplicates
       
       // Try to get unique questions up to the requested count
-      // Add a safety limit to prevent infinite loops
+      // Add a safety limit to prevent infinite loops but make it much higher to ensure we get enough questions
       let attempts = 0;
-      const maxAttempts = questionCount * 3; // Allow up to 3 attempts per question
+      const maxAttempts = questionCount * 10; // Allow up to 10 attempts per question to ensure we get enough
       
       while (questions.length < questionCount && attempts < maxAttempts) {
         try {

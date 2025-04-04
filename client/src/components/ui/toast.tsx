@@ -110,12 +110,19 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
+// Basic toast props from the component
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
+
+// Extended toast props with our custom additions
+interface ExtendedToastProps extends ToastProps {
+  dismissTimeout?: number; // Time in ms after which toast auto-dismisses
+}
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
 export {
   type ToastProps,
+  type ExtendedToastProps,
   type ToastActionElement,
   ToastProvider,
   ToastViewport,
