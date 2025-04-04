@@ -271,25 +271,31 @@ export default function MultiplayerMode() {
       // Reset the "submitted" state for the next question
       setIsAnswerSubmitted(false);
       
-      // Update game state if there's a next question
-      if (data.nextQuestion) {
-        setGameState(prev => ({
-          ...prev,
-          currentQuestion: data.nextQuestion,
-          currentQuestionIndex: prev.currentQuestionIndex + 1,
-          timeRemaining: activeRoom?.settings?.timeLimit || 30
-        }));
-        
-        // Reset the submitted ref for the next question
-        submittedRef.current = null;
-      } else if (data.gameOver) {
+      // Update game state if there's a next question or game is over
+      if (data.gameOver) {
+        console.log('Game is over, setting finished state');
         setGameState(prev => ({
           ...prev,
           status: 'finished'
         }));
+      } else {
+        // Either we move to the next question, or we refetch to get the latest state
+        if (data.nextQuestion) {
+          console.log('Moving to next question:', data.nextQuestion.id);
+          setGameState(prev => ({
+            ...prev,
+            currentQuestion: data.nextQuestion,
+            currentQuestionIndex: prev.currentQuestionIndex + 1,
+            timeRemaining: activeRoom?.settings?.timeLimit || 30
+          }));
+        }
+        
+        // Reset the submitted ref for the next question/state
+        submittedRef.current = null;
+        
+        // Force a refetch to ensure we have the latest state
+        refetchActiveRoom();
       }
-      
-      refetchActiveRoom();
       
       // Show a toast notification for the answer result that auto-dismisses
       toast({

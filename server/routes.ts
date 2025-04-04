@@ -2184,8 +2184,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update user score
       if (isCorrect) {
+        // Get the current question to calculate tokens based on difficulty
+        const currentQuestion = room.gameState.questions[room.gameState.currentQuestionIndex || 0];
+        
+        // Calculate token rewards based on difficulty level
+        let tokensEarned = 1; // Default minimum reward
+        
+        if (currentQuestion && currentQuestion.difficulty) {
+          // Base token calculation with minimum of 3 tokens
+          tokensEarned = Math.max(3, Math.min(currentQuestion.difficulty * 2, 10));
+          
+          // Add streak bonus tokens
+          const streakDays = req.user!.streakDays || 0;
+          if (streakDays >= 3) {
+            tokensEarned += 1; // Add bonus token for 3+ day streak
+          }
+          
+          // Limit to daily max (200)
+          const dailyTokensEarned = req.user!.dailyTokensEarned || 0;
+          if (dailyTokensEarned >= 200) {
+            tokensEarned = 1; // Ensure at least 1 token even at daily limit
+          } else {
+            tokensEarned = Math.min(tokensEarned, 200 - dailyTokensEarned);
+          }
+        }
+        
+        console.log(`Awarded ${tokensEarned} tokens for correct answer in multiplayer (roomId: ${roomId})`);
+        
         await storage.updateUser(req.user!.id, {
-          tokens: req.user!.tokens + 1
+          tokens: req.user!.tokens + tokensEarned,
+          dailyTokensEarned: (req.user!.dailyTokensEarned || 0) + tokensEarned
         });
       }
       
