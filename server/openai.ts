@@ -939,17 +939,130 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
             if (typeof prevQ === 'object' && prevQ !== null && prevQ.hasOwnProperty('question')) {
               const questionText = (prevQ as any).question as string;
               
-              // Extract operations using regex
+              // Extract operations using regex - enhanced to capture more variations
               const additionMatches = [...questionText.matchAll(/(\d+)\s*\+\s*(\d+)/g)];
               const subtractionMatches = [...questionText.matchAll(/(\d+)\s*\-\s*(\d+)/g)];
-              const multiplicationMatches = [...questionText.matchAll(/(\d+)\s*[×x\*]\s*(\d+)/g)];
-              const divisionMatches = [...questionText.matchAll(/(\d+)\s*[÷\/]\s*(\d+)/g)];
+              const multiplicationMatches = [
+                ...questionText.matchAll(/(\d+)\s*[×x\*]\s*(\d+)/g),
+                ...questionText.matchAll(/(\d+)\s*times\s*(\d+)/gi),
+                ...questionText.matchAll(/multiply\s*(\d+)\s*by\s*(\d+)/gi),
+                ...questionText.matchAll(/(\d+)\s*(?:multiplied by|product of)\s*(\d+)/gi),
+                ...questionText.matchAll(/multiplication\s*of\s*(\d+)\s*and\s*(\d+)/gi),
+                ...questionText.matchAll(/product\s*of\s*(\d+)\s*and\s*(\d+)/gi)
+              ];
+              const divisionMatches = [
+                ...questionText.matchAll(/(\d+)\s*[÷\/]\s*(\d+)/g),
+                ...questionText.matchAll(/divide\s*(\d+)\s*by\s*(\d+)/gi),
+                ...questionText.matchAll(/(\d+)\s*divided\s*by\s*(\d+)/gi),
+                ...questionText.matchAll(/(\d+)\s*(?:split into|shared among)\s*(\d+)/gi),
+                ...questionText.matchAll(/quotient\s*of\s*(\d+)\s*and\s*(\d+)/gi)
+              ];
+              
+              // Also check for word problems with numbers mentioned close to operations keywords
+              const wordProblemMatches = [
+                // Addition patterns
+                ...questionText.matchAll(/(\d+).*(\d+).*(?:add|sum|total|altogether|combined|in all)/gi),
+                ...questionText.matchAll(/(?:add|sum|total|altogether|combined|in all).*(\d+).*(\d+)/gi),
+                // Subtraction patterns
+                ...questionText.matchAll(/(\d+).*(\d+).*(?:subtract|minus|difference|remain|left)/gi),
+                ...questionText.matchAll(/(?:subtract|minus|difference|remain|left).*(\d+).*(\d+)/gi),
+                // Multiplication patterns
+                ...questionText.matchAll(/(\d+).*(\d+).*(?:multiply|product|times)/gi),
+                ...questionText.matchAll(/(?:multiply|product|times).*(\d+).*(\d+)/gi),
+                ...questionText.matchAll(/(\d+)\s+(?:groups|sets)(?:\s+with|\s+of|\s+containing)\s+(\d+)/gi),
+                // Division patterns
+                ...questionText.matchAll(/(\d+).*(\d+).*(?:divide|quotient|split|share)/gi),
+                ...questionText.matchAll(/(?:divide|quotient|split|share).*(\d+).*(\d+)/gi),
+                ...questionText.matchAll(/(\d+)\s+(?:divided into|split into|shared among)\s+(\d+)/gi)
+              ];
+              
+              // Extract ALL individual numbers from the question
+              const allNumbers = [...questionText.matchAll(/\b(\d+)\b/g)];
+              
+              // Extract number pairs that are close to each other (might be an operation)
+              const allNumberPairs = [...questionText.matchAll(/(\d+)[\s\w]{1,25}(\d+)/g)];
               
               // Convert matches to standardized math facts
-              additionMatches.forEach(m => previousMathFacts.push(`${m[1]}+${m[2]}`));
-              subtractionMatches.forEach(m => previousMathFacts.push(`${m[1]}-${m[2]}`));
-              multiplicationMatches.forEach(m => previousMathFacts.push(`${m[1]}×${m[2]}`));
-              divisionMatches.forEach(m => previousMathFacts.push(`${m[1]}÷${m[2]}`));
+              additionMatches.forEach(m => {
+                previousMathFacts.push(`${m[1]}+${m[2]}`);
+                // Also add the commutative pair
+                previousMathFacts.push(`${m[2]}+${m[1]}`);
+              });
+              
+              subtractionMatches.forEach(m => {
+                previousMathFacts.push(`${m[1]}-${m[2]}`);
+              });
+              
+              multiplicationMatches.forEach(m => {
+                previousMathFacts.push(`${m[1]}×${m[2]}`);
+                // Also add the commutative pair
+                previousMathFacts.push(`${m[2]}×${m[1]}`);
+              });
+              
+              divisionMatches.forEach(m => {
+                previousMathFacts.push(`${m[1]}÷${m[2]}`);
+              });
+              
+              // Add word problem matches as generic number combinations
+              wordProblemMatches.forEach(m => {
+                // Identify operation based on keywords
+                if (m[0].includes('add') || m[0].includes('sum') || m[0].includes('total') || 
+                    m[0].includes('altogether') || m[0].includes('combined') || m[0].includes('in all')) {
+                  previousMathFacts.push(`${m[1]}+${m[2]}`);
+                  previousMathFacts.push(`${m[2]}+${m[1]}`);
+                } 
+                else if (m[0].includes('subtract') || m[0].includes('minus') || m[0].includes('difference') || 
+                         m[0].includes('remain') || m[0].includes('left')) {
+                  previousMathFacts.push(`${m[1]}-${m[2]}`);
+                } 
+                else if (m[0].includes('multiply') || m[0].includes('product') || m[0].includes('times') ||
+                         m[0].includes('groups') || m[0].includes('sets')) {
+                  previousMathFacts.push(`${m[1]}×${m[2]}`);
+                  previousMathFacts.push(`${m[2]}×${m[1]}`);
+                } 
+                else if (m[0].includes('divide') || m[0].includes('quotient') || m[0].includes('split') || 
+                         m[0].includes('share') || m[0].includes('shared')) {
+                  previousMathFacts.push(`${m[1]}÷${m[2]}`);
+                }
+                
+                // Always add the generic number pair to avoid reusing the same numbers
+                previousMathFacts.push(`pair:${m[1]},${m[2]}`);
+                previousMathFacts.push(`pair:${m[2]},${m[1]}`);
+              });
+              
+              // Track all individual numbers to avoid repetition
+              allNumbers.forEach(m => {
+                if (m[1]) {
+                  previousMathFacts.push(`number:${m[1]}`);
+                }
+              });
+              
+              // Also capture generic number pairs to avoid using the same numbers
+              allNumberPairs.forEach(m => {
+                if (m[1] && m[2]) {
+                  // Create ordered pair so that (2,3) and (3,2) are both blocked
+                  const num1 = parseInt(m[1]);
+                  const num2 = parseInt(m[2]);
+                  previousMathFacts.push(`pair:${num1},${num2}`);
+                  previousMathFacts.push(`pair:${num2},${num1}`);
+                  
+                  // Also track operations with these numbers to avoid the same numbers in different operations
+                  // e.g. if 2+3 was used, avoid 2×3 in future questions
+                  previousMathFacts.push(`combo:${num1},${num2}`);
+                  
+                  // Block specific sums/products/etc. to avoid problems with the same results
+                  previousMathFacts.push(`sum:${num1 + num2}`);
+                  if (num1 * num2 <= 100) { // Only track reasonable products
+                    previousMathFacts.push(`product:${num1 * num2}`); 
+                  }
+                  if (num1 - num2 >= 0) {
+                    previousMathFacts.push(`difference:${num1 - num2}`);
+                  }
+                  if (num2 > 0 && num1 % num2 === 0) {
+                    previousMathFacts.push(`quotient:${num1 / num2}`);
+                  }
+                }
+              });
             }
           }
         }
@@ -961,11 +1074,18 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
       ? `Recently asked questions that you SHOULD NOT DUPLICATE (avoid similar problems):
          ${previousQuestionData.slice(-7).map((q, i) => `Question ${i+1}: "${q}"`).join('\n')}
          
-         DO NOT repeat these exact math operations:
-         ${previousMathFacts.slice(-10).join(', ')}
+         CRITICAL: DO NOT repeat these exact math operations:
+         ${previousMathFacts.slice(-15).join(', ')}
          
-         Create something completely different using different numbers and contexts.`
-      : 'Please generate a completely new question that hasn\'t been asked before.';
+         NUMERICAL AVOIDANCE RULES:
+         1. DO NOT use any of these exact number pairs or single numbers in new operations
+         2. DO NOT create problems with the same answer as any of these operations
+         3. AVOID similar patterns - create truly diverse problems with different structure
+         4. DO NOT just swap operands (avoid A+B if B+A was used)
+         5. When using division or multiplication, use completely different number sets
+         
+         Create something COMPLETELY different using unique numbers, operations and contexts.`
+      : 'Please generate a completely new question that hasn\'t been asked before with diverse number operations.';
     
     // Determine question format based on grade level - with STRICT K grading enforcement
     const questionFormat = grade === 'K'
@@ -978,29 +1098,52 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
         ? 'Can include decimals, fractions, multi-step problems, and more complex word problems. Also include basic order of operations and pre-algebraic thinking.'
         : 'Can include pre-algebra concepts, ratio and proportion, complex word problems, and multi-step equations.';
     
+    // Extract the recent numeric combinations to avoid repetition
+    const recentNumbers = previousMathFacts
+      .filter(fact => !fact.startsWith('pair:'))
+      .slice(-10);
+      
+    // Create a list of generic number pairs from previous questions
+    const recentNumberPairs = previousMathFacts
+      .filter(fact => fact.startsWith('pair:'))
+      .map(fact => fact.replace('pair:', ''))
+      .slice(-15);
+    
     // Add seeds for unique question types to ensure diversity
     // Specifically designed for computational problems without visual elements
     const uniqueFactors = [
-      // These factors focus on pure computational problems without visual elements
-      `Use numbers that are different from these recently used calculations: ${previousMathFacts.slice(-5).join(', ')}`,
-      'Create a problem using different operation(s) than recent questions',
-      'Frame the question in a different real-world context',
-      'Use a step-by-step word problem requiring careful reading',
-      'Present a pattern or sequence where student must find the next number',
-      'Include a simple mental math strategy',
-      'Create a multi-step calculation problem',
-      'Use different wording than previous problems for the same operation',
-      'Incorporate an estimation component',
-      'Present a comparison between two quantities',
-      'Create a problem about equivalence or equality',
-      'Include a number-only pattern recognition element'
+      // STRONGLY emphasize numerical variety to avoid repetition
+      `NEVER use these exact number combinations: ${recentNumbers.join(', ')}`,
+      `AVOID using number pairs similar to: ${recentNumberPairs.join(', ')}`,
+      'CRITICAL: Use numerical values that have NOT appeared in recent questions',
+      'Use a completely different mathematical operation than previous questions',
+      'Frame the question in a different real-world context with unique numbers',
+      'Use a step-by-step word problem requiring careful reading with new numerical values',
+      'Present a pattern or sequence with numerical combinations not seen recently',
+      'Use different number combinations even if presenting a similar problem structure',
+      'Create a multi-step calculation problem with unique number combinations',
+      'Incorporate new numerical values - avoid repeating any numbers from recent questions',
+      'Present a comparison between two unique numeric quantities not used recently',
+      'Use number combinations that create different answers than recent problems',
+      'Include at least one number not used in any recent question',
+      'Create a problem about equivalence using numbers not seen in recent questions',
+      'Use multiples or divisors not featured in recent problems',
+      'For word problems, change both the object type AND the quantities',
+      'For practice with operations, use unique operands in different positions',
+      'Create a problem with an answer that differs from recent questions by at least 5',
+      'Use a different approach to testing the same concept (e.g., verbal vs. direct calculation)',
+      'Incorporate numerical values from a range not recently used'
     ];
     
-    // Select random factors to ensure question diversity
-    const selectedFactors = uniqueFactors
+    // ALWAYS include the first critical factors about numeric variety
+    // plus a larger selection of additional factors to ensure maximum question diversity
+    const criticalNumericFactors = uniqueFactors.slice(0, 4); // Include first 4 critical factors always
+    const additionalFactors = uniqueFactors
+      .slice(4)
       .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .join(', ');
+      .slice(0, 6); // Include 6 additional random factors for more diversity
+    
+    const selectedFactors = [...criticalNumericFactors, ...additionalFactors].join(', ');
     
     // Get a timestamp to ensure uniqueness
     const timestamp = Date.now();
@@ -1020,23 +1163,43 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           4. ${questionFormat}
           5. Create diversity by: ${selectedFactors}.
           6. NEVER repeat the same question patterns, numbers, or contexts - create truly unique content.
-          7. STRICT INSTRUCTIONS ABOUT QUESTION TYPES:
-             a. ONLY create text-based computational problems (e.g. calculations, word problems)
-             b. DO NOT create questions that reference visuals, shapes, images, or currency
-             c. DO NOT create counting problems that would require visual elements
-             d. DO NOT create questions about identifying shapes
-             e. DO NOT create fraction problems that ask "what fraction is shaded?"
-             f. NEVER use terms like "below", "above", "pictured", "illustrated", "shown", "image", or "diagram"
-             g. Do not reference colors or position of objects
-             h. Only use fractions expressed as numbers (1/2, 3/4, etc.)
-             i. DO NOT include money questions (no coins, dollars, cents, bills, currency)
-          8. CRITICAL: DO NOT give away the answer in the question itself:
-             a. DO NOT use phrasing like "If 5+7=12, what is 5+7?" or similar constructions
-             b. DO NOT include the answer in the question stem accidentally
-             c. Make sure the student must perform the computation themselves
-             d. For word problems, do not state the operation result in the setup
-             e. Check that the question actually requires calculation and isn't self-evident
-          9. ${contextMessage}
+          
+          NUMERICAL VARIETY REQUIREMENTS:
+          1. CRITICAL: Each question MUST use COMPLETELY DIFFERENT number combinations than ALL recent questions
+          2. Do NOT reuse ANY number pairs that have appeared in recent questions (e.g., if 2×3 was used, don't use it again)
+          3. CRITICAL: Avoid repeating the same numeric values even in different operations (if 5+8 was used, don't use 5×8, 8-5, or 8÷5)
+          4. Use truly unique number combinations - not just different wording around the same calculations
+          5. For word problems, vary BOTH the context (objects, scenario) AND the numerical values 
+          6. If operations are conceptually related (addition vs. subtraction), use COMPLETELY different number sets
+          7. NEVER reuse the same numbers in different positions (e.g., if 3×2 was used, don't use 2×3)
+          8. ESSENTIAL: For questions with the same operation type, use COMPLETELY DIFFERENT VALUES (never ask 4×5 if 3×7 was asked recently)
+          9. CRITICAL: Use unique operands to create distinct arithmetic facts (if any operation used 2 and 9, use neither 2 nor 9 in new problems)
+          10. IMPORTANT: Generate problems with DIFFERENT answers (if a previous answer was 12, avoid problems with answers near 12)
+          11. For multiple-choice options, ensure the correct answer AND distractors don't repeat across questions
+          12. If a problem involves a particular object quantity (e.g., 4 apples), don't use that same quantity for a different object
+          13. In sequence problems, use different step patterns than in previous questions
+          14. For multi-step problems, ensure each step uses unique numerical values
+          
+          QUESTION TYPE RESTRICTIONS:
+          1. ONLY create text-based computational problems (e.g. calculations, word problems)
+          2. DO NOT create questions that reference visuals, shapes, images, or currency
+          3. DO NOT create counting problems that would require visual elements
+          4. DO NOT create questions about identifying shapes
+          5. DO NOT create fraction problems that ask "what fraction is shaded?"
+          6. NEVER use terms like "below", "above", "pictured", "illustrated", "shown", "image", or "diagram"
+          7. Do not reference colors or position of objects
+          8. Only use fractions expressed as numbers (1/2, 3/4, etc.)
+          9. DO NOT include money questions (no coins, dollars, cents, bills, currency)
+          
+          CRITICAL: DO NOT give away the answer in the question itself:
+          1. DO NOT use phrasing like "If 5+7=12, what is 5+7?" or similar constructions
+          2. DO NOT include the answer in the question stem accidentally
+          3. Make sure the student must perform the computation themselves
+          4. For word problems, do not state the operation result in the setup
+          5. Check that the question actually requires calculation and isn't self-evident
+          
+          CONTEXT FROM PREVIOUS QUESTIONS:
+          ${contextMessage}
           
           Format your response as a JSON object with these fields:
           - question: The actual question text (detailed, clear, and engaging)
@@ -1062,7 +1225,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
       ],
       response_format: { type: "json_object" },
       max_tokens: 800,
-      temperature: 0.9, // Higher temperature for more diversity
+      temperature: 1.2, // Even higher temperature for maximum diversity
     });
 
     const content = response.choices[0].message.content || '{}';
