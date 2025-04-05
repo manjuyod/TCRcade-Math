@@ -9,7 +9,8 @@ import {
   mathStories, type MathStory,
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
-  leaderboard, type Leaderboard
+  leaderboard, type Leaderboard,
+  subjectMastery, type SubjectMastery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
@@ -1243,5 +1244,220 @@ export class DatabaseStorage implements IStorage {
       console.error('Error getting recommended question:', error);
       return undefined;
     }
+  }
+  
+  // Subject mastery methods for adaptive grade progression
+  async getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]> {
+    return db
+      .select()
+      .from(subjectMastery)
+      .where(eq(subjectMastery.userId, userId));
+  }
+  
+  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]> {
+    return db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.grade, grade)
+      ));
+  }
+  
+  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined> {
+    const [mastery] = await db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.subject, subject),
+        eq(subjectMastery.grade, grade)
+      ));
+    
+    return mastery;
+  }
+  
+  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery> {
+    // Check if entry exists
+    const [existingMastery] = await db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.subject, subject),
+        eq(subjectMastery.grade, grade)
+      ));
+    
+    if (existingMastery) {
+      // Update existing mastery
+      const totalAttempts = existingMastery.totalAttempts + 1;
+      const correctAttempts = existingMastery.correctAttempts + (isCorrect ? 1 : 0);
+      const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
+      
+      // Check for grade progression criteria (80% mastery with at least 30 attempts)
+      const canProgressToNextGrade = masteryLevel >= 80 && totalAttempts >= 30;
+      
+      // Check for downgrade criteria (less than 50% mastery)
+      const shouldDowngrade = masteryLevel < 50 && totalAttempts >= 10;
+      
+      const [updatedMastery] = await db
+        .update(subjectMastery)
+        .set({
+          totalAttempts,
+          correctAttempts,
+          lastPracticed: new Date(),
+          masteryLevel,
+          nextGradeUnlocked: existingMastery.nextGradeUnlocked || canProgressToNextGrade,
+          downgraded: shouldDowngrade
+        })
+        .where(eq(subjectMastery.id, existingMastery.id))
+        .returning();
+      
+      return updatedMastery;
+    } else {
+      // Create new mastery entry
+      const [newMastery] = await db
+        .insert(subjectMastery)
+        .values({
+          userId,
+          subject,
+          grade,
+          totalAttempts: 1,
+          correctAttempts: isCorrect ? 1 : 0,
+          lastPracticed: new Date(),
+          masteryLevel: isCorrect ? 100 : 0,
+          isUnlocked: true,
+          nextGradeUnlocked: false,
+          downgraded: false
+        })
+        .returning();
+      
+      return newMastery;
+    }
+  }
+  
+  async checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
+    shouldUpgrade: boolean,
+    shouldDowngrade: boolean,
+    nextGrade?: string,
+    previousGrade?: string
+  }> {
+    // Get subject mastery for current grade
+    const mastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    if (!mastery) {
+      return { shouldUpgrade: false, shouldDowngrade: false };
+    }
+    
+    // Determine next and previous grade levels
+    const gradeNum = parseInt(grade, 10);
+    const nextGrade = (gradeNum + 1).toString();
+    const previousGrade = (gradeNum - 1).toString();
+    
+    // Check if user should upgrade to next grade (80% mastery with at least 30 attempts)
+    const shouldUpgrade = mastery.masteryLevel >= 80 && mastery.totalAttempts >= 30;
+    
+    // Check if user should downgrade to previous grade (less than 50% mastery)
+    const shouldDowngrade = mastery.masteryLevel < 50 && mastery.totalAttempts >= 10 && gradeNum > 1;
+    
+    return {
+      shouldUpgrade,
+      shouldDowngrade,
+      nextGrade: shouldUpgrade ? nextGrade : undefined,
+      previousGrade: shouldDowngrade ? previousGrade : undefined
+    };
+  }
+  
+  async unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery> {
+    // Check if the subject mastery already exists
+    const existingMastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    if (existingMastery) {
+      // Update existing mastery to unlock it
+      const [updatedMastery] = await db
+        .update(subjectMastery)
+        .set({
+          isUnlocked: true
+        })
+        .where(eq(subjectMastery.id, existingMastery.id))
+        .returning();
+      
+      return updatedMastery;
+    } else {
+      // Create new mastery entry with unlocked status
+      const [newMastery] = await db
+        .insert(subjectMastery)
+        .values({
+          userId,
+          subject,
+          grade,
+          totalAttempts: 0,
+          correctAttempts: 0,
+          lastPracticed: new Date(),
+          masteryLevel: 0,
+          isUnlocked: true,
+          nextGradeUnlocked: false,
+          downgraded: false
+        })
+        .returning();
+      
+      return newMastery;
+    }
+  }
+  
+  async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
+    // Get all subject masteries for this user and grade that are unlocked
+    const userMasteries = await db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.grade, grade),
+        eq(subjectMastery.isUnlocked, true)
+      ));
+    
+    // Return the list of unlocked subjects
+    return userMasteries.map(mastery => mastery.subject);
+  }
+  
+  async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {
+    // First, get all subject masteries for this user that are unlocked
+    const userMasteries = await db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.subject, subject),
+        eq(subjectMastery.isUnlocked, true)
+      ));
+    
+    if (userMasteries.length === 0) {
+      // If no masteries found, get the user's default grade
+      const user = await this.getUser(userId);
+      if (!user || !user.grade) return [];
+      
+      // Create a default mastery for this subject and grade
+      await this.unlockGradeForSubject(userId, subject, user.grade);
+      
+      // Return questions for the user's default grade and this subject
+      return this.getQuestionsByGrade(user.grade, subject);
+    }
+    
+    // Sort masteries by grade, descending order (to prioritize higher grades)
+    const sortedMasteries = userMasteries.sort((a, b) => {
+      const gradeA = parseInt(a.grade, 10);
+      const gradeB = parseInt(b.grade, 10);
+      return gradeB - gradeA; // Sort descending
+    });
+    
+    // Check if any mastery has been downgraded - if so, use that grade instead
+    const downgradedMastery = sortedMasteries.find(mastery => mastery.downgraded);
+    if (downgradedMastery) {
+      return this.getQuestionsByGrade(downgradedMastery.grade, subject);
+    }
+    
+    // Otherwise, use the highest unlocked grade
+    const highestMastery = sortedMasteries[0];
+    return this.getQuestionsByGrade(highestMastery.grade, subject);
   }
 }

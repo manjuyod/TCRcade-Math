@@ -2780,5 +2780,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== Adaptive Grade Progression API Routes =====
+  
+  // Get all user's subject masteries
+  app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const masteries = await storage.getUserSubjectMasteries(userId);
+      res.json(masteries);
+    } catch (error) {
+      console.error("Error fetching subject masteries:", error);
+      res.status(500).json({ error: "Failed to fetch subject masteries" });
+    }
+  });
+  
+  // Get user's subject masteries for a specific grade
+  app.get("/api/subject-masteries/grade/:grade", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { grade } = req.params;
+      const masteries = await storage.getUserSubjectMasteriesByGrade(userId, grade);
+      res.json(masteries);
+    } catch (error) {
+      console.error("Error fetching subject masteries by grade:", error);
+      res.status(500).json({ error: "Failed to fetch subject masteries by grade" });
+    }
+  });
+  
+  // Get available subjects for a specific grade
+  app.get("/api/subjects/available/:grade", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { grade } = req.params;
+      const subjects = await storage.getAvailableSubjectsForGrade(userId, grade);
+      res.json(subjects);
+    } catch (error) {
+      console.error("Error fetching available subjects:", error);
+      res.status(500).json({ error: "Failed to fetch available subjects" });
+    }
+  });
+  
+  // Get questions specific to user's grade progression for a subject
+  app.get("/api/questions/adaptive/:subject", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { subject } = req.params;
+      const questions = await storage.getQuestionsForUserGradeAndSubject(userId, subject);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching adaptive questions:", error);
+      res.status(500).json({ error: "Failed to fetch adaptive questions" });
+    }
+  });
+  
+  // Update subject mastery based on answered question
+  app.post("/api/subject-mastery/update", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { subject, grade, isCorrect } = req.body;
+      
+      if (!subject || !grade) {
+        return res.status(400).json({ error: "Missing required fields: subject and grade are required" });
+      }
+      
+      // Update the subject mastery
+      const updatedMastery = await storage.updateSubjectMastery(
+        userId, 
+        subject, 
+        grade, 
+        isCorrect === true
+      );
+      
+      // Check if the user should move up or down a grade for this subject
+      const progressionStatus = await storage.checkAndProcessGradeProgression(userId, subject, grade);
+      
+      // If user should be upgraded, unlock the next grade
+      if (progressionStatus.shouldUpgrade && progressionStatus.nextGrade) {
+        await storage.unlockGradeForSubject(userId, subject, progressionStatus.nextGrade);
+        
+        // Update user's overall grade if moving up (only for display purposes)
+        const user = await storage.getUser(userId);
+        if (user) {
+          await storage.updateUser(userId, {
+            lastGradeAdvancement: new Date()
+          });
+        }
+      }
+      
+      // If user should be downgraded, apply that as well
+      if (progressionStatus.shouldDowngrade && progressionStatus.previousGrade) {
+        // Mark the current mastery as downgraded
+        await storage.updateSubjectMastery(userId, subject, grade, false);
+        
+        // Ensure the previous grade is unlocked
+        await storage.unlockGradeForSubject(userId, subject, progressionStatus.previousGrade);
+      }
+      
+      res.json({
+        mastery: updatedMastery,
+        progression: progressionStatus
+      });
+    } catch (error) {
+      console.error("Error updating subject mastery:", error);
+      res.status(500).json({ error: "Failed to update subject mastery" });
+    }
+  });
+  
+  // Initialize subjects for a new user
+  app.post("/api/subject-mastery/initialize", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { grade } = req.body;
+      
+      if (!grade) {
+        return res.status(400).json({ error: "Missing required field: grade" });
+      }
+      
+      // Define default subjects for different grade levels
+      const gradeSubjects: Record<string, string[]> = {
+        '1': ['addition', 'subtraction', 'counting'],
+        '2': ['addition', 'subtraction', 'place-value'],
+        '3': ['addition', 'subtraction', 'multiplication', 'division'],
+        '4': ['multiplication', 'division', 'fractions'],
+        '5': ['decimals', 'fractions', 'geometry'],
+        '6': ['algebra', 'percentages', 'ratios']
+      };
+      
+      // Get subjects for the specified grade, or default to grade 5 subjects if not found
+      const subjects = gradeSubjects[grade] || gradeSubjects['5'];
+      
+      // Initialize masteries for each subject
+      const masteries = [];
+      for (const subject of subjects) {
+        const mastery = await storage.unlockGradeForSubject(userId, subject, grade);
+        masteries.push(mastery);
+      }
+      
+      res.json({
+        success: true,
+        subjects,
+        masteries
+      });
+    } catch (error) {
+      console.error("Error initializing subject masteries:", error);
+      res.status(500).json({ error: "Failed to initialize subject masteries" });
+    }
+  });
+
   return httpServer;
 }

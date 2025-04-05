@@ -29,6 +29,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
+import SubjectMastery from '@/components/subject-mastery';
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();

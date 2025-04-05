@@ -2,7 +2,7 @@ import {
   users, type User, type InsertUser, userProgress, type UserProgress, 
   type Question, type Leaderboard, type ConceptMastery, type Recommendation,
   type AvatarItem, type DailyChallenge, type MathStory, 
-  type MultiplayerRoom, type AiAnalytic 
+  type MultiplayerRoom, type AiAnalytic, type SubjectMastery
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -65,6 +65,21 @@ export interface IStorage {
   leaveMultiplayerRoom(roomId: number, userId: number): Promise<boolean>;
   updateMultiplayerRoom(roomId: number, data: Partial<MultiplayerRoom>): Promise<MultiplayerRoom | undefined>;
   
+  // Subject mastery methods for adaptive grade progression
+  getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]>;
+  getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]>;
+  getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined>;
+  updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery>;
+  checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
+    shouldUpgrade: boolean, 
+    shouldDowngrade: boolean, 
+    nextGrade?: string, 
+    previousGrade?: string
+  }>;
+  unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery>;
+  getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]>;
+  getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]>;
+  
   // AI analytics methods
   generateUserAnalytics(userId: number): Promise<AiAnalytic>;
   getUserAnalytics(userId: number): Promise<AiAnalytic | undefined>;
@@ -86,6 +101,7 @@ export class MemStorage implements IStorage {
   private mathStories: Map<number, MathStory>;
   private multiplayerRooms: Map<number, MultiplayerRoom>;
   private aiAnalytics: Map<number, AiAnalytic>;
+  private subjectMasteries: Map<number, SubjectMastery>;
   sessionStore: any; // Using any type to avoid issues
   currentId: number;
   currentQuestionId: number;
@@ -98,6 +114,7 @@ export class MemStorage implements IStorage {
   currentMathStoryId: number;
   currentMultiplayerRoomId: number;
   currentAiAnalyticId: number;
+  currentSubjectMasteryId: number;
 
   constructor() {
     this.users = new Map();
@@ -111,6 +128,7 @@ export class MemStorage implements IStorage {
     this.mathStories = new Map();
     this.multiplayerRooms = new Map();
     this.aiAnalytics = new Map();
+    this.subjectMasteries = new Map();
     
     this.currentId = 1;
     this.currentQuestionId = 1;
@@ -123,6 +141,7 @@ export class MemStorage implements IStorage {
     this.currentMathStoryId = 1;
     this.currentMultiplayerRoomId = 1;
     this.currentAiAnalyticId = 1;
+    this.currentSubjectMasteryId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 1 day
@@ -1692,6 +1711,223 @@ export class MemStorage implements IStorage {
     
     this.users.set(userId, updatedUser);
     return updatedUser;
+  }
+  
+  // ===== Subject Mastery Methods for Adaptive Grade Progression =====
+  
+  async getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]> {
+    return Array.from(this.subjectMasteries.values())
+      .filter(mastery => mastery.userId === userId);
+  }
+  
+  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]> {
+    return Array.from(this.subjectMasteries.values())
+      .filter(mastery => mastery.userId === userId && mastery.grade === grade);
+  }
+  
+  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined> {
+    return Array.from(this.subjectMasteries.values())
+      .find(mastery => 
+        mastery.userId === userId && 
+        mastery.subject === subject && 
+        mastery.grade === grade
+      );
+  }
+  
+  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery> {
+    // Find existing mastery or create a new one
+    const existingMastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    if (existingMastery) {
+      // Update the existing mastery
+      const updatedMastery: SubjectMastery = {
+        ...existingMastery,
+        totalAttempts: existingMastery.totalAttempts + 1,
+        correctAttempts: existingMastery.correctAttempts + (isCorrect ? 1 : 0),
+        lastPracticed: new Date(),
+        // Update proficiency score based on performance 
+        proficiencyScore: this.calculateProficiencyScore(
+          existingMastery.proficiencyScore,
+          isCorrect,
+          existingMastery.totalAttempts
+        )
+      };
+      
+      this.subjectMasteries.set(existingMastery.id, updatedMastery);
+      return updatedMastery;
+    } else {
+      // Create a new mastery entry
+      const id = this.currentSubjectMasteryId++;
+      const newMastery: SubjectMastery = {
+        id,
+        userId,
+        subject,
+        grade,
+        totalAttempts: 1,
+        correctAttempts: isCorrect ? 1 : 0,
+        lastPracticed: new Date(),
+        unlocked: true,
+        proficiencyScore: isCorrect ? 0.7 : 0.3, // Initial score based on first attempt
+        createdAt: new Date()
+      };
+      
+      this.subjectMasteries.set(id, newMastery);
+      return newMastery;
+    }
+  }
+  
+  private calculateProficiencyScore(currentScore: number, isCorrect: boolean, attempts: number): number {
+    // Adjust weight based on number of attempts (more dramatic shifts at beginning)
+    const weight = Math.min(0.3, 1 / (attempts + 1));
+    
+    // Increase or decrease the score based on correctness
+    const newScore = isCorrect
+      ? currentScore + (1 - currentScore) * weight // Move toward 1.0
+      : currentScore - currentScore * weight; // Move toward 0.0
+    
+    // Ensure the score stays between 0 and 1
+    return Math.max(0, Math.min(1, newScore));
+  }
+  
+  async checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
+    shouldUpgrade: boolean, 
+    shouldDowngrade: boolean, 
+    nextGrade?: string, 
+    previousGrade?: string
+  }> {
+    const mastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    if (!mastery) {
+      return { shouldUpgrade: false, shouldDowngrade: false };
+    }
+    
+    // Define thresholds for progression
+    const UPGRADE_THRESHOLD = 0.8; // 80% proficiency
+    const DOWNGRADE_THRESHOLD = 0.5; // 50% proficiency
+    const MIN_ATTEMPTS_FOR_PROGRESSION = 30;
+    
+    // Get the next and previous grades
+    const gradeNumber = parseInt(grade, 10);
+    const nextGrade = (gradeNumber + 1).toString();
+    const previousGrade = gradeNumber > 1 ? (gradeNumber - 1).toString() : undefined;
+    
+    // Check if we should upgrade to next grade
+    const shouldUpgrade = 
+      mastery.proficiencyScore >= UPGRADE_THRESHOLD && 
+      mastery.totalAttempts >= MIN_ATTEMPTS_FOR_PROGRESSION;
+    
+    // Check if we should downgrade to previous grade
+    const shouldDowngrade = 
+      mastery.proficiencyScore < DOWNGRADE_THRESHOLD && 
+      mastery.totalAttempts >= MIN_ATTEMPTS_FOR_PROGRESSION && 
+      previousGrade !== undefined;
+    
+    return {
+      shouldUpgrade,
+      shouldDowngrade,
+      nextGrade: shouldUpgrade ? nextGrade : undefined,
+      previousGrade: shouldDowngrade ? previousGrade : undefined
+    };
+  }
+  
+  async unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery> {
+    // Check if subject mastery already exists
+    const existingMastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    if (existingMastery) {
+      // If it exists, just ensure it's unlocked
+      if (!existingMastery.unlocked) {
+        const updatedMastery = { ...existingMastery, unlocked: true };
+        this.subjectMasteries.set(existingMastery.id, updatedMastery);
+        return updatedMastery;
+      }
+      return existingMastery;
+    }
+    
+    // Create a new mastery entry with unlocked status
+    const id = this.currentSubjectMasteryId++;
+    const newMastery: SubjectMastery = {
+      id,
+      userId,
+      subject,
+      grade,
+      totalAttempts: 0,
+      correctAttempts: 0,
+      lastPracticed: new Date(),
+      unlocked: true,
+      proficiencyScore: 0.5, // Start at 50% proficiency
+      createdAt: new Date()
+    };
+    
+    this.subjectMasteries.set(id, newMastery);
+    return newMastery;
+  }
+  
+  async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
+    // Get all subject masteries for this user and grade
+    const masteries = await this.getUserSubjectMasteriesByGrade(userId, grade);
+    
+    // Filter to only show unlocked subjects
+    const unlockedSubjects = masteries
+      .filter(mastery => mastery.unlocked)
+      .map(mastery => mastery.subject);
+    
+    // If user has no subjects for this grade, return default subjects based on grade
+    if (unlockedSubjects.length === 0) {
+      // Define default subjects for different grade levels
+      const gradeSubjects: Record<string, string[]> = {
+        '1': ['addition', 'subtraction', 'counting'],
+        '2': ['addition', 'subtraction', 'place-value'],
+        '3': ['addition', 'subtraction', 'multiplication', 'division'],
+        '4': ['multiplication', 'division', 'fractions'],
+        '5': ['decimals', 'fractions', 'geometry'],
+        '6': ['algebra', 'percentages', 'ratios']
+      };
+      
+      return gradeSubjects[grade] || ['addition', 'subtraction'];
+    }
+    
+    return unlockedSubjects;
+  }
+  
+  async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {
+    // First, determine which grade level to use for this subject
+    const allMasteries = await this.getUserSubjectMasteries(userId);
+    
+    // Filter to just masteries for this subject that are unlocked
+    const subjectMasteries = allMasteries
+      .filter(mastery => mastery.subject === subject && mastery.unlocked)
+      // Sort by grade level in descending order to get the highest unlocked grade first
+      .sort((a, b) => parseInt(b.grade, 10) - parseInt(a.grade, 10)); 
+    
+    if (subjectMasteries.length === 0) {
+      // If no masteries found, use the user's default grade, or fallback to grade 5
+      const user = await this.getUser(userId);
+      const defaultGrade = user?.grade || '5';
+      
+      // Get questions for this subject at the default grade
+      return Array.from(this.questions.values())
+        .filter(q => q.grade === defaultGrade && q.category === subject);
+    }
+    
+    // Use the highest grade mastery that is unlocked
+    const highestMastery = subjectMasteries[0];
+    
+    // Get questions matching this grade and subject
+    let questions = Array.from(this.questions.values())
+      .filter(q => q.grade === highestMastery.grade && q.category === subject);
+    
+    // If no questions found, generate some dynamic questions
+    if (questions.length === 0) {
+      // Add 5 dynamically generated questions of appropriate difficulty
+      questions = Array(5).fill(null).map(() => {
+        // Use proficiency score to determine difficulty (1-5)
+        const difficulty = Math.ceil(highestMastery.proficiencyScore * 5);
+        return this.generateDynamicQuestion(highestMastery.grade, difficulty, subject);
+      });
+    }
+    
+    return questions;
   }
   
   // Helper methods
