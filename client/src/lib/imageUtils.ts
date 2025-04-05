@@ -16,6 +16,11 @@ interface ShapeMatch {
  * Analyzes a question text to determine which type of image to display
  */
 export const getQuestionImage = (questionText: string, storyImage?: string | null): string | null => {
+  // Per user request, do not display any images for questions
+  console.log('Images for questions disabled per user request');
+  return null;
+  
+  /* Original image generation code disabled
   // If there's already a storyImage provided from the server, prioritize it
   if (storyImage) {
     console.log('Using provided storyImage:', storyImage.substring(0, 50) + '...');
@@ -28,6 +33,7 @@ export const getQuestionImage = (questionText: string, storyImage?: string | nul
   console.log('Finding image for question:', questionText);
   
   // Check for various patterns in the question text
+  */
   
   // 1. Enhanced counting questions check - capture more variations
   if (/how many (objects|items|things|shapes|dots|stars|blocks|circles|squares|triangles) (are there|do you see|can you see|can you count)/i.test(questionText) ||
