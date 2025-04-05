@@ -29,7 +29,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-import SubjectMastery from '@/components/subject-mastery';
+import { SubjectMastery } from '@/components/subject-mastery';
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
@@ -405,6 +405,11 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Subject Mastery Section */}
+        <div className="mb-6">
+          <SubjectMastery userId={user.id} currentGrade={user.grade || '5'} />
+        </div>
         
         {/* Settings/Profile Dialog */}
         <Dialog open={showSettings} onOpenChange={setShowSettings}>

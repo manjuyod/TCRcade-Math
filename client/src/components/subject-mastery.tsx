@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SubjectMastery } from "@shared/schema";
+import { SubjectMastery as SubjectMasteryType } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,7 @@ const SUBJECT_DISPLAY_NAMES: Record<string, string> = {
   'ratios': 'Ratios'
 };
 
-export default function SubjectMastery({ userId, currentGrade }: { userId: number, currentGrade: string }) {
+export function SubjectMastery({ userId, currentGrade }: { userId: number, currentGrade: string }) {
   const { toast } = useToast();
   const [selectedGrade, setSelectedGrade] = useState(currentGrade || '5');
 
@@ -92,19 +92,25 @@ export default function SubjectMastery({ userId, currentGrade }: { userId: numbe
   
   // Filter masteries by the selected grade
   const gradeSpecificMasteries = allMasteries?.filter(
-    (mastery: SubjectMastery) => mastery.grade === selectedGrade
+    (mastery: SubjectMasteryType) => mastery.grade === selectedGrade
   ) || [];
 
   // Get locked/unlocked status for all subjects in the current grade
   const getSubjectStatus = (subject: string) => {
     const mastery = gradeSpecificMasteries.find(
-      (m: SubjectMastery) => m.subject === subject
+      (m: SubjectMasteryType) => m.subject === subject
     );
     
     if (!mastery) return { unlocked: false, proficiencyScore: 0 };
+    
+    // Calculate proficiency score (0-1) based on correctAttempts / totalAttempts
+    const proficiencyScore = mastery.totalAttempts > 0 
+      ? mastery.correctAttempts / mastery.totalAttempts 
+      : 0;
+    
     return { 
-      unlocked: mastery.unlocked, 
-      proficiencyScore: mastery.proficiencyScore || 0,
+      unlocked: mastery.isUnlocked, 
+      proficiencyScore: proficiencyScore,
       attempts: mastery.totalAttempts || 0,
       correct: mastery.correctAttempts || 0
     };
