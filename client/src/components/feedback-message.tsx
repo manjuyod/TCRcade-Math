@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
 import { stopAllSounds } from '@/lib/sounds';
+import { useEffect } from 'react';
 
 type FeedbackMessageProps = {
   correct: boolean;
@@ -25,6 +26,17 @@ export default function FeedbackMessage({
     // Call the passed onNextQuestion function
     onNextQuestion();
   };
+
+  // Auto-advance to next question after 1 second
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleNextClick();
+    }, 1000);
+    
+    // Clean up timer if component unmounts
+    return () => clearTimeout(timer);
+  }, []);
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -60,13 +72,12 @@ export default function FeedbackMessage({
         {correct ? 'Correct!' : 'Not quite!'}
       </h3>
       
-      {correct ? (
-        <p className="text-gray-600">You earned {tokensEarned} tokens</p>
-      ) : (
+      {/* Only show correct answer for incorrect responses, no token display */}
+      {!correct && (
         <p className="text-gray-600">The correct answer is {correctAnswer}</p>
       )}
       
-      {/* We removed the outer motion.div and placed button directly in the component */}
+      {/* Next button is still here but will rarely be used due to auto-advance */}
       <Button
         onClick={handleNextClick}
         className="animate-pulse-button arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
