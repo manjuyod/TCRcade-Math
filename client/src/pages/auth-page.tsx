@@ -209,10 +209,12 @@ export default function AuthPage() {
                   </CardHeader>
 
                   {resetRequestStatus === 'success' ? (
-                    <Alert className="mt-6">
-                      <AlertTitle>Reset Request Sent</AlertTitle>
-                      <AlertDescription>
-                        If an account with that username or email exists, you'll receive instructions on how to reset your password.
+                    <Alert className="mt-6 border-orange-500">
+                      <AlertTitle className="text-orange-600">Testing Mode: Reset Request Sent</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <p className="font-medium">The reset token has been generated and logged to the server console.</p>
+                        <p>Since email delivery is not set up yet, you would normally check your email for instructions. For testing purposes, ask the developer to check the server logs for the token and reset link.</p>
+                        <p className="italic text-sm">Note: In a production environment, this token would be sent via email.</p>
                       </AlertDescription>
                     </Alert>
                   ) : (
