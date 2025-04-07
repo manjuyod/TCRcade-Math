@@ -16,6 +16,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   getLeaderboard(): Promise<Array<User & { score: number }>>;
   
   // Question methods
@@ -214,6 +215,45 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...data };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    
+    // Only allow non-admin users to be deleted
+    if (user.isAdmin) return false;
+    
+    // Delete the user
+    this.users.delete(id);
+    
+    // Delete related user data in other collections
+    // Progress data
+    Array.from(this.progress.entries())
+      .filter(([, progress]) => progress.userId === id)
+      .forEach(([progressId]) => this.progress.delete(progressId));
+      
+    // Concept mastery data
+    Array.from(this.conceptMasteries.entries())
+      .filter(([, mastery]) => mastery.userId === id)
+      .forEach(([masteryId]) => this.conceptMasteries.delete(masteryId));
+      
+    // Recommendations data
+    Array.from(this.recommendations.entries())
+      .filter(([, rec]) => rec.userId === id)
+      .forEach(([recId]) => this.recommendations.delete(recId));
+      
+    // AI analytics data
+    Array.from(this.aiAnalytics.entries())
+      .filter(([, analytic]) => analytic.userId === id)
+      .forEach(([analyticId]) => this.aiAnalytics.delete(analyticId));
+      
+    // Subject mastery data
+    Array.from(this.subjectMasteries.entries())
+      .filter(([, mastery]) => mastery.userId === id)
+      .forEach(([masteryId]) => this.subjectMasteries.delete(masteryId));
+    
+    return true;
   }
 
   async getLeaderboard(): Promise<Array<User & { score: number }>> {

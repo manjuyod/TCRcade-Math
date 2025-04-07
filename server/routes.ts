@@ -1738,6 +1738,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update user" });
     }
   });
+  
+  // Delete a user (admin only)
+  app.delete("/api/admin/users/:id", ensureAuthenticated, async (req, res) => {
+    if (!req.user!.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    const userId = parseInt(req.params.id);
+    
+    // Prevent deleting own account
+    if (userId === req.user!.id) {
+      return res.status(400).json({ message: "Cannot delete your own admin account" });
+    }
+    
+    try {
+      const deleted = await storage.deleteUser(userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found or cannot be deleted" });
+      }
+      
+      res.json({ success: true, message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
 
   // ==========================
   // AVATAR SYSTEM ROUTES

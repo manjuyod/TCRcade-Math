@@ -77,6 +77,31 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
 
+  async deleteUser(id: number): Promise<boolean> {
+    try {
+      // Check if user exists first
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
+      
+      if (!user) {
+        return false;
+      }
+
+      // Delete the user
+      const [deletedUser] = await db
+        .delete(users)
+        .where(eq(users.id, id))
+        .returning({ id: users.id });
+      
+      return !!deletedUser;
+    } catch (error) {
+      console.error(`Error deleting user ${id}:`, error);
+      return false;
+    }
+  }
+
   async getLeaderboard(): Promise<Array<User & { score: number }>> {
     const leaderboardUsers = await db
       .select()

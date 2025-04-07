@@ -54,6 +54,28 @@ export default function AdminPage() {
     }
   });
   
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('DELETE', `/api/admin/users/${id}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'User deleted',
+        description: 'User has been permanently deleted from the system',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error deleting user',
+        description: error.message || 'There was an error deleting the user',
+        variant: 'destructive'
+      });
+    }
+  });
+  
   const editForm = useForm<Partial<User>>({
     defaultValues: {
       displayName: '',
@@ -333,9 +355,34 @@ export default function AdminPage() {
                                 </DialogContent>
                               </Dialog>
                               
-                              <Button variant="ghost" size="icon">
-                                <Trash className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                              </Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <Trash className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Delete User</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <p>Are you sure you want to delete the user <strong>{student.displayName || student.username}</strong>?</p>
+                                    <p className="text-sm text-gray-500">This action cannot be undone. All user data including progress, scores, and achievements will be permanently deleted.</p>
+                                    <div className="flex justify-end space-x-2">
+                                      <Button variant="outline" onClick={() => {}}>
+                                        Cancel
+                                      </Button>
+                                      <Button 
+                                        variant="destructive"
+                                        onClick={() => deleteUserMutation.mutate(student.id)}
+                                        disabled={deleteUserMutation.isPending}
+                                      >
+                                        {deleteUserMutation.isPending ? "Deleting..." : "Delete User"}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
                             </div>
                           </td>
                         </tr>
