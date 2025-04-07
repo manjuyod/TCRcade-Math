@@ -12,6 +12,70 @@ import {
   explainMathConcept
 } from "./openai";
 
+// Cache configuration
+const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
+const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
+
+// Define cache entry type for better type safety
+interface CacheEntry {
+  question: any; // The question object
+  timestamp: number; // When it was added to cache
+}
+
+// Map to store cached questions with timestamp for TTL management
+const questionCache = new Map<string, CacheEntry>();
+
+// Helper function to create a consistent cache key for questions
+function getQuestionCacheKey(userId: number, grade: string, category: string | undefined, previousQuestionCount: number): string {
+  // Create cache buckets based on how many questions the user has already seen (in blocks of 5)
+  // This ensures students at similar progress levels get appropriately challenging questions
+  const progressBucket = Math.floor(previousQuestionCount / 5) * 5;
+  return `question-${userId}-${grade}-${category || 'all'}-${progressBucket}`;
+}
+
+// Function to purge old cache entries (called periodically)
+function cleanCache() {
+  const now = Date.now();
+  let expiredCount = 0;
+  let oldestRemoved = 0;
+  
+  console.log(`CACHE CLEANUP: Starting with ${questionCache.size} entries at ${new Date(now).toISOString()}`);
+  
+  // Remove expired cache entries
+  for (const [key, entry] of questionCache.entries()) {
+    if (entry.timestamp && now - entry.timestamp > CACHE_TTL) {
+      const age = Math.round((now - entry.timestamp) / 1000);
+      const question = entry.question;
+      console.log(`CACHE EXPIRE: Removing key ${key}, question ID: ${question.id}, category: ${question.category}, grade: ${question.grade}, age: ${age}s, TTL: ${Math.round(CACHE_TTL/1000)}s`);
+      questionCache.delete(key);
+      expiredCount++;
+    }
+  }
+  
+  // If still too many entries, remove oldest ones until under limit
+  if (questionCache.size > CACHE_MAX_SIZE) {
+    // Convert to array, sort by timestamp, and remove oldest entries
+    const entries = Array.from(questionCache.entries());
+    entries.sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+    
+    // Remove oldest entries until under limit
+    const entriesToRemove = entries.slice(0, entries.length - CACHE_MAX_SIZE);
+    oldestRemoved = entriesToRemove.length;
+    
+    for (const [key, entry] of entriesToRemove) {
+      const age = Math.round((now - (entry.timestamp || 0)) / 1000);
+      const question = entry.question;
+      console.log(`CACHE EVICT: Removing old entry with key ${key}, question ID: ${question.id}, category: ${question.category}, grade: ${question.grade}, age: ${age}s due to cache size limits`);
+      questionCache.delete(key);
+    }
+  }
+  
+  console.log(`CACHE CLEANUP: Completed. Removed ${expiredCount} expired entries, ${oldestRemoved} oldest entries. Remaining cache size: ${questionCache.size}`);
+}
+
+// Schedule periodic cache cleaning
+setInterval(cleanCache, 60 * 60 * 1000); // Clean cache every hour
+
 // Helper function to get concept information
 const getConceptInfo = (concept: string) => {
   // This is a mapping of concepts to their categories, related concepts, and grade ranges
@@ -220,6 +284,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         excludeIds.length > 30 || // User has seen a lot of questions already
         Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
         
+      // Check if we can use the cache for this request
+      if (!forceDynamic && excludeIds.length > 0) {
+        // Create cache key based on user parameters
+        const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
+        
+        // Look for a cached question
+        const cachedQuestion = questionCache.get(cacheKey);
+        
+        if (cachedQuestion) {
+          console.log(`CACHE HIT: Using cached question for grade ${grade}, category ${category || 'any'}, cache key: ${cacheKey}, age: ${Math.round((Date.now() - cachedQuestion.timestamp) / 1000)}s`);
+          // Return the cached question and exit early
+          return res.json(cachedQuestion.question);
+        } else {
+          console.log(`CACHE MISS: No cached question for grade ${grade}, category ${category || 'any'}, cache key: ${cacheKey}`);
+        }
+      }
+      
       // Try using OpenAI for generating new questions 
       if (shouldUseOpenAI) {
         try {
@@ -355,8 +436,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (matchingQuestions.length > 0) {
         const shuffledQuestions = shuffle(matchingQuestions);
+        const selectedQuestion = shuffledQuestions[0];
+        
+        // Cache the question for future use if not forced dynamic
+        if (!forceDynamic && questionCache.size < CACHE_MAX_SIZE) {
+          const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
+          // Store question with timestamp for TTL management
+          const timestamp = Date.now();
+          questionCache.set(cacheKey, { 
+            question: selectedQuestion, 
+            timestamp: timestamp 
+          });
+          
+          console.log(`CACHE STORE: Cached question at key ${cacheKey}, question ID: ${selectedQuestion.id}, category: ${selectedQuestion.category}, grade: ${selectedQuestion.grade}, timestamp: ${new Date(timestamp).toISOString()}, current cache size: ${questionCache.size}`);
+          
+          // Manage cache size (FIFO eviction policy if needed)
+          if (questionCache.size > CACHE_MAX_SIZE) {
+            // Delete the oldest entry (first added to the Map)
+            const oldestKey = questionCache.keys().next().value;
+            questionCache.delete(oldestKey);
+            console.log(`CACHE EVICTION: Removed oldest cache entry at key ${oldestKey}`);
+          }
+        }
+        
         // Return just the question without wrapping it
-        return res.json(shuffledQuestions[0]);
+        return res.json(selectedQuestion);
       }
       
       // Strategy 2: If no matches with category, try just grade filter (maintaining exclusions)
@@ -370,8 +474,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (gradeQuestions.length > 0) {
         const shuffledGradeQuestions = shuffle(gradeQuestions);
+        const selectedQuestion = shuffledGradeQuestions[0];
+        
+        // Cache the question for future use if not forced dynamic
+        if (!forceDynamic && questionCache.size < CACHE_MAX_SIZE) {
+          const cacheKey = getQuestionCacheKey(userId, grade, 'all', excludeIds.length);
+          // Store question with timestamp for TTL management
+          const timestamp = Date.now();
+          questionCache.set(cacheKey, { 
+            question: selectedQuestion, 
+            timestamp: timestamp 
+          });
+          console.log(`CACHE STORE: Cached question at key ${cacheKey}, question ID: ${selectedQuestion.id}, category: ${selectedQuestion.category}, grade: ${selectedQuestion.grade}, timestamp: ${new Date(timestamp).toISOString()}, current cache size: ${questionCache.size}`);
+        }
+        
         // Return just the question without wrapping it
-        return res.json(shuffledGradeQuestions[0]);
+        return res.json(selectedQuestion);
       }
       
       // Strategy 3: If still no matches, try adjacent grades (still excluding seen questions)
@@ -400,8 +518,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (adjacentGradeQuestions.length > 0) {
         const shuffledAdjacentQuestions = shuffle(adjacentGradeQuestions);
+        const selectedQuestion = shuffledAdjacentQuestions[0];
+        
+        // Cache the question for future use with a special adjacent grade key
+        if (!forceDynamic && questionCache.size < CACHE_MAX_SIZE) {
+          // Create a unique key for adjacent grade questions
+          const cacheKey = `adjacent-${userId}-${grade}-${category || 'all'}-${excludeIds.length}`;
+          // Store question with timestamp for TTL management
+          const timestamp = Date.now();
+          questionCache.set(cacheKey, { 
+            question: selectedQuestion, 
+            timestamp: timestamp 
+          });
+          console.log(`CACHE STORE: Cached adjacent grade question at key ${cacheKey}, question ID: ${selectedQuestion.id}, category: ${selectedQuestion.category}, grade: ${selectedQuestion.grade}, timestamp: ${new Date(timestamp).toISOString()}, current cache size: ${questionCache.size}`);
+        }
+        
         // Return just the question without wrapping it
-        return res.json(shuffledAdjacentQuestions[0]);
+        return res.json(selectedQuestion);
       }
       
       // Strategy 4: If we've exhausted all unseen questions, allow repeats but prioritize least recently seen
