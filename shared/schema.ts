@@ -43,6 +43,9 @@ export const users = pgTable("users", {
   strengthConcepts: text("strength_concepts").array().default([]),
   weaknessConcepts: text("weakness_concepts").array().default([]),
   interests: text("interests").array().default([]),
+  // Password reset fields
+  resetPasswordToken: text("reset_password_token"),
+  resetPasswordExpires: timestamp("reset_password_expires"),
 });
 
 // Avatar items that can be unlocked and purchased

@@ -7,8 +7,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import tcLogo from "../assets/tc-logo.png";
 
 const loginSchema = z.object({
@@ -25,10 +28,19 @@ const registerSchema = z.object({
   initials: z.string().length(3, "Initials must be exactly 3 letters").toUpperCase().optional()
 });
 
+const resetPasswordSchema = z.object({
+  usernameOrEmail: z.string().min(1, "Please enter your username or email"),
+});
+
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const [resetRequestStatus, setResetRequestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [resetError, setResetError] = useState<string | null>(null);
+  
+  // Import toast from module to avoid hooks issues
+  const { toast } = useToast();
   
   // Redirect if already logged in
   useEffect(() => {
@@ -67,6 +79,45 @@ export default function AuthPage() {
       data.initials = data.username.substring(0, 3).toUpperCase();
     }
     registerMutation.mutate(data);
+  };
+  
+  const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      usernameOrEmail: "",
+    }
+  });
+  
+  const onResetPasswordSubmit = async (data: z.infer<typeof resetPasswordSchema>) => {
+    setResetRequestStatus('loading');
+    setResetError(null);
+    
+    try {
+      const response = await fetch('/api/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to request password reset');
+      }
+      
+      setResetRequestStatus('success');
+      toast({
+        title: "Reset request sent",
+        description: "If an account with that username or email exists, you'll receive reset instructions.",
+      });
+    } catch (error: any) {
+      setResetRequestStatus('error');
+      setResetError(error?.message || 'An unknown error occurred');
+      toast({
+        title: "Reset request failed",
+        description: error?.message || 'An unknown error occurred',
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -126,7 +177,13 @@ export default function AuthPage() {
                             />
                           </FormControl>
                           <FormMessage />
-                          <a href="#" className="text-primary text-sm mt-2 block text-right">Forgot password?</a>
+                          <Button 
+                            variant="link" 
+                            onClick={() => setActiveTab("reset")} 
+                            className="text-primary text-sm mt-1 p-0 h-auto block ml-auto"
+                          >
+                            Forgot password?
+                          </Button>
                         </FormItem>
                       )}
                     />
@@ -140,6 +197,81 @@ export default function AuthPage() {
                     </Button>
                   </form>
                 </Form>
+              </TabsContent>
+              
+              <TabsContent value="reset">
+                <div className="mb-6">
+                  <CardHeader className="p-0 space-y-1">
+                    <CardTitle className="text-xl">Reset Your Password</CardTitle>
+                    <CardDescription>
+                      Enter your username or email address and we'll send you instructions on how to reset your password.
+                    </CardDescription>
+                  </CardHeader>
+
+                  {resetRequestStatus === 'success' ? (
+                    <Alert className="mt-6">
+                      <AlertTitle>Reset Request Sent</AlertTitle>
+                      <AlertDescription>
+                        If an account with that username or email exists, you'll receive instructions on how to reset your password.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Form {...resetPasswordForm}>
+                      <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4 mt-4">
+                        <FormField
+                          control={resetPasswordForm.control}
+                          name="usernameOrEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username or Email</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                                  placeholder="Enter your username or email"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {resetError && (
+                          <Alert variant="destructive">
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{resetError}</AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        <div className="flex space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setActiveTab("login")}
+                          >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Login
+                          </Button>
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-primary hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-xl"
+                            disabled={resetRequestStatus === 'loading'}
+                          >
+                            {resetRequestStatus === 'loading' ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              "Send Reset Link"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
+                </div>
               </TabsContent>
               
               <TabsContent value="register">
@@ -282,20 +414,22 @@ export default function AuthPage() {
                 </Form>
               </TabsContent>
               
-              <div className="text-center mt-6">
-                <p className="text-gray-600">
-                  {activeTab === "login" 
-                    ? "Don't have an account?" 
-                    : "Already have an account?"} 
-                  <Button 
-                    variant="link" 
-                    className="text-primary font-bold"
-                    onClick={() => setActiveTab(activeTab === "login" ? "register" : "login")}
-                  >
-                    {activeTab === "login" ? "Register here" : "Login here"}
-                  </Button>
-                </p>
-              </div>
+              {activeTab !== "reset" && (
+                <div className="text-center mt-6">
+                  <p className="text-gray-600">
+                    {activeTab === "login" 
+                      ? "Don't have an account?" 
+                      : "Already have an account?"} 
+                    <Button 
+                      variant="link" 
+                      className="text-primary font-bold"
+                      onClick={() => setActiveTab(activeTab === "login" ? "register" : "login")}
+                    >
+                      {activeTab === "login" ? "Register here" : "Login here"}
+                    </Button>
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Tabs>
         </Card>

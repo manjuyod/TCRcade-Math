@@ -6,6 +6,7 @@ import { DatabaseStorage } from "./database-storage";
 import { db } from "./db";
 import { questions } from "@shared/schema";
 import { eq, and, or, not, inArray, notInArray } from "drizzle-orm";
+import crypto from "crypto";
 import { 
   analyzeStudentResponse,
   generateMathHint,
@@ -172,6 +173,96 @@ const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+
+  // Password reset endpoints
+  app.post("/api/request-password-reset", async (req, res) => {
+    try {
+      const { usernameOrEmail } = req.body;
+      
+      if (!usernameOrEmail) {
+        return res.status(400).json({ message: "Username or email is required" });
+      }
+      
+      // Try to find user by username or email
+      let user = await storage.getUserByUsername(usernameOrEmail);
+      
+      if (!user && usernameOrEmail.includes('@')) {
+        // Try to find user by email if username lookup failed and input looks like an email
+        const users = await storage.getAllUsers();
+        user = users.find(u => u.email === usernameOrEmail);
+      }
+      
+      if (!user) {
+        // For security reasons, don't reveal if the user exists or not
+        return res.json({ message: "If an account with that username or email exists, password reset instructions will be sent." });
+      }
+      
+      // Generate a reset token and expiration
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour from now
+      
+      // Update user with reset token and expiration
+      await storage.updateUser(user.id, {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires
+      });
+      
+      // Send email with reset link (uncomment when email service is set up)
+      /* 
+      const resetLink = `${req.protocol}://${req.get('host')}/auth/reset/${resetToken}`;
+      await sendResetEmail(user.email, resetLink);
+      */
+      
+      // In development, log the token for testing
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Password reset token for ${user.username}: ${resetToken}`);
+        console.log(`Reset link would be: /auth/reset/${resetToken}`);
+      }
+      
+      res.json({ message: "If an account with that username or email exists, password reset instructions will be sent." });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ message: "An error occurred while processing your request" });
+    }
+  });
+  
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      // Find user with valid reset token that hasn't expired
+      const users = await storage.getAllUsers();
+      const now = new Date();
+      const user = users.find(
+        u => u.resetPasswordToken === token && 
+        u.resetPasswordExpires instanceof Date && 
+        u.resetPasswordExpires > now
+      );
+      
+      if (!user) {
+        return res.status(400).json({ message: "Password reset token is invalid or has expired" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(password);
+      
+      // Update user with new password and clear reset token
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      });
+      
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "An error occurred while resetting your password" });
+    }
+  });
 
   // Create HTTP server
   const httpServer = createServer(app);

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import ProfilePage from "@/pages/profile-page";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import AdminPage from "@/pages/admin-page";
@@ -62,6 +63,7 @@ function Router() {
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
   );
