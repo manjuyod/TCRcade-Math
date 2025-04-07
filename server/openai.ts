@@ -1190,6 +1190,8 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           7. Do not reference colors or position of objects
           8. Only use fractions expressed as numbers (1/2, 3/4, etc.)
           9. DO NOT include money questions (no coins, dollars, cents, bills, currency)
+          10. DO NOT use underscores to emphasize or highlight digits or numbers (e.g., DO NOT use "_3_" to indicate the digit 3)
+          11. For place value questions, write clearly (e.g., "Which digit is in the tens place of 345?" instead of "What is the value of _3_ in 345?")
           
           CRITICAL: DO NOT give away the answer in the question itself:
           1. DO NOT use phrasing like "If 5+7=12, what is 5+7?" or similar constructions
@@ -1976,7 +1978,8 @@ Make sure it's appropriate for the student's level and provides a learning oppor
       category = "Addition";
     }
     
-    return {
+    // Create result object
+    const result = {
       id: Date.now(),
       question: questionText,
       answer: options[0], // First option is always the correct one
@@ -1988,6 +1991,61 @@ Make sure it's appropriate for the student's level and provides a learning oppor
       category: category
       // No storyImage - visual elements removed per user request
     };
+    
+    // Post-process to avoid the repetitive apple counting question
+    if (/Count the apples:[\s\S]*🍎.*How many/i.test(result.question) || 
+        /How many apples are there\?/i.test(result.question)) {
+      // Only allow this question for basic counting or addition categories
+      if (category !== 'counting' && category !== 'addition' && category !== 'all') {
+        console.log("Replacing repetitive apple counting question in non-counting category");
+        // Modify the question to be more specific to the requested category
+        if (category === 'multiplication') {
+          result.question = `Sarah has 3 baskets. Each basket has 4 oranges. How many oranges does Sarah have in total?`;
+          result.answer = "12";
+          result.options = ["8", "10", "12", "15"];
+          result.explanation = "To find the total, multiply the number of baskets by the number of oranges in each: 3 × 4 = 12.";
+        } else if (category === 'division') {
+          result.question = `Max has 12 stickers that he wants to share equally among 3 friends. How many stickers will each friend receive?`;
+          result.answer = "4";
+          result.options = ["3", "4", "5", "6"];
+          result.explanation = "To find how many stickers each friend gets, divide the total by the number of friends: 12 ÷ 3 = 4.";
+        } else if (category === 'subtraction') {
+          result.question = `Emma had 9 markers. She gave 4 markers to her friend. How many markers does Emma have now?`;
+          result.answer = "5";
+          result.options = ["3", "4", "5", "6"];
+          result.explanation = "To find how many markers Emma has left, subtract the number she gave away from her initial amount: 9 - 4 = 5.";
+        }
+      }
+    }
+    
+    // Post-process to remove underscores used for emphasis
+    if (/_\d+_/.test(result.question)) {
+      console.log("Fixing question with underscored numbers");
+      // Replace _digit_ with digit without underscores
+      result.question = result.question.replace(/_(\d+)_/g, '$1');
+    }
+    
+    // Fix place value questions to be clearer
+    if (/What is the value of _\d+_ in \d+/.test(result.question)) {
+      // For example: "What is the value of _3_ in 345?" becomes "Which digit is in the tens place of 345?"
+      const match = result.question.match(/What is the value of _(\d+)_ in (\d+)/);
+      if (match) {
+        const digit = match[1];
+        const number = match[2];
+        
+        // Find the position of the digit in the number
+        const position = number.indexOf(digit);
+        if (position !== -1) {
+          const places = ['ones', 'tens', 'hundreds', 'thousands'];
+          const placeIndex = number.length - position - 1;
+          if (placeIndex >= 0 && placeIndex < places.length) {
+            result.question = `Which digit is in the ${places[placeIndex]} place of ${number}?`;
+          }
+        }
+      }
+    }
+    
+    return result;
   }
 }
 

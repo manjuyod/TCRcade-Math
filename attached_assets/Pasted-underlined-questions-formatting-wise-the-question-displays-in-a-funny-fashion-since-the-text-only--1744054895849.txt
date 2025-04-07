@@ -1,0 +1,20 @@
+underlined questions. formatting wise, the question displays in a funny fashion since the text only question appearance of the question shows a number intending to be underlined that is truly not underlined. it's like an underscore, then the number, then an underscore on the other side of that digit. rephrase any questions pertaining to an underline. e.g. you could say "what is the place value of the third digit in this number" and still accomplish the same thing academicaly. 
+
+in the kindergarten user profile, i was greeted by this question as the first question on every topic i clicked on "Count the apples: 🍎🍎🍎. How many are there?". There shouldn't be this much repition. Division, multiplication, addition, subtraction all showed this question first. No question should repeat so often. Further, this question does not pertain to all of these topics. It is more of a basic number pricniples question and could loosely be considered addition, but that is all. make sure subjects match the corresponding questions. 
+
+shorten the length of time that it takes for questions to be delivered only if that change doesn't affect how accurately questions have been delivered based on recent changes. it is much better than it has been. 
+
+regarding the apples question, when i answered that count the apples question which was delivered first on the math word race mechanism, i was greeted by this e3rror message: 
+"[plugin:runtime-error-plugin] onAnswer is not a function
+/home/runner/workspace/client/src/components/question-card.tsx:77:7
+75 |      // Submit the answer after a slight delay to ensure UI updates first
+76 |      setTimeout(() => {
+77 |        onAnswer(option);
+   |        ^
+78 |      }, 100);
+79 |    };"
+
+in fact, this error code appears on every answer i select for the 'math word race' something is clearly broken with this topic's questions. 
+
+Under the AI ANALYTICS section, merge the appearance of the 'areas for improvement' and 'error patterns' under the 'improvement areas' tab. since the error patterns has content displayed and the 'areas for improvement' is null and doesn't display anything anyway, just have one header that says "areas for improvement" that displays the content from error patterns. 
+
