@@ -577,7 +577,7 @@ export default function AiAnalytics() {
           <Card>
             <CardHeader>
               <CardTitle>Areas for Improvement</CardTitle>
-              <CardDescription>Common mistakes and concepts that need more practice</CardDescription>
+              <CardDescription>Error patterns and concepts that need more practice</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
@@ -603,7 +603,7 @@ export default function AiAnalytics() {
               {/* Show concept-specific improvement suggestions only if available */}
               {analytics.analytics.weaknessConcepts && analytics.analytics.weaknessConcepts.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-border">
-                  <h3 className="font-medium text-lg mb-4">Concept Mastery Status</h3>
+                  <h3 className="font-medium text-lg mb-4">Concept Mastery</h3>
                   <div className="space-y-6">
                     {analytics.analytics.weaknessConcepts?.slice(0, 5).map((concept, i) => (
                       <div key={concept} className="space-y-2">
