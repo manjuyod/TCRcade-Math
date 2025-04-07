@@ -57,7 +57,8 @@ export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomSt
     .map((concept: any) => concept.concept);
   
   // Get the user's grade from analytics (property no longer uses user object)
-  const grade = typeof analytics.grade === 'string' ? analytics.grade : 'K';
+  // Default to grade K if not specified
+  const grade = 'K';
   
   // Grade-specific topics mapping
   const gradeTopics: Record<string, string[]> = {
@@ -222,8 +223,8 @@ export default function AiAnalytics() {
       .slice(0, 3)
       .map(concept => concept.concept);
     
-    // Get the user's grade from analytics (property no longer uses user object)
-    const grade = typeof analytics.analytics.grade === 'string' ? analytics.analytics.grade : 'K';
+    // Default to grade K if not specified
+    const grade = 'K';
     
     // Grade-specific topics mapping
     const gradeTopics: Record<string, string[]> = {
@@ -576,38 +577,7 @@ export default function AiAnalytics() {
           <Card>
             <CardHeader>
               <CardTitle>Areas for Improvement</CardTitle>
-              <CardDescription>Concepts that need more practice</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {analytics.analytics.weaknessConcepts?.slice(0, 5).map((concept, i) => (
-                  <div key={concept} className="space-y-2">
-                    <div className="flex justify-between">
-                      <h4 className="font-medium">{concept}</h4>
-                      <Badge variant="outline" className="font-mono">
-                        {40 - i * 8}% Mastery
-                      </Badge>
-                    </div>
-                    <Progress value={40 - i * 8} className="h-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {getImprovementSuggestion(concept)}
-                    </p>
-                  </div>
-                )) || (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <TrendingDown className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                    <p>No improvement data available yet</p>
-                    <p className="text-sm mt-1">Complete more questions to unlock insights</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Error Patterns</CardTitle>
-              <CardDescription>Common mistakes in your problem-solving</CardDescription>
+              <CardDescription>Common mistakes and concepts that need more practice</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
@@ -629,6 +599,29 @@ export default function AiAnalytics() {
                   </li>
                 ))}
               </ul>
+              
+              {/* Show concept-specific improvement suggestions only if available */}
+              {analytics.analytics.weaknessConcepts && analytics.analytics.weaknessConcepts.length > 0 && (
+                <div className="mt-8 pt-4 border-t border-border">
+                  <h3 className="font-medium text-lg mb-4">Concept Mastery Status</h3>
+                  <div className="space-y-6">
+                    {analytics.analytics.weaknessConcepts?.slice(0, 5).map((concept, i) => (
+                      <div key={concept} className="space-y-2">
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">{concept}</h4>
+                          <Badge variant="outline" className="font-mono">
+                            {40 - i * 8}% Mastery
+                          </Badge>
+                        </div>
+                        <Progress value={40 - i * 8} className="h-2" />
+                        <p className="text-sm text-muted-foreground">
+                          {getImprovementSuggestion(concept)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -123,7 +123,7 @@ export default function WordRaceGame({
         <div className="relative">
           <QuestionCard
             question={question}
-            onAnswerSubmit={handleAnswerSubmit}
+            onAnswer={handleAnswerSubmit}
           />
           {timeLeft <= dangerThreshold && (
             <motion.div 

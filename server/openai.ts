@@ -795,6 +795,7 @@ type AdaptiveQuestionParams = {
   }>;
   difficulty?: number;
   category?: string;
+  forceDynamic?: boolean;  // Indicates if this is the first question in a series
 };
 
 /**
@@ -1993,11 +1994,71 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     };
     
     // Post-process to avoid the repetitive apple counting question
-    if (/Count the apples:[\s\S]*🍎.*How many/i.test(result.question) || 
-        /How many apples are there\?/i.test(result.question)) {
-      // Only allow this question for basic counting or addition categories
-      if (category !== 'counting' && category !== 'addition' && category !== 'all') {
-        console.log("Replacing repetitive apple counting question in non-counting category");
+    // Detect apple counting questions
+    const isAppleCountingQuestion = /Count the apples:[\s\S]*🍎.*How many/i.test(result.question) || 
+        /How many apples are there\?/i.test(result.question);
+    
+    if (isAppleCountingQuestion) {
+      // Check if this is likely to be the first question of a series (forceDynamic is true)
+      // or if it's in an inappropriate category
+      if (params.forceDynamic || (category !== 'counting' && category !== 'addition' && category !== 'all')) {
+        console.log("Replacing repetitive apple counting question - first question or inappropriate category");
+        
+        // For first questions (forceDynamic=true), always provide varied alternatives
+        if (params.forceDynamic) {
+          // Varied first questions by grade level
+          const grade = params.grade.toLowerCase();
+          if (grade === 'k' || grade === 'kindergarten') {
+            const kQuestions = [
+              {
+                question: "What number comes after 5?",
+                answer: "6",
+                options: ["5", "6", "7", "8"],
+                explanation: "When counting, 6 comes right after 5."
+              },
+              {
+                question: "Count the shapes: 🔶 🔶 🔶. How many triangles?",
+                answer: "3",
+                options: ["2", "3", "4", "5"],
+                explanation: "There are 3 triangle shapes shown."
+              },
+              {
+                question: "Which group has more? Group A: 🔵🔵 or Group B: 🔵🔵🔵",
+                answer: "Group B",
+                options: ["Group A", "Group B", "Same amount", "Can't tell"],
+                explanation: "Group B has 3 circles, which is more than Group A that has 2 circles."
+              }
+            ];
+            // Pick a random kindergarten question
+            Object.assign(result, kQuestions[Math.floor(Math.random() * kQuestions.length)]);
+            return result;
+          }
+          else if (grade === '1' || grade === '1st' || grade === 'first') {
+            const firstGradeQuestions = [
+              {
+                question: "10 + 5 = ?",
+                answer: "15",
+                options: ["13", "14", "15", "16"],
+                explanation: "Adding 10 and 5 gives us 15."
+              },
+              {
+                question: "How many tens are in the number 43?",
+                answer: "4",
+                options: ["3", "4", "5", "0"],
+                explanation: "The number 43 has 4 tens and 3 ones."
+              },
+              {
+                question: "What is 20 - 5?",
+                answer: "15",
+                options: ["10", "15", "25", "5"],
+                explanation: "When you subtract 5 from 20, you get 15."
+              }
+            ];
+            Object.assign(result, firstGradeQuestions[Math.floor(Math.random() * firstGradeQuestions.length)]);
+            return result;
+          }
+        }
+        
         // Modify the question to be more specific to the requested category
         if (category === 'multiplication') {
           result.question = `Sarah has 3 baskets. Each basket has 4 oranges. How many oranges does Sarah have in total?`;
