@@ -213,11 +213,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await sendResetEmail(user.email, resetLink);
       */
       
-      // In development, log the token for testing
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`Password reset token for ${user.username}: ${resetToken}`);
-        console.log(`Reset link would be: /auth/reset/${resetToken}`);
-      }
+      // Always log the token for testing (as we don't have email set up yet)
+      console.log(`\n\n===== PASSWORD RESET TOKEN =====`);
+      console.log(`Username: ${user.username}`);
+      console.log(`Email: ${user.email}`);
+      console.log(`Token: ${resetToken}`);
+      console.log(`Reset link: /auth/reset/${resetToken}`);
+      console.log(`=====================================\n\n`);
       
       res.json({ message: "If an account with that username or email exists, password reset instructions will be sent." });
     } catch (error) {
