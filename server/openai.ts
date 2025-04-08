@@ -796,6 +796,7 @@ type AdaptiveQuestionParams = {
   difficulty?: number;
   category?: string;
   forceDynamic?: boolean;  // Indicates if this is the first question in a series
+  isMathFactsModule?: boolean; // Indicates this is a pure computation Math Facts module
 };
 
 /**
@@ -910,7 +911,9 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     studentLevel = 3, 
     difficulty = 3, 
     category = "General",
-    previousQuestions = []
+    previousQuestions = [],
+    forceDynamic = false,
+    isMathFactsModule = false
   } = params;
   
   // We are no longer using image generation per user request
@@ -1164,6 +1167,18 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           4. ${questionFormat}
           5. Create diversity by: ${selectedFactors}.
           6. NEVER repeat the same question patterns, numbers, or contexts - create truly unique content.
+          ${isMathFactsModule ? `
+          MATH FACTS MODULE INSTRUCTIONS (CRITICAL):
+          1. ONLY create pure computation questions (NO word problems, NO story context)
+          2. Questions should ONLY use the format "X [operation] Y = ?" (e.g., "7 + 5 = ?")
+          3. DO NOT include any explanatory text or context around the calculation
+          4. For kindergarten: Simple addition/subtraction with numbers 1-10
+          5. For grades 1-2: Addition/subtraction with numbers 1-20
+          6. For grades 3-4: Multiplication/division with single-digit numbers
+          7. For grades 5-6: Multi-digit operations and simple fractions
+          8. NEVER include word problems, NEVER reference real-world scenarios
+          9. Keep the question text extremely brief and direct
+          10. Every question should be purely numerical calculation` : ''}
           
           NUMERICAL VARIETY REQUIREMENTS:
           1. CRITICAL: Each question MUST use COMPLETELY DIFFERENT number combinations than ALL recent questions

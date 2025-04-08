@@ -365,7 +365,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}`);
+      // Check if this is a Math Facts module (pure computation only)
+      const isMathFactsModule = category && category.includes('math-facts');
+      
+      console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}, isMathFactsModule=${isMathFactsModule}`);
       
       // Track the method used to obtain the question for analytics 
       let questionSource = "database";
@@ -448,6 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             previousQuestions: previousQuestionDetails.length > 0 
               ? previousQuestionDetails 
               : excludeIds.slice(-15), // Send the most recent questions
+            isMathFactsModule, // Pass flag to indicate if this is a math facts module
           });
           
           if (generatedQuestion && generatedQuestion.question) {
@@ -670,7 +674,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Use the previously fetched question details if available
           previousQuestions: previousQuestionDetails.length > 0 
             ? previousQuestionDetails 
-            : excludeIds.slice(-20) // Send IDs if details not available
+            : excludeIds.slice(-20), // Send IDs if details not available
+          isMathFactsModule // Pass flag to indicate if this is a math facts module
         });
         
         if (generatedQuestion && generatedQuestion.question) {
