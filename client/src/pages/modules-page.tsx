@@ -65,6 +65,52 @@ export default function ModulesPage() {
   
   // Game modules list (these would come from API in a real implementation)
   const modules: Module[] = [
+    // Math Facts modules (pure computation only, no word problems)
+    {
+      id: 'math-facts-addition',
+      name: 'Math Facts: Addition',
+      description: 'Pure computation addition practice (e.g., "7 + 5 = ?")',
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-blue-500" />,
+      difficulty: 1,
+      category: 'addition',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'math-facts-subtraction',
+      name: 'Math Facts: Subtraction',
+      description: 'Pure computation subtraction practice (e.g., "12 - 5 = ?")',
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-red-500" />,
+      difficulty: 1,
+      category: 'subtraction',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'math-facts-multiplication',
+      name: 'Math Facts: Multiplication',
+      description: 'Pure computation multiplication practice (e.g., "7 × 6 = ?")',
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-green-500" />,
+      difficulty: 1,
+      category: 'multiplication',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'math-facts-division',
+      name: 'Math Facts: Division',
+      description: 'Pure computation division practice (e.g., "42 ÷ 7 = ?")',
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-purple-500" />,
+      difficulty: 1,
+      category: 'division',
+      locked: false,
+      completeCount: 0
+    },
+    // Original modules
     {
       id: 'addition',
       name: 'Addition Basics',
