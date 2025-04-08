@@ -1168,19 +1168,27 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           5. Create diversity by: ${selectedFactors}.
           6. NEVER repeat the same question patterns, numbers, or contexts - create truly unique content.
           ${isMathFactsModule ? `
-          MATH FACTS MODULE INSTRUCTIONS (EXTREMELY CRITICAL):
-          1. STRICTLY use ONLY pure computation format (ABSOLUTELY NO word problems or story contexts)
-          2. Questions MUST follow the EXACT format "X [operation] Y = ?" (e.g., "7 + 5 = ?")
-          3. NO explanatory text, NO context, NO scenarios - NOTHING but the calculation
-          4. For kindergarten: Simple addition/subtraction with numbers 1-10
-          5. For grades 1-2: Addition/subtraction with numbers 1-20
-          6. For grades 3-4: Multiplication/division with single-digit numbers
-          7. For grades 5-6: Multi-digit operations and simple fractions
-          8. NEVER describe real-world scenarios or objects - PURE NUMBERS ONLY
-          9. MAXIMUM question length: 10 characters (e.g., "6 × 9 = ?")
-          10. REJECT any temptation to create a scenario - MATH FACTS ONLY
-          11. The ENTIRE question must be a single math expression only
-          12. Example of ONLY acceptable format: "8 + 4 = ?"` : ''}
+          !!!! MATH FACTS MODULE INSTRUCTIONS - VIOLATION MEANS AUTOMATIC REJECTION !!!!
+          
+          1. THE QUESTION TEXT MUST BE *EXACTLY* IN THIS FORMAT: "X [operation] Y = ?" 
+             - VALID EXAMPLES: "7 + 5 = ?" or "6 × 9 = ?" or "12 - 8 = ?" or "15 ÷ 3 = ?"
+             - INVALID EXAMPLES: "What is 7 + 5?" or "Sally has 7 apples..."
+          
+          2. NO WORDS ALLOWED IN QUESTION TEXT - ONLY NUMBERS, OPERATION SYMBOLS, AND EQUALS SIGN
+          
+          3. NO SENTENCES, NO DESCRIPTIONS, NO CONTEXT - ONLY MATH EXPRESSION
+          
+          4. NO WORD PROBLEMS UNDER ANY CIRCUMSTANCES
+          
+          5. For kindergarten: Simple addition/subtraction with numbers 1-10
+          
+          6. For grades 1-2: Addition/subtraction with numbers 1-20
+          
+          7. For grades 3-4: Multiplication/division with single-digit numbers
+          
+          8. For grades 5-6: Multi-digit operations and simple fractions
+
+          9. FINAL CHECK: Verify question contains ONLY numbers and operation symbols` : ''}
           
           NUMERICAL VARIETY REQUIREMENTS:
           1. CRITICAL: Each question MUST use COMPLETELY DIFFERENT number combinations than ALL recent questions
@@ -1250,6 +1258,133 @@ Make sure it's appropriate for the student's level and provides a learning oppor
 
     const content = response.choices[0].message.content || '{}';
     const parsedResponse = JSON.parse(content as string);
+    
+    // For Math Facts modules, strictly enforce pure computation format
+    if (isMathFactsModule) {
+      console.log("MATH FACTS MODULE - Validating question format");
+      
+      // Define regex for valid math facts format: X [operation] Y = ?
+      const validMathFactsFormat = /^\s*\d+\s*[\+\-×÷\*\/]\s*\d+\s*=\s*\?\s*$/;
+      
+      if (!validMathFactsFormat.test(parsedResponse.question)) {
+        console.log("INVALID MATH FACTS FORMAT DETECTED - Fixing...");
+        console.log(`Original question: "${parsedResponse.question}"`);
+        
+        // Extract numbers and operation from the question using more flexible regex
+        const numMatch = parsedResponse.question.match(/(\d+)\s*([\+\-×÷\*\/])\s*(\d+)/);
+        
+        if (numMatch) {
+          const [_, num1, op, num2] = numMatch;
+          let operation = op;
+          
+          // Standardize operation symbols
+          if (op === '*' || op === 'x') operation = '×';
+          if (op === '/') operation = '÷';
+          
+          // Reformat to strict math facts format
+          parsedResponse.question = `${num1} ${operation} ${num2} = ?`;
+          console.log(`Reformatted to: "${parsedResponse.question}"`);
+        } else {
+          // If we can't extract numbers, create a grade-appropriate math fact
+          const grade = params.grade || 'K';
+          let num1, num2, operation;
+          
+          if (grade === 'K' || grade === '1') {
+            // Addition/subtraction with small numbers
+            num1 = Math.floor(Math.random() * 8) + 2; // 2-9
+            num2 = Math.floor(Math.random() * (num1 - 1)) + 1; // 1 to num1-1
+            operation = Math.random() < 0.6 ? '+' : '-'; // 60% addition for lower grades
+            
+            // For subtraction, swap to ensure larger number first
+            if (operation === '-') {
+              [num1, num2] = [Math.max(num1, num2), Math.min(num1, num2)];
+            }
+          } else if (grade === '2' || grade === '3') {
+            // Simple multiplication/division for grades 2-3
+            if (Math.random() < 0.6) {
+              // Multiplication
+              num1 = Math.floor(Math.random() * 9) + 2; // 2-10
+              num2 = Math.floor(Math.random() * 9) + 2; // 2-10
+              operation = '×';
+            } else {
+              // Division (ensure clean division)
+              num2 = Math.floor(Math.random() * 9) + 2; // 2-10
+              const factor = Math.floor(Math.random() * 9) + 2; // 2-10
+              num1 = num2 * factor; // Ensures clean division
+              operation = '÷';
+            }
+          } else {
+            // More complex operations for grades 4-6
+            if (Math.random() < 0.5) {
+              // Two-digit arithmetic
+              num1 = Math.floor(Math.random() * 90) + 10; // 10-99
+              num2 = Math.floor(Math.random() * 90) + 10; // 10-99
+              operation = Math.random() < 0.5 ? '+' : '-';
+              
+              // For subtraction, swap to ensure larger number first
+              if (operation === '-') {
+                [num1, num2] = [Math.max(num1, num2), Math.min(num1, num2)];
+              }
+            } else {
+              // Multiplication/division with larger numbers
+              if (Math.random() < 0.7) {
+                // Multiplication
+                num1 = Math.floor(Math.random() * 12) + 3; // 3-14
+                num2 = Math.floor(Math.random() * 12) + 3; // 3-14
+                operation = '×';
+              } else {
+                // Division (ensure clean division)
+                num2 = Math.floor(Math.random() * 11) + 2; // 2-12
+                const factor = Math.floor(Math.random() * 8) + 2; // 2-9
+                num1 = num2 * factor; // Ensures clean division
+                operation = '÷';
+              }
+            }
+          }
+          
+          // Create the math fact
+          parsedResponse.question = `${num1} ${operation} ${num2} = ?`;
+          
+          // Update the answer
+          switch (operation) {
+            case '+': parsedResponse.answer = (num1 + num2).toString(); break;
+            case '-': parsedResponse.answer = (num1 - num2).toString(); break;
+            case '×': parsedResponse.answer = (num1 * num2).toString(); break;
+            case '÷': parsedResponse.answer = (num1 / num2).toString(); break;
+          }
+          
+          console.log(`Created fallback math fact: "${parsedResponse.question}" with answer: ${parsedResponse.answer}`);
+        }
+        
+        // Generate appropriate options for multiple choice
+        const correctAnswer = parseInt(parsedResponse.answer);
+        const options = new Set<string>();
+        options.add(correctAnswer.toString());
+        
+        // Add reasonable options around the correct answer
+        options.add((correctAnswer + 1).toString());
+        if (correctAnswer > 1) options.add((correctAnswer - 1).toString());
+        options.add((correctAnswer + 2).toString());
+        if (correctAnswer > 2) options.add((correctAnswer - 2).toString());
+        
+        // For larger numbers, add some more distant options
+        if (correctAnswer > 10) {
+          options.add((correctAnswer + Math.floor(correctAnswer * 0.2)).toString());
+          options.add((correctAnswer - Math.floor(correctAnswer * 0.2)).toString());
+        }
+        
+        // Randomly select 4 options
+        parsedResponse.options = Array.from(options)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 4);
+          
+        // Ensure we have exactly 4 options
+        while (parsedResponse.options.length < 4) {
+          const newOption = (correctAnswer + parsedResponse.options.length + 1).toString();
+          parsedResponse.options.push(newOption);
+        }
+      }
+    }
     
     // Image generation is disabled per user request - this block will never execute
     if (false) { // Was: questionReferencesImage(parsedResponse.question)

@@ -366,6 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if this is a Math Facts module (pure computation only)
+      // CRITICAL: Math Facts modules must ONLY generate raw calculation expression (e.g. "7 + 5 = ?")
       const isMathFactsModule = category && category.includes('math-facts');
       
       console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}, isMathFactsModule=${isMathFactsModule}`);
