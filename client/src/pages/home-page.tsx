@@ -172,12 +172,19 @@ export default function HomePage() {
     if (currentModuleId) {
       // Find the module in localStorage
       try {
-        // Extract the category from moduleId
-        // For most modules, the ID is just the category name (e.g., "addition", "subtraction")
-        // For special modules like "addition-advanced", we extract just the main category
-        const category = currentModuleId.includes('-') ? 
-          currentModuleId.split('-')[0] : currentModuleId;
+        // For Math Facts modules, we need to keep the full moduleId (e.g., "math-facts-addition")
+        // For other modules, we extract just the main category
+        const isMathFactsModule = currentModuleId.startsWith('math-facts-');
+        
+        // Use the full module ID for math facts, otherwise extract just the category
+        const category = isMathFactsModule 
+          ? currentModuleId
+          : (currentModuleId.includes('-') ? currentModuleId.split('-')[0] : currentModuleId);
+        
         setCurrentModuleCategory(category);
+        
+        // Log which type of module we're using
+        console.log(`Loading ${isMathFactsModule ? 'MATH FACTS' : 'standard'} module: ${category}`);
         
         // When the module changes, immediately fetch a question
         fetch(`/api/questions/next?category=${category}&forceDynamic=true`, {

@@ -13,6 +13,178 @@ import {
   explainMathConcept
 } from "./openai";
 
+/**
+ * Generate a pure computation question for Math Facts modules
+ * ONLY returns questions in format "X [operation] Y = ?" with no words
+ */
+function generateMathFactsQuestion(grade: string, operation?: string): any {
+  console.log(`Generating pure MATH FACTS question: grade=${grade}, operation=${operation || 'any'}`);
+  
+  // Calculate grade-appropriate number ranges
+  const gradeLevel = grade === 'K' ? 0 : parseInt(grade) || 1;
+  let num1: number, num2: number, answer: string, operationSymbol: string;
+  let options: string[] = [];
+  
+  // Override operation if explicitly specified
+  let mathOperation = operation || 'addition';
+  
+  // For kindergarten and grade 1, focus on addition/subtraction
+  if (gradeLevel <= 1) {
+    if (operation === 'multiplication' || operation === 'division') {
+      mathOperation = Math.random() < 0.7 ? 'addition' : 'subtraction';
+    }
+  }
+  
+  // Generate appropriate numbers based on grade and operation
+  switch (mathOperation) {
+    case 'addition':
+      if (gradeLevel === 0) { // Kindergarten
+        num1 = Math.floor(Math.random() * 5) + 1; // 1-5
+        num2 = Math.floor(Math.random() * 5) + 1; // 1-5
+      } else if (gradeLevel === 1) {
+        num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+        num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+      } else if (gradeLevel === 2) {
+        num1 = Math.floor(Math.random() * 20) + 1; // 1-20
+        num2 = Math.floor(Math.random() * 20) + 1; // 1-20
+      } else if (gradeLevel <= 4) {
+        num1 = Math.floor(Math.random() * 50) + 10; // 10-59
+        num2 = Math.floor(Math.random() * 50) + 10; // 10-59
+      } else {
+        num1 = Math.floor(Math.random() * 100) + 10; // 10-109
+        num2 = Math.floor(Math.random() * 100) + 10; // 10-109
+      }
+      answer = (num1 + num2).toString();
+      operationSymbol = '+';
+      break;
+      
+    case 'subtraction':
+      if (gradeLevel === 0) { // Kindergarten
+        num2 = Math.floor(Math.random() * 3) + 1; // 1-3
+        num1 = num2 + Math.floor(Math.random() * 5); // num2 + (0-4)
+      } else if (gradeLevel === 1) {
+        num2 = Math.floor(Math.random() * 5) + 1; // 1-5
+        num1 = num2 + Math.floor(Math.random() * 10); // num2 + (0-9)
+      } else if (gradeLevel === 2) {
+        num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+        num1 = num2 + Math.floor(Math.random() * 20); // num2 + (0-19)
+      } else if (gradeLevel <= 4) {
+        num2 = Math.floor(Math.random() * 30) + 1; // 1-30
+        num1 = num2 + Math.floor(Math.random() * 50); // num2 + (0-49)
+      } else {
+        num2 = Math.floor(Math.random() * 50) + 1; // 1-50
+        num1 = num2 + Math.floor(Math.random() * 100); // num2 + (0-99)
+      }
+      answer = (num1 - num2).toString();
+      operationSymbol = '-';
+      break;
+      
+    case 'multiplication':
+      if (gradeLevel <= 2) { // Grades K-2 (simplified)
+        num1 = Math.floor(Math.random() * 5) + 1; // 1-5
+        num2 = Math.floor(Math.random() * 5) + 1; // 1-5
+      } else if (gradeLevel === 3) {
+        num1 = Math.floor(Math.random() * 10) + 1; // 1-10
+        num2 = Math.floor(Math.random() * 10) + 1; // 1-10
+      } else if (gradeLevel === 4) {
+        num1 = Math.floor(Math.random() * 12) + 1; // 1-12
+        num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+      } else {
+        num1 = Math.floor(Math.random() * 20) + 1; // 1-20
+        num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+      }
+      answer = (num1 * num2).toString();
+      operationSymbol = '×';
+      break;
+      
+    case 'division':
+      if (gradeLevel <= 2) { // Grades K-2 (simplified)
+        num2 = Math.floor(Math.random() * 4) + 2; // 2-5 (divisor)
+        const product = Math.floor(Math.random() * 4) + 1; // 1-4 (quotient)
+        num1 = num2 * product; // Ensures clean division
+      } else if (gradeLevel === 3) {
+        num2 = Math.floor(Math.random() * 9) + 2; // 2-10 (divisor)
+        const product = Math.floor(Math.random() * 9) + 1; // 1-9 (quotient)
+        num1 = num2 * product; // Ensures clean division
+      } else if (gradeLevel === 4) {
+        num2 = Math.floor(Math.random() * 11) + 2; // 2-12 (divisor)
+        const product = Math.floor(Math.random() * 9) + 1; // 1-9 (quotient)
+        num1 = num2 * product; // Ensures clean division
+      } else {
+        num2 = Math.floor(Math.random() * 11) + 2; // 2-12 (divisor)
+        const product = Math.floor(Math.random() * 20) + 1; // 1-20 (quotient)
+        num1 = num2 * product; // Ensures clean division
+      }
+      answer = (num1 / num2).toString();
+      operationSymbol = '÷';
+      break;
+      
+    default:
+      // Default to addition if operation is unknown
+      num1 = Math.floor(Math.random() * 10) + 1;
+      num2 = Math.floor(Math.random() * 10) + 1;
+      answer = (num1 + num2).toString();
+      operationSymbol = '+';
+  }
+  
+  // Create the question in pure math facts format: "X [operation] Y = ?"
+  const question = `${num1} ${operationSymbol} ${num2} = ?`;
+  
+  // Create options for multiple choice
+  // Always include the correct answer
+  options.push(answer);
+  
+  // Add reasonable alternatives
+  const answerNum = parseInt(answer);
+  const errorMargin = Math.max(1, Math.floor(answerNum * 0.2)); // 20% margin of error
+  
+  // Generate unique options
+  const optionsSet = new Set<string>(options);
+  
+  // Add options that are close to the correct answer
+  optionsSet.add((answerNum + 1).toString());
+  optionsSet.add((answerNum + 2).toString());
+  if (answerNum > 1) optionsSet.add((answerNum - 1).toString());
+  if (answerNum > 2) optionsSet.add((answerNum - 2).toString());
+  
+  // If answer is large, add options with reasonable differences
+  if (answerNum > 10) {
+    optionsSet.add((answerNum + Math.floor(answerNum * 0.1)).toString());
+    if (answerNum > 20) optionsSet.add((answerNum - Math.floor(answerNum * 0.1)).toString());
+  }
+  
+  // Convert set to array and take first 4 options
+  options = Array.from(optionsSet).slice(0, 4);
+  
+  // Ensure we have exactly 4 options
+  while (options.length < 4) {
+    const newOption = (answerNum + options.length + 1).toString();
+    options.push(newOption);
+  }
+  
+  // Shuffle options
+  options.sort(() => Math.random() - 0.5);
+  
+  // Generate a unique ID for the question
+  const uniqueId = Date.now() + Math.floor(Math.random() * 1000000);
+  
+  // Return a properly formatted question object
+  return {
+    id: uniqueId,
+    question: question,
+    answer: answer,
+    options: options,
+    grade: grade,
+    difficulty: Math.min(3, gradeLevel + 1),
+    category: `math-facts-${mathOperation}`,
+    concepts: [mathOperation],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  };
+}
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -339,6 +511,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for Math Facts questions (development use only)
+  app.get("/api/test/math-facts", async (req, res) => {
+    try {
+      const grade = req.query.grade as string || "3";
+      const operation = req.query.operation as string;
+      
+      // Generate pure computation question
+      const mathFactsQuestion = generateMathFactsQuestion(grade, operation);
+      
+      console.log(`TEST ENDPOINT: Generated Math Facts question: "${mathFactsQuestion.question}" with answer: ${mathFactsQuestion.answer}`);
+      
+      // Return the generated question
+      return res.json({
+        ...mathFactsQuestion,
+        message: "This is a test endpoint for Math Facts module - DO NOT USE IN PRODUCTION"
+      });
+    } catch (error) {
+      console.error("Error in test Math Facts endpoint:", error);
+      return res.status(500).json({ error: "Failed to generate Math Facts question" });
+    }
+  });
+
   // Improved question fetching endpoint that handles duplicates and exclusions
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
     try {
@@ -367,7 +561,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if this is a Math Facts module (pure computation only)
       // CRITICAL: Math Facts modules must ONLY generate raw calculation expression (e.g. "7 + 5 = ?")
-      const isMathFactsModule = category && category.includes('math-facts');
+      // The full module ID is now passed directly from the client (e.g., "math-facts-addition")
+      const isMathFactsModule = category && category.startsWith('math-facts-');
+      
+      // For Math Facts modules, we'll generate the computation question directly
+      // without using OpenAI to ensure it's ONLY pure flashcard style format 
+      if (isMathFactsModule) {
+        // Extract operation from category (math-facts-addition, math-facts-subtraction, etc.)
+        const operation = category?.split('-').pop(); // Gets 'addition', 'subtraction', etc.
+        
+        // Generate a pure computation question based on grade and operation
+        const mathFactsQuestion = generateMathFactsQuestion(grade, operation);
+        
+        console.log(`MATH FACTS MODULE: Generated pure computation question: "${mathFactsQuestion.question}" with answer: ${mathFactsQuestion.answer}`);
+        
+        // Return the question immediately, bypassing OpenAI completely for math facts
+        return res.json(mathFactsQuestion);
+      }
       
       console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}, isMathFactsModule=${isMathFactsModule}`);
       
