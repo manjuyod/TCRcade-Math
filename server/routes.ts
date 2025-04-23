@@ -577,16 +577,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Debug endpoint to generate a basic question (doesn't require authentication)
   app.get("/api/debug/generate-question", async (req, res) => {
+    console.log("DEBUG ENDPOINT HIT: /api/debug/generate-question", req.query);
     try {
       const { grade = "3", category = "Arithmetic" } = req.query;
-      const debugService = await import("./openai-debug");
-      
       console.log(`DEBUG: Generating question for grade ${grade}, category ${category}`);
-      const question = await debugService.generateBasicQuestion(grade as string, category as string);
       
-      res.status(200).json(question);
+      // Create a simple hardcoded response for testing API function
+      const fallbackQuestion = {
+        id: Date.now(),
+        question: "7 + 5 = ?",
+        answer: "12",
+        options: ["10", "11", "12", "13"],
+        grade: grade,
+        difficulty: 2,
+        category: category as string,
+        concepts: ["addition"],
+        storyId: null,
+        storyNode: null,
+        storyText: null,
+        storyImage: null
+      };
+      
+      try {
+        const debugService = await import("./openai-debug");
+        console.log("DEBUG: Successfully imported openai-debug");
+        const question = await debugService.generateBasicQuestion(grade as string, category as string);
+        console.log("DEBUG: Successfully generated question:", question);
+        res.status(200).json(question);
+      } catch (innerError) {
+        console.error("Inner error generating question:", innerError);
+        console.log("DEBUG: Using fallback question due to inner error");
+        res.status(200).json(fallbackQuestion);
+      }
     } catch (error) {
-      console.error("Question generation error:", error);
+      console.error("Outer error in question generation:", error);
       res.status(500).json({ 
         success: false, 
         message: "Error generating question", 
