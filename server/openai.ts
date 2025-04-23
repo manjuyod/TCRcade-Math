@@ -1163,8 +1163,8 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     console.log(`🔍 Attempting OpenAI API call to generate math question for grade ${grade}, category ${category || 'general'}`);
     try {
       const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
+        model: "gpt-4o",
+        messages: [
         {
           role: "system",
           content: `You are an expert math educator specializing in creating unique, age-appropriate math questions for K-6 students.
