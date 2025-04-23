@@ -554,6 +554,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Special non-authenticated endpoint for Math Facts only - for testing purposes
+  // Debug endpoint to test OpenAI API connectivity
+  app.get("/api/debug/test-openai", async (req, res) => {
+    try {
+      const debugService = await import("./openai-debug");
+      const result = await debugService.testOpenAIConnection();
+      
+      if (result) {
+        res.status(200).json({ success: true, message: "OpenAI API connection successful" });
+      } else {
+        res.status(500).json({ success: false, message: "OpenAI API connection failed" });
+      }
+    } catch (error) {
+      console.error("Debug endpoint error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error testing OpenAI connection", 
+        error: error.message 
+      });
+    }
+  });
+  
+  // Debug endpoint to generate a basic question (doesn't require authentication)
+  app.get("/api/debug/generate-question", async (req, res) => {
+    try {
+      const { grade = "3", category = "Arithmetic" } = req.query;
+      const debugService = await import("./openai-debug");
+      
+      console.log(`DEBUG: Generating question for grade ${grade}, category ${category}`);
+      const question = await debugService.generateBasicQuestion(grade as string, category as string);
+      
+      res.status(200).json(question);
+    } catch (error) {
+      console.error("Question generation error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error generating question", 
+        error: error.message 
+      });
+    }
+  });
+  
   app.get("/api/questions/math-facts", async (req, res) => {
     console.log('📢 MATH FACTS ENDPOINT HIT! Params:', req.query);
     try {

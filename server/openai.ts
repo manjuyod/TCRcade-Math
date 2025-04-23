@@ -1160,7 +1160,9 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     const timestamp = Date.now();
     
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-    const response = await openai.chat.completions.create({
+    console.log(`🔍 Attempting OpenAI API call to generate math question for grade ${grade}, category ${category || 'general'}`);
+    try {
+      const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
@@ -1264,7 +1266,14 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     });
 
     const content = response.choices[0].message.content || '{}';
+    console.log(`✅ OpenAI API call successful for grade ${grade}, category ${category || 'general'}`);
     const parsedResponse = JSON.parse(content as string);
+    } catch (error) {
+      console.error(`❌ OpenAI API ERROR: ${error.message}`);
+      console.error(`Failed to generate question for grade ${grade}, category ${category || 'general'}`);
+      // Rethrow to be caught by outer try/catch
+      throw error;
+    }
     
     // For Math Facts modules, strictly enforce pure computation format
     if (isMathFactsModule) {
