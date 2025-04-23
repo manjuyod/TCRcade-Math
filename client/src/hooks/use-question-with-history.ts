@@ -209,42 +209,80 @@ export function useQuestionWithHistory(
   const { data, isLoading, error } = useQuery<Question>({
     queryKey: [...queryKey, queryParams.fetchTrigger, queryParams.forceDynamic],
     queryFn: async () => {
-      // Build query params
-      let url = `/api/questions/next?grade=${grade}`;
+      // Check if this is a Math Facts module
+      const isMathFactsModule = category && category.startsWith('math-facts-');
       
-      if (category) {
-        url += `&category=${category}`;
+      if (isMathFactsModule) {
+        // Extract the operation (math-facts-addition -> addition)
+        const operation = category!.split('-').pop();
+        
+        // Use the non-authenticated endpoint for Math Facts
+        const mathFactsUrl = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
+        console.log(`HOOK: Using direct Math Facts endpoint: ${mathFactsUrl}`);
+        
+        try {
+          const response = await fetch(mathFactsUrl, {
+            cache: 'no-store'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Math Facts fetch failed: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log(`Math Facts question loaded: ${data?.question?.text || 'Unknown'}`);
+          
+          // Record that we've seen this question
+          if (data && data.id) {
+            recordSeenQuestion(data);
+          }
+          
+          return data;
+        } catch (error) {
+          console.error('Error fetching Math Facts:', error);
+          throw error;
+        }
+      } else {
+        // Standard question endpoint with authentication
+        // Build query params
+        let url = `/api/questions/next?grade=${grade}`;
+        
+        if (category) {
+          url += `&category=${category}`;
+        }
+        
+        // Pass the list of recently seen questions to exclude (limited to 100 most recent to keep URL reasonable)
+        if (seenQuestions.length > 0) {
+          // Only send the most recent 100 questions to keep URL manageable
+          const recentlySeenIds = seenQuestions.slice(-100);
+          url += `&exclude=${recentlySeenIds.join(',')}`;
+        }
+        
+        // Add forceDynamic parameter if needed
+        if (queryParams.forceDynamic) {
+          url += '&forceDynamic=true';
+        }
+        
+        // Add a randomizing parameter to prevent cache
+        url += `&random=${Math.random()}`;
+        
+        const response = await fetch(url, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch question: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Record that we've seen this question with full data for better duplication detection
+        if (data && data.id) {
+          recordSeenQuestion(data);
+        }
+        
+        return data;
       }
-      
-      // Pass the list of recently seen questions to exclude (limited to 100 most recent to keep URL reasonable)
-      if (seenQuestions.length > 0) {
-        // Only send the most recent 100 questions to keep URL manageable
-        const recentlySeenIds = seenQuestions.slice(-100);
-        url += `&exclude=${recentlySeenIds.join(',')}`;
-      }
-      
-      // Add forceDynamic parameter if needed
-      if (queryParams.forceDynamic) {
-        url += '&forceDynamic=true';
-      }
-      
-      // Add a randomizing parameter to prevent cache
-      url += `&random=${Math.random()}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch question: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Record that we've seen this question with full data for better duplication detection
-      if (data && data.id) {
-        recordSeenQuestion(data);
-      }
-      
-      return data;
     },
     refetchOnWindowFocus: false
   });

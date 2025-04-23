@@ -105,18 +105,53 @@ export default function HomePage() {
     preloadSounds();
     
     // Initial fetch of a question when the component mounts
-    fetch(`/api/questions/next?forceDynamic=true`, {
-      credentials: 'include'
-    })
-      .then(response => response.json())
-      .then(data => {
-        // Update the query client directly with the fetched data
-        const newQuestion = data.question || data;
-        queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+    // Add special handling for Math Facts modules using our non-authenticated endpoint
+    const moduleId = localStorage.getItem('currentModuleId');
+    
+    // Check if this is a Math Facts module
+    if (moduleId && moduleId.startsWith('math-facts-')) {
+      // Extract operation from module ID (math-facts-addition -> addition)
+      const operation = moduleId.split('-').pop();
+      const grade = user?.grade || '3';
+      
+      console.log(`Loading MATH FACTS module: ${moduleId}`);
+      
+      // Use our non-authenticated endpoint for Math Facts
+      fetch(`/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`, {
+        cache: 'no-store'
       })
-      .catch(error => {
-        console.error('Error fetching initial question:', error);
-      });
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch Math Facts question: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Update the query client directly with the fetched data
+          console.log('Successfully loaded Math Facts question:', data?.question?.text || 'Unknown');
+          const newQuestion = data;
+          
+          // Store in the query cache
+          queryClient.setQueryData(['/api/questions/next', moduleId], newQuestion);
+        })
+        .catch(error => {
+          console.error('Error fetching Math Facts question:', error);
+        });
+    } else {
+      // Regular module - use the standard endpoint
+      fetch(`/api/questions/next?forceDynamic=true`, {
+        credentials: 'include'
+      })
+        .then(response => response.json())
+        .then(data => {
+          // Update the query client directly with the fetched data
+          const newQuestion = data.question || data;
+          queryClient.setQueryData(['/api/questions/next', currentModuleCategory], newQuestion);
+        })
+        .catch(error => {
+          console.error('Error fetching initial question:', error);
+        });
+    }
 
     // Set up effect to check for time milestone achievements (5, 10, 15, 20 minutes)
     const checkMilestones = () => {
@@ -186,19 +221,48 @@ export default function HomePage() {
         // Log which type of module we're using
         console.log(`Loading ${isMathFactsModule ? 'MATH FACTS' : 'standard'} module: ${category}`);
         
-        // When the module changes, immediately fetch a question
-        fetch(`/api/questions/next?category=${category}&forceDynamic=true`, {
-          credentials: 'include'
-        })
-          .then(response => response.json())
-          .then(data => {
-            // Update the query client directly with the fetched data
-            const newQuestion = data.question || data;
-            queryClient.setQueryData(['/api/questions/next', category], newQuestion);
+        // Special handling for Math Facts modules
+        if (isMathFactsModule) {
+          // Extract operation from the module ID (math-facts-addition -> addition)
+          const operation = currentModuleId.split('-').pop();
+          const grade = user?.grade || '3';
+          
+          console.log(`Loading Math Facts with grade=${grade}, operation=${operation}`);
+          
+          // Use our non-authenticated endpoint for Math Facts
+          fetch(`/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`, {
+            cache: 'no-store'
           })
-          .catch(error => {
-            console.error('Error fetching question for new module:', error);
-          });
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`Failed to fetch Math Facts question: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(data => {
+              // Update the query client directly with the fetched data
+              console.log('Successfully loaded Math Facts question:', data?.question?.text || 'Unknown');
+              const newQuestion = data;
+              queryClient.setQueryData(['/api/questions/next', category], newQuestion);
+            })
+            .catch(error => {
+              console.error('Error fetching Math Facts question:', error);
+            });
+        } else {
+          // Regular module - use the standard endpoint
+          fetch(`/api/questions/next?category=${category}&forceDynamic=true`, {
+            credentials: 'include'
+          })
+            .then(response => response.json())
+            .then(data => {
+              // Update the query client directly with the fetched data
+              const newQuestion = data.question || data;
+              queryClient.setQueryData(['/api/questions/next', category], newQuestion);
+            })
+            .catch(error => {
+              console.error('Error fetching question for new module:', error);
+            });
+        }
       } catch (e) {
         console.error("Error getting module details:", e);
       }
