@@ -4,7 +4,28 @@ import { Question } from '@shared/schema';
  * Default questions for the math learning platform
  * This is an expanded set to reduce repetition and provide more variety
  */
+// Math Facts specific questions organized by operation and grade
+const mathFactsQuestions: Question[] = [
+  // Addition Facts - Grade K
+  {
+    id: 201,
+    category: "math-facts-addition",
+    grade: "K",
+    difficulty: 1,
+    question: "2 + 2 = ?",
+    answer: "4",
+    options: ["3", "4", "5", "6"],
+    concepts: ["addition"],
+    storyId: null,
+    storyNode: null,
+    storyText: null,
+    storyImage: null
+  },
+  // Add more math facts here...
+];
+
 export const defaultQuestions: Question[] = [
+  ...mathFactsQuestions,
   // Addition - Kindergarten
   {
     id: 101,
