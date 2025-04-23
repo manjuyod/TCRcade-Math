@@ -1286,6 +1286,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Failed to update concept mastery:", e);
       }
       
+      // Track difficulty level for adaptive learning
+      try {
+        // Convert the question.category to be the subject for difficulty tracking
+        const subject = question.category;
+        const grade = question.grade;
+        
+        // Track this question attempt in our adaptive difficulty system
+        await storage.trackSubjectDifficulty(
+          userId,
+          subject,
+          grade,
+          isCorrect,
+          question.id
+        );
+        
+        console.log(`Tracked adaptive difficulty for userId=${userId}, subject=${subject}, grade=${grade}, isCorrect=${isCorrect}`);
+      } catch (e) {
+        console.error("Failed to update adaptive difficulty tracking:", e);
+      }
+      
       const feedback = await analyzeStudentResponse(
         question.question,
         answer,
@@ -1414,6 +1434,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           question.grade, 
           isCorrect
         );
+      }
+      
+      // Update adaptive difficulty tracking
+      try {
+        const subject = question.category;
+        const grade = question.grade;
+        
+        // Track this question attempt in our adaptive difficulty system
+        await storage.trackSubjectDifficulty(
+          userId,
+          subject,
+          grade,
+          isCorrect,
+          question.id
+        );
+        
+        console.log(`[Alternative API] Tracked adaptive difficulty for userId=${userId}, subject=${subject}, grade=${grade}, isCorrect=${isCorrect}`);
+      } catch (e) {
+        console.error("Failed to update adaptive difficulty tracking on alternative endpoint:", e);
       }
       
       // Update user stats

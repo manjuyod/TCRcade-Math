@@ -1486,4 +1486,188 @@ export class DatabaseStorage implements IStorage {
     const highestMastery = sortedMasteries[0];
     return this.getQuestionsByGrade(highestMastery.grade, subject);
   }
+
+  // ADAPTIVE DIFFICULTY METHODS
+
+  /**
+   * Track a student's answer to update their difficulty level
+   * @param userId User ID
+   * @param subject Subject name (e.g., "addition", "subtraction", etc.)
+   * @param grade Current grade level
+   * @param isCorrect Whether the answer was correct
+   * @param questionId Optional ID of the question that was answered
+   */
+  async trackSubjectDifficulty(
+    userId: number, 
+    subject: string, 
+    grade: string, 
+    isCorrect: boolean, 
+    questionId?: number
+  ): Promise<void> {
+    try {
+      // 1. Record this attempt in the history table
+      await db.insert(subjectDifficultyHistory).values({
+        userId,
+        subject,
+        grade,
+        isCorrect,
+        difficultyLevel: 1, // Will be updated with actual difficulty level below
+        questionId: questionId || null,
+        timestamp: new Date()
+      });
+
+      // 2. Get or create subject mastery record
+      let masterEntry = await this.getUserSubjectMastery(userId, subject, grade);
+      
+      if (!masterEntry) {
+        // Create a new mastery entry
+        masterEntry = await this.unlockGradeForSubject(userId, subject, grade);
+      }
+
+      // 3. Update the mastery record with new attempt information
+      const totalAttempts = masterEntry.totalAttempts + 1;
+      const correctAttempts = masterEntry.correctAttempts + (isCorrect ? 1 : 0);
+      
+      // Update recent attempt tracking for adaptive difficulty
+      const recent30Attempts = Math.min(masterEntry.recent30Attempts + 1, 30);
+      const recent30Correct = isCorrect 
+        ? Math.min(masterEntry.recent30Correct + 1, 30) 
+        : masterEntry.recent30Correct;
+      
+      const recent20Attempts = Math.min(masterEntry.recent20Attempts + 1, 20);
+      const recent20Correct = isCorrect 
+        ? Math.min(masterEntry.recent20Correct + 1, 20) 
+        : masterEntry.recent20Correct;
+
+      // 4. Calculate accuracy for adaptive difficulty thresholds
+      const accuracy30 = recent30Attempts > 0 ? recent30Correct / recent30Attempts : 0;
+      const accuracy20 = recent20Attempts > 0 ? recent20Correct / recent20Attempts : 0;
+      
+      // 5. Determine if difficulty should change
+      const upgradeEligible = accuracy30 >= 0.8 && recent30Attempts >= 30;
+      const downgradeEligible = accuracy20 <= 0.5 && recent20Attempts >= 20;
+      
+      // Get current difficulty level
+      let difficultyLevel = masterEntry.difficultyLevel;
+      
+      // 6. Adjust difficulty level if thresholds are met
+      if (upgradeEligible && difficultyLevel < 5) {
+        difficultyLevel += 1;
+        console.log(`Upgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to good performance (${Math.round(accuracy30 * 100)}% over ${recent30Attempts} attempts)`);
+        
+        // Reset counters after upgrade
+        await db.update(subjectMastery)
+          .set({
+            difficultyLevel,
+            upgradeEligible: false,
+            downgradeEligible: false,
+            recent30Attempts: 0,
+            recent30Correct: 0,
+            recent20Attempts: 0,
+            recent20Correct: 0,
+            totalAttempts,
+            correctAttempts,
+            lastPracticed: new Date()
+          })
+          .where(eq(subjectMastery.id, masterEntry.id));
+      } 
+      else if (downgradeEligible && difficultyLevel > 1) {
+        difficultyLevel -= 1;
+        console.log(`Downgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to struggles (${Math.round(accuracy20 * 100)}% over ${recent20Attempts} attempts)`);
+        
+        // Reset counters after downgrade
+        await db.update(subjectMastery)
+          .set({
+            difficultyLevel,
+            upgradeEligible: false,
+            downgradeEligible: false,
+            recent30Attempts: 0,
+            recent30Correct: 0,
+            recent20Attempts: 0,
+            recent20Correct: 0,
+            totalAttempts,
+            correctAttempts,
+            lastPracticed: new Date()
+          })
+          .where(eq(subjectMastery.id, masterEntry.id));
+      }
+      else {
+        // Just update counters
+        await db.update(subjectMastery)
+          .set({
+            upgradeEligible,
+            downgradeEligible,
+            recent30Attempts,
+            recent30Correct,
+            recent20Attempts,
+            recent20Correct,
+            totalAttempts,
+            correctAttempts,
+            lastPracticed: new Date()
+          })
+          .where(eq(subjectMastery.id, masterEntry.id));
+      }
+
+      // Update the difficulty level in the history record we just created
+      await db.update(subjectDifficultyHistory)
+        .set({ difficultyLevel })
+        .where(and(
+          eq(subjectDifficultyHistory.userId, userId),
+          eq(subjectDifficultyHistory.subject, subject),
+          eq(subjectDifficultyHistory.grade, grade),
+          eq(subjectDifficultyHistory.timestamp, new Date())
+        ));
+
+    } catch (error) {
+      console.error('Error tracking subject difficulty:', error);
+    }
+  }
+
+  /**
+   * Get the current difficulty level for a user in a particular subject and grade
+   */
+  async getSubjectDifficulty(userId: number, subject: string, grade: string): Promise<number> {
+    const mastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    // Default to difficulty level 1 if no mastery record exists
+    if (!mastery) {
+      return 1;
+    }
+    
+    return mastery.difficultyLevel;
+  }
+
+  /**
+   * Get questions with appropriate difficulty for a user
+   */
+  async getQuestionsWithAdaptiveDifficulty(userId: number, subject: string, grade: string): Promise<Question[]> {
+    // Get user's current difficulty level for this subject
+    const difficultyLevel = await this.getSubjectDifficulty(userId, subject, grade);
+    
+    // Map the 1-5 difficulty level to a range for the question difficulty field
+    // Level 1: difficulty 1-2
+    // Level 2: difficulty 2-3
+    // Level 3: difficulty 3-4
+    // Level 4: difficulty 4-5
+    // Level 5: difficulty 5
+    const minDifficulty = difficultyLevel;
+    const maxDifficulty = Math.min(difficultyLevel + 1, 5);
+    
+    // Get questions matching both subject and difficulty range
+    const matchingQuestions = await db.select()
+      .from(questions)
+      .where(and(
+        eq(questions.grade, grade),
+        eq(questions.category, subject),
+        gte(questions.difficulty, minDifficulty),
+        lte(questions.difficulty, maxDifficulty)
+      ));
+    
+    // If no questions found in this difficulty range, fall back to all questions for this subject
+    if (matchingQuestions.length === 0) {
+      return this.getQuestionsByGrade(grade, subject);
+    }
+    
+    return matchingQuestions;
+  }
 }
