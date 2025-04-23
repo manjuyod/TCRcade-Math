@@ -1161,6 +1161,7 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024
     console.log(`🔍 Attempting OpenAI API call to generate math question for grade ${grade}, category ${category || 'general'}`);
+    let parsedResponse: any;
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -1260,14 +1261,14 @@ Timestamp for uniqueness: ${timestamp}
 Make sure it's appropriate for the student's level and provides a learning opportunity.`
         }
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 800,
-      temperature: 1.2, // Even higher temperature for maximum diversity
+        response_format: { type: "json_object" },
+        max_tokens: 800,
+        temperature: 1.2, // Even higher temperature for maximum diversity
     });
 
     const content = response.choices[0].message.content || '{}';
     console.log(`✅ OpenAI API call successful for grade ${grade}, category ${category || 'general'}`);
-    const parsedResponse = JSON.parse(content as string);
+    parsedResponse = JSON.parse(content as string);
     } catch (error) {
       console.error(`❌ OpenAI API ERROR: ${error.message}`);
       console.error(`Failed to generate question for grade ${grade}, category ${category || 'general'}`);
