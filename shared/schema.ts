@@ -61,13 +61,31 @@ export const avatarItems = pgTable("avatar_items", {
   imageUrl: text("image_url"),
 });
 
+// Question content structure
+export const questionContentSchema = z.object({
+  text: z.string(),
+  style: z.object({
+    fontSize: z.string().optional(),
+    fontWeight: z.string().optional(),
+    textAlign: z.string().optional(),
+    display: z.string().optional(),
+    justifyContent: z.string().optional(),
+    alignItems: z.string().optional(),
+    padding: z.string().optional(),
+    isFlashcard: z.boolean().optional(),
+  }).optional(),
+  isFlashcard: z.boolean().optional(),
+});
+
+export type QuestionContent = z.infer<typeof questionContentSchema>;
+
 // Questions table
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   category: text("category").notNull(),
   grade: text("grade").notNull(),
   difficulty: integer("difficulty").notNull(),
-  question: text("question").notNull(),
+  question: text("question").notNull(), // This can be a JSON string for complex questions
   answer: text("answer").notNull(),
   options: text("options").array().notNull(),
   concepts: text("concepts").array(), // Math concepts covered by this question

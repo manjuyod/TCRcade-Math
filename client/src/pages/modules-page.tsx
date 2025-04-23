@@ -290,9 +290,26 @@ export default function ModulesPage() {
   
   // Start module handler
   const handleStartModule = (module: Module) => {
+    console.log(`Loading ${module.gameType} module: ${module.id}`);
+    
+    // Check if this is a Math Facts module
+    const isMathFactsModule = module.id.startsWith('math-facts-');
+    
     // Store the module ID and its game type
     localStorage.setItem('currentModuleId', module.id);
     localStorage.setItem('currentModuleType', module.gameType);
+    
+    // For Math Facts modules, we need to set additional information
+    if (isMathFactsModule) {
+      // Extract the operation (e.g., 'addition' from 'math-facts-addition')
+      const operation = module.id.split('-').pop() || 'addition';
+      console.log(`Loading Math Facts with grade=${user?.grade || 'K'}, operation=${operation}`);
+      
+      // Store the operation for the Math Facts module
+      localStorage.setItem('mathFactsOperation', operation);
+    }
+    
+    // Navigate to home page (question session)
     setLocation('/');
   };
   
