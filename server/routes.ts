@@ -800,49 +800,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(selectedQuestion);
       }
       
-      // Strategy 3: If still no matches, try adjacent grades (still excluding seen questions)
-      const adjacentGrades = [];
-      const gradeNum = parseInt(grade);
+      // Strategy 3: Smart Grade Fallback - Try grades in specific order to maintain subject match
+      // Create an ordered fallback sequence of grades based on request
+      // First try lower grades (going down), then try higher grades if needed
+      const fallbackGrades = [];
+      const gradeNum = grade === 'K' ? 0 : parseInt(grade);
+      const maxGrade = 6; // Maximum grade level in the system
       
-      if (!isNaN(gradeNum)) {
-        // Try one grade level up and down
-        if (gradeNum > 0) adjacentGrades.push(`${gradeNum - 1}`);
-        adjacentGrades.push(`${gradeNum + 1}`);
-      } else if (grade === 'K') {
-        adjacentGrades.push('1');
-      } else {
-        // Handle non-numeric grades
-        adjacentGrades.push('K', '1', '2');
-      }
-      
-      const adjacentGradeConditions = [inArray(questions.grade, adjacentGrades)];
-      
-      if (excludeIds.length > 0) {
-        adjacentGradeConditions.push(notInArray(questions.id, excludeIds));
-      }
-      
-      const adjacentGradeQuestions = await db.select().from(questions)
-        .where(and(...adjacentGradeConditions));
-      
-      if (adjacentGradeQuestions.length > 0) {
-        const shuffledAdjacentQuestions = shuffle(adjacentGradeQuestions);
-        const selectedQuestion = shuffledAdjacentQuestions[0];
+      if (!isNaN(gradeNum) || grade === 'K') {
+        // Determine numeric value of current grade
+        const currentGradeValue = grade === 'K' ? 0 : gradeNum;
         
-        // Cache the question for future use with a special adjacent grade key
-        if (!forceDynamic && questionCache.size < CACHE_MAX_SIZE) {
-          // Create a unique key for adjacent grade questions
-          const cacheKey = `adjacent-${userId}-${grade}-${category || 'all'}-${excludeIds.length}`;
-          // Store question with timestamp for TTL management
-          const timestamp = Date.now();
-          questionCache.set(cacheKey, { 
-            question: selectedQuestion, 
-            timestamp: timestamp 
-          });
-          console.log(`CACHE STORE: Cached adjacent grade question at key ${cacheKey}, question ID: ${selectedQuestion.id}, category: ${selectedQuestion.category}, grade: ${selectedQuestion.grade}, timestamp: ${new Date(timestamp).toISOString()}, current cache size: ${questionCache.size}`);
+        // First add all lower grades in descending order (current-1, current-2, etc.)
+        for (let i = currentGradeValue - 1; i >= 0; i--) {
+          fallbackGrades.push(i === 0 ? 'K' : `${i}`);
         }
         
-        // Return just the question without wrapping it
-        return res.json(selectedQuestion);
+        // Then add higher grades (current+1, current+2, etc.)
+        for (let i = currentGradeValue + 1; i <= maxGrade; i++) {
+          fallbackGrades.push(`${i}`);
+        }
+        
+        console.log(`Smart Grade Fallback sequence for grade ${grade}: ${fallbackGrades.join(', ')}`);
+      } else {
+        // Fallback for non-standard grade formats
+        fallbackGrades.push('K', '1', '2', '3', '4', '5', '6');
+      }
+      
+      // Try each fallback grade one by one, maintaining category/subject match
+      for (const fallbackGrade of fallbackGrades) {
+        // Build conditions for this fallback grade
+        const fallbackConditions = [eq(questions.grade, fallbackGrade)];
+        
+        // Keep category constraint to ensure we stay within the same subject
+        if (category && category !== 'all') {
+          const normalizedCategory = category.toLowerCase().trim();
+          fallbackConditions.push(eq(questions.category, normalizedCategory));
+        }
+        
+        if (excludeIds.length > 0) {
+          fallbackConditions.push(notInArray(questions.id, excludeIds));
+        }
+        
+        // Query for questions in this fallback grade with matching category
+        const fallbackQuestions = await db.select().from(questions).where(and(...fallbackConditions));
+        
+        // If we found questions in this fallback grade
+        if (fallbackQuestions.length > 0) {
+          console.log(`Smart Grade Fallback success: found ${fallbackQuestions.length} questions using grade ${fallbackGrade} for requested grade ${grade}`);
+          
+          const shuffledFallbackQuestions = shuffle(fallbackQuestions);
+          const selectedQuestion = shuffledFallbackQuestions[0];
+          
+          // Cache the question for future use with a special fallback grade key
+          if (!forceDynamic && questionCache.size < CACHE_MAX_SIZE) {
+            // Create a unique key for fallback grade questions
+            const cacheKey = `fallback-${userId}-${grade}-${category || 'all'}-${excludeIds.length}`;
+            // Store question with timestamp for TTL management
+            const timestamp = Date.now();
+            questionCache.set(cacheKey, { 
+              question: selectedQuestion, 
+              timestamp: timestamp 
+            });
+            console.log(`CACHE STORE: Cached fallback grade question at key ${cacheKey}, question ID: ${selectedQuestion.id}, category: ${selectedQuestion.category}, grade: ${selectedQuestion.grade}, timestamp: ${new Date(timestamp).toISOString()}, current cache size: ${questionCache.size}`);
+          }
+          
+          // Return just the question without wrapping it
+          return res.json(selectedQuestion);
+        }
       }
       
       // Strategy 4: If we've exhausted all unseen questions, allow repeats but prioritize least recently seen

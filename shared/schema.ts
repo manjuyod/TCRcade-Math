@@ -206,9 +206,30 @@ export const subjectMastery = pgTable("subject_mastery", {
   correctAttempts: integer("correct_attempts").default(0).notNull(),
   lastPracticed: timestamp("last_practiced").defaultNow().notNull(),
   masteryLevel: integer("mastery_level").default(0).notNull(), // 0-100 measure of mastery
-  isUnlocked: boolean("is_unlocked").default(false).notNull(), // Whether this grade-subject combo is available to user
+  isUnlocked: boolean("is_unlocked").default(true).notNull(), // Whether this grade-subject combo is available to user
   nextGradeUnlocked: boolean("next_grade_unlocked").default(false).notNull(), // Whether user has unlocked next grade for this subject
   downgraded: boolean("downgraded").default(false).notNull(), // Whether user was downgraded to this level
+  // Adaptive difficulty tracking
+  difficultyLevel: integer("difficulty_level").default(1).notNull(), // Current difficulty level (1-5)
+  upgradeEligible: boolean("upgrade_eligible").default(false).notNull(), // If ready to move up in difficulty
+  downgradeEligible: boolean("downgrade_eligible").default(false).notNull(), // If should move down in difficulty
+  // Tracking for adaptive algorithm
+  recent30Attempts: integer("recent_30_attempts").default(0).notNull(), // Count of recent attempts for tracking upgrade threshold
+  recent30Correct: integer("recent_30_correct").default(0).notNull(), // Count of recent correct answers
+  recent20Attempts: integer("recent_20_attempts").default(0).notNull(), // Count of more recent attempts for tracking downgrade threshold
+  recent20Correct: integer("recent_20_correct").default(0).notNull(), // Count of more recent correct answers
+});
+
+// Subject difficulty tracking - stores detailed history for accuracy tracking
+export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  subject: text("subject").notNull(), // e.g., "addition", "subtraction", "multiplication", etc.
+  grade: text("grade").notNull(), // The grade level this history applies to
+  isCorrect: boolean("is_correct").notNull(), // Whether the answer was correct
+  timestamp: timestamp("timestamp").defaultNow().notNull(), // When this attempt was recorded
+  difficultyLevel: integer("difficulty_level").notNull(), // Difficulty level when this attempt was made
+  questionId: integer("question_id"), // ID of the question that was answered, if available
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -233,6 +254,7 @@ export const insertMathStorySchema = createInsertSchema(mathStories);
 export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
 export const insertSubjectMasterySchema = createInsertSchema(subjectMastery);
+export const insertSubjectDifficultyHistorySchema = createInsertSchema(subjectDifficultyHistory);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -247,3 +269,4 @@ export type MathStory = typeof mathStories.$inferSelect;
 export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type SubjectMastery = typeof subjectMastery.$inferSelect;
+export type SubjectDifficultyHistory = typeof subjectDifficultyHistory.$inferSelect;

@@ -10,7 +10,8 @@ import {
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
   leaderboard, type Leaderboard,
-  subjectMastery, type SubjectMastery
+  subjectMastery, type SubjectMastery,
+  subjectDifficultyHistory, type SubjectDifficultyHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
