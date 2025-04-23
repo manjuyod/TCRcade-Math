@@ -52,8 +52,20 @@ export async function fetchQuestion(
     params.append('forceDynamic', 'true');
   }
   
+  // Special Math Facts handling - use the non-authenticated endpoint
+  let url = '/api/questions/next';
+  
+  // If this is a Math Facts module, use our specialized endpoint that doesn't require auth
+  if (category && category.startsWith('math-facts-')) {
+    const operation = category.split('-').pop();
+    url = `/api/questions/math-facts?grade=${grade}&operation=${operation}`;
+    console.log(`Using direct Math Facts endpoint for ${operation} module`);
+  } else {
+    url = `/api/questions/next?${params.toString()}`;
+  }
+  
   // Make the request
-  const response = await fetch(`/api/questions/next?${params.toString()}`, {
+  const response = await fetch(url, {
     credentials: 'include',
     cache: 'no-store' // Explicitly prevent browser caching
   });
@@ -112,6 +124,39 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
     try {
       let newQuestion: Question | null = null;
       let isDuplicate = false;
+      
+      // Special handling for Math Facts modules - try direct endpoint first
+      if (category && category.startsWith('math-facts-')) {
+        console.log(`Math Facts module detected (${category}), using direct endpoint`);
+        
+        try {
+          // Extract the operation from the category (math-facts-addition -> addition)
+          const operation = category.split('-').pop();
+          
+          // Directly fetch from our specialized non-authenticated endpoint
+          const url = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
+          console.log(`Fetching Math Facts directly from: ${url}`);
+          
+          const response = await fetch(url, {
+            cache: 'no-store'
+          });
+          
+          if (response.ok) {
+            newQuestion = await response.json();
+            console.log(`Successfully fetched Math Facts question: ${newQuestion?.question?.text || 'Unknown'}`);
+            // Early return with the Math Facts question
+            setQuestion(newQuestion);
+            setLoading(false);
+            return;
+          } else {
+            console.error(`Failed to fetch Math Facts directly: ${response.status}`);
+            // Continue with normal flow if direct fetch fails
+          }
+        } catch (mathFactsError) {
+          console.error('Error in direct Math Facts fetch:', mathFactsError);
+          // Continue with normal flow if direct fetch fails
+        }
+      }
       
       // Try up to maxRetries times to get a non-duplicate question
       do {
