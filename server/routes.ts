@@ -555,6 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Special non-authenticated endpoint for Math Facts only - for testing purposes
   app.get("/api/questions/math-facts", async (req, res) => {
+    console.log('📢 MATH FACTS ENDPOINT HIT! Params:', req.query);
     try {
       const grade = req.query.grade as string || "3";
       const operation = req.query.operation as string || "addition";
