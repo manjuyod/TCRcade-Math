@@ -785,6 +785,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const openaiService = await import('./openai');
           console.log("Generating new question via OpenAI...");
           
+          // Verify OpenAI API is available before attempting to use it
+          if (!process.env.OPENAI_API_KEY) {
+            console.warn("OpenAI API key is missing or invalid - falling back to database questions");
+            throw new Error("Missing OpenAI API key");
+          }
+          
           // Mix student skill level based on how many questions they've seen
           const estimatedSkillLevel = Math.min(5, Math.max(1, 2 + Math.floor(excludeIds.length / 20)));
           
