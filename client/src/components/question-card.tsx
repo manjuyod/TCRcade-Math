@@ -43,36 +43,82 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
   const [flashcardStyle, setFlashcardStyle] = useState<FlashcardStyle | null>(null);
   
   useEffect(() => {
+    console.log("Question updated in card:", question);
     // Guard against undefined question
     if (!question) {
       setQuestionText("Loading question...");
       setIsMathFactsModule(false);
+      setFlashcardStyle(null);
       return;
     }
     
     // Check if this is a Math Facts module
     const category = question.category || '';
-    setIsMathFactsModule(category.startsWith('math-facts-'));
+    const isMathFacts = category.startsWith('math-facts-');
+    setIsMathFactsModule(isMathFacts);
     
     // Handle different question formats
     if (!question.question) {
       setQuestionText("Loading question...");
+      setFlashcardStyle(null);
       return;
     }
     
-    // Parse the question content based on its type
-    if (typeof question.question === 'object') {
-      // This is an object with text property (flashcard style)
-      const questionObj = question.question as unknown as QuestionContent;
-      
-      if (questionObj && questionObj.text) {
-        console.log("Detected structured question object:", questionObj);
-        setQuestionText(questionObj.text);
+    // For debugging
+    if (isMathFacts) {
+      console.log("Math Facts question detected:", question);
+    }
+    
+    try {
+      // Parse the question content based on its type
+      if (typeof question.question === 'object') {
+        // This is an object with text property (flashcard style)
+        const questionObj = question.question as any; // Use any to avoid TypeScript errors
         
-        if (questionObj.style) {
-          setFlashcardStyle(questionObj.style);
+        if (questionObj && questionObj.text) {
+          console.log("Processing question text:", questionObj.text);
+          setQuestionText(questionObj.text);
+          
+          if (questionObj.style) {
+            setFlashcardStyle(questionObj.style);
+          } else if (questionObj.isFlashcard) {
+            // Default flashcard styling if isFlashcard is true but no style provided
+            setFlashcardStyle({
+              fontSize: '60px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '20px',
+              isFlashcard: true
+            });
+          } else {
+            setFlashcardStyle(null);
+          }
         } else {
-          // Default flashcard styling
+          setQuestionText(JSON.stringify(questionObj));
+          console.error("Question object doesn't have expected structure:", questionObj);
+        }
+      } else if (typeof question.question === 'string') {
+        // This is a regular string question
+        const questionStr = question.question;
+        
+        // Format the question text properly if it contains a visual tag
+        if (questionStr && questionStr.startsWith('[visual:')) {
+          const endIndex = questionStr.indexOf(']');
+          if (endIndex > 0) {
+            // Remove the visual tag from the question text
+            setQuestionText(questionStr.substring(endIndex + 1).trim());
+          } else {
+            setQuestionText(questionStr);
+          }
+        } else {
+          setQuestionText(questionStr);
+        }
+        
+        // For Math Facts modules with string questions, still use flashcard styling
+        if (isMathFacts) {
           setFlashcardStyle({
             fontSize: '60px',
             fontWeight: 'bold',
@@ -83,33 +129,19 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
             padding: '20px',
             isFlashcard: true
           });
-        }
-      } else {
-        setQuestionText("Error: Invalid question format");
-        console.error("Question object doesn't have expected structure:", question.question);
-      }
-    } else if (typeof question.question === 'string') {
-      // This is a regular string question
-      const questionStr = question.question;
-      
-      // Format the question text properly if it contains a visual tag
-      if (questionStr && questionStr.startsWith('[visual:')) {
-        const endIndex = questionStr.indexOf(']');
-        if (endIndex > 0) {
-          // Remove the visual tag from the question text
-          setQuestionText(questionStr.substring(endIndex + 1).trim());
         } else {
-          setQuestionText(questionStr);
+          // Reset flashcard styling for regular string questions
+          setFlashcardStyle(null);
         }
       } else {
-        setQuestionText(questionStr);
+        // Fallback for unexpected types
+        console.error("Unexpected question format:", typeof question.question);
+        setQuestionText("Loading question...");
+        setFlashcardStyle(null);
       }
-      
-      // Reset flashcard styling for string questions
-      setFlashcardStyle(null);
-    } else {
-      // Fallback for unexpected types
-      setQuestionText("Loading question...");
+    } catch (error) {
+      console.error("Error processing question:", error);
+      setQuestionText("Error loading question");
       setFlashcardStyle(null);
     }
   }, [question]);
@@ -170,7 +202,7 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
               style={{
                 fontSize: flashcardStyle.fontSize || '60px',
                 fontWeight: flashcardStyle.fontWeight || 'bold',
-                textAlign: 'center',
+                textAlign: 'center' as const,
                 padding: flashcardStyle.padding || '20px',
                 minHeight: '120px'
               }}
@@ -179,9 +211,8 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5 }}
-              >
-                {questionText}
-              </motion.span>
+                dangerouslySetInnerHTML={{ __html: questionText }}
+              />
             </div>
           </div>
         ) : (
@@ -190,9 +221,8 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
             animate={{ scale: 1 }}
             transition={{ duration: 0.5 }}
             className="text-xl md:text-2xl font-bold text-dark mb-2"
-          >
-            {questionText}
-          </motion.h3>
+            dangerouslySetInnerHTML={{ __html: questionText }}
+          />
         )}
         
         <p className="text-gray-500">
