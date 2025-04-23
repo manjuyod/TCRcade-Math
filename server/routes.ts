@@ -587,16 +587,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For Math Facts modules, we'll generate the computation question directly
       // without using OpenAI to ensure it's ONLY pure flashcard style format 
       if (isMathFactsModule) {
-        // Extract operation from category (math-facts-addition, math-facts-subtraction, etc.)
-        const operation = category?.split('-').pop(); // Gets 'addition', 'subtraction', etc.
-        
-        // Generate a pure computation question based on grade and operation
-        const mathFactsQuestion = generateMathFactsQuestion(grade, operation);
-        
-        console.log(`MATH FACTS MODULE: Generated pure computation question: "${mathFactsQuestion.question}" with answer: ${mathFactsQuestion.answer}`);
-        
-        // Return the question immediately, bypassing OpenAI completely for math facts
-        return res.json(mathFactsQuestion);
+        try {
+          // Extract operation from category (math-facts-addition, math-facts-subtraction, etc.)
+          const operation = category?.split('-').pop(); // Gets 'addition', 'subtraction', etc.
+          
+          // Generate a pure computation question based on grade and operation
+          const mathFactsQuestion = generateMathFactsQuestion(grade, operation);
+          
+          // Check if question is in expected format with question property containing text
+          if (mathFactsQuestion && mathFactsQuestion.question) {
+            if (typeof mathFactsQuestion.question === 'string') {
+              console.log(`MATH FACTS MODULE: Generated pure computation question: "${mathFactsQuestion.question}" with answer: ${mathFactsQuestion.answer}`);
+            } else if (mathFactsQuestion.question.text) {
+              console.log(`MATH FACTS MODULE: Generated pure computation question: "${mathFactsQuestion.question.text}" with answer: ${mathFactsQuestion.answer}`);
+            }
+            
+            // Return the question immediately, bypassing OpenAI completely for math facts
+            return res.json(mathFactsQuestion);
+          } else {
+            throw new Error("Math Facts question generation failed - invalid format");
+          }
+        } catch (error) {
+          console.error(`Error generating Math Facts question: ${error}`);
+          
+          // Fallback generation method that doesn't rely on any external services
+          console.log("Using reliable fallback Math Facts generation method");
+          
+          // Create simple computation question based on grade and operation
+          let num1 = 0, num2 = 0, answer = "", operationSymbol = "";
+          const options: string[] = [];
+          const mathOperation = category?.split('-').pop() || 'addition';
+          const gradeLevel = grade === 'K' ? 0 : parseInt(grade) || 3;
+          
+          // Basic Math Facts generation that works without API calls
+          if (mathOperation === 'addition') {
+            if (gradeLevel <= 1) {
+              num1 = Math.floor(Math.random() * 10) + 1;
+              num2 = Math.floor(Math.random() * 10) + 1;
+            } else if (gradeLevel <= 3) {
+              num1 = Math.floor(Math.random() * 20) + 1;
+              num2 = Math.floor(Math.random() * 20) + 1;
+            } else {
+              num1 = Math.floor(Math.random() * 50) + 1;
+              num2 = Math.floor(Math.random() * 50) + 1;
+            }
+            answer = (num1 + num2).toString();
+            operationSymbol = '+';
+          } else if (mathOperation === 'subtraction') {
+            if (gradeLevel <= 1) {
+              num2 = Math.floor(Math.random() * 5) + 1;
+              num1 = num2 + Math.floor(Math.random() * 5) + 1;
+            } else if (gradeLevel <= 3) {
+              num2 = Math.floor(Math.random() * 10) + 1;
+              num1 = num2 + Math.floor(Math.random() * 10) + 1;
+            } else {
+              num2 = Math.floor(Math.random() * 25) + 1;
+              num1 = num2 + Math.floor(Math.random() * 25) + 1;
+            }
+            answer = (num1 - num2).toString();
+            operationSymbol = '-';
+          } else if (mathOperation === 'multiplication') {
+            if (gradeLevel <= 2) {
+              num1 = Math.floor(Math.random() * 5) + 1;
+              num2 = Math.floor(Math.random() * 5) + 1;
+            } else if (gradeLevel <= 4) {
+              num1 = Math.floor(Math.random() * 10) + 1;
+              num2 = Math.floor(Math.random() * 10) + 1;
+            } else {
+              num1 = Math.floor(Math.random() * 12) + 1;
+              num2 = Math.floor(Math.random() * 12) + 1;
+            }
+            answer = (num1 * num2).toString();
+            operationSymbol = '×';
+          } else if (mathOperation === 'division') {
+            if (gradeLevel <= 2) {
+              num2 = Math.floor(Math.random() * 4) + 2; // 2-5 (divisor)
+              const product = Math.floor(Math.random() * 4) + 1; // 1-4 (quotient)
+              num1 = num2 * product; // Ensures clean division
+            } else if (gradeLevel <= 4) {
+              num2 = Math.floor(Math.random() * 9) + 2; // 2-10 (divisor)
+              const product = Math.floor(Math.random() * 9) + 1; // 1-9 (quotient)
+              num1 = num2 * product; // Ensures clean division
+            } else {
+              num2 = Math.floor(Math.random() * 11) + 2; // 2-12 (divisor)
+              const product = Math.floor(Math.random() * 9) + 1; // 1-9 (quotient)
+              num1 = num2 * product; // Ensures clean division
+            }
+            answer = (num1 / num2).toString();
+            operationSymbol = '÷';
+          } else {
+            // Default to addition if operation is unknown
+            num1 = Math.floor(Math.random() * 10) + 1;
+            num2 = Math.floor(Math.random() * 10) + 1;
+            answer = (num1 + num2).toString();
+            operationSymbol = '+';
+          }
+          
+          // Create options for multiple choice (include correct answer)
+          options.push(answer);
+          
+          // Generate unique wrong options
+          const answerNum = parseInt(answer);
+          const optionsSet = new Set<string>(options);
+          
+          // Add close options that are reasonable alternatives
+          optionsSet.add((answerNum + 1).toString());
+          optionsSet.add((answerNum + 2).toString());
+          if (answerNum > 1) optionsSet.add((answerNum - 1).toString());
+          if (answerNum > 2) optionsSet.add((answerNum - 2).toString());
+          
+          // Convert to array and take first 4
+          const finalOptions = Array.from(optionsSet).slice(0, 4);
+          
+          // Ensure we have 4 options
+          while (finalOptions.length < 4) {
+            const newOption = (answerNum + finalOptions.length + 1).toString();
+            finalOptions.push(newOption);
+          }
+          
+          // Shuffle options
+          finalOptions.sort(() => Math.random() - 0.5);
+          
+          // Generate ID
+          const uniqueId = Date.now() + Math.floor(Math.random() * 1000000);
+          
+          // Create flashcard style for the question
+          const flashcardStyle = {
+            fontSize: '60px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px',
+            isFlashcard: true
+          };
+          
+          // Create the question object
+          const backupQuestion = {
+            id: uniqueId,
+            question: {
+              text: `${num1} ${operationSymbol} ${num2} = ?`,
+              style: flashcardStyle,
+              isFlashcard: true
+            },
+            answer: answer,
+            options: finalOptions,
+            grade: grade,
+            difficulty: Math.min(3, gradeLevel + 1),
+            category: `math-facts-${mathOperation}`,
+            concepts: [mathOperation],
+            storyId: null,
+            storyNode: null,
+            storyText: null,
+            storyImage: null
+          };
+          
+          console.log(`FALLBACK MATH FACTS: Generated computation question: "${backupQuestion.question.text}" with answer: ${backupQuestion.answer}`);
+          
+          // Return the fallback question
+          return res.json(backupQuestion);
+        }
       }
       
       console.log(`Fetching question for grade: ${grade}, category: ${category || "any"}, excluding ${excludeIds.length} IDs, forceDynamic=${forceDynamic}, isMathFactsModule=${isMathFactsModule}`);
