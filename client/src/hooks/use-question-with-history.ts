@@ -139,11 +139,20 @@ export function useQuestionWithHistory(
       const mathOperations: string[] = [];
       
       if (question.question) {
+        // Get the text property if it exists, otherwise use question.question directly
+        const questionText = typeof question.question === 'object' && question.question.text 
+          ? question.question.text 
+          : typeof question.question === 'string' 
+            ? question.question 
+            : '';
+
+        console.log("Processing question text:", questionText);
+            
         // Extract operations using regex
-        const additionMatches = question.question.match(/(\d+)\s*\+\s*(\d+)/g) || [];
-        const subtractionMatches = question.question.match(/(\d+)\s*\-\s*(\d+)/g) || [];
-        const multiplicationMatches = question.question.match(/(\d+)\s*[×x\*]\s*(\d+)/g) || [];
-        const divisionMatches = question.question.match(/(\d+)\s*[÷\/]\s*(\d+)/g) || [];
+        const additionMatches = questionText.match(/(\d+)\s*\+\s*(\d+)/g) || [];
+        const subtractionMatches = questionText.match(/(\d+)\s*\-\s*(\d+)/g) || [];
+        const multiplicationMatches = questionText.match(/(\d+)\s*[×x\*]\s*(\d+)/g) || [];
+        const divisionMatches = questionText.match(/(\d+)\s*[÷\/]\s*(\d+)/g) || [];
         
         // Convert matches to standardized math facts
         additionMatches.forEach(match => {
@@ -177,7 +186,11 @@ export function useQuestionWithHistory(
       
       // Generate a signature (normalized question text)
       const questionSignature = question.question
-        ? question.question.toLowerCase().replace(/\s+/g, ' ').trim()
+        ? (typeof question.question === 'object' && question.question.text
+            ? question.question.text.toLowerCase().replace(/\s+/g, ' ').trim()
+            : typeof question.question === 'string'
+                ? question.question.toLowerCase().replace(/\s+/g, ' ').trim()
+                : '')
         : '';
       
       // Store the question data
