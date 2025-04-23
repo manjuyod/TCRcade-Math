@@ -144,6 +144,7 @@ function generateMathFactsQuestion(grade: string, operation?: string): any {
   const questionText = `${num1} ${operationSymbol} ${num2} = ?`;
   
   // Create complete question with flash-card style formatting
+  // Following the QuestionContent interface from shared/schema.ts
   const question = {
     text: questionText,
     style: flashcardStyle,
