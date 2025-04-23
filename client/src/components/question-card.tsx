@@ -20,29 +20,55 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
   const answersCounter = useRef<number>(0);
   
   // Per user request, don't parse for visual cues or display images
+  // Track if this is a Math Facts module
+  const [isMathFactsModule, setIsMathFactsModule] = useState<boolean>(false);
+  const [flashcardStyle, setFlashcardStyle] = useState<any>(null);
+  
   useEffect(() => {
     // Guard against undefined question
     if (!question || !question.question) {
       setQuestionText("Loading question...");
+      setIsMathFactsModule(false);
       return;
     }
     
-    const questionStr = question.question;
+    // Check if this is a Math Facts module
+    const category = question.category || '';
+    setIsMathFactsModule(category.startsWith('math-facts-'));
     
-    // No images in questions per user request - just display the question text
-    console.log("Images for questions disabled per user request");
-    
-    // Format the question text properly if it contains a visual tag
-    if (questionStr && questionStr.startsWith('[visual:')) {
-      const endIndex = questionStr.indexOf(']');
-      if (endIndex > 0) {
-        // Remove the visual tag from the question text
-        setQuestionText(questionStr.substring(endIndex + 1).trim());
+    // Check if the question contains flashcard styling
+    if (typeof question.question === 'object' && question.question.isFlashcard) {
+      // This is a flashcard style question from the Math Facts module
+      console.log("Detected Math Facts flashcard question", question.question);
+      setQuestionText(question.question.text);
+      setFlashcardStyle(question.question.style || {
+        fontSize: '60px',
+        fontWeight: 'bold',
+        textAlign: 'center'
+      });
+    } else {
+      const questionStr = typeof question.question === 'string' 
+        ? question.question 
+        : "Loading question...";
+      
+      // No images in questions per user request - just display the question text
+      console.log("Images for questions disabled per user request");
+      
+      // Format the question text properly if it contains a visual tag
+      if (questionStr && questionStr.startsWith('[visual:')) {
+        const endIndex = questionStr.indexOf(']');
+        if (endIndex > 0) {
+          // Remove the visual tag from the question text
+          setQuestionText(questionStr.substring(endIndex + 1).trim());
+        } else {
+          setQuestionText(questionStr);
+        }
       } else {
         setQuestionText(questionStr);
       }
-    } else {
-      setQuestionText(questionStr);
+      
+      // Reset flashcard styling
+      setFlashcardStyle(null);
     }
   }, [question]);
   
@@ -95,20 +121,47 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       <div className="text-center my-4">
         {/* No images in questions per user request */}
         
-        <motion.h3
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-xl md:text-2xl font-bold text-dark mb-2"
-        >
-          {questionText}
-        </motion.h3>
+        {isMathFactsModule && flashcardStyle ? (
+          <div className="math-facts-flashcard flex justify-center items-center mb-6 py-8">
+            <motion.h3
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                fontSize: flashcardStyle.fontSize || '60px',
+                fontWeight: flashcardStyle.fontWeight || 'bold',
+                textAlign: flashcardStyle.textAlign || 'center',
+                padding: flashcardStyle.padding || '20px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '120px'
+              }}
+              className="text-dark w-full"
+            >
+              {questionText}
+            </motion.h3>
+          </div>
+        ) : (
+          <motion.h3
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="text-xl md:text-2xl font-bold text-dark mb-2"
+          >
+            {questionText}
+          </motion.h3>
+        )}
+        
         <p className="text-gray-500">
-          Solve the {question?.category ? getCategoryLabel(question.category) : 'math'} problem
+          {isMathFactsModule 
+            ? `Solve the ${getCategoryLabel(question?.category || '')} calculation` 
+            : `Solve the ${question?.category ? getCategoryLabel(question.category) : 'math'} problem`
+          }
         </p>
       </div>
       
-      <div className="grid grid-cols-2 gap-4 mt-6">
+      <div className={`grid ${isMathFactsModule ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'} gap-4 mt-6`}>
         {question?.options && question.options.length > 0 ? (
           question.options.map((option, index) => (
             <motion.button
@@ -120,7 +173,9 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
               className={`
                 arcade-btn bg-white border-2 shadow-md hover:shadow-lg
                 ${selectedOption === option ? 'border-primary' : 'border-gray-200 hover:border-primary'} 
-                text-dark font-bold py-3 rounded-xl text-xl transition transform hover:scale-103
+                text-dark font-bold py-3 rounded-xl 
+                ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
+                transition transform hover:scale-103
               `}
             >
               {option}

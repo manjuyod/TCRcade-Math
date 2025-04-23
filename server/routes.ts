@@ -128,7 +128,27 @@ function generateMathFactsQuestion(grade: string, operation?: string): any {
   }
   
   // Create the question in pure math facts format: "X [operation] Y = ?"
-  const question = `${num1} ${operationSymbol} ${num2} = ?`;
+  // Include flash-card styling information with the question
+  const flashcardStyle = {
+    fontSize: '60px',  // Large flash-card style font (48-60px)
+    fontWeight: 'bold',
+    textAlign: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '20px',
+    isFlashcard: true
+  };
+  
+  // Create the basic question and enhance it with flashcard styling
+  const questionText = `${num1} ${operationSymbol} ${num2} = ?`;
+  
+  // Create complete question with flash-card style formatting
+  const question = {
+    text: questionText,
+    style: flashcardStyle,
+    isFlashcard: true
+  };
   
   // Create options for multiple choice
   // Always include the correct answer
@@ -723,6 +743,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Database query with multiple fallback strategies
+      
+      // ADAPTIVE DIFFICULTY: Try to get questions matching user's current difficulty level
+      if (userId && category && category !== 'all' && !forceDynamic) {
+        try {
+          // Get the user's current difficulty level for this subject
+          const difficultyLevel = await storage.getSubjectDifficulty(userId, category, grade);
+          
+          console.log(`Using adaptive difficulty level ${difficultyLevel} for user ${userId}, subject ${category}, grade ${grade}`);
+          
+          // Get questions that match the user's current difficulty level
+          const adaptiveQuestions = await storage.getQuestionsWithAdaptiveDifficulty(userId, category, grade);
+          
+          if (adaptiveQuestions.length > 0) {
+            // Filter out any previously seen questions
+            const unseenAdaptiveQuestions = excludeIds.length > 0 
+              ? adaptiveQuestions.filter(q => !excludeIds.includes(q.id))
+              : adaptiveQuestions;
+            
+            if (unseenAdaptiveQuestions.length > 0) {
+              console.log(`Found ${unseenAdaptiveQuestions.length} adaptive difficulty questions matching difficulty level ${difficultyLevel}`);
+              
+              // Select random question from matching difficulty questions
+              const shuffledQuestions = shuffle(unseenAdaptiveQuestions);
+              const selectedQuestion = shuffledQuestions[0];
+              
+              // Cache the question for future use
+              if (questionCache.size < CACHE_MAX_SIZE) {
+                const adaptiveCacheKey = `adaptive-${userId}-${grade}-${category}-${excludeIds.length}`;
+                const timestamp = Date.now();
+                questionCache.set(adaptiveCacheKey, { 
+                  question: selectedQuestion, 
+                  timestamp: timestamp 
+                });
+                
+                console.log(`CACHE STORE: Cached adaptive question at key ${adaptiveCacheKey}, question ID: ${selectedQuestion.id}, difficulty: ${selectedQuestion.difficulty}, adaptive level: ${difficultyLevel}`);
+              }
+              
+              // Return the adaptive difficulty question
+              return res.json(selectedQuestion);
+            }
+          }
+          
+          console.log(`No appropriate adaptive questions found, falling back to standard selection`);
+        } catch (error) {
+          console.error(`Error getting adaptive difficulty questions:`, error);
+          // Continue with standard question selection
+        }
+      }
       
       // Strategy 1: Get questions with exact grade and category, excluding seen questions
       let conditions = [eq(questions.grade, grade)];
