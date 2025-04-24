@@ -300,12 +300,8 @@ export default function HomePage() {
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
           
-          // Update session stats manually for Math Facts modules
-          setSessionStats(prev => ({
-            questionsAnswered: prev.questionsAnswered + 1,
-            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
-            tokensEarned: prev.tokensEarned + tokensEarned
-          }));
+          // DON'T update session stats here - it will be handled in onSuccess
+          // to prevent double-counting when the component re-renders
           
           // Return a simulated API response
           return {
@@ -345,12 +341,8 @@ export default function HomePage() {
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
           
-          // Update session stats manually for Math Facts modules
-          setSessionStats(prev => ({
-            questionsAnswered: prev.questionsAnswered + 1,
-            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
-            tokensEarned: prev.tokensEarned + tokensEarned
-          }));
+          // DON'T update session stats here - it will be handled in onSuccess
+          // to prevent double-counting when the component re-renders
           
           // Return a simulated API response
           return {
