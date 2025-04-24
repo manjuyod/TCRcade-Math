@@ -25,15 +25,9 @@ function generateMathFactsQuestion(grade: string, operation?: string): any {
   let num1: number, num2: number, answer: string, operationSymbol: string;
   let options: string[] = [];
   
-  // Override operation if explicitly specified
-  let mathOperation = operation || 'addition';
-  
-  // For kindergarten and grade 1, focus on addition/subtraction
-  if (gradeLevel <= 1) {
-    if (operation === 'multiplication' || operation === 'division') {
-      mathOperation = Math.random() < 0.7 ? 'addition' : 'subtraction';
-    }
-  }
+  // IMPORTANT: Always use the requested operation instead of replacing it
+  // This ensures division questions actually use division, etc.
+  const mathOperation = operation || 'addition';
   
   // Generate appropriate numbers based on grade and operation
   switch (mathOperation) {

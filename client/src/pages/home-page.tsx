@@ -289,8 +289,34 @@ export default function HomePage() {
       console.log(`Submitting answer for question ID: ${questionId}, answer: ${answer}`);
       
       try {
-        // For dynamic questions, we need to include the correct answer with the submission
-        // to ensure proper validation
+        // Check if this is a Math Facts module (which doesn't need authentication)
+        const isMathFactsModule = currentModuleId?.startsWith('math-facts-');
+        
+        // For Math Facts modules, handle the answer locally without making an API call
+        if (isMathFactsModule && question) {
+          console.log(`Math Facts local answer handling (${currentModuleId})`);
+          
+          // Check if the answer is correct for Math Facts
+          const isCorrect = answer === question.answer;
+          const tokensEarned = isCorrect ? 3 : 0;
+          
+          // Update session stats manually for Math Facts modules
+          setSessionStats(prev => ({
+            questionsAnswered: prev.questionsAnswered + 1,
+            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
+            tokensEarned: prev.tokensEarned + tokensEarned
+          }));
+          
+          // Return a simulated API response
+          return {
+            correct: isCorrect,
+            tokensEarned: tokensEarned,
+            totalTokens: 0, // We don't track this for non-authenticated sessions
+            correctAnswer: question.answer
+          };
+        }
+        
+        // For regular authenticated questions, proceed with normal API call
         if (question && questionId === question.id) {
           const result = await submitAnswer(
             questionId, 
@@ -306,7 +332,36 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error(`Error submitting answer: ${error}`);
-        // Force a new dynamic question when an error occurs
+        
+        // If error is authentication related and we're in a Math Facts module,
+        // continue with local answer handling
+        if (String(error).includes('401') && 
+            currentModuleId?.startsWith('math-facts-') && 
+            question) {
+          
+          console.log("401 error, handling Math Facts answer locally");
+          
+          // Check if the answer is correct
+          const isCorrect = answer === question.answer;
+          const tokensEarned = isCorrect ? 3 : 0;
+          
+          // Update session stats manually for Math Facts modules
+          setSessionStats(prev => ({
+            questionsAnswered: prev.questionsAnswered + 1,
+            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
+            tokensEarned: prev.tokensEarned + tokensEarned
+          }));
+          
+          // Return a simulated API response
+          return {
+            correct: isCorrect,
+            tokensEarned: tokensEarned,
+            totalTokens: 0,
+            correctAnswer: question.answer
+          };
+        }
+        
+        // For other errors, force a new dynamic question
         fetchNewQuestion(true);
         throw error;
       }
@@ -444,7 +499,13 @@ export default function HomePage() {
       }
       
       // Check if session is complete (5 questions)
-      if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+      // For Math Facts modules, we need to check if we've answered 5 questions locally
+      const isMathFactsModule = currentModuleId?.startsWith('math-facts-');
+      const questionsAnswered = isMathFactsModule 
+        ? sessionStats.questionsAnswered 
+        : sessionStats.questionsAnswered + 1;
+        
+      if (questionsAnswered >= sessionSize) {
         // Update final session stats before showing session complete
         const finalStats = {
           questionsAnswered: sessionStats.questionsAnswered + 1,
@@ -690,7 +751,13 @@ export default function HomePage() {
                     setCurrentStreak(0);
                     
                     // Check if session is complete (5 questions)
-                    if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+                    // For Math Facts modules, we need to check if we've answered 5 questions locally
+                    const isMathFactsModule = currentModuleId?.startsWith('math-facts-');
+                    const questionsAnswered = isMathFactsModule 
+                      ? sessionStats.questionsAnswered 
+                      : sessionStats.questionsAnswered + 1;
+                      
+                    if (questionsAnswered >= sessionSize) {
                       // Update final session stats before showing session complete
                       const finalStats = {
                         questionsAnswered: sessionStats.questionsAnswered + 1,
