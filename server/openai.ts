@@ -1165,6 +1165,7 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
+        response_format: { type: "json_object" },
         messages: [
         {
           role: "system",
@@ -1261,9 +1262,8 @@ Timestamp for uniqueness: ${timestamp}
 Make sure it's appropriate for the student's level and provides a learning opportunity.`
         }
       ],
-        response_format: { type: "json_object" },
         max_tokens: 800,
-        temperature: 1.2, // Even higher temperature for maximum diversity
+        temperature: 1.2 // Even higher temperature for maximum diversity
     });
 
     const content = response.choices[0].message.content || '{}';
