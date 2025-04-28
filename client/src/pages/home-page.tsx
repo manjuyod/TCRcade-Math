@@ -25,6 +25,26 @@ import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
 import { Loader2, Clock, Calendar, Book, BookOpen, Users, Brain, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
 
+function DashboardStats({ myScore, cohortScore, questionsAnswered, studyTime }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white p-4 rounded-xl shadow-sm">
+        <h3 className="text-lg font-semibold mb-2">My Score</h3>
+        <p className="text-3xl font-bold">{myScore}</p>
+      </div>
+      <div className="bg-white p-4 rounded-xl shadow-sm">
+        <h3 className="text-lg font-semibold mb-2">Cohort Average</h3>
+        <p className="text-3xl font-bold">{cohortScore}</p>
+      </div>
+      <div className="bg-white p-4 rounded-xl shadow-sm">
+        <h3 className="text-lg font-semibold mb-2">Progress</h3>
+        <p className="text-xl">Questions Answered: {questionsAnswered}</p>
+        <p className="text-xl">Study Time: {studyTime}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const { minutesPlayed, displayMinutes, progressPercentage } = useSessionTimer();
@@ -34,25 +54,25 @@ export default function HomePage() {
     tokensEarned: number;
     correctAnswer: string;
   } | null>(null);
-  
+
   // Get current module from localStorage if it exists
   const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
   const [currentModuleType, setCurrentModuleType] = useState<string>('standard');
-  
+
   useEffect(() => {
     // Check if we have a current module when the component mounts
     const moduleId = localStorage.getItem('currentModuleId');
     const moduleType = localStorage.getItem('currentModuleType');
-    
+
     if (moduleId) {
       setCurrentModuleId(moduleId);
     }
-    
+
     if (moduleType) {
       setCurrentModuleType(moduleType);
     }
   }, []);
-  
+
   // Session stats
   const [sessionCompleted, setSessionCompleted] = useState<boolean>(false);
   const [sessionStats, setSessionStats] = useState({
@@ -60,23 +80,23 @@ export default function HomePage() {
     correctAnswers: 0,
     tokensEarned: 0
   });
-  
+
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
   // Streak animation removed - keeping counter for token bonus calculations only
-  
+
   // Time achievement tracking
   const [timeAchievement, setTimeAchievement] = useState<number>(0);
   const [showTimeAchievement, setShowTimeAchievement] = useState<boolean>(false);
-  
+
   // Level-up tracking
   const [showLevelUpAnimation, setShowLevelUpAnimation] = useState<boolean>(false);
   const [newLevel, setNewLevel] = useState<string>("");
-  
+
   // Milestone tracking
   const STREAK_MILESTONES = [3, 5, 10, 20]; // Milestones for streak animations
   const TIME_MILESTONES = [5, 10, 15, 20]; // Milestones for time achievements (in minutes)
-  
+
   // Grade advancement token thresholds
   const GRADE_ADVANCEMENT_TOKENS = {
     'k': 500,    // Kindergarten to 1st grade
@@ -87,35 +107,35 @@ export default function HomePage() {
     '5': 3000,   // 5th to 6th grade
     '6': 3500    // 6th grade (max level)
   };
-  
+
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const sessionSize = 5; // Size of a question session (changed from 20 to 5)
-  
+
   // Custom loading state we can control (separate from React Query's isLoading)
   const [isManuallyLoading, setIsManuallyLoading] = useState<boolean>(false);
-  
+
   // Using TIME_MILESTONES defined above for achievements
-  
+
   // Reference for user activity
   const lastActivityTimeRef = useRef<Date>(new Date());
-  
+
   // Preload sounds and fetch initial question when component mounts
   useEffect(() => {
     preloadSounds();
-    
+
     // Initial fetch of a question when the component mounts
     // Add special handling for Math Facts modules using our non-authenticated endpoint
     const moduleId = localStorage.getItem('currentModuleId');
-    
+
     // Check if this is a Math Facts module
     if (moduleId && moduleId.startsWith('math-facts-')) {
       // Extract operation from module ID (math-facts-addition -> addition)
       const operation = moduleId.split('-').pop();
       const grade = user?.grade || '3';
-      
+
       console.log(`Loading MATH FACTS module: ${moduleId}`);
-      
+
       // Use our non-authenticated endpoint for Math Facts
       fetch(`/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`, {
         cache: 'no-store'
@@ -130,7 +150,7 @@ export default function HomePage() {
           // Update the query client directly with the fetched data
           console.log('Successfully loaded Math Facts question:', data?.question?.text || 'Unknown');
           const newQuestion = data;
-          
+
           // Store in the query cache
           queryClient.setQueryData(['/api/questions/next', moduleId], newQuestion);
         })
@@ -159,14 +179,14 @@ export default function HomePage() {
       const prevMinute = Math.floor(lastCheckedMinuteRef.current);
       // Current minute from the timer hook
       const currentMinute = displayMinutes;
-      
+
       // Only trigger achievement once per milestone
       if (prevMinute !== currentMinute && TIME_MILESTONES.includes(currentMinute)) {
         // Trigger time milestone celebration
         setTimeAchievement(currentMinute);
         setTimeout(() => {
           setShowTimeAchievement(true);
-          
+
           // Add bonus tokens for time milestone
           if (user) {
             const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
@@ -177,31 +197,31 @@ export default function HomePage() {
           }
         }, 500);
       }
-      
+
       // Update the last checked minute
       lastCheckedMinuteRef.current = currentMinute;
     };
-    
+
     // Create interval to periodically check milestones
     const milestoneInterval = setInterval(checkMilestones, 5000); // Check every 5 seconds
-    
+
     // Initial check
     checkMilestones();
-    
+
     // Clean up interval on unmount
     return () => clearInterval(milestoneInterval);
   }, [displayMinutes, user]);
-  
+
   // Reference to track the last minute we checked for milestones
   const lastCheckedMinuteRef = useRef<number>(0);
-  
+
   // Track the need for dynamic questions
   const [forceDynamic, setForceDynamic] = useState<boolean>(false);
 
   // Fetch a question
   // Get the current module data if a module ID has been set
   const [currentModuleCategory, setCurrentModuleCategory] = useState<string | undefined>(undefined);
-  
+
   // When the currentModuleId changes, look up the corresponding module details
   useEffect(() => {
     if (currentModuleId) {
@@ -210,25 +230,25 @@ export default function HomePage() {
         // For Math Facts modules, we need to keep the full moduleId (e.g., "math-facts-addition")
         // For other modules, we extract just the main category
         const isMathFactsModule = currentModuleId.startsWith('math-facts-');
-        
+
         // Use the full module ID for math facts, otherwise extract just the category
         const category = isMathFactsModule 
           ? currentModuleId
           : (currentModuleId.includes('-') ? currentModuleId.split('-')[0] : currentModuleId);
-        
+
         setCurrentModuleCategory(category);
-        
+
         // Log which type of module we're using
         console.log(`Loading ${isMathFactsModule ? 'MATH FACTS' : 'standard'} module: ${category}`);
-        
+
         // Special handling for Math Facts modules
         if (isMathFactsModule) {
           // Extract operation from the module ID (math-facts-addition -> addition)
           const operation = currentModuleId.split('-').pop();
           const grade = user?.grade || '3';
-          
+
           console.log(`Loading Math Facts with grade=${grade}, operation=${operation}`);
-          
+
           // Use our non-authenticated endpoint for Math Facts
           fetch(`/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`, {
             cache: 'no-store'
@@ -270,7 +290,7 @@ export default function HomePage() {
       setCurrentModuleCategory(undefined);
     }
   }, [currentModuleId]);
-  
+
   // Use our enhanced question hook with duplicate prevention
   // This is more reliable than the previous code
   const {
@@ -282,27 +302,27 @@ export default function HomePage() {
     user?.grade || '3',
     currentModuleCategory
   );
-  
+
   // Submit answer mutation
   const answerMutation = useMutation({
     mutationFn: async ({ questionId, answer }: { questionId: number; answer: string }) => {
       console.log(`Submitting answer for question ID: ${questionId}, answer: ${answer}`);
-      
+
       try {
         // Check if this is a Math Facts module (which doesn't need authentication)
         const isMathFactsModule = currentModuleId?.startsWith('math-facts-');
-        
+
         // For Math Facts modules, handle the answer locally without making an API call
         if (isMathFactsModule && question) {
           console.log(`Math Facts local answer handling (${currentModuleId})`);
-          
+
           // Check if the answer is correct for Math Facts
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
-          
+
           // DON'T update session stats here - it will be handled in onSuccess
           // to prevent double-counting when the component re-renders
-          
+
           // Return a simulated API response
           return {
             correct: isCorrect,
@@ -311,7 +331,7 @@ export default function HomePage() {
             correctAnswer: question.answer
           };
         }
-        
+
         // For regular authenticated questions, proceed with normal API call
         if (question && questionId === question.id) {
           const result = await submitAnswer(
@@ -328,22 +348,22 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error(`Error submitting answer: ${error}`);
-        
+
         // If error is authentication related and we're in a Math Facts module,
         // continue with local answer handling
         if (String(error).includes('401') && 
             currentModuleId?.startsWith('math-facts-') && 
             question) {
-          
+
           console.log("401 error, handling Math Facts answer locally");
-          
+
           // Check if the answer is correct
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
-          
+
           // DON'T update session stats here - it will be handled in onSuccess
           // to prevent double-counting when the component re-renders
-          
+
           // Return a simulated API response
           return {
             correct: isCorrect,
@@ -352,7 +372,7 @@ export default function HomePage() {
             correctAnswer: question.answer
           };
         }
-        
+
         // For other errors, force a new dynamic question
         fetchNewQuestion(true);
         throw error;
@@ -361,7 +381,7 @@ export default function HomePage() {
     onSuccess: (data) => {
       // Play sound based on result
       playSound(data.correct ? 'correct' : 'incorrect');
-      
+
       // Show feedback
       setFeedbackData({
         correct: data.correct,
@@ -369,16 +389,16 @@ export default function HomePage() {
         correctAnswer: data.correctAnswer
       });
       setShowFeedback(true);
-      
+
       // Add question to answered questions
       if (question) {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
       }
-      
+
       // ONLY update session stats if this is not a Math Facts module
       // For Math Facts modules, the stats were already updated in the try/catch block
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
-        
+
       if (!isCurrentlyMathFactsModule) {
         setSessionStats(prev => ({
           questionsAnswered: prev.questionsAnswered + 1,
@@ -386,15 +406,15 @@ export default function HomePage() {
           tokensEarned: prev.tokensEarned + data.tokensEarned
         }));
       }
-      
+
       // Update streak counter
       if (data.correct) {
         // Calculate the new streak count
         const newStreakCount = currentStreak + 1;
-        
+
         // Increment the streak counter for correct answers
         setCurrentStreak(newStreakCount);
-        
+
         // Check if we've hit a milestone - EVEN MORE SIMPLIFIED VERSION
         // This won't create any new objects or cause React update issues
         let milestone = 0;
@@ -404,25 +424,25 @@ export default function HomePage() {
             break;
           }
         }
-        
+
         if (milestone) {
           try {
             // Add bonus tokens for streak milestones
             if (user) {
               const bonusTokens = milestone * 2; // 2x tokens for each milestone
-              
+
               // First update local user data 
               queryClient.setQueryData(['/api/user'], {
                 ...user,
                 tokens: user.tokens + bonusTokens
               });
-              
+
               // Streak animation completely removed - all state updates removed
-              
+
               // STREAK ANIMATION REMOVED - Don't show any streak animations
               // They were causing React maximum update depth errors
               console.log(`Reached ${newStreakCount} streak milestone, awarding bonus tokens only`);
-              
+
               // NO ANIMATIONS, just silently award the bonus tokens
             }
           } catch (e) {
@@ -433,31 +453,31 @@ export default function HomePage() {
         // Reset streak counter for incorrect answers
         setCurrentStreak(0);
       }
-      
+
       // Update user data
       if (user) {
         // Check if user has enough tokens to advance to the next grade
         let updatedGrade = user.grade;
         let shouldShowLevelUp = false;
-        
+
         // Only check if user is not at the highest grade (6th)
         if (user.grade && user.grade !== '6' && GRADE_ADVANCEMENT_TOKENS[user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS]) {
           const requiredTokens = GRADE_ADVANCEMENT_TOKENS[user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS];
-          
+
           // If user will have enough tokens after this answer
           if (data.totalTokens >= requiredTokens) {
             // Get the next grade level
             const currentGradeIdx = Object.keys(GRADE_ADVANCEMENT_TOKENS).indexOf(user.grade);
             updatedGrade = Object.keys(GRADE_ADVANCEMENT_TOKENS)[currentGradeIdx + 1];
             shouldShowLevelUp = true;
-            
+
             // Set level up details to trigger animation
             setNewLevel(updatedGrade);
-            
+
             // Queue level up animation after a short delay
             setTimeout(() => {
               setShowLevelUpAnimation(true);
-              
+
               // Force dismissal after 2 seconds to prevent app crash
               setTimeout(() => {
                 setShowLevelUpAnimation(false);
@@ -465,17 +485,17 @@ export default function HomePage() {
             }, 1500);
           }
         }
-        
+
         // Store current token count to avoid infinite loop when updating user data
         const finalTokens = data.totalTokens;
         const updatedQuestionsAnswered = user.questionsAnswered + 1;
         const updatedCorrectAnswers = user.correctAnswers + (data.correct ? 1 : 0);
-        
+
         // Update user data including grade if advanced - but don't trigger a re-render cascade
         // by avoiding multiple updates to the same data
         queryClient.setQueryData(['/api/user'], prevUser => {
           if (!prevUser) return null;
-          
+
           // If the data is the same as what we just set, don't update to avoid infinite loop
           if (
             (prevUser as any).tokens === finalTokens && 
@@ -484,7 +504,7 @@ export default function HomePage() {
           ) {
             return prevUser;
           }
-          
+
           return {
             ...prevUser,
             tokens: finalTokens,
@@ -494,7 +514,7 @@ export default function HomePage() {
           };
         });
       }
-      
+
       // Check if session is complete (5 questions)
       // For Math Facts modules, we need to check if we've answered 5 questions locally
       // We want to stop exactly at 5 questions for all module types
@@ -505,44 +525,44 @@ export default function HomePage() {
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
-        
+
         // Set the final stats
         setSessionStats(finalStats);
-        
+
         setTimeout(() => {
           setSessionCompleted(true);
           setShowFeedback(false);
-          
+
           // Play session complete sound
           playSound('sessionComplete');
-          
+
           console.log("Session completed with stats:", finalStats);
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
     }
   });
-  
+
   const handleAnswerSubmit = (answer: string) => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
-    
+
     if (question) {
       answerMutation.mutate({ questionId: question.id, answer });
     }
   };
-  
+
   // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
-    
+
     // First set loading state to prevent showing old questions
     setIsManuallyLoading(true);
-    
+
     // Clear feedback
     setShowFeedback(false);
     setFeedbackData(null);
-    
+
     // Use the improved fetchNewQuestion method from our custom hook
     // This handles all the caching and duplicate prevention automatically
     fetchNewQuestion(true)
@@ -553,7 +573,7 @@ export default function HomePage() {
         }, 100);
       });
   };
-  
+
   // Simpler version with our improved hook
   const handleStartNewSession = () => {
     // Reset session
@@ -563,13 +583,13 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0
     });
-    
+
     // Clear tracking for a new session
     setAnsweredQuestionIds([]);
-    
+
     // Set loading to show spinner during fetch
     setIsManuallyLoading(true);
-    
+
     // Refresh the study plan after a session completes
     // This will update recommendations based on latest performance
     try {
@@ -583,7 +603,7 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error refreshing study plan:', error);
     }
-    
+
     // Use the improved hook's fetchNewQuestion function with forceDynamic=true
     // This handles all the caching and duplicate prevention automatically
     fetchNewQuestion(true)
@@ -594,9 +614,9 @@ export default function HomePage() {
         }, 100);
       });
   };
-  
+
   // Using progress percentage from the timer hook instead of manual calculation
-  
+
   // DISABLED duplicate question detection to fix infinite loop
   // We'll rely on the server-side exclusion instead
   /*
@@ -608,10 +628,10 @@ export default function HomePage() {
     ) {
       // If we've already seen this question in this session, log it and fetch a new one
       console.log(`Duplicate question detected in session: ID ${question.id}, fetching new question`);
-      
+
       // Set loading state to prevent showing the duplicate
       setIsManuallyLoading(true);
-      
+
       // Use our improved question hook to fetch a new question with duplicate prevention
       fetchNewQuestion(true) // forceDynamic=true to ensure variety
         .finally(() => {
@@ -623,12 +643,18 @@ export default function HomePage() {
     }
   }, [question, answeredQuestionIds, fetchNewQuestion, isManuallyLoading]);
   */
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      
-      <main className="flex-1 container mx-auto p-4">
+
+      <main className="flex-1 container mx-auto p-4 space-y-8">
+        <DashboardStats
+          myScore={1150}
+          cohortScore={1025}
+          questionsAnswered={574}
+          studyTime="12h 38min"
+        />
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-bold text-dark">Session Timer</h2>
@@ -639,11 +665,11 @@ export default function HomePage() {
           </div>
           {/* Progress bar removed - daily goals removed as per user request */}
         </div>
-        
+
         {/* Advanced features showcase */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {/* Daily Challenge removed as per user request */}
-          
+
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/practice'}>
             <div className="bg-primary/10 p-2 rounded-full">
               <Pencil className="h-5 w-5 text-primary" />
@@ -653,7 +679,7 @@ export default function HomePage() {
               <p className="text-xs text-gray-500">Create custom quizzes</p>
             </div>
           </div>
-          
+
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/tutor'}>
             <div className="bg-primary/10 p-2 rounded-full">
               <BookOpen className="h-5 w-5 text-primary" />
@@ -664,7 +690,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/multiplayer'}>
             <div className="bg-primary/10 p-2 rounded-full">
@@ -675,7 +701,7 @@ export default function HomePage() {
               <p className="text-xs text-gray-500">Compete with friends in real-time</p>
             </div>
           </div>
-          
+
           <div className="bg-white p-4 rounded-xl shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = '/analytics'}>
             <div className="bg-primary/10 p-2 rounded-full">
               <Brain className="h-5 w-5 text-primary" />
@@ -686,11 +712,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        
+
         {/* Math practice section */}
         <div className="mb-6">
           <h2 className="text-lg font-bold mb-4">Math Practice</h2>
-          
+
           {sessionCompleted ? (
             <SessionComplete
               correctAnswers={sessionStats.correctAnswers}
@@ -720,29 +746,29 @@ export default function HomePage() {
                   // We need to submit the question and mark it as incorrect
                   if (question) {
                     playSound('incorrect');
-                    
+
                     // Show incorrect feedback
                     setFeedbackData({
                       correct: false,
                       tokensEarned: 0,
                       correctAnswer: question.answer
                     });
-                    
+
                     setShowFeedback(true);
-                    
+
                     // Add question to answered questions
                     setAnsweredQuestionIds(prev => [...prev, question.id]);
-                    
+
                     // Update session stats - this is a timeout, so it's incorrect
                     setSessionStats(prev => ({
                       questionsAnswered: prev.questionsAnswered + 1,
                       correctAnswers: prev.correctAnswers,
                       tokensEarned: prev.tokensEarned
                     }));
-                    
+
                     // Reset streak counter for timeouts
                     setCurrentStreak(0);
-                    
+
                     // Check if session is complete (5 questions)
                     // For Math Facts modules, we need to check if we've answered 5 questions locally
                     // We want to stop exactly at 5 questions for all module types
@@ -753,14 +779,14 @@ export default function HomePage() {
                         correctAnswers: sessionStats.correctAnswers,
                         tokensEarned: sessionStats.tokensEarned
                       };
-                      
+
                       // Set the final stats
                       setSessionStats(finalStats);
-                      
+
                       setTimeout(() => {
                         setSessionCompleted(true);
                         setShowFeedback(false);
-                        
+
                         // Play session complete sound
                         playSound('sessionComplete');
                       }, 2000); // Show feedback for 2 seconds before showing session complete
@@ -794,10 +820,10 @@ export default function HomePage() {
                     const availableGrades = ['K', '1', '2', '3', '4', '5', '6'];
                     const currentIndex = availableGrades.indexOf(user?.grade || 'K');
                     const nextGrade = availableGrades[(currentIndex + 1) % availableGrades.length];
-                    
+
                     // Update user grade through API (optional implementation)
                     console.log(`Would switch to grade ${nextGrade}`);
-                    
+
                     // For now, just try to fetch a new question with forceDynamic=true
                     fetchNewQuestion(true);
                   }}
@@ -815,7 +841,7 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          
+
           {/* Show session progress */}
           {!sessionCompleted && (
             <div className="mt-4 text-center">
@@ -825,15 +851,15 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        
+
         {/* Daily Challenge completely removed as per user request */}
       </main>
-      
+
       <Navigation active="play" />
-      
+
       {/* Streak animation completely removed to prevent React infinite loops */}
-      
-      {/* Time achievement animation - also using simplified pattern */}
+
+      {/* Time achievement animation - alsousing simplified pattern */}
       {showTimeAchievement && (
         <TimeAchievement
           minutesSpent={timeAchievement}
@@ -844,7 +870,7 @@ export default function HomePage() {
           }}
         />
       )}
-      
+
       {/* Level up animation - also using simplified pattern */}
       {showLevelUpAnimation && (
         <LevelUpAnimation
