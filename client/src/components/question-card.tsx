@@ -172,16 +172,19 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       }
     }
     
-    // Submit the answer and track progress for Math Facts modules
+    // Submit the answer and track progress
     setTimeout(() => {
-      // Get progress from localStorage or initialize to 0
-      const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
-      const newProgress = currentProgress + 1;
+      const isCorrect = option === question.answer;
+      console.log(`Answer validation: selected=${option}, correct=${question.answer}, isCorrect=${isCorrect}`);
       
-      // Store updated progress and trigger answer handling
+      // Get progress from localStorage or initialize to 0 
+      const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
+      const newProgress = isCorrect ? currentProgress + 1 : currentProgress;
+      
+      // Store updated progress
       localStorage.setItem('mathFactsProgress', newProgress.toString());
       
-      // Add progress display element if it doesn't exist
+      // Update progress display
       let progressDisplay = document.querySelector('.session-progress');
       if (!progressDisplay) {
         progressDisplay = document.createElement('div');
@@ -190,7 +193,7 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       }
       progressDisplay.textContent = `Session Progress: ${newProgress}/5 questions`;
       
-      // Trigger answer handling
+      // Trigger answer handling with validation result
       onAnswer(option);
       
       // Reset progress after 5 questions
