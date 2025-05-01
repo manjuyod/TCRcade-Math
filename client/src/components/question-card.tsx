@@ -178,8 +178,17 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
       const newProgress = currentProgress + 1;
       
-      // Store updated progress
+      // Store updated progress and trigger answer handling
       localStorage.setItem('mathFactsProgress', newProgress.toString());
+      
+      // Add progress display element if it doesn't exist
+      let progressDisplay = document.querySelector('.session-progress');
+      if (!progressDisplay) {
+        progressDisplay = document.createElement('div');
+        progressDisplay.className = 'session-progress text-center mt-4 text-gray-600';
+        document.querySelector('.question-card')?.appendChild(progressDisplay);
+      }
+      progressDisplay.textContent = `Session Progress: ${newProgress}/5 questions`;
       
       // Trigger answer handling
       onAnswer(option);
