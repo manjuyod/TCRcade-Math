@@ -175,7 +175,9 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
     // Submit the answer and track progress
     setTimeout(() => {
       const isCorrect = option === question.answer;
-      console.log(`Answer validation: selected=${option}, correct=${question.answer}, isCorrect=${isCorrect}`);
+      console.log('Selected answer:', option);
+      console.log('Correct answer:', question.answer);
+      console.log('Is answer correct?', isCorrect ? 'Yes ✅' : 'No ❌');
       
       // Get progress from localStorage or initialize to 0 
       const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
