@@ -179,29 +179,24 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       console.log('Correct answer:', question.answer);
       console.log('Is answer correct?', isCorrect ? 'Yes ✅' : 'No ❌');
       
-      // Get progress from localStorage or initialize to 0 
+      // Don't manage session progress in localStorage anymore
+      // This is now handled in the home-page.tsx component with sessionStats
+      
+      // Get current progress just for display purposes
       const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
-      const newProgress = isCorrect ? currentProgress + 1 : currentProgress;
       
-      // Store updated progress
-      localStorage.setItem('mathFactsProgress', newProgress.toString());
-      
-      // Update progress display
+      // Update display only for current question
       let progressDisplay = document.querySelector('.session-progress');
       if (!progressDisplay) {
         progressDisplay = document.createElement('div');
         progressDisplay.className = 'session-progress text-center mt-4 text-gray-600';
         document.querySelector('.question-card')?.appendChild(progressDisplay);
       }
-      progressDisplay.textContent = `Session Progress: ${newProgress}/5 questions`;
+      progressDisplay.textContent = `Session Progress: ${currentProgress + 1}/5 questions`;
       
       // Trigger answer handling with validation result
+      // This will now handle all progress tracking in home-page.tsx
       onAnswer(option);
-      
-      // Reset progress after 5 questions
-      if (newProgress >= 5) {
-        localStorage.setItem('mathFactsProgress', '0');
-      }
     }, 100);
   };
   

@@ -395,17 +395,27 @@ export default function HomePage() {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
       }
 
-      // ONLY update session stats if this is not a Math Facts module
-      // For Math Facts modules, the stats were already updated in the try/catch block
+      // Update stats for ALL modules, including Math Facts modules
+      // This ensures session progress is properly tracked for Math Facts modules too
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
-
-      if (!isCurrentlyMathFactsModule) {
-        setSessionStats(prev => ({
+      
+      // Always update session stats regardless of module type
+      setSessionStats(prev => {
+        const newStats = {
           questionsAnswered: prev.questionsAnswered + 1,
           correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: prev.tokensEarned + data.tokensEarned
-        }));
-      }
+        };
+        
+        // For Math Facts, also update the localStorage progress value
+        if (isCurrentlyMathFactsModule) {
+          // Update the stored progress to match session stats
+          localStorage.setItem('mathFactsProgress', newStats.questionsAnswered.toString());
+          console.log(`Math Facts progress updated: ${newStats.questionsAnswered}/5`);
+        }
+        
+        return newStats;
+      });
 
       // Update streak counter
       if (data.correct) {
@@ -583,6 +593,10 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0
     });
+    
+    // Reset the localStorage progress for Math Facts modules
+    localStorage.setItem('mathFactsProgress', '0');
+    console.log('Math Facts progress reset for new session');
 
     // Clear tracking for a new session
     setAnsweredQuestionIds([]);
