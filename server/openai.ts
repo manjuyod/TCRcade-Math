@@ -6,6 +6,7 @@ if (!process.env.OPENAI_API_KEY) {
   console.error("⚠️ WARNING: OPENAI_API_KEY is not set in environment variables");
 } else {
   console.log("✓ OpenAI API key found in environment");
+  console.log("Key prefix:", process.env.OPENAI_API_KEY.substring(0, 3) + "...");
 }
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
