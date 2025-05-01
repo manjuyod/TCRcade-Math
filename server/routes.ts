@@ -1062,17 +1062,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.warn("Failed to fetch previous question details:", e);
           }
           
-          const generatedQuestion = await openaiService.generateAdaptiveQuestion({
-            grade,
-            category,
-            studentLevel: estimatedSkillLevel,
-            difficulty: dynamicDifficulty,
-            // Send detailed question history - or just IDs if we couldn't fetch details
-            previousQuestions: previousQuestionDetails.length > 0 
-              ? previousQuestionDetails 
-              : excludeIds.slice(-15), // Send the most recent questions
-            isMathFactsModule, // Pass flag to indicate if this is a math facts module
-          });
+          let generatedQuestion;
+          try {
+            // Try to generate question via OpenAI
+            generatedQuestion = await openaiService.generateAdaptiveQuestion({
+              grade,
+              category,
+              studentLevel: estimatedSkillLevel,
+              difficulty: dynamicDifficulty,
+              // Send detailed question history - or just IDs if we couldn't fetch details
+              previousQuestions: previousQuestionDetails.length > 0 
+                ? previousQuestionDetails 
+                : excludeIds.slice(-15), // Send the most recent questions
+              isMathFactsModule, // Pass flag to indicate if this is a math facts module
+            });
+            console.log("Successfully generated new question via OpenAI");
+          } catch (openaiError) {
+            console.error("Error generating adaptive question:", openaiError);
+            console.log("Falling back to local question generation...");
+            
+            // Import the debug service which has fallback question generation
+            const debugService = await import("./openai-debug");
+            
+            // Use the fallback question generator
+            generatedQuestion = await debugService.generateBasicQuestion(grade, category || "General");
+            console.log("Successfully generated new question via fallback");
+          }
           
           if (generatedQuestion && generatedQuestion.question) {
             // Get the unique ID either from the model or generate one
@@ -1096,7 +1111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             questionSource = "openai";
-            console.log("Successfully generated new question via OpenAI");
             
             // Return just the question, not wrapped in another object
             return res.json(newQuestion);
