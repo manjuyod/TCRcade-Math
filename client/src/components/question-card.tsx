@@ -285,13 +285,14 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
                 transition transform hover:scale-103
               `}
-              dangerouslySetInnerHTML={{
+            >
+              <span dangerouslySetInnerHTML={{
                 __html: katex.renderToString(formatMathExpression(option).replace(/\$/g, ''), {
                   throwOnError: false,
                   displayMode: false
                 })
-              }}
-            />
+              }} />
+            </motion.button>
           ))
         ) : (
           // If no options are provided, show an input field
