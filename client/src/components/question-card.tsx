@@ -172,9 +172,22 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       }
     }
     
-    // Submit the answer after a slight delay to ensure UI updates first
+    // Submit the answer and track progress for Math Facts modules
     setTimeout(() => {
+      // Get progress from localStorage or initialize to 0
+      const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
+      const newProgress = currentProgress + 1;
+      
+      // Store updated progress
+      localStorage.setItem('mathFactsProgress', newProgress.toString());
+      
+      // Trigger answer handling
       onAnswer(option);
+      
+      // Reset progress after 5 questions
+      if (newProgress >= 5) {
+        localStorage.setItem('mathFactsProgress', '0');
+      }
     }, 100);
   };
   
