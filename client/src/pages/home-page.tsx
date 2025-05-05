@@ -12,6 +12,7 @@ import StreakAnimation from '@/components/streak-animation';
 import TimeAchievement from '@/components/time-achievement';
 import LevelUpAnimation from '@/components/level-up-animation';
 import WordRaceGame from '@/components/word-race-game';
+import MascotController from '@/components/mascot-controller';
 // Daily Challenge removed as per user request
 import MathStorytelling from '@/components/math-storytelling';
 import AiMathTutor from '@/components/ai-math-tutor';
@@ -878,11 +879,11 @@ export default function HomePage() {
 
       {/* Streak animation completely removed to prevent React infinite loops */}
 
-      {/* Our friendly mascot character */}
-      <MascotController 
+      {/* Our friendly mascot character - temporarily commented out until we fix it */}
+      {/*<MascotController 
         correctStreak={currentStreak} 
         isSessionComplete={sessionCompleted} 
-      />
+      />*/}
 
       {/* Time achievement animation - alsousing simplified pattern */}
       {showTimeAchievement && (
