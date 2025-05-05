@@ -1,241 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math Facts Direct Test</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .test-panel {
-      background-color: #f5f5f5;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    select, button {
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ddd;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .question-display {
-      background-color: white;
-      border-radius: 8px;
-      padding: 30px;
-      text-align: center;
-      font-size: 60px;
-      min-height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .options {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .option {
-      padding: 15px;
-      background-color: #e0e0e0;
-      border-radius: 4px;
-      text-align: center;
-      cursor: pointer;
-      font-size: 20px;
-    }
-    .option:hover {
-      background-color: #d0d0d0;
-    }
-    .log {
-      background-color: #333;
-      color: #fff;
-      padding: 10px;
-      border-radius: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-      font-family: monospace;
-    }
-    .log-entry {
-      margin-bottom: 5px;
-      border-bottom: 1px solid #444;
-      padding-bottom: 5px;
-    }
-    .status {
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .success { color: #4CAF50; }
-    .error { color: #f44336; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Facts Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 8px 12px;
+        }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        #question-display {
+            margin-top: 30px;
+            min-height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .flashcard {
+            font-size: 60px;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+    </style>
 </head>
 <body>
-  <h1>Math Facts Direct Test</h1>
-  <p>This page tests the non-authenticated Math Facts endpoint directly.</p>
-  
-  <div class="test-panel">
+    <h1>Math Facts Test</h1>
+    
     <div class="controls">
-      <select id="grade">
-        <option value="K">Kindergarten</option>
-        <option value="1">Grade 1</option>
-        <option value="2">Grade 2</option>
-        <option value="3" selected>Grade 3</option>
-        <option value="4">Grade 4</option>
-        <option value="5">Grade 5</option>
-        <option value="6">Grade 6</option>
-      </select>
-      
-      <select id="operation">
-        <option value="addition">Addition</option>
-        <option value="subtraction">Subtraction</option>
-        <option value="multiplication">Multiplication</option>
-        <option value="division">Division</option>
-      </select>
-      
-      <button id="fetch-btn">Get Question</button>
+        <select id="grade">
+            <option value="K">Kindergarten</option>
+            <option value="1">Grade 1</option>
+            <option value="2">Grade 2</option>
+            <option value="3" selected>Grade 3</option>
+            <option value="4">Grade 4</option>
+            <option value="5">Grade 5</option>
+            <option value="6">Grade 6</option>
+        </select>
+        
+        <select id="operation">
+            <option value="addition">Addition</option>
+            <option value="subtraction">Subtraction</option>
+            <option value="multiplication" selected>Multiplication</option>
+            <option value="division">Division</option>
+        </select>
+        
+        <button id="fetch-btn">Fetch Questions</button>
     </div>
     
-    <div class="status" id="status">Ready to test</div>
-    
-    <div class="question-display" id="question-display">
-      Click "Get Question" to start
+    <div id="question-display">
+        <p>Select a grade and operation, then click "Fetch Questions" to test Math Facts questions.</p>
     </div>
     
-    <div class="options" id="options-container">
-      <!-- Options will be added here -->
-    </div>
-  </div>
-  
-  <div class="log" id="log">
-    <div class="log-entry">Waiting for API requests...</div>
-  </div>
-  
-  <script>
-    // DOM elements
-    const gradeSelect = document.getElementById('grade');
-    const operationSelect = document.getElementById('operation');
-    const fetchBtn = document.getElementById('fetch-btn');
-    const questionDisplay = document.getElementById('question-display');
-    const optionsContainer = document.getElementById('options-container');
-    const logContainer = document.getElementById('log');
-    const statusDisplay = document.getElementById('status');
-    
-    // Current question data
-    let currentQuestion = null;
-    
-    // Add log entry
-    function addLog(message, data = null) {
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.textContent = message;
-      
-      if (data) {
-        const pre = document.createElement('pre');
-        pre.textContent = JSON.stringify(data, null, 2);
-        entry.appendChild(pre);
-      }
-      
-      logContainer.appendChild(entry);
-      logContainer.scrollTop = logContainer.scrollHeight;
-    }
-    
-    // Update status
-    function updateStatus(message, isSuccess = true) {
-      statusDisplay.textContent = message;
-      statusDisplay.className = isSuccess ? 'status success' : 'status error';
-    }
-    
-    // Fetch a question
-    async function fetchQuestion() {
-      const grade = gradeSelect.value;
-      const operation = operationSelect.value;
-      
-      updateStatus(`Fetching ${operation} question for grade ${grade}...`);
-      questionDisplay.textContent = 'Loading...';
-      optionsContainer.innerHTML = '';
-      
-      try {
-        // Use the direct Math Facts endpoint
-        const url = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
-        addLog(`Fetching from: ${url}`);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        currentQuestion = data;
-        
-        addLog('Received question:', data);
-        
-        // Display the question
-        if (data.question && typeof data.question === 'object' && data.question.text) {
-          questionDisplay.textContent = data.question.text;
-        } else if (data.question && typeof data.question === 'string') {
-          questionDisplay.textContent = data.question;
-        } else {
-          questionDisplay.textContent = 'Error: Invalid question format';
-          throw new Error('Invalid question format');
-        }
-        
-        // Create option buttons
-        if (Array.isArray(data.options) && data.options.length > 0) {
-          optionsContainer.innerHTML = '';
-          
-          data.options.forEach(option => {
-            const optionBtn = document.createElement('div');
-            optionBtn.className = 'option';
-            optionBtn.textContent = option;
-            
-            // Add click handler
-            optionBtn.addEventListener('click', () => {
-              const isCorrect = option === data.answer;
-              optionBtn.style.backgroundColor = isCorrect ? '#4CAF50' : '#f44336';
-              optionBtn.style.color = 'white';
-              
-              updateStatus(
-                isCorrect ? 
-                  `Correct! Answer: ${data.answer}` : 
-                  `Incorrect. The correct answer is ${data.answer}`,
-                isCorrect
-              );
-            });
-            
-            optionsContainer.appendChild(optionBtn);
-          });
-        }
-        
-        updateStatus('Question loaded successfully');
-      } catch (error) {
-        addLog(`Error: ${error.message}`);
-        updateStatus(`Error: ${error.message}`, false);
-        questionDisplay.textContent = 'Error loading question';
-      }
-    }
-    
-    // Add event listeners
-    fetchBtn.addEventListener('click', fetchQuestion);
-    
-    // Log startup
-    addLog('Test page loaded, ready to fetch Math Facts questions');
-  </script>
+    <div id="results"></div>
+
+    <script src="test-math-facts.js"></script>
 </body>
 </html>

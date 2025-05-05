@@ -75,6 +75,23 @@ Math Facts questions (pure computation) are stored with a special format:
 - The category is prefixed with `math-facts-` (e.g., `math-facts-addition`)
 - The question is stored as a JSON object with special styling for flashcard-style display
 - The format is always "X [operator] Y = ?" (e.g., "7 + 5 = ?")
+- JSON structure contains:
+  ```json
+  {
+    "text": "1 × 5 = ?",
+    "style": {
+      "fontSize": "60px",
+      "fontWeight": "bold",
+      "textAlign": "center",
+      "display": "flex",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "padding": "20px",
+      "isFlashcard": true
+    },
+    "isFlashcard": true
+  }
+  ```
 
 ## Benefits of the Question Bank
 
