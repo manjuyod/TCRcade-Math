@@ -608,7 +608,7 @@ export default function AiAnalytics() {
                     {analytics.analytics.weaknessConcepts?.slice(0, 5).map((concept, i) => (
                       <div key={concept} className="space-y-2">
                         <div className="flex justify-between">
-                          <h4 className="font-medium">{concept}</h4>
+                          <h4 className="font-medium">{formatConceptName(concept)}</h4>
                           <Badge variant="outline" className="font-mono">
                             {40 - i * 8}% Mastery
                           </Badge>
@@ -798,7 +798,9 @@ function getConceptDescription(concept: string): string {
     'Word Problems': 'You effectively translate word problems into mathematical equations and solve them.',
   };
   
-  return descriptions[concept] || 'You show consistent mastery in this area with a high accuracy rate.';
+  // First try to find a description using the formatted concept name
+  const formattedConcept = formatConceptName(concept);
+  return descriptions[formattedConcept] || descriptions[concept] || 'You show consistent mastery in this area with a high accuracy rate.';
 }
 
 function getImprovementSuggestion(concept: string): string {
@@ -807,6 +809,8 @@ function getImprovementSuggestion(concept: string): string {
     'Subtraction': 'Focus on borrowing (regrouping) in complex problems to strengthen your skills.',
     'Multiplication': 'Review multiplication tables and practice multiplying larger numbers.',
     'Division': 'Work on long division problems and dividing with remainders.',
+    'Multiple Digit Division': 'Practice breaking down long division problems into manageable steps.',
+    'Long Division': 'Focus on the systematic approach to solving division with multi-digit numbers.',
     'Fractions': 'Practice comparing fractions with different denominators and equivalent fractions.',
     'Geometry': 'Focus on understanding shape properties and calculating area and perimeter.',
     'Time': 'Practice problems that involve calculating elapsed time between different clock readings.',
@@ -815,7 +819,9 @@ function getImprovementSuggestion(concept: string): string {
     'Word Problems': 'Focus on identifying the mathematical operations needed to solve different problem types.',
   };
   
-  return suggestions[concept] || 'Spend more time on this concept with focused practice sessions.';
+  // First try to find a suggestion using the formatted concept name
+  const formattedConcept = formatConceptName(concept);
+  return suggestions[formattedConcept] || suggestions[concept] || 'Spend more time on this concept with focused practice sessions.';
 }
 
 function getErrorAnalysis(error: string): string {
@@ -885,6 +891,41 @@ function getRatingLabel(value: number): string {
   if (value >= 50) return 'Developing';
   if (value > 0) return 'Needs Practice';
   return '-';
+}
+
+// Helper function to format concept names nicely
+function formatConceptName(concept: string): string {
+  // Map of specific concept names that need special formatting
+  const conceptMap: Record<string, string> = {
+    'multi_digit_divisor': 'Multiple Digit Division',
+    'multi_digit_division': 'Multiple Digit Division',
+    'long_division': 'Long Division',
+    'division': 'Division',
+    'multiplication': 'Multiplication',
+    'addition': 'Addition',
+    'subtraction': 'Subtraction',
+    'fractions': 'Fractions',
+    'decimals': 'Decimals',
+    'word_problems': 'Word Problems',
+    'percentages': 'Percentages',
+    'algebra': 'Algebra',
+    'geometry': 'Geometry',
+    'measurement': 'Measurement',
+    'time': 'Time',
+    'money': 'Money',
+    'place_value': 'Place Value'
+  };
+  
+  // Check if we have a specific mapping for this concept
+  if (conceptMap[concept]) {
+    return conceptMap[concept];
+  }
+  
+  // Otherwise, convert snake_case to Title Case
+  return concept
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 function formatActivityName(activity: string): string {
