@@ -750,6 +750,7 @@ export default function HomePage() {
               tokensEarned={feedbackData.tokensEarned}
               correctAnswer={feedbackData.correctAnswer}
               onNextQuestion={handleNextQuestion}
+              isSessionComplete={(sessionStats.questionsAnswered + (feedbackData.correct ? 1 : 0)) >= sessionSize}
             />
           ) : question ? (
             currentModuleType === 'word_race' ? (
