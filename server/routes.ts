@@ -986,15 +986,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Track the method used to obtain the question for analytics 
       let questionSource = "database";
-      
-      // Determine if we should use OpenAI to generate fresh question
-      // More aggressive now - use OpenAI more often to ensure variety
-      const shouldUseOpenAI = 
-        forceDynamic || // Explicit request for dynamic content
-        excludeIds.length > 30 || // User has seen a lot of questions already
-        Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
-        
-      // Check if we can use the cache for this request
+
+      // First check if we can use the cache for this request
       if (!forceDynamic && excludeIds.length > 0) {
         // Create cache key based on user parameters
         const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
@@ -1011,7 +1004,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Try using OpenAI for generating new questions 
+      // NEW: Try to get a question from our question bank first
+      try {
+        const questionBank = await import('./question-bank');
+        const bankQuestion = await questionBank.getRandomQuestionFromBank(
+          grade, 
+          category, 
+          excludeIds, 
+          isMathFactsModule
+        );
+        
+        if (bankQuestion) {
+          console.log(`Found question in question bank with ID: ${bankQuestion.id}`);
+          questionSource = "question_bank";
+          
+          // Also cache this question for future requests
+          if (!forceDynamic) {
+            const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
+            questionCache.set(cacheKey, {
+              question: bankQuestion,
+              timestamp: Date.now()
+            });
+            console.log(`Added question to cache with key: ${cacheKey}`);
+          }
+          
+          return res.json(bankQuestion);
+        } else {
+          console.log("No suitable question found in question bank, falling back to other methods");
+        }
+      } catch (error) {
+        console.error("Error fetching from question bank:", error);
+      }
+      
+      // Determine if we should use OpenAI to generate fresh question
+      // More aggressive now - use OpenAI more often to ensure variety
+      const shouldUseOpenAI = 
+        forceDynamic || // Explicit request for dynamic content
+        excludeIds.length > 30 || // User has seen a lot of questions already
+        Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
+        
+      // Try using OpenAI for generating new questions - only if question bank didn't return any results
       if (shouldUseOpenAI) {
         try {
           const openaiService = await import('./openai');
