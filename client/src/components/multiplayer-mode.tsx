@@ -158,6 +158,9 @@ export default function MultiplayerMode() {
       return res.json() as Promise<MultiplayerRoom>;
     },
     onSuccess: (data) => {
+      // Reset form fields after successful room creation
+      setSelectedAdjective('');
+      setSelectedNoun('');
       setActiveRoomId(data.id);
       setView('room');
       toast({
@@ -528,7 +531,7 @@ export default function MultiplayerMode() {
     if (!roomName.trim()) {
       toast({
         title: 'Error',
-        description: 'Please enter a room name',
+        description: 'Please select both an adjective and a noun for your room name',
         variant: 'destructive',
         dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
@@ -993,7 +996,12 @@ export default function MultiplayerMode() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setView('browse')}>
+                <Button variant="outline" onClick={() => {
+                  // Reset form fields when canceling
+                  setSelectedAdjective('');
+                  setSelectedNoun('');
+                  setView('browse');
+                }}>
                   Cancel
                 </Button>
                 <Button 
