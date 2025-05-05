@@ -9,27 +9,42 @@ This document explains how to use the question bank generation scripts to popula
 To generate questions for all grades and all categories (including Math Facts):
 
 ```bash
-./generate-question-bank.sh
+./generate-question-bank.sh [count]
 ```
 
-This will generate approximately 200 questions per grade/category combination. The process may take a long time to complete.
+This will generate approximately `count` questions per grade/category combination (default is 50). The process may take a long time to complete.
 
-### 2. Generate Questions for a Specific Grade
+### 2. Generate All Questions for a Specific Grade
 
-To generate questions for a specific grade level only:
+To generate all question types (Math Facts and standard questions) for a specific grade:
 
 ```bash
-./generate-questions-for-grade.sh <grade>
+./generate-all-for-grade.sh <grade> [count]
 ```
 
 Example:
 ```bash
-./generate-questions-for-grade.sh 3
+./generate-all-for-grade.sh 3 100
 ```
 
-This will generate questions for all categories and Math Facts operations for grade 3 only.
+This will generate 100 questions per operation for Math Facts (addition, subtraction, multiplication, division) and 100 questions per category for standard questions, all for grade 3 only.
 
-### 3. Generate Math Facts Questions
+### 3. Generate Standard Questions for a Specific Grade
+
+To generate standard questions (not Math Facts) for a specific grade level:
+
+```bash
+./generate-questions-for-grade.sh <grade> [count]
+```
+
+Example:
+```bash
+./generate-questions-for-grade.sh 3 50
+```
+
+This will generate 50 standard questions per category for grade 3.
+
+### 4. Generate Math Facts Questions
 
 To generate Math Facts questions (pure computation) for a specific grade and operation:
 

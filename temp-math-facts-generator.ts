@@ -1,8 +1,8 @@
 import { generateMathFacts } from './server/scripts/generate-question-bank';
 
 async function main() {
-  const grade = "3";
-  const operation = "multiplication";
+  const grade = "2";
+  const operation = "addition";
   const count = 5;
   
   console.log(`\nGenerating Math Facts questions:`);
