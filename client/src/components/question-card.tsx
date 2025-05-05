@@ -2,9 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { getCategoryLabel } from '@/lib/questions';
-import { formatMathExpression } from '@/lib/math-formatting';
-import 'katex/dist/katex.min.css';
-import katex from 'katex';
 
 type QuestionCardProps = {
   question: Question;
@@ -232,31 +229,21 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 minHeight: '120px'
               }}
             >
-              <motion.div
+              <motion.span
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5 }}
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(formatMathExpression(questionText).replace(/\$/g, ''), {
-                    throwOnError: false,
-                    displayMode: true
-                  })
-                }}
+                dangerouslySetInnerHTML={{ __html: questionText }}
               />
             </div>
           </div>
         ) : (
-          <motion.div
+          <motion.h3
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5 }}
             className="text-xl md:text-2xl font-bold text-dark mb-2"
-            dangerouslySetInnerHTML={{
-              __html: katex.renderToString(formatMathExpression(questionText).replace(/\$/g, ''), {
-                throwOnError: false,
-                displayMode: false
-              })
-            }}
+            dangerouslySetInnerHTML={{ __html: questionText }}
           />
         )}
         
@@ -285,13 +272,9 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
                 transition transform hover:scale-103
               `}
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(formatMathExpression(option).replace(/\$/g, ''), {
-                  throwOnError: false,
-                  displayMode: false
-                })
-              }}
-            />
+            >
+              {option}
+            </motion.button>
           ))
         ) : (
           // If no options are provided, show an input field
