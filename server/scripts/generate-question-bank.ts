@@ -106,36 +106,106 @@ async function generateMathFactsQuestions(grade: string, operation: string, coun
     
     // Generate question based on operation
     if (operation === 'addition') {
-      const num1 = Math.floor(Math.random() * maxNum);
-      const num2 = Math.floor(Math.random() * maxNum);
+      // Adjust ranges based on grade level
+      let num1, num2;
+      if (grade === 'K') {
+        // Kindergarten: Single-digit addition (0-9)
+        num1 = Math.floor(Math.random() * 10);
+        num2 = Math.floor(Math.random() * 10);
+      } else if (grade === '1') {
+        // 1st grade: Mix of single-digit and adding to 20
+        num1 = Math.floor(Math.random() * 15);
+        num2 = Math.floor(Math.random() * 10);
+      } else if (grade === '2') {
+        // 2nd grade: Two-digit addition up to 100
+        num1 = Math.floor(Math.random() * 50) + 10;
+        num2 = Math.floor(Math.random() * 40) + 1;
+      } else {
+        // Higher grades: Larger numbers
+        num1 = Math.floor(Math.random() * (maxNum / 2)) + Math.floor(maxNum / 10);
+        num2 = Math.floor(Math.random() * (maxNum / 2)) + 1;
+      }
       question = `${num1} + ${num2} = ?`;
       answer = (num1 + num2).toString();
     } else if (operation === 'subtraction') {
-      let num1 = Math.floor(Math.random() * maxNum);
-      let num2 = Math.floor(Math.random() * (num1 + 1)); // Ensure num2 <= num1 to avoid negative results for younger grades
+      // Adjust ranges for subtraction based on grade
+      let num1, num2;
+      if (grade === 'K') {
+        // Kindergarten: Single-digit subtraction, no negative results
+        num1 = Math.floor(Math.random() * 10) + 1;
+        num2 = Math.floor(Math.random() * num1);
+      } else if (grade === '1') {
+        // 1st grade: Subtraction within 20
+        num1 = Math.floor(Math.random() * 20) + 1;
+        num2 = Math.floor(Math.random() * num1);
+      } else if (grade === '2') {
+        // 2nd grade: Two-digit subtraction
+        num1 = Math.floor(Math.random() * 90) + 10;
+        num2 = Math.floor(Math.random() * (num1 - 1)) + 1;
+      } else {
+        // Higher grades: Larger numbers
+        num1 = Math.floor(Math.random() * maxNum) + Math.floor(maxNum / 10);
+        num2 = Math.floor(Math.random() * (num1 - 1)) + 1;
+      }
       question = `${num1} - ${num2} = ?`;
       answer = (num1 - num2).toString();
     } else if (operation === 'multiplication') {
-      // For K and 1st grade, use very small numbers
-      const maxFactor = grade === 'K' ? 5 : 
-                        grade === '1' ? 10 :
-                        grade === '2' ? 12 :
-                        grade === '3' ? 12 : 20;
-      const num1 = Math.floor(Math.random() * maxFactor) + 1; // Avoid multiplication by 0
-      const num2 = Math.floor(Math.random() * maxFactor) + 1;
+      // Multiplication tables appropriate for grade level
+      let num1, num2;
+      if (grade === 'K') {
+        // Kindergarten: Very basic multiplication (1-3)×(1-3)
+        num1 = Math.floor(Math.random() * 3) + 1;
+        num2 = Math.floor(Math.random() * 3) + 1;
+      } else if (grade === '1') {
+        // 1st grade: Basic multiplication tables up to 5×5
+        num1 = Math.floor(Math.random() * 5) + 1;
+        num2 = Math.floor(Math.random() * 5) + 1;
+      } else if (grade === '2') {
+        // 2nd grade: Multiplication tables up to 10×10
+        num1 = Math.floor(Math.random() * 10) + 1;
+        num2 = Math.floor(Math.random() * 10) + 1;
+      } else if (grade === '3') {
+        // 3rd grade: Multiplication tables up to 12×12
+        num1 = Math.floor(Math.random() * 12) + 1;
+        num2 = Math.floor(Math.random() * 12) + 1;
+      } else {
+        // Higher grades: More challenging multiplication
+        const maxFactor = Math.min(20, Math.floor(Math.sqrt(maxNum)));
+        num1 = Math.floor(Math.random() * maxFactor) + 1;
+        num2 = Math.floor(Math.random() * maxFactor) + 1;
+      }
       question = `${num1} × ${num2} = ?`;
       answer = (num1 * num2).toString();
     } else if (operation === 'division') {
-      // Generate division questions that result in whole numbers
-      // For younger grades, use smaller numbers
-      const maxDivisor = grade === 'K' ? 5 : 
-                          grade === '1' ? 10 :
-                          grade === '2' ? 12 : 20;
-      
-      const divisor = Math.floor(Math.random() * maxDivisor) + 1; // 1-10 or 1-12 based on grade
-      const quotient = Math.floor(Math.random() * maxDivisor) + 1; // 1-10 or 1-12 based on grade
-      const dividend = divisor * quotient; // This ensures division results in a whole number
-      
+      // Division that results in whole numbers only
+      let divisor, dividend, quotient;
+      if (grade === 'K') {
+        // Kindergarten: Very simple division (dividend ≤ 10)
+        divisor = Math.floor(Math.random() * 2) + 1; // 1-2
+        quotient = Math.floor(Math.random() * 3) + 1; // 1-3
+        dividend = divisor * quotient;
+      } else if (grade === '1') {
+        // 1st grade: Simple division up to 20÷5
+        divisor = Math.floor(Math.random() * 5) + 1; // 1-5
+        quotient = Math.floor(Math.random() * 4) + 1; // 1-4
+        dividend = divisor * quotient;
+      } else if (grade === '2') {
+        // 2nd grade: Division with single-digit divisors
+        divisor = Math.floor(Math.random() * 9) + 1; // 1-9
+        quotient = Math.floor(Math.random() * 10) + 1; // 1-10
+        dividend = divisor * quotient;
+      } else if (grade === '3') {
+        // 3rd grade: Division with divisors up to 12
+        divisor = Math.floor(Math.random() * 12) + 1; // 1-12
+        quotient = Math.floor(Math.random() * 12) + 1; // 1-12
+        dividend = divisor * quotient;
+      } else {
+        // Higher grades: More challenging division
+        const maxDivisor = Math.min(20, Math.floor(Math.sqrt(maxNum)));
+        divisor = Math.floor(Math.random() * maxDivisor) + 1;
+        quotient = Math.floor(Math.random() * maxDivisor) + 1;
+        dividend = divisor * quotient;
+      }
       question = `${dividend} ÷ ${divisor} = ?`;
       answer = quotient.toString();
     }
@@ -143,16 +213,61 @@ async function generateMathFactsQuestions(grade: string, operation: string, coun
     // Generate options (including correct answer)
     if (question && answer) {
       const answerNum = parseInt(answer);
-      options = [
-        answerNum.toString(),
-        (answerNum + 1).toString(),
-        (answerNum - 1).toString(),
-        (answerNum + 2).toString()
-      ];
+      
+      // Generate reasonable distractors based on the correct answer
+      let distractors = [];
+      
+      // For small numbers (under 10), use a small range of options
+      if (answerNum < 10) {
+        for (let j = Math.max(0, answerNum - 3); j <= answerNum + 3; j++) {
+          if (j !== answerNum) distractors.push(j.toString());
+        }
+      }
+      // For medium numbers (under 100), use common errors
+      else if (answerNum < 100) {
+        // Off by one errors
+        distractors.push((answerNum + 1).toString());
+        distractors.push((answerNum - 1).toString());
+        
+        // Transposition errors (if applicable)
+        if (answerNum >= 10) {
+          const tensDigit = Math.floor(answerNum / 10);
+          const onesDigit = answerNum % 10;
+          if (tensDigit !== onesDigit) {
+            distractors.push((onesDigit * 10 + tensDigit).toString());
+          }
+        }
+        
+        // Off by ten errors
+        distractors.push((answerNum + 10).toString());
+        distractors.push((answerNum - 10).toString());
+      }
+      // For large numbers, use percentage-based errors
+      else {
+        distractors.push((answerNum + 1).toString());
+        distractors.push((answerNum - 1).toString());
+        distractors.push(Math.round(answerNum * 1.1).toString()); // 10% too high
+        distractors.push(Math.round(answerNum * 0.9).toString()); // 10% too low
+        distractors.push((answerNum + 10).toString());
+        distractors.push((answerNum - 10).toString());
+      }
+      
+      // Filter out negative or duplicate distractors
+      distractors = distractors.filter(d => parseInt(d) >= 0 && d !== answer);
+      
+      // Ensure we have at least 3 options plus the correct answer
+      while (distractors.length < 3) {
+        const offset = distractors.length + 1;
+        distractors.push((answerNum + offset).toString());
+      }
+      
+      // Take first 3 distractors and add the correct answer
+      options = [answer, ...distractors.slice(0, 3)];
       
       // Shuffle options
       options = options.sort(() => Math.random() - 0.5);
       
+      // Create the question object with proper formatting for flashcard style
       generatedQuestions.push({
         grade,
         category: `math-facts-${operation}`,
@@ -192,12 +307,24 @@ async function saveQuestionsToDB(questionsData: any[]) {
   try {
     // Insert questions in batches to avoid overwhelming the DB
     const BATCH_SIZE = 50;
-    for (let i = 0; i < questionsData.length; i += BATCH_SIZE) {
-      const batch = questionsData.slice(i, i + BATCH_SIZE);
+    
+    // Process the data to remove any problematic ID fields
+    // PostgreSQL serial type will auto-assign IDs
+    const processedData = questionsData.map(question => {
+      // Create a new object without the id field
+      const { id, ...questionWithoutId } = question;
+      
+      // Return the question without an ID so PostgreSQL can assign one
+      return questionWithoutId;
+    });
+    
+    for (let i = 0; i < processedData.length; i += BATCH_SIZE) {
+      const batch = processedData.slice(i, i + BATCH_SIZE);
       await db.insert(questions).values(batch);
-      console.log(`  Saved batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(questionsData.length/BATCH_SIZE)}`);
+      console.log(`  Saved batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(processedData.length/BATCH_SIZE)}`);
     }
-    console.log(`Successfully saved ${questionsData.length} questions to database.`);
+    
+    console.log(`Successfully saved ${processedData.length} questions to database.`);
     return true;
   } catch (error) {
     console.error('Error saving questions to database:', error);

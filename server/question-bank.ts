@@ -22,33 +22,33 @@ export async function getRandomQuestionFromBank(grade: string, category?: string
   try {
     console.log(`Fetching random question from bank: grade=${grade}, category=${category || 'any'}, excludeIds.length=${excludeIds.length}, isMathFactsModule=${isMathFactsModule}`);
     
-    // Create base query
-    let query = db.select().from(questions).where(eq(questions.grade, grade));
+    // Build conditions array for the WHERE clause
+    const conditions = [eq(questions.grade, grade)];
     
     // Add category filter if specified
     if (category) {
       if (isMathFactsModule) {
         // For Math Facts modules, the category is stored as math-facts-[operation]
-        query = query.where(eq(questions.category, `math-facts-${category}`));
+        conditions.push(eq(questions.category, `math-facts-${category}`));
       } else {
-        query = query.where(eq(questions.category, category));
+        conditions.push(eq(questions.category, category));
       }
     }
     
     // Exclude previously seen questions if specified
-    if (excludeIds.length > 0) {
+    if (excludeIds.length > 0 && excludeIds.some(id => !isNaN(id) && id > 0)) {
       // Only exclude up to 1000 ids to prevent query size issues
-      const limitedExcludeIds = excludeIds.slice(-1000);
-      query = query.where(not(inArray(questions.id, limitedExcludeIds)));
+      const limitedExcludeIds = excludeIds.slice(-1000).filter(id => !isNaN(id) && id > 0);
+      conditions.push(not(inArray(questions.id, limitedExcludeIds)));
     }
     
-    // Add random order and limit
-    // Note: Different databases handle random ordering differently
-    // PostgreSQL uses RANDOM()
-    query = query.orderBy(sql`RANDOM()`).limit(1);
-    
-    // Execute query
-    const results = await query;
+    // Execute query with all conditions, random order, and limit
+    const results = await db
+      .select()
+      .from(questions)
+      .where(and(...conditions))
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
     
     // Return random question or null if none found
     if (results.length > 0) {
@@ -73,16 +73,20 @@ export async function getRandomQuestionFromBank(grade: string, category?: string
  */
 export async function countQuestionsInBank(grade: string, category?: string) {
   try {
-    // Create base query
-    let query = db.select({ count: sql<number>`count(*)` }).from(questions).where(eq(questions.grade, grade));
+    // Build conditions array for the WHERE clause
+    const conditions = [eq(questions.grade, grade)];
     
     // Add category filter if specified
     if (category) {
-      query = query.where(eq(questions.category, category));
+      conditions.push(eq(questions.category, category));
     }
     
-    // Execute query
-    const result = await query;
+    // Execute query with conditions
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(questions)
+      .where(and(...conditions));
+    
     return result[0]?.count || 0;
   } catch (error) {
     console.error('Error counting questions in bank:', error);
