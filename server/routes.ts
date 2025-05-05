@@ -2909,6 +2909,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MULTIPLAYER ROUTES
   // ==========================
   
+  // Clear expired multiplayer rooms (older than 24 hours)
+  app.post("/api/multiplayer/clear-expired", ensureAuthenticated, async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const roomsCleared = await storage.clearExpiredMultiplayerRooms();
+      res.json({ roomsCleared });
+      console.log(`Admin ${req.user.username} cleared ${roomsCleared} expired multiplayer rooms`);
+    } catch (error) {
+      console.error("Error clearing expired multiplayer rooms:", error);
+      res.status(500).json({ error: "Failed to clear expired multiplayer rooms" });
+    }
+  });
+
+  // Clear ALL active multiplayer rooms (admin only)
+  app.post("/api/multiplayer/clear-all", ensureAuthenticated, async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.user?.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const roomsCleared = await storage.clearAllMultiplayerRooms();
+      res.json({ roomsCleared });
+      console.log(`Admin ${req.user.username} cleared ALL ${roomsCleared} active multiplayer rooms`);
+    } catch (error) {
+      console.error("Error clearing all multiplayer rooms:", error);
+      res.status(500).json({ error: "Failed to clear all multiplayer rooms" });
+    }
+  });
+  
   // Get all active multiplayer rooms
   app.get("/api/multiplayer/rooms", ensureAuthenticated, async (req, res) => {
     try {

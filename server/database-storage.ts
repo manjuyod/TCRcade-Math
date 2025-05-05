@@ -790,7 +790,49 @@ export class DatabaseStorage implements IStorage {
     return room;
   }
 
+  /**
+   * Clear expired multiplayer rooms (older than 24 hours)
+   * @returns Number of rooms cleared
+   */
+  async clearExpiredMultiplayerRooms(): Promise<number> {
+    // Calculate the date 24 hours ago
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    
+    // Find rooms older than 24 hours and set them as inactive
+    const result = await db
+      .update(multiplayerRooms)
+      .set({ isActive: false })
+      .where(
+        and(
+          eq(multiplayerRooms.isActive, true),
+          lt(multiplayerRooms.createdAt, oneDayAgo)
+        )
+      );
+      
+    console.log(`Cleared ${result.rowCount} expired multiplayer rooms`);
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Clear all active multiplayer rooms (admin only function)
+   * @returns Number of rooms cleared
+   */
+  async clearAllMultiplayerRooms(): Promise<number> {
+    // Set all active rooms to inactive
+    const result = await db
+      .update(multiplayerRooms)
+      .set({ isActive: false })
+      .where(eq(multiplayerRooms.isActive, true));
+      
+    console.log(`Cleared all ${result.rowCount} active multiplayer rooms`);
+    return result.rowCount || 0;
+  }
+
   async listActiveMultiplayerRooms(grade?: string): Promise<MultiplayerRoom[]> {
+    // First, clear any expired rooms (older than 24 hours)
+    await this.clearExpiredMultiplayerRooms();
+    
     let query = db
       .select()
       .from(multiplayerRooms)
