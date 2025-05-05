@@ -878,6 +878,12 @@ export default function HomePage() {
 
       {/* Streak animation completely removed to prevent React infinite loops */}
 
+      {/* Our friendly mascot character */}
+      <MascotController 
+        correctStreak={currentStreak} 
+        isSessionComplete={sessionCompleted} 
+      />
+
       {/* Time achievement animation - alsousing simplified pattern */}
       {showTimeAchievement && (
         <TimeAchievement

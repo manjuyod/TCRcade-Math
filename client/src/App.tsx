@@ -18,6 +18,7 @@ import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
 import Navigation from "@/components/navigation";
 import ScrollToTop from "@/components/scroll-to-top";
+import MascotController from "@/components/mascot-controller";
 
 
 // Avatar functionality has been removed
@@ -106,6 +107,8 @@ function App() {
         <NavigationWrapper>
           <Router />
         </NavigationWrapper>
+        {/* Our friendly mascot character */}
+        <MascotController />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

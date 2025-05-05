@@ -30,8 +30,20 @@ export default function FeedbackMessage({
   // Create a ref for the container div to position the confetti
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Show confetti celebration for correct answers
+  // Show celebrations or feedback based on answer correctness
   useEffect(() => {
+    // Try to trigger appropriate mascot message (for both correct and incorrect answers)
+    try {
+      // @ts-ignore - Accessing the global function we added
+      if (window.triggerMascotEvent) {
+        // @ts-ignore
+        window.triggerMascotEvent(correct ? 'correct' : 'incorrect');
+      }
+    } catch (e) {
+      console.error('Failed to trigger mascot event:', e);
+    }
+    
+    // Only show confetti for correct answers
     if (correct && containerRef.current) {
       // Shoot confetti from the top center of the screen
       const duration = 800; // Duration of confetti in milliseconds
