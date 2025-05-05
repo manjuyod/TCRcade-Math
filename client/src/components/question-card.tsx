@@ -237,12 +237,10 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5 }}
                 dangerouslySetInnerHTML={{
-                  __html: questionText.includes('=') || questionText.includes('+') || questionText.includes('-') || questionText.includes('×') || questionText.includes('÷')
-                    ? katex.renderToString(formatMathExpression(questionText).replace(/\$/g, ''), {
-                        throwOnError: false,
-                        displayMode: true
-                      })
-                    : questionText
+                  __html: katex.renderToString(formatMathExpression(questionText).replace(/\$/g, ''), {
+                    throwOnError: false,
+                    displayMode: true
+                  })
                 }}
               />
             </div>
@@ -254,7 +252,10 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
             transition={{ duration: 0.5 }}
             className="text-xl md:text-2xl font-bold text-dark mb-2"
             dangerouslySetInnerHTML={{
-              __html: questionText
+              __html: katex.renderToString(formatMathExpression(questionText).replace(/\$/g, ''), {
+                throwOnError: false,
+                displayMode: false
+              })
             }}
           />
         )}
@@ -284,18 +285,13 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
                 ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
                 transition transform hover:scale-103
               `}
-            >
-              <span dangerouslySetInnerHTML={{
-                __html: isMathFactsModule || option.includes('/') || option.includes('=') || option.includes('+') || 
-                        option.includes('-') || option.includes('×') || option.includes('÷') || option.includes('*') ||
-                        option.includes('\\') || option.includes('^') || /\d\s*[a-zA-Z]/.test(option) // Number followed by a letter (like 3x)
-                  ? katex.renderToString(formatMathExpression(option).replace(/\$/g, ''), {
-                      throwOnError: false,
-                      displayMode: false
-                    })
-                  : option
-              }} />
-            </motion.button>
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(formatMathExpression(option).replace(/\$/g, ''), {
+                  throwOnError: false,
+                  displayMode: false
+                })
+              }}
+            />
           ))
         ) : (
           // If no options are provided, show an input field
