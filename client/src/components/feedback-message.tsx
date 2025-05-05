@@ -9,13 +9,15 @@ type FeedbackMessageProps = {
   tokensEarned: number;
   correctAnswer: string;
   onNextQuestion: () => void;
+  isSessionComplete?: boolean; // Add flag to check if session is complete
 };
 
 export default function FeedbackMessage({ 
   correct, 
   tokensEarned, 
   correctAnswer, 
-  onNextQuestion 
+  onNextQuestion,
+  isSessionComplete = false // Default to false if not provided
 }: FeedbackMessageProps) {
   // Function to handle clicking Next Question
   const handleNextClick = () => {
@@ -51,9 +53,13 @@ export default function FeedbackMessage({
       console.log('🎉 Playing confetti animation for correct answer!');
     }
 
-    // Auto-advance to next question after 1 second
+    // Auto-advance to next question after 1 second, but only if the session is not complete
     const timer = setTimeout(() => {
-      handleNextClick();
+      // Only advance to next question if the session is not complete
+      if (!isSessionComplete) {
+        handleNextClick();
+      }
+      // Otherwise, do nothing - the session complete screen will appear
     }, 1200); // Slightly increased to allow confetti to be visible
     
     // Clean up timer if component unmounts
