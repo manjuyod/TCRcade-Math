@@ -401,6 +401,9 @@ export default function HomePage() {
       });
       setShowFeedback(true);
 
+      // Update localStorage for mascot to respond
+      localStorage.setItem('lastAnswerResult', data.correct ? 'correct' : 'incorrect');
+
       // Add question to answered questions
       if (question) {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
@@ -436,6 +439,8 @@ export default function HomePage() {
 
         // Increment the streak counter for correct answers
         setCurrentStreak(newStreakCount);
+        // Update localStorage for mascot controller to detect
+        localStorage.setItem('currentStreak', newStreakCount.toString());
 
         // Check if we've hit a milestone - EVEN MORE SIMPLIFIED VERSION
         // This won't create any new objects or cause React update issues
@@ -474,6 +479,7 @@ export default function HomePage() {
       } else {
         // Reset streak counter for incorrect answers
         setCurrentStreak(0);
+        localStorage.setItem('currentStreak', '0');
       }
 
       // Update user data
@@ -554,6 +560,8 @@ export default function HomePage() {
 
         setTimeout(() => {
           setSessionCompleted(true);
+          // Update localStorage for mascot controller to detect
+          localStorage.setItem('sessionCompleted', 'true');
           setShowFeedback(false);
 
           // Play session complete sound
@@ -822,6 +830,8 @@ export default function HomePage() {
 
                       setTimeout(() => {
                         setSessionCompleted(true);
+                        // Update localStorage for mascot controller to detect
+                        localStorage.setItem('sessionCompleted', 'true');
                         setShowFeedback(false);
 
                         // Play session complete sound
@@ -896,11 +906,11 @@ export default function HomePage() {
 
       {/* Streak animation completely removed to prevent React infinite loops */}
 
-      {/* Our friendly mascot character - temporarily commented out until we fix it */}
-      {/*<MascotController 
+      {/* Our friendly mascot character */}
+      <MascotController 
         correctStreak={currentStreak} 
         isSessionComplete={sessionCompleted} 
-      />*/}
+      />
 
       {/* Time achievement animation - alsousing simplified pattern */}
       {showTimeAchievement && (
