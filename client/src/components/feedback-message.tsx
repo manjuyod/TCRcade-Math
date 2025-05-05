@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import confetti from 'canvas-confetti';
 import { stopAllSounds } from '@/lib/sounds';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 type FeedbackMessageProps = {
   correct: boolean;
@@ -27,23 +27,47 @@ export default function FeedbackMessage({
     onNextQuestion();
   };
 
-  // Auto-advance to next question after 1 second
+  // Create a ref for the container div to position the confetti
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Show confetti celebration for correct answers
   useEffect(() => {
+    if (correct && containerRef.current) {
+      // Shoot confetti from the top center of the screen
+      const duration = 800; // Duration of confetti in milliseconds
+      const particleCount = 150; // Number of confetti particles
+
+      // Create a colorful celebration with confetti
+      confetti({
+        particleCount: particleCount,
+        spread: 100,
+        origin: { y: 0.3, x: 0.5 }, // Start from top middle of screen
+        colors: ['#FFA500', '#FFD700', '#FF4500', '#FF6347', '#00FF00', '#1E90FF'],
+        zIndex: 1000,
+        disableForReducedMotion: true, // Accessibility consideration
+        scalar: 1.2 // Make confetti slightly larger
+      });
+
+      console.log('🎉 Playing confetti animation for correct answer!');
+    }
+
+    // Auto-advance to next question after 1 second
     const timer = setTimeout(() => {
       handleNextClick();
-    }, 1000);
+    }, 1200); // Slightly increased to allow confetti to be visible
     
     // Clean up timer if component unmounts
     return () => clearTimeout(timer);
-  }, []);
+  }, [correct]);
   
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className={`
-        text-center p-6 rounded-3xl mb-6 
+        text-center p-6 rounded-3xl mb-6 relative z-10
         ${correct 
           ? 'bg-secondary bg-opacity-10' 
           : 'bg-danger bg-opacity-10'
