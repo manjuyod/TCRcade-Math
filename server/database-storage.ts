@@ -14,7 +14,7 @@ import {
   subjectDifficultyHistory, type SubjectDifficultyHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
+import { eq, and, desc, gte, lte, lt, like, asc, isNull, or, inArray, not } from "drizzle-orm";
 import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
