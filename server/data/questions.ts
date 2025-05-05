@@ -83,7 +83,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Subtraction - Kindergarten
   {
     id: 105,
@@ -116,7 +116,6 @@ export const defaultQuestions: Question[] = [
   {
     id: 107,
     category: "subtraction",
-    grade: "K",
     difficulty: 1,
     question: "4 - 1 = ?",
     answer: "3",
@@ -127,7 +126,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Addition - Grade 1
   {
     id: 108,
@@ -185,7 +184,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Subtraction - Grade 1
   {
     id: 112,
@@ -229,7 +228,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Addition - Grade 2
   {
     id: 115,
@@ -273,7 +272,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Subtraction - Grade 2
   {
     id: 118,
@@ -317,7 +316,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Multiplication - Grade 3
   {
     id: 121,
@@ -361,7 +360,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Division - Grade 3
   {
     id: 124,
@@ -405,7 +404,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Addition - Grade 4  
   {
     id: 127,
@@ -435,7 +434,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Subtraction - Grade 4
   {
     id: 129,
@@ -465,7 +464,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Multiplication - Grade 4
   {
     id: 131,
@@ -495,7 +494,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Division - Grade 4
   {
     id: 133,
@@ -525,7 +524,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Multiplication - Grade 5
   {
     id: 135,
@@ -555,7 +554,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Division - Grade 5
   {
     id: 137,
@@ -585,7 +584,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Fractions - Grade 5
   {
     id: 139,
@@ -615,7 +614,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Multiplication - Grade 6
   {
     id: 141,
@@ -645,7 +644,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Division - Grade 6
   {
     id: 143,
@@ -675,7 +674,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Fractions - Grade 6
   {
     id: 145,
@@ -705,7 +704,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Decimal problems - Grade 6
   {
     id: 147,
@@ -735,7 +734,7 @@ export const defaultQuestions: Question[] = [
     storyText: null,
     storyImage: null
   },
-  
+
   // Percentages - Grade 6
   {
     id: 149,
