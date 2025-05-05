@@ -399,19 +399,20 @@ export default function HomePage() {
       // This ensures session progress is properly tracked for Math Facts modules too
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
       
-      // Always update session stats regardless of module type
+      // Always update stats regardless of module type
       setSessionStats(prev => {
         const newStats = {
-          questionsAnswered: prev.questionsAnswered + 1,
+          // Only count questions towards session progress when answered correctly
+          questionsAnswered: prev.questionsAnswered + (data.correct ? 1 : 0),
           correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: prev.tokensEarned + data.tokensEarned
         };
         
-        // For Math Facts, also update the localStorage progress value
-        if (isCurrentlyMathFactsModule) {
+        // For Math Facts, also update the localStorage progress value - only if correct
+        if (isCurrentlyMathFactsModule && data.correct) {
           // Update the stored progress to match session stats
           localStorage.setItem('mathFactsProgress', newStats.questionsAnswered.toString());
-          console.log(`Math Facts progress updated: ${newStats.questionsAnswered}/5`);
+          console.log(`Math Facts progress updated: ${newStats.questionsAnswered}/5 (correct answer)`);
         }
         
         return newStats;
@@ -525,13 +526,14 @@ export default function HomePage() {
         });
       }
 
-      // Check if session is complete (5 questions)
-      // For Math Facts modules, we need to check if we've answered 5 questions locally
-      // We want to stop exactly at 5 questions for all module types
-      if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+      // Check if session is complete (5 correct questions)
+      // Per user request, progress only increases on correct answers
+      // We need 5 CORRECT answers to complete a session now
+      if ((sessionStats.questionsAnswered + (data.correct ? 1 : 0)) >= sessionSize) {
         // Update final session stats before showing session complete
+        // Only increment questionsAnswered if the answer was correct
         const finalStats = {
-          questionsAnswered: sessionStats.questionsAnswered + 1,
+          questionsAnswered: sessionStats.questionsAnswered + (data.correct ? 1 : 0),
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
@@ -774,22 +776,25 @@ export default function HomePage() {
                     setAnsweredQuestionIds(prev => [...prev, question.id]);
 
                     // Update session stats - this is a timeout, so it's incorrect
+                    // Per user request, we only increment progress on correct answers
+                    // Since this is a timeout (incorrect), don't increment questionsAnswered
                     setSessionStats(prev => ({
-                      questionsAnswered: prev.questionsAnswered + 1,
-                      correctAnswers: prev.correctAnswers,
-                      tokensEarned: prev.tokensEarned
+                      questionsAnswered: prev.questionsAnswered, // Don't increment for incorrect answers
+                      correctAnswers: prev.correctAnswers,      // No change for incorrect
+                      tokensEarned: prev.tokensEarned           // No tokens earned
                     }));
 
                     // Reset streak counter for timeouts
                     setCurrentStreak(0);
 
-                    // Check if session is complete (5 questions)
-                    // For Math Facts modules, we need to check if we've answered 5 questions locally
-                    // We want to stop exactly at 5 questions for all module types
-                    if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+                    // Check if session is complete (5 correct questions)
+                    // Per user request, progress only increases on correct answers
+                    // Since this is an incorrect answer, don't increment the count
+                    if (sessionStats.questionsAnswered >= sessionSize) {
                       // Update final session stats before showing session complete
+                      // For timeout/incorrect answers, don't increment questionsAnswered
                       const finalStats = {
-                        questionsAnswered: sessionStats.questionsAnswered + 1,
+                        questionsAnswered: sessionStats.questionsAnswered,
                         correctAnswers: sessionStats.correctAnswers,
                         tokensEarned: sessionStats.tokensEarned
                       };
