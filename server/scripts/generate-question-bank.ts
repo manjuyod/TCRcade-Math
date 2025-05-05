@@ -333,6 +333,56 @@ async function saveQuestionsToDB(questionsData: any[]) {
 }
 
 /**
+ * Generate questions for a specific grade and category
+ * This function is exported so it can be called individually for targeted generation
+ */
+export async function generateForGradeAndCategory(grade: string, category: string, count: number) {
+  try {
+    console.log(`Generating questions for grade ${grade}, category ${category}...`);
+    const questions = await generateQuestionsForGradeAndCategory(grade, category, count);
+    console.log(`Generated ${questions.length} questions for grade ${grade}, category ${category}`);
+    
+    let saved = 0;
+    if (questions.length > 0) {
+      const saveSuccess = await saveQuestionsToDB(questions);
+      if (saveSuccess) {
+        saved = questions.length;
+      }
+    }
+    
+    return { generated: questions.length, saved };
+  } catch (error) {
+    console.error(`Error generating questions for grade ${grade}, category ${category}:`, error);
+    return { generated: 0, saved: 0 };
+  }
+}
+
+/**
+ * Generate Math Facts questions for a specific grade and operation
+ * This function is exported so it can be called individually for targeted generation
+ */
+export async function generateMathFacts(grade: string, operation: string, count: number) {
+  try {
+    console.log(`Generating Math Facts questions for grade ${grade}, operation ${operation}...`);
+    const questions = await generateMathFactsQuestions(grade, operation, count);
+    console.log(`Generated ${questions.length} Math Facts questions for grade ${grade}, operation ${operation}`);
+    
+    let saved = 0;
+    if (questions.length > 0) {
+      const saveSuccess = await saveQuestionsToDB(questions);
+      if (saveSuccess) {
+        saved = questions.length;
+      }
+    }
+    
+    return { generated: questions.length, saved };
+  } catch (error) {
+    console.error(`Error generating Math Facts questions for grade ${grade}, operation ${operation}:`, error);
+    return { generated: 0, saved: 0 };
+  }
+}
+
+/**
  * Main execution function
  */
 async function main() {
@@ -343,36 +393,16 @@ async function main() {
   // Generate questions for each grade and category combination
   for (const grade of GRADES) {
     for (const category of CATEGORIES) {
-      try {
-        const questions = await generateQuestionsForGradeAndCategory(grade, category, QUESTIONS_PER_GRADE_CATEGORY);
-        totalGenerated += questions.length;
-        
-        if (questions.length > 0) {
-          const saved = await saveQuestionsToDB(questions);
-          if (saved) {
-            totalSaved += questions.length;
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing grade ${grade}, category ${category}:`, error);
-      }
+      const result = await generateForGradeAndCategory(grade, category, QUESTIONS_PER_GRADE_CATEGORY);
+      totalGenerated += result.generated;
+      totalSaved += result.saved;
     }
     
     // Also generate Math Facts questions for each operation
     for (const operation of MATH_FACTS_OPERATIONS) {
-      try {
-        const questions = await generateMathFactsQuestions(grade, operation, QUESTIONS_PER_GRADE_CATEGORY);
-        totalGenerated += questions.length;
-        
-        if (questions.length > 0) {
-          const saved = await saveQuestionsToDB(questions);
-          if (saved) {
-            totalSaved += questions.length;
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing Math Facts for grade ${grade}, operation ${operation}:`, error);
-      }
+      const result = await generateMathFacts(grade, operation, QUESTIONS_PER_GRADE_CATEGORY);
+      totalGenerated += result.generated;
+      totalSaved += result.saved;
     }
   }
   
