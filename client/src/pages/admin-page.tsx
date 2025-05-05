@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { formatRelativeTime, getGradeLabel } from '@/lib/utils';
-import { Loader2, Eye, Edit, Trash, UserPlus, LogOut, ChevronRight, BarChart2 } from 'lucide-react';
+import { Loader2, Eye, Edit, Trash, UserPlus, LogOut, ChevronRight, BarChart2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
@@ -13,6 +13,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminAnalytics from '@/components/admin-analytics';
+import AdminMultiplayer from '@/components/admin-multiplayer';
 
 export default function AdminPage() {
   const { user, logoutMutation } = useAuth();
@@ -135,6 +136,9 @@ export default function AdminPage() {
           <TabsList className="mb-6">
             <TabsTrigger value="students" className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" /> Students
+            </TabsTrigger>
+            <TabsTrigger value="multiplayer" className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Multiplayer
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart2 className="h-4 w-4" /> Advanced Analytics
@@ -400,6 +404,10 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          </TabsContent>
+          
+          <TabsContent value="multiplayer">
+            <AdminMultiplayer />
           </TabsContent>
           
           <TabsContent value="analytics">
