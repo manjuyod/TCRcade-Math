@@ -57,7 +57,24 @@ export default function MultiplayerMode() {
   const [roomCode, setRoomCode] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<string>(user?.grade || 'K');
-  const [roomName, setRoomName] = useState<string>('');
+  const [selectedAdjective, setSelectedAdjective] = useState<string>('');
+  const [selectedNoun, setSelectedNoun] = useState<string>('');
+  
+  // Lists of funny adjectives and nouns for room names
+  const funnyAdjectives = [
+    'Bouncy', 'Fuzzy', 'Jazzy', 'Wacky', 'Zany', 'Quirky', 'Funky', 'Silly',
+    'Wobbly', 'Zippy', 'Squishy', 'Bubbly', 'Giggly', 'Wiggly', 'Jumpy', 'Loopy',
+    'Goofy', 'Wild', 'Bonkers', 'Nutty', 'Speedy', 'Hyper', 'Dizzy', 'Dancing'
+  ];
+  
+  const funnyNouns = [
+    'Penguin', 'Monkey', 'Hippo', 'Panda', 'Potato', 'Pigeon', 'Donut', 'Unicorn',
+    'Giraffe', 'Noodle', 'Pickle', 'Banana', 'Walrus', 'Robot', 'Hamster', 'Dragon',
+    'Koala', 'Sloth', 'Cupcake', 'Alligator', 'Flamingo', 'Moose', 'Raccoon', 'Muffin'
+  ];
+  
+  // Compute room name from selected adjective and noun
+  const roomName = selectedAdjective && selectedNoun ? `${selectedAdjective} ${selectedNoun}` : '';
   const [maxPlayers, setMaxPlayers] = useState<number>(4);
   const [gameMode, setGameMode] = useState<'cooperative' | 'competitive'>('competitive');
   const [questionCount, setQuestionCount] = useState<number>(10);
@@ -817,12 +834,39 @@ export default function MultiplayerMode() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="roomName">Room Name</Label>
-                    <Input
-                      id="roomName"
-                      placeholder="Enter a name for your room"
-                      value={roomName}
-                      onChange={(e) => setRoomName(e.target.value)}
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select value={selectedAdjective} onValueChange={setSelectedAdjective}>
+                        <SelectTrigger id="adjective">
+                          <SelectValue placeholder="Select Adjective" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {funnyAdjectives.map(adj => (
+                            <SelectItem key={adj} value={adj}>
+                              {adj}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedNoun} onValueChange={setSelectedNoun}>
+                        <SelectTrigger id="noun">
+                          <SelectValue placeholder="Select Noun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {funnyNouns.map(noun => (
+                            <SelectItem key={noun} value={noun}>
+                              {noun}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="mt-1 text-sm">
+                      {roomName ? (
+                        <span className="font-medium text-primary">{roomName}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select an adjective and noun for your room name</span>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
