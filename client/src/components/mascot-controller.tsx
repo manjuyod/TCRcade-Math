@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Mascot from './mascot';
+import { playSound } from '@/lib/sounds';
 
 // Define messages the mascot can say based on different events
 const MASCOT_MESSAGES = {
@@ -84,14 +85,60 @@ export default function MascotController({
     return () => clearInterval(idleInterval);
   }, []);
   
-  // React to streak changes
+  // Function to check localStorage for session state changes
+  const checkLocalStorage = useCallback(() => {
+    // Check for streak changes
+    const localStorageStreak = localStorage.getItem('currentStreak');
+    if (localStorageStreak) {
+      const streakValue = parseInt(localStorageStreak, 10);
+      if (streakValue >= 3 && lastEventType !== 'streak') {
+        triggerMascotEvent('streak');
+        // Play streak sound based on streak length
+        if (streakValue >= 20) {
+          playSound('streak20');
+        } else if (streakValue >= 10) {
+          playSound('streak10');
+        } else if (streakValue >= 5) {
+          playSound('streak5');
+        } else if (streakValue >= 3) {
+          playSound('streak');
+        }
+      }
+    }
+
+    // Check for session completion
+    const sessionCompleted = localStorage.getItem('sessionCompleted');
+    if (sessionCompleted === 'true' && lastEventType !== 'session_complete') {
+      triggerMascotEvent('session_complete');
+    }
+
+    // Check for correct/incorrect answers
+    const lastAnswerResult = localStorage.getItem('lastAnswerResult');
+    if (lastAnswerResult === 'correct' && lastEventType !== 'correct') {
+      triggerMascotEvent('correct');
+    } else if (lastAnswerResult === 'incorrect' && lastEventType !== 'incorrect') {
+      triggerMascotEvent('incorrect');
+    }
+  }, [lastEventType]);
+
+  // Set up interval to check localStorage regularly
+  useEffect(() => {
+    // Check immediately on mount
+    checkLocalStorage();
+
+    // Then check periodically
+    const interval = setInterval(checkLocalStorage, 1000);
+    return () => clearInterval(interval);
+  }, [checkLocalStorage]);
+  
+  // React to streak changes from props
   useEffect(() => {
     if (correctStreak >= 3 && lastEventType !== 'streak') {
       triggerMascotEvent('streak');
     }
   }, [correctStreak, lastEventType]);
   
-  // React to session completion
+  // React to session completion from props
   useEffect(() => {
     if (isSessionComplete) {
       triggerMascotEvent('session_complete');

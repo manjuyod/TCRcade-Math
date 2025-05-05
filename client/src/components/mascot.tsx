@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playSound } from '@/lib/sounds';
 
 type MascotProps = {
   position?: number; // 0-100 representing position along bottom of screen
@@ -20,7 +21,18 @@ export default function Mascot({
   // Auto-hide message after a few seconds
   useEffect(() => {
     if (message) {
+      // Show the message
       setShowMessage(true);
+      
+      // Play appropriate sound based on mood
+      if (mood === 'happy' || mood === 'excited') {
+        playSound('correct');
+      } else if (mood === 'thinking') {
+        playSound('incorrect');
+      } else {
+        // Neutral mood - just a subtle notification sound
+        playSound('tokenEarned');
+      }
       
       const timer = setTimeout(() => {
         setShowMessage(false);
@@ -28,7 +40,7 @@ export default function Mascot({
       
       return () => clearTimeout(timer);
     }
-  }, [message]);
+  }, [message, mood]);
   
   // Define size in pixels based on size prop
   const sizeMap = {
@@ -96,7 +108,10 @@ export default function Mascot({
             }}
             whileHover={{ y: -5 }}
             className="select-none cursor-pointer pointer-events-auto"
-            onClick={() => setShowMessage(prev => !prev)}
+            onClick={() => {
+              playSound('tokenEarned');
+              setShowMessage(prev => !prev);
+            }}
             style={{ width, height }}
           >
             {/* Simple emoji mascot - can be replaced with an image */}
