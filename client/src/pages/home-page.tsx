@@ -12,7 +12,6 @@ import StreakAnimation from '@/components/streak-animation';
 import TimeAchievement from '@/components/time-achievement';
 import LevelUpAnimation from '@/components/level-up-animation';
 import WordRaceGame from '@/components/word-race-game';
-import MascotController from '@/components/mascot-controller';
 // Daily Challenge removed as per user request
 import MathStorytelling from '@/components/math-storytelling';
 import AiMathTutor from '@/components/ai-math-tutor';
@@ -81,20 +80,10 @@ export default function HomePage() {
     correctAnswers: 0,
     tokensEarned: 0
   });
-  
-  // Update localStorage when session completion status changes for mascot controller to access
-  useEffect(() => {
-    localStorage.setItem('sessionCompleted', sessionCompleted.toString());
-  }, [sessionCompleted]);
 
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
   // Streak animation removed - keeping counter for token bonus calculations only
-  
-  // Update localStorage when streak changes for mascot controller to access
-  useEffect(() => {
-    localStorage.setItem('currentStreak', currentStreak.toString());
-  }, [currentStreak]);
 
   // Time achievement tracking
   const [timeAchievement, setTimeAchievement] = useState<number>(0);
@@ -401,9 +390,6 @@ export default function HomePage() {
       });
       setShowFeedback(true);
 
-      // Update localStorage for mascot to respond
-      localStorage.setItem('lastAnswerResult', data.correct ? 'correct' : 'incorrect');
-
       // Add question to answered questions
       if (question) {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
@@ -439,8 +425,6 @@ export default function HomePage() {
 
         // Increment the streak counter for correct answers
         setCurrentStreak(newStreakCount);
-        // Update localStorage for mascot controller to detect
-        localStorage.setItem('currentStreak', newStreakCount.toString());
 
         // Check if we've hit a milestone - EVEN MORE SIMPLIFIED VERSION
         // This won't create any new objects or cause React update issues
@@ -479,7 +463,6 @@ export default function HomePage() {
       } else {
         // Reset streak counter for incorrect answers
         setCurrentStreak(0);
-        localStorage.setItem('currentStreak', '0');
       }
 
       // Update user data
@@ -560,8 +543,6 @@ export default function HomePage() {
 
         setTimeout(() => {
           setSessionCompleted(true);
-          // Update localStorage for mascot controller to detect
-          localStorage.setItem('sessionCompleted', 'true');
           setShowFeedback(false);
 
           // Play session complete sound
@@ -609,13 +590,6 @@ export default function HomePage() {
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
-    // Reset localStorage for mascot controller to detect
-    localStorage.setItem('sessionCompleted', 'false');
-    
-    // Reset streak counter
-    setCurrentStreak(0);
-    localStorage.setItem('currentStreak', '0');
-    
     setSessionStats({
       questionsAnswered: 0,
       correctAnswers: 0,
@@ -830,8 +804,6 @@ export default function HomePage() {
 
                       setTimeout(() => {
                         setSessionCompleted(true);
-                        // Update localStorage for mascot controller to detect
-                        localStorage.setItem('sessionCompleted', 'true');
                         setShowFeedback(false);
 
                         // Play session complete sound
@@ -905,12 +877,6 @@ export default function HomePage() {
       <Navigation active="play" />
 
       {/* Streak animation completely removed to prevent React infinite loops */}
-
-      {/* Our friendly mascot character */}
-      <MascotController 
-        correctStreak={currentStreak} 
-        isSessionComplete={sessionCompleted} 
-      />
 
       {/* Time achievement animation - alsousing simplified pattern */}
       {showTimeAchievement && (
