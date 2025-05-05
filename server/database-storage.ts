@@ -119,12 +119,23 @@ export class DatabaseStorage implements IStorage {
 
   // Question methods
   async getQuestion(id: number): Promise<Question | undefined> {
-    const [question] = await db
-      .select()
-      .from(questions)
-      .where(eq(questions.id, id));
-    
-    return question;
+    try {
+      // Validate that ID is within PostgreSQL INTEGER range
+      if (id > 2147483647 || id <= 0) {
+        console.warn(`Invalid question ID: ${id} - outside PostgreSQL INTEGER range`);
+        return undefined;
+      }
+      
+      const [question] = await db
+        .select()
+        .from(questions)
+        .where(eq(questions.id, id));
+      
+      return question;
+    } catch (error) {
+      console.error(`Error fetching question with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {

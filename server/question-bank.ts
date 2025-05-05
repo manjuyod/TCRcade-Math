@@ -37,9 +37,15 @@ export async function getRandomQuestionFromBank(grade: string, category?: string
     
     // Exclude previously seen questions if specified
     if (excludeIds.length > 0 && excludeIds.some(id => !isNaN(id) && id > 0)) {
-      // Only exclude up to 1000 ids to prevent query size issues
-      const limitedExcludeIds = excludeIds.slice(-1000).filter(id => !isNaN(id) && id > 0);
-      conditions.push(not(inArray(questions.id, limitedExcludeIds)));
+      // Filter out any IDs that exceed PostgreSQL's INTEGER max value (2147483647)
+      // and only include up to 1000 IDs to prevent query size issues
+      const validExcludeIds = excludeIds
+        .slice(-1000)
+        .filter(id => !isNaN(id) && id > 0 && id <= 2147483647);
+      
+      if (validExcludeIds.length > 0) {
+        conditions.push(not(inArray(questions.id, validExcludeIds)));
+      }
     }
     
     // Execute query with all conditions, random order, and limit
