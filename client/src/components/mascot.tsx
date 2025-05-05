@@ -58,8 +58,8 @@ export default function Mascot({
     <AnimatePresence>
       {isVisible && (
         <div 
-          className="fixed bottom-0 z-50 pointer-events-none"
-          style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+          className="fixed z-50 pointer-events-none"
+          style={{ left: `${position}%`, bottom: '70px', transform: 'translateX(-50%)' }}
         >
           {/* Speech bubble for messages */}
           <AnimatePresence>

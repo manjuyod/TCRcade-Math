@@ -107,8 +107,11 @@ function App() {
         <NavigationWrapper>
           <Router />
         </NavigationWrapper>
-        {/* Our friendly mascot character */}
-        <MascotController />
+        {/* Our friendly mascot character with a global state listener */}
+        <MascotController 
+          correctStreak={Number(localStorage.getItem('currentStreak') || 0)}
+          isSessionComplete={localStorage.getItem('sessionCompleted') === 'true'}
+        />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

@@ -81,10 +81,20 @@ export default function HomePage() {
     correctAnswers: 0,
     tokensEarned: 0
   });
+  
+  // Update localStorage when session completion status changes for mascot controller to access
+  useEffect(() => {
+    localStorage.setItem('sessionCompleted', sessionCompleted.toString());
+  }, [sessionCompleted]);
 
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
   // Streak animation removed - keeping counter for token bonus calculations only
+  
+  // Update localStorage when streak changes for mascot controller to access
+  useEffect(() => {
+    localStorage.setItem('currentStreak', currentStreak.toString());
+  }, [currentStreak]);
 
   // Time achievement tracking
   const [timeAchievement, setTimeAchievement] = useState<number>(0);
@@ -591,6 +601,13 @@ export default function HomePage() {
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
+    // Reset localStorage for mascot controller to detect
+    localStorage.setItem('sessionCompleted', 'false');
+    
+    // Reset streak counter
+    setCurrentStreak(0);
+    localStorage.setItem('currentStreak', '0');
+    
     setSessionStats({
       questionsAnswered: 0,
       correctAnswers: 0,
