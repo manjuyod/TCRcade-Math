@@ -35,7 +35,8 @@ async function testAllMathFacts() {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json'
-                            }
+                            },
+                            credentials: 'include' // Include cookies
                         }
                     );
                     
