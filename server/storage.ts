@@ -112,6 +112,7 @@ export class MemStorage implements IStorage {
   private multiplayerRooms: Map<number, MultiplayerRoom>;
   private aiAnalytics: Map<number, AiAnalytic>;
   private subjectMasteries: Map<number, SubjectMastery>;
+  private friends: Map<number, Friend>; // Add friend map
   sessionStore: any; // Using any type to avoid issues
   currentId: number;
   currentQuestionId: number;
@@ -125,6 +126,7 @@ export class MemStorage implements IStorage {
   currentMultiplayerRoomId: number;
   currentAiAnalyticId: number;
   currentSubjectMasteryId: number;
+  currentFriendId: number;
 
   constructor() {
     this.users = new Map();
@@ -139,6 +141,7 @@ export class MemStorage implements IStorage {
     this.multiplayerRooms = new Map();
     this.aiAnalytics = new Map();
     this.subjectMasteries = new Map();
+    this.friends = new Map();
     
     this.currentId = 1;
     this.currentQuestionId = 1;
@@ -152,6 +155,7 @@ export class MemStorage implements IStorage {
     this.currentMultiplayerRoomId = 1;
     this.currentAiAnalyticId = 1;
     this.currentSubjectMasteryId = 1;
+    this.currentFriendId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 1 day
