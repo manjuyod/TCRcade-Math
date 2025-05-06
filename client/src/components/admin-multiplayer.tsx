@@ -225,6 +225,25 @@ export default function AdminMultiplayer() {
                         <span className="text-gray-500">Created:</span>
                         <span>{formatRelativeTime(new Date(room.createdAt))}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Expires in:</span>
+                        <span>
+                          {(() => {
+                            // Calculate time remaining until 24-hour expiration
+                            const createdAt = new Date(room.createdAt);
+                            const expiresAt = new Date(createdAt);
+                            expiresAt.setHours(expiresAt.getHours() + 24);
+                            
+                            const now = new Date();
+                            const timeRemaining = expiresAt.getTime() - now.getTime();
+                            
+                            // Format as hours:minutes remaining
+                            const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+                            const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                            return `${hoursRemaining}h ${minutesRemaining}m`;
+                          })()}
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

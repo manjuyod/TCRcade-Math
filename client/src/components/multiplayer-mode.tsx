@@ -778,36 +778,57 @@ export default function MultiplayerMode() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {rooms.map(room => (
-                        <Card key={room.id} className="overflow-hidden">
-                          <div className="flex items-center p-4">
-                            <div className="flex-1">
-                              <div className="font-medium">{room.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {room.gameType === 'competitive' ? 'Competitive' : 'Cooperative'} • {room.grade} Grade
-                              </div>
-                              <div className="flex mt-2 space-x-2">
-                                <Badge variant="outline" className="text-xs">
-                                  <Users className="h-3 w-3 mr-1" />
-                                  {room.participants?.length || 0}/{room.maxParticipants || 4}
-                                </Badge>
-                                {room.category && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {room.category}
+                      {rooms.map(room => {
+                        // Calculate time remaining until 24-hour expiration
+                        const createdAt = new Date(room.createdAt);
+                        const expiresAt = new Date(createdAt);
+                        expiresAt.setHours(expiresAt.getHours() + 24);
+                        
+                        const now = new Date();
+                        const timeRemaining = expiresAt.getTime() - now.getTime();
+                        
+                        // Format as hours:minutes remaining
+                        const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+                        const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                        const expirationText = `${hoursRemaining}h ${minutesRemaining}m`;
+                        
+                        return (
+                          <Card key={room.id} className="overflow-hidden">
+                            <div className="flex items-center p-4">
+                              <div className="flex-1">
+                                <div className="font-medium flex items-center justify-between">
+                                  <span>{room.name}</span>
+                                  <Badge variant="outline" className="text-xs flex items-center">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {expirationText}
                                   </Badge>
-                                )}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {room.gameType === 'competitive' ? 'Competitive' : 'Cooperative'} • {room.grade} Grade
+                                </div>
+                                <div className="flex mt-2 space-x-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    <Users className="h-3 w-3 mr-1" />
+                                    {room.participants?.length || 0}/{room.maxParticipants || 4}
+                                  </Badge>
+                                  {room.category && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {room.category}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
+                              <Button
+                                size="sm"
+                                onClick={() => handleJoinRoom(room.id)}
+                                disabled={joinRoomMutation.isPending}
+                              >
+                                Join Game
+                              </Button>
                             </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleJoinRoom(room.id)}
-                              disabled={joinRoomMutation.isPending}
-                            >
-                              Join Game
-                            </Button>
-                          </div>
-                        </Card>
-                      ))}
+                          </Card>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
