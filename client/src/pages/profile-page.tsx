@@ -8,7 +8,7 @@ import { getGradeLabel } from '@/lib/utils';
 import { getCategoryLabel } from '@/lib/questions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Edit, Flame, HelpCircle, Coins, Star, Award, Medal } from 'lucide-react';
+import { Loader2, Settings, Edit, Flame, HelpCircle, Coins, Star, Award, Medal, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -406,6 +406,38 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
         
+        {/* Friends Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Friends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user.friends && user.friends.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {user.friends.map((friend) => (
+                  <div key={friend.id} className="flex items-center p-3 bg-muted rounded-lg">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-primary font-bold">{friend.initials}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{friend.displayName || friend.username}</p>
+                      <p className="text-xs text-muted-foreground">{getGradeLabel(friend.grade)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Add friends to practice math together!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Subject Mastery Section */}
         <div className="mb-6">
           <SubjectMastery userId={user.id} currentGrade={user.grade || '5'} />
