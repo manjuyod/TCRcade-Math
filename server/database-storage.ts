@@ -754,13 +754,53 @@ export class DatabaseStorage implements IStorage {
       return code;
     };
     
+    // Handle duplicate room names by adding a number suffix
+    let finalRoomName = roomData.name || 'Game Room';
+    if (finalRoomName) {
+      // Get all active rooms with the same base name or name with number suffix
+      const existingRooms = await db
+        .select()
+        .from(multiplayerRooms)
+        .where(and(
+          eq(multiplayerRooms.isActive, true),
+          or(
+            eq(multiplayerRooms.name, finalRoomName),
+            like(multiplayerRooms.name, `${finalRoomName} (%)`) // Match names like "Name (1)", "Name (2)", etc.
+          )
+        ));
+      
+      if (existingRooms.length > 0) {
+        // Find the highest number suffix
+        let highestSuffix = 0;
+        existingRooms.forEach(room => {
+          // Check if the room name has a number suffix in the format "Name (X)"
+          const match = room.name.match(new RegExp(`${finalRoomName} \((\d+)\)$`));
+          if (match && match[1]) {
+            const suffixNum = parseInt(match[1], 10);
+            if (!isNaN(suffixNum) && suffixNum > highestSuffix) {
+              highestSuffix = suffixNum;
+            }
+          }
+        });
+        
+        // Add suffix if needed
+        if (existingRooms.some(room => room.name === finalRoomName)) {
+          finalRoomName = `${finalRoomName} (${highestSuffix + 1})`;
+        } else if (highestSuffix > 0) {
+          // If no exact match but there are rooms with suffixes
+          finalRoomName = `${finalRoomName} (${highestSuffix + 1})`;
+        }
+      }
+    }
+    
     const roomCode = generateRoomCode();
     
-    // Create the room
+    // Create the room with the potentially modified name
     const [room] = await db
       .insert(multiplayerRooms)
       .values({
         ...roomData,
+        name: finalRoomName,
         hostId,
         roomCode,
         participants: [hostId],
