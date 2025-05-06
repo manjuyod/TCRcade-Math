@@ -55,19 +55,27 @@ export function useQuestionBatch(
   const loadCachedQuestions = (moduleId: string): Question[] | null => {
     try {
       const cacheJson = localStorage.getItem(QUESTION_BATCH_CACHE_KEY);
+      
+      // Get the current user's grade
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const currentGrade = currentUser?.grade || user?.grade || 'K';
+      
       if (cacheJson) {
         const cache: BatchCacheEntry = JSON.parse(cacheJson);
         
-        // Check if cache is for the current module
-        if (cache.moduleId === moduleId) {
+        // Check if cache is for the current module AND current grade
+        if (cache.moduleId === moduleId && cache.grade === currentGrade) {
           // Check if cache is still fresh (less than 30 minutes old)
           const cacheAge = Date.now() - cache.timestamp;
           const CACHE_TTL = 30 * 60 * 1000; // 30 minutes in milliseconds
           
           if (cacheAge < CACHE_TTL && cache.questions.length > 0) {
-            console.log(`Using cached ${cache.questions.length} questions for module ${moduleId}`);
+            console.log(`Using cached ${cache.questions.length} questions for module ${moduleId}, grade ${currentGrade}`);
             return cache.questions;
           }
+        } else if (cache.grade !== currentGrade) {
+          console.log(`Cache found but for different grade (cached: ${cache.grade}, current: ${currentGrade}). Fetching new questions.`);
+          return null;
         }
       }
     } catch (e) {
@@ -80,15 +88,19 @@ export function useQuestionBatch(
   // Cache questions to localStorage
   const cacheQuestions = (moduleId: string, questions: Question[]) => {
     try {
+      // Always use the most current grade when caching
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const currentGrade = currentUser?.grade || user?.grade || 'K';
+      
       const cacheEntry: BatchCacheEntry = {
         moduleId,
-        grade: user?.grade || '3',
+        grade: currentGrade,
         questions,
         timestamp: Date.now()
       };
       
       localStorage.setItem(QUESTION_BATCH_CACHE_KEY, JSON.stringify(cacheEntry));
-      console.log(`Cached ${questions.length} questions for module ${moduleId}`);
+      console.log(`Cached ${questions.length} questions for module ${moduleId}, grade ${currentGrade}`);
     } catch (e) {
       console.warn("Failed to cache question batch:", e);
     }
@@ -97,16 +109,44 @@ export function useQuestionBatch(
   // Mutation for loading questions in batch
   const batchLoadMutation = useMutation({
     mutationFn: async (params: { moduleId: string, count: number }) => {
-      const grade = user?.grade || '3';
-      const url = `/api/questions/batch?grade=${grade}&category=${params.moduleId}&count=${params.count}`;
+      // Always get the most current grade from user object
+      // This ensures we respect any grade changes that happened during the session
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const grade = currentUser?.grade || user?.grade || 'K';
       
-      const response = await apiRequest('GET', url);
-      if (!response.ok) {
-        throw new Error('Failed to load question batch');
+      console.log(`Loading questions for grade: ${grade}, module: ${params.moduleId}`);
+      
+      // Special handling for Math Facts modules
+      if (params.moduleId?.startsWith('math-facts-')) {
+        const operation = params.moduleId.replace('math-facts-', '');
+        console.log(`Loading Math Facts with grade=${grade}, operation=${operation}`);
+        
+        // For Math Facts, we need to load multiple questions in parallel
+        const promises = [];
+        
+        for (let i = 0; i < params.count; i++) {
+          // Use timestamp to avoid cache issues
+          const timestamp = Date.now() + i;
+          const url = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${timestamp}`;
+          promises.push(apiRequest('GET', url).then(r => r.json()));
+        }
+        
+        // Wait for all promises to resolve
+        const results = await Promise.all(promises);
+        console.log(`Loaded ${results.length} Math Facts questions for grade ${grade}`);
+        return results;
+      } else {
+        // Regular batch loading for non-Math Facts modules
+        const url = `/api/questions/batch?grade=${grade}&category=${params.moduleId}&count=${params.count}`;
+        
+        const response = await apiRequest('GET', url);
+        if (!response.ok) {
+          throw new Error('Failed to load question batch');
+        }
+        
+        const data = await response.json();
+        return data.questions as Question[];
       }
-      
-      const data = await response.json();
-      return data.questions as Question[];
     },
     onSuccess: (data) => {
       if (data && data.length > 0) {
@@ -126,7 +166,10 @@ export function useQuestionBatch(
     }
   });
 
-  // Load questions when module changes
+  // Watch for user grade changes
+  const userGrade = user?.grade || 'K';
+  
+  // Load questions when module or user grade changes
   useEffect(() => {
     if (!moduleId) return;
     
@@ -144,7 +187,7 @@ export function useQuestionBatch(
     
     // Otherwise fetch a new batch
     batchLoadMutation.mutate({ moduleId, count: batchSize });
-  }, [moduleId, batchSize]);
+  }, [moduleId, batchSize, userGrade]); // Add userGrade as dependency to re-fetch when grade changes
 
   // Function to refetch questions
   const refetchQuestions = async () => {
