@@ -2447,6 +2447,285 @@ export class MemStorage implements IStorage {
       this.questions.set(id, { ...q, id, concepts });
     });
   }
+
+  // ========== Friend System Methods ==========
+  
+  async getUserFriends(userId: number): Promise<Array<User & { friendshipId: number }>> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+    
+    // Find all accepted friend relations where userId is either the requester or the receiver
+    const acceptedFriendships = Array.from(this.friends.values()).filter(
+      f => f.status === 'accepted' && (f.userId === userId || f.friendId === userId)
+    );
+    
+    // Get the other user in each friendship and include the friendship ID
+    const friends = await Promise.all(
+      acceptedFriendships.map(async f => {
+        const friendId = f.userId === userId ? f.friendId : f.userId;
+        const friendUser = await this.getUser(friendId);
+        
+        // Skip if the friend user doesn't exist (should never happen)
+        if (!friendUser) return null;
+        
+        return {
+          ...friendUser,
+          friendshipId: f.id
+        };
+      })
+    );
+    
+    // Filter out null values and return the result
+    return friends.filter(f => f !== null) as Array<User & { friendshipId: number }>;
+  }
+  
+  async getPendingFriendRequests(userId: number): Promise<Array<User & { requestId: number }>> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+    
+    // Find all pending friend requests sent to this user
+    const pendingRequests = Array.from(this.friends.values()).filter(
+      f => f.status === 'pending' && f.friendId === userId
+    );
+    
+    // Get the sender user for each request and include the request ID
+    const requestUsers = await Promise.all(
+      pendingRequests.map(async f => {
+        const requesterUser = await this.getUser(f.userId);
+        
+        if (!requesterUser) return null;
+        
+        return {
+          ...requesterUser,
+          requestId: f.id
+        };
+      })
+    );
+    
+    // Filter out null values and return the result
+    return requestUsers.filter(r => r !== null) as Array<User & { requestId: number }>;
+  }
+  
+  async getSentFriendRequests(userId: number): Promise<Array<User & { requestId: number }>> {
+    const user = await this.getUser(userId);
+    if (!user) return [];
+    
+    // Find all pending friend requests sent by this user
+    const sentRequests = Array.from(this.friends.values()).filter(
+      f => f.status === 'pending' && f.userId === userId
+    );
+    
+    // Get the recipient user for each request and include the request ID
+    const requestUsers = await Promise.all(
+      sentRequests.map(async f => {
+        const recipientUser = await this.getUser(f.friendId);
+        
+        if (!recipientUser) return null;
+        
+        return {
+          ...recipientUser,
+          requestId: f.id
+        };
+      })
+    );
+    
+    // Filter out null values and return the result
+    return requestUsers.filter(r => r !== null) as Array<User & { requestId: number }>;
+  }
+  
+  async sendFriendRequest(userId: number, friendId: number): Promise<{
+    success: boolean;
+    message: string;
+    request?: Friend;
+  }> {
+    const user = await this.getUser(userId);
+    const friend = await this.getUser(friendId);
+    
+    // Check if both users exist
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+    
+    if (!friend) {
+      return { success: false, message: "Friend not found" };
+    }
+    
+    // Check if users are the same
+    if (userId === friendId) {
+      return { success: false, message: "Cannot send friend request to yourself" };
+    }
+    
+    // Check if there is an existing friendship or request
+    const existingFriendship = Array.from(this.friends.values()).find(
+      f => (
+        (f.userId === userId && f.friendId === friendId) || 
+        (f.userId === friendId && f.friendId === userId)
+      )
+    );
+    
+    if (existingFriendship) {
+      if (existingFriendship.status === 'accepted') {
+        return { success: false, message: "Already friends" };
+      } else if (existingFriendship.status === 'pending') {
+        if (existingFriendship.userId === userId) {
+          return { success: false, message: "Friend request already sent" };
+        } else {
+          // If the other user sent a request to this user, accept it instead of creating a new one
+          existingFriendship.status = 'accepted';
+          existingFriendship.updatedAt = new Date();
+          this.friends.set(existingFriendship.id, existingFriendship);
+          return { 
+            success: true, 
+            message: "Friend request accepted", 
+            request: existingFriendship 
+          };
+        }
+      } else if (existingFriendship.status === 'rejected') {
+        // If previously rejected, update the status to pending
+        existingFriendship.status = 'pending';
+        existingFriendship.userId = userId;
+        existingFriendship.friendId = friendId;
+        existingFriendship.updatedAt = new Date();
+        this.friends.set(existingFriendship.id, existingFriendship);
+        return { 
+          success: true, 
+          message: "Friend request sent", 
+          request: existingFriendship 
+        };
+      } else if (existingFriendship.status === 'blocked') {
+        return { success: false, message: "Unable to send friend request" };
+      }
+    }
+    
+    // Create new friend request
+    const id = this.currentFriendId++;
+    const now = new Date();
+    const request: Friend = {
+      id,
+      userId,
+      friendId,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.friends.set(id, request);
+    
+    return { 
+      success: true, 
+      message: "Friend request sent", 
+      request 
+    };
+  }
+  
+  async respondToFriendRequest(requestId: number, userId: number, accept: boolean): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+    
+    const request = this.friends.get(requestId);
+    if (!request) {
+      return { success: false, message: "Friend request not found" };
+    }
+    
+    // Check if the user is the recipient of the request
+    if (request.friendId !== userId) {
+      return { success: false, message: "Not authorized to respond to this request" };
+    }
+    
+    // Check if the request is still pending
+    if (request.status !== 'pending') {
+      return { success: false, message: `Request has already been ${request.status}` };
+    }
+    
+    // Update the request status
+    request.status = accept ? 'accepted' : 'rejected';
+    request.updatedAt = new Date();
+    this.friends.set(requestId, request);
+    
+    return { 
+      success: true, 
+      message: accept ? "Friend request accepted" : "Friend request rejected" 
+    };
+  }
+  
+  async removeFriend(userId: number, friendshipId: number): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+    
+    const friendship = this.friends.get(friendshipId);
+    if (!friendship) {
+      return { success: false, message: "Friendship not found" };
+    }
+    
+    // Check if user is part of the friendship
+    if (friendship.userId !== userId && friendship.friendId !== userId) {
+      return { success: false, message: "Not authorized to remove this friendship" };
+    }
+    
+    // Delete the friendship
+    this.friends.delete(friendshipId);
+    
+    return { success: true, message: "Friend removed successfully" };
+  }
+  
+  async searchUsers(query: string, currentUserId: number): Promise<User[]> {
+    const currentUser = await this.getUser(currentUserId);
+    if (!currentUser) return [];
+    
+    // Search for users whose username or displayName contains the query (case-insensitive)
+    const matchingUsers = Array.from(this.users.values())
+      .filter(user => 
+        (user.id !== currentUserId) && // Don't include the current user
+        (
+          (user.username && user.username.toLowerCase().includes(query.toLowerCase())) ||
+          (user.displayName && user.displayName.toLowerCase().includes(query.toLowerCase()))
+        )
+      )
+      .slice(0, 10); // Limit to 10 results
+    
+    // Create sanitized user objects without sensitive information
+    return matchingUsers.map(user => ({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      initials: user.initials,
+      grade: user.grade,
+      avatarItems: user.avatarItems,
+      isAdmin: user.isAdmin,
+      tokens: user.tokens,
+      streakDays: user.streakDays,
+      questionsAnswered: user.questionsAnswered,
+      correctAnswers: user.correctAnswers,
+      dailyEngagementMinutes: user.dailyEngagementMinutes,
+      lastDailyChallenge: user.lastDailyChallenge,
+      dailyChallengeStreak: user.dailyChallengeStreak,
+      completedChallenges: user.completedChallenges,
+      storyProgress: user.storyProgress,
+      learningStyle: user.learningStyle,
+      strengthConcepts: user.strengthConcepts,
+      weaknessConcepts: user.weaknessConcepts,
+      lastActive: user.lastActive,
+      lastGradeAdvancement: user.lastGradeAdvancement,
+      fastestCategory: user.fastestCategory,
+      highestScoreCategory: user.highestScoreCategory,
+      interests: user.interests,
+      // Required fields from User type
+      password: null, // Don't expose password
+      email: null, // Don't expose email
+      resetPasswordToken: null,
+      resetPasswordExpires: null
+    } as User));
+  }
 }
 
 // Import the DatabaseStorage implementation
