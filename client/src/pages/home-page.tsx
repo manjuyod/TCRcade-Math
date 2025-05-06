@@ -375,8 +375,8 @@ export default function HomePage() {
           };
         }
 
-        // For other errors, force a new dynamic question
-        fetchNewQuestion(true);
+        // For other errors, force a new batch of questions
+        refetchBatch();
         throw error;
       }
     },
@@ -565,7 +565,7 @@ export default function HomePage() {
     }
   };
 
-  // Much simpler next question handler using our improved hook
+  // Updated next question handler using our batch loading hook
   const handleNextQuestion = () => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
@@ -577,18 +577,17 @@ export default function HomePage() {
     setShowFeedback(false);
     setFeedbackData(null);
 
-    // Use the improved fetchNewQuestion method from our custom hook
-    // This handles all the caching and duplicate prevention automatically
-    fetchNewQuestion(true)
-      .finally(() => {
-        // Set loading to false after a brief delay to prevent flickering
-        setTimeout(() => {
-          setIsManuallyLoading(false);
-        }, 100);
-      });
+    // Use the loadNextQuestion method from our batch loading hook
+    // This simply advances to the next pre-loaded question without any API calls
+    loadNextQuestion();
+    
+    // Set loading to false after a brief delay to prevent flickering
+    setTimeout(() => {
+      setIsManuallyLoading(false);
+    }, 100);
   };
 
-  // Simpler version with our improved hook
+  // Updated to use batch loaded questions
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
@@ -622,9 +621,9 @@ export default function HomePage() {
       console.error('Error refreshing study plan:', error);
     }
 
-    // Use the improved hook's fetchNewQuestion function with forceDynamic=true
-    // This handles all the caching and duplicate prevention automatically
-    fetchNewQuestion(true)
+    // Use the refetchBatch function from our batch loading hook
+    // This will get a fresh batch of 20 questions
+    refetchBatch()
       .finally(() => {
         // Turn off loading after a short delay
         setTimeout(() => {
@@ -846,19 +845,19 @@ export default function HomePage() {
                     // Update user grade through API (optional implementation)
                     console.log(`Would switch to grade ${nextGrade}`);
 
-                    // For now, just try to fetch a new question with forceDynamic=true
-                    fetchNewQuestion(true);
+                    // For now, just try to fetch a new batch of questions
+                    refetchBatch();
                   }}
                 >
                   Try Different Grade
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Force dynamic question generation
-                    fetchNewQuestion(true);
+                    // Force new batch of questions
+                    refetchBatch();
                   }}
                 >
-                  Generate Question
+                  Generate Questions
                 </Button>
               </div>
             </div>

@@ -598,7 +598,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // First try to get from question bank
           try {
-            question = await getRandomQuestionFromBank(grade, category, excludeIds, isMathFactsModule);
+            // Try to get question from bank using imported functions
+            const questionBankService = await import("./question-bank");
+            question = await questionBankService.getRandomQuestionFromBank(grade, category, excludeIds, isMathFactsModule);
           } catch (error) {
             console.error("Error fetching batch question from bank:", error);
           }
@@ -618,7 +620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 isMathFactsModule: isMathFactsModule
               };
               
-              question = await generateAdaptiveQuestion(params);
+              // Import and use the OpenAI service
+              const openaiService = await import("./openai");
+              question = await openaiService.generateAdaptiveQuestion(params);
             } catch (error) {
               console.error("Error generating batch question:", error);
             }
