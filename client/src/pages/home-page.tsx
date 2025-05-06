@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSessionTimer } from '@/hooks/use-session-timer';
-import { useQuestionWithHistory } from '@/hooks/use-question-with-history';
+import { useQuestionBatch } from '@/hooks/use-question-batch';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import QuestionCard from '@/components/question-card';
@@ -291,16 +291,18 @@ export default function HomePage() {
     }
   }, [currentModuleId]);
 
-  // Use our enhanced question hook with duplicate prevention
-  // This is more reliable than the previous code
+  // Use our new batch loading hook for questions
+  // Instead of fetching one at a time, we preload 20 questions at once
   const {
-    question,
-    loading: isLoading, 
-    fetchNewQuestion,
-    seenQuestions
-  } = useQuestionWithHistory(
-    user?.grade || '3',
-    currentModuleCategory
+    currentQuestion: question,
+    loading: isLoading,
+    nextQuestion: loadNextQuestion,
+    currentIndex: questionIndex,
+    questions: batchQuestions,
+    refetchQuestions: refetchBatch
+  } = useQuestionBatch(
+    currentModuleCategory || '',
+    20 // Load 20 questions at once
   );
 
   // Submit answer mutation

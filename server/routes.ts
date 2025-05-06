@@ -560,6 +560,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Failed to generate Math Facts question" });
     }
   });
+  
+  // Batch question loading endpoint - fetches multiple questions at once
+  app.get("/api/questions/batch", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const grade = req.query.grade as string || req.user!.grade || "3";
+      const category = req.query.category as string;
+      const count = parseInt(req.query.count as string || "20"); // Default to 20 questions
+      
+      // Cap the count to prevent abuse
+      const questionCount = Math.min(count, 30);
+      
+      console.log(`Batch loading ${questionCount} questions for grade=${grade}, category=${category || 'any'}`);
+      
+      // Check if this is a Math Facts module
+      const isMathFactsModule = category && category.startsWith('math-facts-');
+      let questions = [];
+      
+      if (isMathFactsModule) {
+        // Extract operation from category (e.g., "math-facts-addition" -> "addition")
+        const operation = category.split('-').pop();
+        
+        // For Math Facts, simply generate the specified number of pure computation questions
+        console.log(`Generating ${questionCount} Math Facts questions for grade=${grade}, operation=${operation}`);
+        
+        for (let i = 0; i < questionCount; i++) {
+          questions.push(generateMathFactsQuestion(grade, operation));
+        }
+      } else {
+        // For regular modules, try to fetch from question bank first
+        const excludeIds: number[] = [];
+        
+        // Try to find enough non-duplicate questions
+        for (let i = 0; i < questionCount; i++) {
+          let question = null;
+          
+          // First try to get from question bank
+          try {
+            question = await getRandomQuestionFromBank(grade, category, excludeIds, isMathFactsModule);
+          } catch (error) {
+            console.error("Error fetching batch question from bank:", error);
+          }
+          
+          // If no question found in bank, generate one with OpenAI
+          if (!question) {
+            try {
+              // Parameters for adaptive question generation
+              const params = {
+                grade, 
+                concept: undefined,
+                studentLevel: undefined,
+                previousQuestions: excludeIds,
+                difficulty: undefined, 
+                category: category,
+                forceDynamic: true, // First question should be fresh
+                isMathFactsModule: isMathFactsModule
+              };
+              
+              question = await generateAdaptiveQuestion(params);
+            } catch (error) {
+              console.error("Error generating batch question:", error);
+            }
+          }
+          
+          // Add the question and its ID to our tracking
+          if (question && question.id) {
+            questions.push(question);
+            excludeIds.push(question.id);
+          }
+        }
+      }
+      
+      // Return the batch of questions
+      console.log(`Successfully batch loaded ${questions.length} questions`);
+      return res.json({ questions });
+    } catch (error) {
+      console.error("Error in batch question loading:", error);
+      return res.status(500).json({ error: "Failed to load question batch" });
+    }
+  });
 
   // Special non-authenticated endpoint for Math Facts only - for testing purposes
   // Debug endpoint to test OpenAI API connectivity
