@@ -26,10 +26,65 @@ export default function SessionComplete({
   // Check for perfect score (all answers correct)
   const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
   
-  // Award bonus tokens for perfect score (only once when component mounts)
-  // Using a ref to track if we've already awarded the bonus
+  // Using refs to track if we've already awarded the tokens to prevent duplicate updates
+  const tokensAwardedRef = useRef(false);
   const bonusAwardedRef = useRef(false);
   
+  // Effect to award tokens earned during the session (runs only once when component mounts)
+  useEffect(() => {
+    // Skip if we've already awarded tokens or if no user is logged in
+    if (tokensAwardedRef.current || !user) {
+      return;
+    }
+    
+    // Mark that we've awarded tokens to prevent duplicate awards
+    tokensAwardedRef.current = true;
+    
+    // Call the API to update the user's tokens in the database
+    const updateUserTokens = async () => {
+      try {
+        console.log(`Awarding session tokens: ${tokensEarned}`);
+        
+        // First update the local cache for immediate UI feedback
+        queryClient.setQueryData(['/api/user'], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            tokens: oldData.tokens + tokensEarned
+          };
+        });
+        
+        // Then make the API call to persist the change using the existing user/stats endpoint
+        const response = await fetch('/api/user/stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tokensEarned: tokensEarned,
+            correctAnswers: correctAnswers,
+            questionsAnswered: totalQuestions
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update tokens');
+        }
+        
+        console.log(`Successfully awarded ${tokensEarned} tokens to user`);
+      } catch (error) {
+        console.error('Error updating user tokens:', error);
+        
+        // Even if the API call fails, keep the optimistic UI update
+        // The tokens will sync next time the user data refreshes
+      }
+    };
+    
+    // Execute the token update
+    updateUserTokens();
+  }, [tokensEarned, user]);
+  
+  // Separate effect to award bonus tokens for perfect score
   useEffect(() => {
     // Skip if we've already awarded the bonus or if conditions aren't met
     if (bonusAwardedRef.current || !isPerfectScore || !user) {
@@ -53,6 +108,36 @@ export default function SessionComplete({
         tokens: oldData.tokens + perfectScoreBonus
       };
     });
+    
+    // Also call API to update the user's tokens in the database
+    const updatePerfectScoreBonus = async () => {
+      try {
+        console.log(`Awarding perfect score bonus: +${perfectScoreBonus} tokens`);
+        
+        const response = await fetch('/api/user/stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            tokensEarned: perfectScoreBonus,
+            correctAnswers: 0,
+            questionsAnswered: 0
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update tokens for perfect score bonus');
+        }
+        
+        console.log(`Successfully awarded ${perfectScoreBonus} bonus tokens for perfect score`);
+      } catch (error) {
+        console.error('Error updating bonus tokens:', error);
+      }
+    };
+    
+    // Execute the bonus token update
+    updatePerfectScoreBonus();
     
     // After a perfect score, refresh the study plan to update recommendations
     try {
