@@ -250,16 +250,6 @@ export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
   questionId: integer("question_id"), // ID of the question that was answered, if available
 });
 
-// User friends system
-export const friends = pgTable("friends", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(), // User who sent the friend request
-  friendId: integer("friend_id").notNull(), // User who received the friend request
-  status: text("status").default("pending").notNull(), // pending, accepted, rejected, blocked
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -283,7 +273,6 @@ export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
 export const insertSubjectMasterySchema = createInsertSchema(subjectMastery);
 export const insertSubjectDifficultyHistorySchema = createInsertSchema(subjectDifficultyHistory);
-export const insertFriendSchema = createInsertSchema(friends);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -299,4 +288,3 @@ export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type SubjectMastery = typeof subjectMastery.$inferSelect;
 export type SubjectDifficultyHistory = typeof subjectDifficultyHistory.$inferSelect;
-export type Friend = typeof friends.$inferSelect;
