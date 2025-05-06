@@ -2,7 +2,7 @@ import {
   users, type User, type InsertUser, userProgress, type UserProgress, 
   type Question, type Leaderboard, type ConceptMastery, type Recommendation,
   type AvatarItem, type DailyChallenge, type MathStory, 
-  type MultiplayerRoom, type AiAnalytic, type SubjectMastery
+  type MultiplayerRoom, type AiAnalytic, type SubjectMastery, type Friend
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -85,6 +85,15 @@ export interface IStorage {
   generateUserAnalytics(userId: number): Promise<AiAnalytic>;
   getUserAnalytics(userId: number): Promise<AiAnalytic | undefined>;
   updateLearningStyle(userId: number, learningStyle: string, strengths: string[], weaknesses: string[]): Promise<User>;
+  
+  // Friend system methods
+  getUserFriends(userId: number): Promise<Array<User & { friendshipId: number }>>;
+  getPendingFriendRequests(userId: number): Promise<Array<User & { requestId: number }>>;
+  getSentFriendRequests(userId: number): Promise<Array<User & { requestId: number }>>;
+  sendFriendRequest(userId: number, friendId: number): Promise<{ success: boolean; message: string; request?: Friend }>;
+  respondToFriendRequest(requestId: number, userId: number, accept: boolean): Promise<{ success: boolean; message: string }>;
+  removeFriend(userId: number, friendshipId: number): Promise<{ success: boolean; message: string }>;
+  searchUsers(query: string, currentUserId: number): Promise<User[]>;
   
   // Session store
   sessionStore: any; // Using any for sessionStore to avoid type issues
