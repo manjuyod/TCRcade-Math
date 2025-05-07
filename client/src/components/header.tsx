@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/use-auth';
+import { useTokenBalance } from '@/hooks/use-token-balance';
 import { StreakBadge } from './streak-badge';
 import { Link } from 'wouter';
 import { Coins } from 'lucide-react';
@@ -6,6 +7,7 @@ import tcLogo from '../assets/tc-logo.png';
 
 export default function Header() {
   const { user } = useAuth();
+  const { formattedTokens } = useTokenBalance();
   
   if (!user) return null;
   
@@ -23,13 +25,8 @@ export default function Header() {
           <div className="flex items-center mr-3">
             <div className="flex items-center bg-amber-100 rounded-full px-2 py-1">
               <Coins className="h-4 w-4 text-amber-700 mr-1" />
-              <span className="text-sm font-bold text-amber-700">
-                {/* Format tokens to handle large numbers: 1000 -> 1K, 1000000 -> 1M */}
-                {user.tokens >= 1000000 
-                  ? `${Math.floor(user.tokens / 1000000)}M` 
-                  : user.tokens >= 1000 
-                    ? `${Math.floor(user.tokens / 1000)}K` 
-                    : user.tokens}
+              <span className="text-sm font-bold text-amber-700" data-testid="token-display">
+                {formattedTokens}
               </span>
             </div>
           </div>

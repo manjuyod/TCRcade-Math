@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { useTokenBalance } from '@/hooks/use-token-balance';
 import { useSessionTimer } from '@/hooks/use-session-timer';
 import { useQuestionBatch } from '@/hooks/use-question-batch';
 import Header from '@/components/header';
@@ -47,6 +48,7 @@ function DashboardStats({ myScore, cohortScore, questionsAnswered, studyTime }) 
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { tokens, updateTokens } = useTokenBalance();
   const { minutesPlayed, displayMinutes, progressPercentage } = useSessionTimer();
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
   const [feedbackData, setFeedbackData] = useState<{
@@ -321,6 +323,12 @@ export default function HomePage() {
           // Check if the answer is correct for Math Facts
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
+          
+          // For Math Facts, we can immediately update the local token count for smoother UI
+          if (isCorrect) {
+            // Update local token balance immediately using our new hook
+            updateTokens(tokensEarned);
+          }
 
           // DON'T update session stats here - it will be handled in onSuccess
           // to prevent double-counting when the component re-renders
@@ -329,7 +337,7 @@ export default function HomePage() {
           return {
             correct: isCorrect,
             tokensEarned: tokensEarned,
-            totalTokens: 0, // We don't track this for non-authenticated sessions
+            totalTokens: tokens + (isCorrect ? tokensEarned : 0), // Use our local token count
             correctAnswer: question.answer
           };
         }
