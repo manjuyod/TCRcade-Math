@@ -26,7 +26,17 @@ import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
 import { Loader2, Clock, Calendar, Book, BookOpen, Users, Brain, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
 
-function DashboardStats({ myScore, cohortScore, questionsAnswered, studyTime }) {
+function DashboardStats({ 
+  myScore, 
+  cohortScore, 
+  questionsAnswered, 
+  studyTime 
+}: { 
+  myScore: number; 
+  cohortScore: number; 
+  questionsAnswered: number; 
+  studyTime: string; 
+}) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="bg-white p-4 rounded-xl shadow-sm">

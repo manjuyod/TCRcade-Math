@@ -47,14 +47,8 @@ export default function SessionComplete({
       try {
         console.log(`Awarding session tokens: ${tokensEarned}`);
         
-        // First update the local cache for immediate UI feedback
-        queryClient.setQueryData(['/api/user'], (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            tokens: oldData.tokens + tokensEarned
-          };
-        });
+        // Update tokens using our token balance hook for immediate UI feedback
+        updateTokens(tokensEarned);
         
         // Then make the API call to persist the change using the existing user/stats endpoint
         const response = await fetch('/api/user/stats', {
@@ -84,7 +78,7 @@ export default function SessionComplete({
     
     // Execute the token update
     updateUserTokens();
-  }, [tokensEarned, user]);
+  }, [tokensEarned, user, updateTokens]);
   
   // Separate effect to award bonus tokens for perfect score
   useEffect(() => {
@@ -99,17 +93,8 @@ export default function SessionComplete({
     // Mark that we've awarded the bonus to prevent infinite loop
     bonusAwardedRef.current = true;
     
-    // Update user tokens in the cache
-    queryClient.setQueryData(['/api/user'], (oldData: any) => {
-      // If there's no previous data, do nothing
-      if (!oldData) return oldData;
-      
-      // Return the updated data
-      return {
-        ...oldData,
-        tokens: oldData.tokens + perfectScoreBonus
-      };
-    });
+    // Use the token balance hook to update tokens in the UI immediately
+    updateTokens(perfectScoreBonus);
     
     // Also call API to update the user's tokens in the database
     const updatePerfectScoreBonus = async () => {
@@ -154,7 +139,7 @@ export default function SessionComplete({
     } catch (error) {
       console.error('Error refreshing study plan after perfect score:', error);
     }
-  }, [isPerfectScore, user]);
+  }, [isPerfectScore, user, updateTokens]);
   
   // Add state to manage cleanup
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
