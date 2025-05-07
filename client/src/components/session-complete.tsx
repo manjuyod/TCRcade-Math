@@ -36,27 +36,28 @@ export default function SessionComplete({
   // No need to award tokens here as they're already awarded when session completes
   // This prevents double-awarding tokens
   
-  // Keep the study plan refresh for perfect scores
+  // Update tokens display and refresh study plan
   useEffect(() => {
-    // Skip if conditions aren't met
-    if (!isPerfectScore || !user) {
-      return;
-    }
+    if (!user) return;
+
+    // Force token balance refresh when session complete screen shows
+    queryClient.invalidateQueries(['/api/user']);
     
-    // After a perfect score, refresh the study plan to update recommendations
-    try {
-      // Dynamically import to avoid circular dependencies
-      import('@/lib/study-plan').then(module => {
-        module.refreshStudyPlan().then(success => {
-          if (success) {
-            console.log('Study plan refreshed successfully after perfect score');
-          }
+    // After a perfect score, refresh the study plan
+    if (isPerfectScore) {
+      try {
+        import('@/lib/study-plan').then(module => {
+          module.refreshStudyPlan().then(success => {
+            if (success) {
+              console.log('Study plan refreshed successfully after perfect score');
+            }
+          });
         });
-      });
-    } catch (error) {
-      console.error('Error refreshing study plan after perfect score:', error);
+      } catch (error) {
+        console.error('Error refreshing study plan after perfect score:', error);
+      }
     }
-  }, [isPerfectScore, user]);
+  }, [isPerfectScore, user, tokensEarned]);
   
   // Add state to manage cleanup
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
