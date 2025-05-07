@@ -192,10 +192,10 @@ export default function HomePage() {
           // Add bonus tokens for time milestone
           if (user) {
             const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
-            queryClient.setQueryData(['/api/user'], {
-              ...user,
-              tokens: user.tokens + bonusTokens
-            });
+            
+            // Update tokens using our token balance hook
+            updateTokens(bonusTokens);
+            console.log(`Successfully awarded ${bonusTokens} bonus tokens for time milestone`);
           }
         }, 500);
       }
@@ -452,11 +452,11 @@ export default function HomePage() {
             if (user) {
               const bonusTokens = milestone * 2; // 2x tokens for each milestone
 
-              // First update local user data 
-              queryClient.setQueryData(['/api/user'], {
-                ...user,
-                tokens: user.tokens + bonusTokens
-              });
+              // Update tokens using our token balance hook
+              updateTokens(bonusTokens);
+              
+              // Log the bonus tokens awarded
+              console.log(`Successfully awarded ${bonusTokens} bonus tokens for streak milestone`);
 
               // Streak animation completely removed - all state updates removed
 
@@ -507,8 +507,13 @@ export default function HomePage() {
           }
         }
 
-        // Store current token count to avoid infinite loop when updating user data
-        const finalTokens = data.totalTokens;
+        // Update tokens with our token balance hook if they earned tokens
+        // This keeps the UI consistent by updating the token display immediately
+        if (data.correct && data.tokensEarned > 0) {
+          updateTokens(data.tokensEarned);
+          console.log(`Successfully awarded ${data.tokensEarned} tokens to user`);
+        }
+        
         const updatedQuestionsAnswered = user.questionsAnswered + 1;
         const updatedCorrectAnswers = user.correctAnswers + (data.correct ? 1 : 0);
 
@@ -519,7 +524,6 @@ export default function HomePage() {
 
           // If the data is the same as what we just set, don't update to avoid infinite loop
           if (
-            (prevUser as any).tokens === finalTokens && 
             (prevUser as any).grade === updatedGrade &&
             (prevUser as any).questionsAnswered === updatedQuestionsAnswered
           ) {
@@ -528,7 +532,7 @@ export default function HomePage() {
 
           return {
             ...prevUser,
-            tokens: finalTokens,
+            // Keep the tokens as they are in the user object since we're using our hook for display
             grade: updatedGrade,
             questionsAnswered: updatedQuestionsAnswered,
             correctAnswers: updatedCorrectAnswers

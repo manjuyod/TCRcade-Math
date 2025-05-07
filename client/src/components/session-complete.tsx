@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { playSound, stopAllSounds } from '@/lib/sounds';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { useTokenBalance } from '@/hooks/use-token-balance';
 import { queryClient } from '@/lib/queryClient';
 
 type SessionCompleteProps = {
@@ -21,6 +22,7 @@ export default function SessionComplete({
   onStartNewSession
 }: SessionCompleteProps) {
   const { user } = useAuth();
+  const { updateTokens } = useTokenBalance();
   const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
   
   // Check for perfect score (all answers correct)
