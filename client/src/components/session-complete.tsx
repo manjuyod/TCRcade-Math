@@ -32,99 +32,16 @@ export default function SessionComplete({
   const tokensAwardedRef = useRef(false);
   const bonusAwardedRef = useRef(false);
   
-  // Effect to award tokens earned during the session (runs only once when component mounts)
-  useEffect(() => {
-    // Skip if we've already awarded tokens or if no user is logged in
-    if (tokensAwardedRef.current || !user) {
-      return;
-    }
-    
-    // Mark that we've awarded tokens to prevent duplicate awards
-    tokensAwardedRef.current = true;
-    
-    // Call the API to update the user's tokens in the database
-    const updateUserTokens = async () => {
-      try {
-        console.log(`Awarding session tokens: ${tokensEarned}`);
-        
-        // Update tokens using our token balance hook for immediate UI feedback
-        updateTokens(tokensEarned);
-        
-        // Then make the API call to persist the change using the existing user/stats endpoint
-        const response = await fetch('/api/user/stats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tokensEarned: tokensEarned,
-            correctAnswers: correctAnswers,
-            questionsAnswered: totalQuestions
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to update tokens');
-        }
-        
-        console.log(`Successfully awarded ${tokensEarned} tokens to user`);
-      } catch (error) {
-        console.error('Error updating user tokens:', error);
-        
-        // Even if the API call fails, keep the optimistic UI update
-        // The tokens will sync next time the user data refreshes
-      }
-    };
-    
-    // Execute the token update
-    updateUserTokens();
-  }, [tokensEarned, user, updateTokens]);
+  // The token awards now happen in the HomePage component
+  // No need to award tokens here as they're already awarded when session completes
+  // This prevents double-awarding tokens
   
-  // Separate effect to award bonus tokens for perfect score
+  // Keep the study plan refresh for perfect scores
   useEffect(() => {
-    // Skip if we've already awarded the bonus or if conditions aren't met
-    if (bonusAwardedRef.current || !isPerfectScore || !user) {
+    // Skip if conditions aren't met
+    if (!isPerfectScore || !user) {
       return;
     }
-    
-    // Award 20 bonus tokens for perfect score
-    const perfectScoreBonus = 20;
-    
-    // Mark that we've awarded the bonus to prevent infinite loop
-    bonusAwardedRef.current = true;
-    
-    // Use the token balance hook to update tokens in the UI immediately
-    updateTokens(perfectScoreBonus);
-    
-    // Also call API to update the user's tokens in the database
-    const updatePerfectScoreBonus = async () => {
-      try {
-        console.log(`Awarding perfect score bonus: +${perfectScoreBonus} tokens`);
-        
-        const response = await fetch('/api/user/stats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            tokensEarned: perfectScoreBonus,
-            correctAnswers: 0,
-            questionsAnswered: 0
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to update tokens for perfect score bonus');
-        }
-        
-        console.log(`Successfully awarded ${perfectScoreBonus} bonus tokens for perfect score`);
-      } catch (error) {
-        console.error('Error updating bonus tokens:', error);
-      }
-    };
-    
-    // Execute the bonus token update
-    updatePerfectScoreBonus();
     
     // After a perfect score, refresh the study plan to update recommendations
     try {
@@ -139,7 +56,7 @@ export default function SessionComplete({
     } catch (error) {
       console.error('Error refreshing study plan after perfect score:', error);
     }
-  }, [isPerfectScore, user, updateTokens]);
+  }, [isPerfectScore, user]);
   
   // Add state to manage cleanup
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);

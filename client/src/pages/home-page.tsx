@@ -565,6 +565,76 @@ export default function HomePage() {
         // Set the final stats
         setSessionStats(finalStats);
 
+        // Submit total session tokens to the API immediately - don't wait for the session complete screen
+        if (finalStats.tokensEarned > 0) {
+          try {
+            // First, update the tokens in UI immediately using the token balance hook
+            updateTokens(finalStats.tokensEarned);
+            console.log(`Immediately awarding ${finalStats.tokensEarned} session tokens to user`);
+            
+            // Then persist to the database
+            fetch('/api/user/stats', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tokensEarned: finalStats.tokensEarned,
+                correctAnswers: finalStats.correctAnswers,
+                questionsAnswered: finalStats.questionsAnswered
+              }),
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to update session tokens');
+              }
+              return response.json();
+            })
+            .then(() => {
+              console.log(`Successfully persisted ${finalStats.tokensEarned} tokens to database`);
+              
+              // Check for perfect score and award bonus immediately
+              if (finalStats.correctAnswers === finalStats.questionsAnswered && finalStats.questionsAnswered === sessionSize) {
+                const perfectScoreBonus = 20;
+                
+                // Award bonus tokens immediately
+                updateTokens(perfectScoreBonus);
+                console.log(`Immediately awarding ${perfectScoreBonus} bonus tokens for perfect score`);
+                
+                // Persist bonus tokens
+                fetch('/api/user/stats', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    tokensEarned: perfectScoreBonus,
+                    correctAnswers: 0,
+                    questionsAnswered: 0
+                  }),
+                })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Failed to update perfect score bonus tokens');
+                  }
+                  return response.json();
+                })
+                .then(() => {
+                  console.log(`Successfully persisted ${perfectScoreBonus} bonus tokens to database`);
+                })
+                .catch(error => {
+                  console.error('Error persisting perfect score bonus tokens:', error);
+                });
+              }
+            })
+            .catch(error => {
+              console.error('Error persisting session tokens:', error);
+            });
+          } catch (error) {
+            console.error('Error updating tokens:', error);
+          }
+        }
+
         setTimeout(() => {
           setSessionCompleted(true);
           setShowFeedback(false);
