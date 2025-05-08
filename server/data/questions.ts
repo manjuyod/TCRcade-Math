@@ -3,44 +3,7 @@ import { Question } from '@shared/schema';
 /**
  * Default questions for the math learning platform
  * This is an expanded set to reduce repetition and provide more variety
- * 
- * Grade level access:
- * K-2: Basic addition, subtraction, time concepts
- * 3-5: Multiplication, division, fractions, advanced time, decimals, measurement
- * 6-8: Advanced decimals, ratios, complex fractions, pre-algebra
- * 9-12: Full access
  */
-
-// Define grade level requirements for each module category
-export const moduleGradeRequirements = {
-  'math-facts-addition': ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'math-facts-subtraction': ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'math-facts-multiplication': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'math-facts-division': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'addition': ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'subtraction': ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'multiplication': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'division': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'fractions': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'decimals': ['4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'time': ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'measurement': ['3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-  'ratios': ['6', '7', '8', '9', '10', '11', '12'],
-  'pre-algebra': ['6', '7', '8', '9', '10', '11', '12'],
-  'word-problems': ['6', '7', '8', '9', '10', '11', '12']
-};
-
-// Helper function to check if a grade has access to a module
-export function hasModuleAccess(userGrade: string, moduleCategory: string): boolean {
-  const allowedGrades = moduleGradeRequirements[moduleCategory] || [];
-  
-  // Special case: Grade 9-12 has access to everything
-  if (['9', '10', '11', '12'].includes(userGrade)) {
-    return true;
-  }
-  
-  return allowedGrades.includes(userGrade);
-}
 // Math Facts specific questions organized by operation and grade
 const mathFactsQuestions: Question[] = [
   // Addition Facts - Grade K
