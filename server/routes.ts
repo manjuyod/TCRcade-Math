@@ -5,6 +5,7 @@ import { setupAuth, comparePasswords, hashPassword } from "./auth";
 import { DatabaseStorage } from "./database-storage";
 import { db } from "./db";
 import { questions } from "@shared/schema";
+import { hasModuleAccess } from "./data/questions";
 import { eq, and, or, not, inArray, notInArray } from "drizzle-orm";
 import crypto from "crypto";
 import { 
