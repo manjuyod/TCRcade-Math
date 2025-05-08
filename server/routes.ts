@@ -884,6 +884,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Improved question fetching endpoint that handles duplicates and exclusions
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
+  // Check grade-based access
+  const category = req.query.category as string;
+  const userGrade = req.user!.grade || 'K';
+  
+  if (category && !hasModuleAccess(userGrade, category)) {
+    return res.status(403).json({ 
+      error: "Grade level restriction",
+      message: "This module is not available for your current grade level"
+    });
+  }
     try {
       const userId = req.user!.id;
       const grade = req.query.grade as string || req.user!.grade || "3";
