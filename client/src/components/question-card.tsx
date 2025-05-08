@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { getCategoryLabel } from '@/lib/questions';
-import Button from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 type QuestionCardProps = {
   question: Question;
