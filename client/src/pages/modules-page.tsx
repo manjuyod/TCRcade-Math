@@ -16,7 +16,8 @@ import {
   Sparkles,
   Clock,
   Trophy,
-  UserRoundCheck
+  UserRoundCheck,
+  AlertCircle
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
