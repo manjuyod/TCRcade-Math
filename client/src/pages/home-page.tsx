@@ -423,7 +423,9 @@ export default function HomePage() {
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
       
       // If this answer was incorrect, set perfect session flag to false
+      console.log(`Answer check - isCorrect: ${data.correct}, current hasPerfectSession: ${hasPerfectSession}`);
       if (!data.correct) {
+        console.log('SETTING hasPerfectSession to FALSE due to incorrect answer');
         setHasPerfectSession(false);
         console.log('Incorrect answer - perfect session bonus no longer possible');
       }
@@ -604,7 +606,9 @@ export default function HomePage() {
               
               // Check for perfect score and award bonus immediately
               // We now use the hasPerfectSession flag instead of just comparing stats
+              console.log(`Perfect score check - hasPerfectSession: ${hasPerfectSession}, questions: ${finalStats.questionsAnswered}/${sessionSize}`);
               if (hasPerfectSession && finalStats.questionsAnswered === sessionSize) {
+                console.log(`PERFECT SCORE BONUS AWARDED!`);
                 const perfectScoreBonus = 20;
                 
                 // Award bonus tokens immediately
