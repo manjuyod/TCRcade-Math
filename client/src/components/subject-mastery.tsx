@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SubjectMastery as SubjectMasteryType } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
@@ -12,10 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 
 // Define grade levels for the application
-const GRADE_LEVELS = ['1', '2', '3', '4', '5', '6'];
+const GRADE_LEVELS = ['K', '1', '2', '3', '4', '5', '6'];
 
 // Grade-specific subjects
 const SUBJECTS_BY_GRADE: Record<string, string[]> = {
+  'K': ['addition', 'subtraction', 'counting'],
   '1': ['addition', 'subtraction', 'counting'],
   '2': ['addition', 'subtraction', 'place-value'],
   '3': ['addition', 'subtraction', 'multiplication', 'division'],
@@ -90,6 +91,34 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
     }
   });
   
+  // Reset all subject masteries for a user
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/subject-mastery/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!res.ok) throw new Error('Failed to reset subject masteries');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subject-masteries'] });
+      refetchSubjects();
+      toast({
+        title: 'Reset Complete',
+        description: 'All subject masteries have been reset successfully.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Reset Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
   // Filter masteries by the selected grade
   const gradeSpecificMasteries = allMasteries?.filter(
     (mastery: SubjectMasteryType) => mastery.grade === selectedGrade
@@ -124,6 +153,13 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
   // Initialize subjects for the current grade if none are available
   const handleInitializeSubjects = () => {
     initializeMutation.mutate(selectedGrade);
+  };
+  
+  // Reset all subject masteries
+  const handleResetMasteries = () => {
+    if (window.confirm("Are you sure you want to reset all subject masteries? This will delete all progress tracking data.")) {
+      resetMutation.mutate();
+    }
   };
 
   if (masteriesLoading || subjectsLoading) {
@@ -161,87 +197,110 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange}>
-          <TabsList className="mb-4">
-            {GRADE_LEVELS.map((grade) => (
-              <TabsTrigger key={grade} value={grade}>
-                Grade {grade}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {GRADE_LEVELS.map((grade) => (
-            <TabsContent key={grade} value={grade}>
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Grade {grade} Subjects</h3>
+        <div className="flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange} className="flex-1">
+              <div className="flex justify-between items-center mb-2">
+                <TabsList>
+                  {GRADE_LEVELS.map((grade) => (
+                    <TabsTrigger key={grade} value={grade}>
+                      Grade {grade}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 
-                {availableSubjects?.length ? (
-                  <Accordion type="single" collapsible className="w-full">
-                    {SUBJECTS_BY_GRADE[grade]?.map((subject) => {
-                      const status = getSubjectStatus(subject);
-                      return (
-                        <AccordionItem key={subject} value={subject}>
-                          <AccordionTrigger className="px-4 py-2 bg-muted/50 rounded-md">
-                            <div className="flex justify-between items-center w-full pr-4">
-                              <span>{SUBJECT_DISPLAY_NAMES[subject] || subject}</span>
-                              {status.unlocked ? (
-                                <Badge className="ml-2 bg-green-500">Unlocked</Badge>
-                              ) : (
-                                <Badge className="ml-2 bg-gray-500">Locked</Badge>
-                              )}
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-4 py-2">
-                            {status.unlocked ? (
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-sm text-muted-foreground">
-                                  <span>Proficiency</span>
-                                  <span>{Math.round(status.proficiencyScore * 100)}%</span>
-                                </div>
-                                <Progress value={status.proficiencyScore * 100} className="h-2" />
-                                
-                                <div className="flex justify-between mt-2 text-sm">
-                                  <span>Problems Attempted: {status.attempts}</span>
-                                  {status.attempts > 0 && (
-                                    <span>Success Rate: {Math.round((status.correct / status.attempts) * 100)}%</span>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleResetMasteries}
+                  disabled={resetMutation.isPending}
+                  className="ml-2"
+                >
+                  {resetMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    'Reset All Masteries'
+                  )}
+                </Button>
+              </div>
+
+              {GRADE_LEVELS.map((grade) => (
+                <TabsContent key={grade} value={grade}>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Grade {grade} Subjects</h3>
+                    
+                    {availableSubjects?.length ? (
+                      <Accordion type="single" collapsible className="w-full">
+                        {SUBJECTS_BY_GRADE[grade]?.map((subject) => {
+                          const status = getSubjectStatus(subject);
+                          return (
+                            <AccordionItem key={subject} value={subject}>
+                              <AccordionTrigger className="px-4 py-2 bg-muted/50 rounded-md">
+                                <div className="flex justify-between items-center w-full pr-4">
+                                  <span>{SUBJECT_DISPLAY_NAMES[subject] || subject}</span>
+                                  {status.unlocked ? (
+                                    <Badge className="ml-2 bg-green-500">Unlocked</Badge>
+                                  ) : (
+                                    <Badge className="ml-2 bg-gray-500">Locked</Badge>
                                   )}
                                 </div>
-                                
-                                {status.attempts >= 30 && status.proficiencyScore >= 0.8 && (
-                                  <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
-                                    You've mastered this subject! The next grade level has been unlocked.
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 py-2">
+                                {status.unlocked ? (
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                      <span>Proficiency</span>
+                                      <span>{Math.round(status.proficiencyScore * 100)}%</span>
+                                    </div>
+                                    <Progress value={status.proficiencyScore * 100} className="h-2" />
+                                    
+                                    <div className="flex justify-between mt-2 text-sm">
+                                      <span>Problems Attempted: {status.attempts}</span>
+                                      {status.attempts > 0 && (
+                                        <span>Success Rate: {Math.round((status.correct / status.attempts) * 100)}%</span>
+                                      )}
+                                    </div>
+                                    
+                                    {status.attempts >= 30 && status.proficiencyScore >= 0.8 && (
+                                      <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
+                                        You've mastered this subject! The next grade level has been unlocked.
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-muted-foreground text-sm">
+                                    This subject is locked. Complete earlier grade subjects to unlock.
                                   </div>
                                 )}
-                              </div>
-                            ) : (
-                              <div className="text-muted-foreground text-sm">
-                                This subject is locked. Complete earlier grade subjects to unlock.
-                              </div>
-                            )}
-                          </AccordionContent>
-                        </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
-                ) : (
-                  <div className="p-4 text-center border rounded-md bg-muted/50">
-                    No subjects available for Grade {grade}.
-                    {grade === selectedGrade && (
-                      <Button
-                        onClick={handleInitializeSubjects}
-                        className="mt-2"
-                        disabled={initializeMutation.isPending}
-                        size="sm"
-                      >
-                        {initializeMutation.isPending ? "Initializing..." : "Initialize Subjects"}
-                      </Button>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    ) : (
+                      <div className="p-4 text-center border rounded-md bg-muted/50">
+                        No subjects available for Grade {grade}.
+                        {grade === selectedGrade && (
+                          <Button
+                            onClick={handleInitializeSubjects}
+                            className="mt-2"
+                            disabled={initializeMutation.isPending}
+                            size="sm"
+                          >
+                            {initializeMutation.isPending ? "Initializing..." : "Initialize Subjects"}
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
