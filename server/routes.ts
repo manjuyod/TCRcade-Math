@@ -4062,18 +4062,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required field: grade" });
       }
       
-      // Define default subjects for different grade levels
+      // Define default subjects for different grade levels (matching module restrictions)
       const gradeSubjects: Record<string, string[]> = {
-        '1': ['addition', 'subtraction', 'counting'],
-        '2': ['addition', 'subtraction', 'place-value'],
-        '3': ['addition', 'subtraction', 'multiplication', 'division'],
-        '4': ['multiplication', 'division', 'fractions'],
-        '5': ['decimals', 'fractions', 'geometry'],
-        '6': ['algebra', 'percentages', 'ratios']
+        'K': ['addition', 'subtraction'],
+        '1': ['addition', 'subtraction', 'counting', 'time'],
+        '2': ['addition', 'subtraction', 'place-value', 'multiplication'],
+        '3': ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement'],
+        '4': ['multiplication', 'division', 'fractions', 'decimals', 'measurement'],
+        '5': ['decimals', 'fractions', 'geometry', 'ratios', 'algebra'],
+        '6': ['algebra', 'percentages', 'ratios', 'geometry', 'decimals']
       };
       
-      // Get subjects for the specified grade, or default to grade 5 subjects if not found
-      const subjects = gradeSubjects[grade] || gradeSubjects['5'];
+      // Get subjects for the specified grade, or default to kindergarten (K) for the lowest grade
+      const subjects = gradeSubjects[grade] || gradeSubjects['K'];
       
       // Initialize masteries for each subject
       const masteries = [];
