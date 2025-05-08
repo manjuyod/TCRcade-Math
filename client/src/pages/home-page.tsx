@@ -92,6 +92,9 @@ export default function HomePage() {
     correctAnswers: 0,
     tokensEarned: 0
   });
+  
+  // Flag to track if any questions were answered incorrectly
+  const [hasPerfectSession, setHasPerfectSession] = useState<boolean>(true);
 
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
@@ -688,6 +691,9 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0
     });
+    
+    // Reset the perfect score flag to true for a new session
+    setHasPerfectSession(true);
     
     // Reset the localStorage progress for Math Facts modules
     localStorage.setItem('mathFactsProgress', '0');
