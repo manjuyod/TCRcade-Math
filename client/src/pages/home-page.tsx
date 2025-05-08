@@ -422,6 +422,12 @@ export default function HomePage() {
       // This ensures session progress is properly tracked for Math Facts modules too
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
       
+      // If this answer was incorrect, set perfect session flag to false
+      if (!data.correct) {
+        setHasPerfectSession(false);
+        console.log('Incorrect answer - perfect session bonus no longer possible');
+      }
+      
       // Always update stats regardless of module type
       setSessionStats(prev => {
         const newStats = {
@@ -597,7 +603,8 @@ export default function HomePage() {
               console.log(`Successfully persisted ${finalStats.tokensEarned} tokens to database`);
               
               // Check for perfect score and award bonus immediately
-              if (finalStats.correctAnswers === finalStats.questionsAnswered && finalStats.questionsAnswered === sessionSize) {
+              // We now use the hasPerfectSession flag instead of just comparing stats
+              if (hasPerfectSession && finalStats.questionsAnswered === sessionSize) {
                 const perfectScoreBonus = 20;
                 
                 // Award bonus tokens immediately
@@ -874,6 +881,10 @@ export default function HomePage() {
 
                     // Add question to answered questions
                     setAnsweredQuestionIds(prev => [...prev, question.id]);
+                    
+                    // Set perfect session flag to false since this is an incorrect answer
+                    setHasPerfectSession(false);
+                    console.log('Timeout - perfect session bonus no longer possible');
 
                     // Update session stats - this is a timeout, so it's incorrect
                     // Per user request, we only increment progress on correct answers
