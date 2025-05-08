@@ -1539,6 +1539,35 @@ export class DatabaseStorage implements IStorage {
     return userMasteries.map(mastery => mastery.subject);
   }
   
+  /**
+   * Reset all subject masteries for a user (delete them all)
+   * @param userId The user ID
+   * @returns Success status
+   */
+  async resetSubjectMasteries(userId: number): Promise<boolean> {
+    try {
+      // Delete all subject mastery records for this user
+      await db
+        .delete(subjectMastery)
+        .where(eq(subjectMastery.userId, userId));
+        
+      // Also delete related subject difficulty history if that table exists
+      try {
+        await db
+          .delete(subjectDifficultyHistory)
+          .where(eq(subjectDifficultyHistory.userId, userId));
+      } catch (e) {
+        // If the table doesn't exist yet, just continue
+        console.log("Note: subjectDifficultyHistory table may not exist, skipping deletion");
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error resetting subject masteries:', error);
+      return false;
+    }
+  }
+  
   async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {
     // First, get all subject masteries for this user that are unlocked
     const userMasteries = await db

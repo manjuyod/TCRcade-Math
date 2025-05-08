@@ -3986,6 +3986,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Reset subject mastery data for a user
+  app.post("/api/subject-mastery/reset", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Delete all subject mastery records for the user
+      const success = await storage.resetSubjectMasteries(userId);
+      
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: "Subject masteries have been reset. You can now re-initialize them for any grade." 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: "Failed to reset subject masteries" 
+        });
+      }
+    } catch (error) {
+      console.error("Error resetting subject masteries:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Failed to reset subject masteries" 
+      });
+    }
+  });
+  
   // Get questions specific to user's grade progression for a subject
   app.get("/api/questions/adaptive/:subject", ensureAuthenticated, async (req, res) => {
     try {
