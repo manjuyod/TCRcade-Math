@@ -1525,18 +1525,60 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
-    // Get all subject masteries for this user and grade that are unlocked
-    const userMasteries = await db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.grade, grade),
-        eq(subjectMastery.isUnlocked, true)
-      ));
+    // Define default subjects for different grade levels based on user's current grade
+    const defaultSubjects: Record<string, string[]> = {
+      'K': ['addition', 'subtraction'],
+      '1': ['addition', 'subtraction', 'counting', 'time'],
+      '2': ['addition', 'subtraction', 'place-value', 'multiplication'],
+      '3': ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement'],
+      '4': ['multiplication', 'division', 'fractions', 'decimals', 'measurement'],
+      '5': ['decimals', 'fractions', 'geometry', 'ratios', 'algebra'],
+      '6': ['algebra', 'percentages', 'ratios', 'geometry', 'decimals']
+    };
     
-    // Return the list of unlocked subjects
-    return userMasteries.map(mastery => mastery.subject);
+    try {
+      // First, try to get the user's subject masteries from the database
+      const userMasteries = await db
+        .select()
+        .from(subjectMastery)
+        .where(and(
+          eq(subjectMastery.userId, userId),
+          eq(subjectMastery.grade, grade),
+          eq(subjectMastery.isUnlocked, true)
+        ));
+      
+      // If we have masteries, return those subject names
+      if (userMasteries.length > 0) {
+        return userMasteries.map(mastery => mastery.subject);
+      }
+      
+      // If the user has no masteries for this grade, let's automatically initialize them
+      // This provides a better experience by eliminating empty states
+      console.log(`No subject masteries found for user ${userId} in grade ${grade}. Auto-initializing...`);
+      
+      // Get the default subjects for this grade
+      const subjectsToInitialize = defaultSubjects[grade] || defaultSubjects['K'];
+      
+      // Initialize masteries for each subject
+      const initializedSubjects = [];
+      for (const subject of subjectsToInitialize) {
+        try {
+          await this.unlockGradeForSubject(userId, subject, grade);
+          initializedSubjects.push(subject);
+        } catch (error) {
+          console.error(`Error initializing subject ${subject} for user ${userId} in grade ${grade}:`, error);
+          // Continue with other subjects even if one fails
+        }
+      }
+      
+      return initializedSubjects;
+    } catch (error) {
+      console.error(`Error in getAvailableSubjectsForGrade for user ${userId}, grade ${grade}:`, error);
+      
+      // As a fallback, return the default subjects for this grade
+      // This ensures the UI always has something to display
+      return defaultSubjects[grade] || defaultSubjects['K'];
+    }
   }
   
   /**

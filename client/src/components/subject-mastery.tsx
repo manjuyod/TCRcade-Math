@@ -60,6 +60,8 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
       return res.json();
     },
     retry: 1,
+    staleTime: 60000, // Cache results for 1 minute to prevent excessive requests
+    cacheTime: 300000, // Keep data in cache for 5 minutes
   });
   
   // Reset all subject masteries for a user
@@ -256,19 +258,33 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
                           );
                         })}
                       </Accordion>
+                    ) : subjectsLoading ? (
+                      <div className="p-4 text-center border rounded-md bg-muted/50">
+                        <div>
+                          <p>Loading subject data for Grade {grade}...</p>
+                          <Loader2 className="mx-auto mt-2 h-5 w-5 animate-spin" />
+                        </div>
+                      </div>
+                    ) : !isGradeAccessible(grade) ? (
+                      <div className="p-4 text-center border rounded-md bg-muted/50">
+                        <div>
+                          <p className="mb-2">Complete lower grades to unlock Grade {grade}.</p>
+                          <span className="text-2xl">🔒</span>
+                        </div>
+                      </div>
                     ) : (
                       <div className="p-4 text-center border rounded-md bg-muted/50">
-                        {!isGradeAccessible(grade) ? (
-                          <div>
-                            <p className="mb-2">Complete lower grades to unlock Grade {grade}.</p>
-                            <span className="text-2xl">🔒</span>
-                          </div>
-                        ) : (
-                          <div>
-                            <p>Loading subject data for Grade {grade}...</p>
-                            <Loader2 className="mx-auto mt-2 h-5 w-5 animate-spin" />
-                          </div>
-                        )}
+                        <div>
+                          <p>No subjects available for Grade {grade}.</p>
+                          <Button
+                            onClick={() => refetchSubjects()}
+                            className="mt-2"
+                            variant="outline"
+                            size="sm"
+                          >
+                            Refresh Data
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
