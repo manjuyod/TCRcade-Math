@@ -254,7 +254,7 @@ export default function SessionComplete({
             </Button>
           </Link>
           
-          <Link href="/">
+          <Link href="/modules">
             <Button 
               onClick={() => {
                 // Stop any playing sounds before navigating
@@ -262,8 +262,14 @@ export default function SessionComplete({
                 // Clear any local storage session state
                 localStorage.removeItem('mathFactsProgress');
                 localStorage.removeItem('currentModule');
+                localStorage.removeItem('currentModuleId');
                 localStorage.removeItem('currentModuleType');
                 localStorage.removeItem('currentCategory');
+                localStorage.removeItem('mathFactsOperation');
+                
+                // Force refresh the modules page data when returning
+                queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
               }}
               className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
