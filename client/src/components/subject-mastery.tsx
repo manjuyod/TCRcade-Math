@@ -43,7 +43,7 @@ const SUBJECT_DISPLAY_NAMES: Record<string, string> = {
 
 export function SubjectMastery({ userId, currentGrade }: { userId: number, currentGrade: string }) {
   const { toast } = useToast();
-  const [selectedGrade, setSelectedGrade] = useState(currentGrade || '5');
+  const [selectedGrade, setSelectedGrade] = useState(currentGrade || 'K');
 
   // Get all subject masteries for the user
   const { data: allMasteries, isLoading: masteriesLoading } = useQuery({
@@ -60,35 +60,6 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
       return res.json();
     },
     retry: 1,
-  });
-
-  // Initialize subject masteries for a user
-  const initializeMutation = useMutation({
-    mutationFn: async (grade: string) => {
-      const res = await fetch('/api/subject-mastery/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ grade })
-      });
-      
-      if (!res.ok) throw new Error('Failed to initialize subject masteries');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/subject-masteries'] });
-      refetchSubjects();
-      toast({
-        title: 'Subjects Initialized',
-        description: `Subjects for grade ${selectedGrade} are now available.`,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Initialization Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
   });
   
   // Reset all subject masteries for a user
@@ -145,14 +116,20 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
     };
   };
 
+  // Helper to convert grade to numeric value for comparison
+  const getGradeValue = (grade: string): number => {
+    if (grade === 'K') return 0;
+    return parseInt(grade, 10);
+  };
+
+  // Check if a grade is accessible based on current user grade
+  const isGradeAccessible = (grade: string): boolean => {
+    return getGradeValue(grade) <= getGradeValue(currentGrade);
+  };
+
   // Handle grade change
   const handleGradeChange = (grade: string) => {
     setSelectedGrade(grade);
-  };
-
-  // Initialize subjects for the current grade if none are available
-  const handleInitializeSubjects = () => {
-    initializeMutation.mutate(selectedGrade);
   };
   
   // Reset all subject masteries
@@ -161,6 +138,11 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
       resetMutation.mutate();
     }
   };
+
+  // This will be used when we check if a variable is undefined
+  function isDefined<T>(value: T | undefined | null): value is T {
+    return value !== undefined && value !== null;
+  }
 
   if (masteriesLoading || subjectsLoading) {
     return (
@@ -176,24 +158,6 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
         <CardTitle>Math Subject Mastery</CardTitle>
         <CardDescription>
           Track your progress across different math subjects and grade levels.
-          {!availableSubjects?.length && (
-            <div className="mt-2">
-              <Button 
-                onClick={handleInitializeSubjects}
-                disabled={initializeMutation.isPending}
-                size="sm"
-              >
-                {initializeMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Initializing...
-                  </>
-                ) : (
-                  'Initialize Grade Subjects'
-                )}
-              </Button>
-            </div>
-          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -202,11 +166,23 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
             <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange} className="flex-1">
               <div className="flex justify-between items-center mb-2">
                 <TabsList>
-                  {GRADE_LEVELS.map((grade) => (
-                    <TabsTrigger key={grade} value={grade}>
-                      Grade {grade}
-                    </TabsTrigger>
-                  ))}
+                  {GRADE_LEVELS.map((grade) => {
+                    const isLocked = !isGradeAccessible(grade);
+                    return (
+                      <TabsTrigger 
+                        key={grade} 
+                        value={grade}
+                        disabled={isLocked}
+                        className={isLocked ? "opacity-50 cursor-not-allowed" : ""}
+                        title={isLocked ? `Complete lower grades to unlock Grade ${grade}` : `Grade ${grade}`}
+                      >
+                        Grade {grade}
+                        {isLocked && (
+                          <span className="ml-1 text-xs">🔒</span>
+                        )}
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
                 
                 <Button 
@@ -282,16 +258,16 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
                       </Accordion>
                     ) : (
                       <div className="p-4 text-center border rounded-md bg-muted/50">
-                        No subjects available for Grade {grade}.
-                        {grade === selectedGrade && (
-                          <Button
-                            onClick={handleInitializeSubjects}
-                            className="mt-2"
-                            disabled={initializeMutation.isPending}
-                            size="sm"
-                          >
-                            {initializeMutation.isPending ? "Initializing..." : "Initialize Subjects"}
-                          </Button>
+                        {!isGradeAccessible(grade) ? (
+                          <div>
+                            <p className="mb-2">Complete lower grades to unlock Grade {grade}.</p>
+                            <span className="text-2xl">🔒</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <p>Loading subject data for Grade {grade}...</p>
+                            <Loader2 className="mx-auto mt-2 h-5 w-5 animate-spin" />
+                          </div>
                         )}
                       </div>
                     )}
