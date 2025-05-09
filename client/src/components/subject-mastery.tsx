@@ -63,7 +63,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
     staleTime: 60000, // Cache results for 1 minute to prevent excessive requests
     cacheTime: 300000, // Keep data in cache for 5 minutes
   });
-  
+
   // Reset all subject masteries for a user
   const resetMutation = useMutation({
     mutationFn: async () => {
@@ -71,7 +71,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (!res.ok) throw new Error('Failed to reset subject masteries');
       return res.json();
     },
@@ -91,7 +91,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
       });
     }
   });
-  
+
   // Filter masteries by the selected grade
   const gradeSpecificMasteries = allMasteries?.filter(
     (mastery: SubjectMasteryType) => mastery.grade === selectedGrade
@@ -102,14 +102,14 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
     const mastery = gradeSpecificMasteries.find(
       (m: SubjectMasteryType) => m.subject === subject
     );
-    
+
     if (!mastery) return { unlocked: false, proficiencyScore: 0 };
-    
+
     // Calculate proficiency score (0-1) based on correctAttempts / totalAttempts
     const proficiencyScore = mastery.totalAttempts > 0 
       ? mastery.correctAttempts / mastery.totalAttempts 
       : 0;
-    
+
     return { 
       unlocked: mastery.isUnlocked, 
       proficiencyScore: proficiencyScore,
@@ -133,7 +133,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
   const handleGradeChange = (grade: string) => {
     setSelectedGrade(grade);
   };
-  
+
   // Reset all subject masteries
   const handleResetMasteries = () => {
     if (window.confirm("Are you sure you want to reset all subject masteries? This will delete all progress tracking data.")) {
@@ -204,7 +204,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
           {GRADE_LEVELS.map((grade) => (
             <TabsContent key={grade} value={grade}>
               <h3 className="text-lg font-medium mb-4">Grade {grade} Subjects</h3>
-              
+
               {availableSubjects?.length ? (
                 <Accordion type="single" collapsible className="w-full">
                   {SUBJECTS_BY_GRADE[grade]?.map((subject) => {
@@ -226,17 +226,17 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
                             <div className="space-y-2">
                               <div className="flex justify-between text-sm text-muted-foreground">
                                 <span>Proficiency</span>
-                                <span>{Math.round(status.proficiencyScore * 100)}%</span>
+                                <span>{status.proficiencyScore ? Math.round(status.proficiencyScore * 100) : 0}%</span>
                               </div>
-                              <Progress value={status.proficiencyScore * 100} className="h-2" />
-                              
+                              <Progress value={status.proficiencyScore ? status.proficiencyScore * 100 : 0} className="h-2" />
+
                               <div className="flex justify-between mt-2 text-sm">
-                                <span>Problems Attempted: {status.attempts}</span>
+                                <span>Problems Attempted: {status.attempts || 0}</span>
                                 {status.attempts > 0 && (
                                   <span>Success Rate: {Math.round((status.correct / status.attempts) * 100)}%</span>
                                 )}
                               </div>
-                              
+
                               {status.attempts >= 30 && status.proficiencyScore >= 0.8 && (
                                 <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
                                   You've mastered this subject! The next grade level has been unlocked.
