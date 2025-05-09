@@ -607,7 +607,7 @@ export default function HomePage() {
               // Check for perfect score and award bonus immediately
               // We now use the hasPerfectSession flag instead of just comparing stats
               console.log(`Perfect score check - hasPerfectSession: ${hasPerfectSession}, questions: ${finalStats.questionsAnswered}/${sessionSize}`);
-              if (hasPerfectSession && finalStats.questionsAnswered === sessionSize) {
+              if (hasPerfectSession && finalStats.questionsAnswered === sessionSize && finalStats.correctAnswers === finalStats.questionsAnswered) {
                 console.log(`PERFECT SCORE BONUS AWARDED!`);
                 const perfectScoreBonus = 20;
                 
@@ -849,6 +849,7 @@ export default function HomePage() {
               totalQuestions={sessionStats.questionsAnswered}
               tokensEarned={sessionStats.tokensEarned}
               onStartNewSession={handleStartNewSession}
+              isPerfectSession={hasPerfectSession}
             />
           ) : isLoading || isManuallyLoading || answerMutation.isPending ? (
             <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 flex items-center justify-center min-h-[300px]">

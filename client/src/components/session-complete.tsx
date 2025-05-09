@@ -13,20 +13,23 @@ type SessionCompleteProps = {
   totalQuestions: number;
   tokensEarned: number;
   onStartNewSession: () => void;
+  isPerfectSession?: boolean; // Add this to pass the hasPerfectSession flag
 };
 
 export default function SessionComplete({
   correctAnswers,
   totalQuestions,
   tokensEarned,
-  onStartNewSession
+  onStartNewSession,
+  isPerfectSession = false  // Default to false if not provided
 }: SessionCompleteProps) {
   const { user } = useAuth();
   const { updateTokens } = useTokenBalance();
   const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
   
-  // Check for perfect score (all answers correct)
-  const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
+  // Use the passed isPerfectSession flag instead of just comparing scores
+  // This ensures we're tracking the session history not just the final numbers
+  const isPerfectScore = isPerfectSession;
   
   // Using refs to track if we've already awarded the tokens to prevent duplicate updates
   const tokensAwardedRef = useRef(false);
