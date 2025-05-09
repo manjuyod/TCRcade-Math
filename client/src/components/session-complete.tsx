@@ -81,14 +81,38 @@ export default function SessionComplete({
       
       // Trigger confetti animation - VERY limited to prevent crashes
       if (isPerfectScore) {
-        // Drastically reduced particle count for perfect scores to prevent crashes
+        // Two-burst confetti for perfect scores - still limited but more impressive
+        // First burst from left side
         confetti({
-          particleCount: 25, // Reduced from 100
-          spread: 90,
-          origin: { y: 0.6 },
-          colors: ['#FFD700', '#FFA500', '#9370DB'],
+          particleCount: 20, // Limited particles
+          spread: 70,
+          origin: { x: 0.2, y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#FF4500'], // Gold, orange, red-orange
           disableForReducedMotion: true
         });
+        
+        // Second burst from right side (delayed slightly)
+        setTimeout(() => {
+          confetti({
+            particleCount: 20, // Limited particles
+            spread: 70,
+            origin: { x: 0.8, y: 0.6 },
+            colors: ['#FFD700', '#FF8C00', '#9370DB'], // Gold, dark orange, purple
+            disableForReducedMotion: true
+          });
+        }, 300);
+        
+        // Optional third burst from center (if performance allows)
+        setTimeout(() => {
+          confetti({
+            particleCount: 15, // Very limited particles for third burst
+            spread: 100,
+            origin: { x: 0.5, y: 0.5 },
+            colors: ['#FFD700', '#FF4500', '#1E90FF'], // Gold, red-orange, blue
+            shapes: ['square'],
+            disableForReducedMotion: true
+          });
+        }, 600);
       } else {
         // Even more limited single burst for normal completion
         confetti({
@@ -157,13 +181,22 @@ export default function SessionComplete({
               : 'Congratulations!'}
           </p>
           {isPerfectScore && (
-            <motion.p 
-              className="text-sm text-green-600 font-bold mt-2"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
+            <motion.div 
+              className="mt-2 py-2 px-4 bg-yellow-100 rounded-lg border-2 border-yellow-300 inline-block"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1, y: [0, -3, 0] }}
+              transition={{ 
+                scale: { delay: 0.5, duration: 0.5 },
+                opacity: { delay: 0.5, duration: 0.5 },
+                y: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+              }}
             >
-              +20 bonus tokens for perfect accuracy!
-            </motion.p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl">🏆</span>
+                <span className="text-lg font-extrabold text-yellow-600">+20 PERFECT BONUS!</span>
+                <span className="text-2xl">🏆</span>
+              </div>
+            </motion.div>
           )}
         </motion.div>
         
