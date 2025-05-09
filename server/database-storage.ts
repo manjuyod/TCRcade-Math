@@ -1789,47 +1789,16 @@ export class DatabaseStorage implements IStorage {
 
   /**
    * Get the current difficulty level for a user in a particular subject and grade
-   * Takes into account user's preferred difficulty setting
    */
   async getSubjectDifficulty(userId: number, subject: string, grade: string): Promise<number> {
-    try {
-      // Get subject mastery record
-      const mastery = await this.getUserSubjectMastery(userId, subject, grade);
-      
-      // Get user record for preferred difficulty
-      const user = await this.getUser(userId);
-      
-      // Default difficulty level if no mastery record exists
-      let baseDifficulty = mastery ? mastery.difficultyLevel : 1;
-      
-      // If user has a preferred difficulty setting, adjust the subject difficulty
-      if (user && user.preferredDifficulty) {
-        // User's preferred difficulty is on a 1-5 scale, same as the subject difficulty
-        // We'll adjust the subject difficulty based on the user's preference
-        
-        // Calculate adjusted difficulty:
-        // - If preferredDifficulty = 3 (default), return subject difficulty unchanged
-        // - If preferredDifficulty > 3, increase subject difficulty (max 5)
-        // - If preferredDifficulty < 3, decrease subject difficulty (min 1)
-        const preferredDifficultyAdjustment = user.preferredDifficulty - 3; // -2 to +2 adjustment
-        
-        // Apply the adjustment with limits
-        const adjustedDifficulty = Math.min(
-          Math.max(baseDifficulty + preferredDifficultyAdjustment, 1), 
-          5
-        );
-        
-        console.log(`User ${userId} has preferredDifficulty=${user.preferredDifficulty}, adjusting subject difficulty from ${baseDifficulty} to ${adjustedDifficulty}`);
-        
-        return adjustedDifficulty;
-      }
-      
-      // If no user preference, return the subject mastery difficulty
-      return baseDifficulty;
-    } catch (error) {
-      console.error('Error calculating subject difficulty:', error);
-      return 1; // Default to easiest difficulty on error
+    const mastery = await this.getUserSubjectMastery(userId, subject, grade);
+    
+    // Default to difficulty level 1 if no mastery record exists
+    if (!mastery) {
+      return 1;
     }
+    
+    return mastery.difficultyLevel;
   }
 
   /**

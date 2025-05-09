@@ -43,8 +43,6 @@ export const users = pgTable("users", {
   strengthConcepts: text("strength_concepts").array().default([]),
   weaknessConcepts: text("weakness_concepts").array().default([]),
   interests: text("interests").array().default([]),
-  // User preferences for difficulty
-  preferredDifficulty: integer("preferred_difficulty").default(3).notNull(), // 1-5 scale where 3 is default
   // Password reset fields
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
