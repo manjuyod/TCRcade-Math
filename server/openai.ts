@@ -178,14 +178,125 @@ function questionReferencesImage(questionText: string): boolean {
 }
 
 /**
- * Previously generated SVG images for math questions
- * Now returns empty SVG per user request to remove all visual elements
- * @param content Not used - visualization content has been disabled
- * @param type Not used - visualization type has been disabled
+ * Generates SVG images for math questions
+ * @param content Visualization content
+ * @param type The type of visualization to generate
  */
 function generateSVGImage(content: any, type: string): string {
-  // Per user request, return an empty string with no visual elements at all
-  console.log("SVG image generation completely disabled per user request");
+  console.log(`Generating SVG image for ${type} type content`);
+  
+  const svgWidth = 300;
+  const svgHeight = 200;
+  let svgContent = '';
+  
+  // Start with SVG header
+  const svgHeader = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="white"/>`;
+  
+  // End with SVG footer
+  const svgFooter = `</svg>`;
+  
+  // Special handling for clock visuals
+  if (type === "clock") {
+    // Extract hour and minute from content
+    let hour = 12;
+    let minute = 0;
+    
+    if (typeof content === 'string') {
+      // Parse time string like "3:15" or "3:15 PM"
+      const timeMatch = content.match(/(\d+):(\d+)/);
+      if (timeMatch) {
+        hour = parseInt(timeMatch[1]);
+        minute = parseInt(timeMatch[2]);
+        
+        // Convert to 12-hour format if needed
+        if (hour > 12) hour = hour % 12;
+        if (hour === 0) hour = 12;
+      }
+    } else if (typeof content === 'object' && content !== null) {
+      // Object with hour and minute properties
+      hour = typeof content.hour === 'number' ? content.hour : 12;
+      minute = typeof content.minute === 'number' ? content.minute : 0;
+      
+      // Convert to 12-hour format if needed
+      if (hour > 12) hour = hour % 12;
+      if (hour === 0) hour = 12;
+    }
+    
+    // Clock settings
+    const clockCenterX = svgWidth / 2;
+    const clockCenterY = svgHeight / 2;
+    const clockRadius = Math.min(svgWidth, svgHeight) * 0.4;
+    
+    // Calculate hand angles (in radians)
+    // Hour hand: 30 degrees per hour + gradual movement between hours
+    const hourAngle = (hour % 12 + minute / 60) * (Math.PI / 6) - Math.PI / 2;
+    // Minute hand: 6 degrees per minute
+    const minuteAngle = minute * (Math.PI / 30) - Math.PI / 2;
+    
+    // Calculate hand endpoints
+    const hourHandLength = clockRadius * 0.5;
+    const minuteHandLength = clockRadius * 0.7;
+    
+    const hourHandX = clockCenterX + hourHandLength * Math.cos(hourAngle);
+    const hourHandY = clockCenterY + hourHandLength * Math.sin(hourAngle);
+    
+    const minuteHandX = clockCenterX + minuteHandLength * Math.cos(minuteAngle);
+    const minuteHandY = clockCenterY + minuteHandLength * Math.sin(minuteAngle);
+    
+    // Render the clock face
+    svgContent = `
+      ${svgHeader}
+      <!-- Clock face -->
+      <circle cx="${clockCenterX}" cy="${clockCenterY}" r="${clockRadius}" fill="white" stroke="black" stroke-width="2"/>
+      
+      <!-- Hour marks -->
+      ${Array.from({length: 12}, (_, i) => {
+        const angle = i * (Math.PI / 6) - Math.PI / 2;
+        const innerRadius = clockRadius * 0.9;
+        const outerRadius = clockRadius;
+        
+        const x1 = clockCenterX + innerRadius * Math.cos(angle);
+        const y1 = clockCenterY + innerRadius * Math.sin(angle);
+        const x2 = clockCenterX + outerRadius * Math.cos(angle);
+        const y2 = clockCenterY + outerRadius * Math.sin(angle);
+        
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="black" stroke-width="2"/>`;
+      }).join('')}
+      
+      <!-- Hour numbers -->
+      ${Array.from({length: 12}, (_, i) => {
+        const num = i === 0 ? 12 : i;
+        const angle = i * (Math.PI / 6) - Math.PI / 2;
+        const textRadius = clockRadius * 0.75;
+        
+        const x = clockCenterX + textRadius * Math.cos(angle);
+        const y = clockCenterY + textRadius * Math.sin(angle);
+        
+        return `<text x="${x}" y="${y}" font-family="Arial" font-size="14" fill="black" text-anchor="middle" dominant-baseline="middle">${num}</text>`;
+      }).join('')}
+      
+      <!-- Hour hand -->
+      <line x1="${clockCenterX}" y1="${clockCenterY}" x2="${hourHandX}" y2="${hourHandY}" 
+            stroke="black" stroke-width="4" stroke-linecap="round"/>
+      
+      <!-- Minute hand -->
+      <line x1="${clockCenterX}" y1="${clockCenterY}" x2="${minuteHandX}" y2="${minuteHandY}" 
+            stroke="black" stroke-width="2" stroke-linecap="round"/>
+      
+      <!-- Center dot -->
+      <circle cx="${clockCenterX}" cy="${clockCenterY}" r="3" fill="black"/>
+      
+      <!-- Time label -->
+      <text x="${svgWidth/2}" y="${svgHeight - 20}" font-family="Arial" font-size="14" 
+            text-anchor="middle" font-weight="bold">${hour}:${minute.toString().padStart(2, '0')}</text>
+      ${svgFooter}
+    `;
+    
+    return svgContent;
+  } 
+  
+  // Default case - empty SVG
   return "";
   
   /* Original SVG generation code has been disabled and will never execute
