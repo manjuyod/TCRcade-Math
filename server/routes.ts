@@ -2815,6 +2815,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // TEST ROUTE - for development only - update difficulty for a specific user
+  app.post("/api/test-routes/difficulty", async (req, res) => {
+    try {
+      const { userId, difficulty } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "User ID is required" 
+        });
+      }
+      
+      // Validate difficulty is between 1-5
+      if (typeof difficulty !== 'number' || difficulty < 1 || difficulty > 5) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Difficulty must be a number between 1 and 5" 
+        });
+      }
+      
+      // Update user with new preferred difficulty
+      const updatedUser = await storage.updateUser(userId, { 
+        preferredDifficulty: difficulty 
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "User not found" 
+        });
+      }
+      
+      console.log(`TEST: User ${userId} updated difficulty preference to ${difficulty}`);
+      
+      res.json({ 
+        success: true, 
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          preferredDifficulty: updatedUser.preferredDifficulty
+        },
+        message: "Difficulty preference updated successfully"
+      });
+    } catch (error) {
+      console.error("Error in test route for updating difficulty:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error updating difficulty preference" 
+      });
+    }
+  });
+  
   // Purchase an avatar item
   app.post("/api/avatar/purchase", ensureAuthenticated, async (req, res) => {
     try {
