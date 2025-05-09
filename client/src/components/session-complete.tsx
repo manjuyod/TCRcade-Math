@@ -254,17 +254,22 @@ export default function SessionComplete({
             </Button>
           </Link>
           
-          <Button 
-            onClick={() => {
-              // Stop any playing sounds before navigating
-              stopAllSounds();
-              // Use window.location to ensure full page refresh and proper state reset
-              window.location.href = '/';
-            }}
-            className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            Return to Dashboard
-          </Button>
+          <Link href="/">
+            <Button 
+              onClick={() => {
+                // Stop any playing sounds before navigating
+                stopAllSounds();
+                // Clear any local storage session state
+                localStorage.removeItem('mathFactsProgress');
+                localStorage.removeItem('currentModule');
+                localStorage.removeItem('currentModuleType');
+                localStorage.removeItem('currentCategory');
+              }}
+              className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              Return to Dashboard
+            </Button>
+          </Link>
         </div>
       </motion.div>
     </motion.div>
