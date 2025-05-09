@@ -80,9 +80,9 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
   '1': [
     {
       id: 999006,
-      question: "What time do the hands show?",
-      answer: "3:00",
-      options: ["3:00", "12:15", "6:30", "9:45"],
+      question: "What comes after 1 o'clock?",
+      answer: "2 o'clock",
+      options: ["2 o'clock", "12 o'clock", "3 o'clock", "11 o'clock"],
       grade: "1",
       difficulty: 1,
       category: "time",
@@ -152,9 +152,9 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
   '2': [
     {
       id: 999011,
-      question: "If it's 3:15, what time will it be in 30 minutes?",
-      answer: "3:45",
-      options: ["3:45", "3:30", "4:00", "4:15"],
+      question: "If it's 3:15 PM, what time will it be in 30 minutes?",
+      answer: "3:45 PM",
+      options: ["3:45 PM", "3:30 PM", "4:00 PM", "4:15 PM"],
       grade: "2",
       difficulty: 2,
       category: "time",

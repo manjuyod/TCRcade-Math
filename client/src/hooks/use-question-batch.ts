@@ -210,6 +210,21 @@ export function useQuestionBatch(
     // Special handling for Time module - use fallback questions immediately
     // while API questions load in the background
     if (moduleId === 'time') {
+      // We need to clear the cache for the Time module to prevent showing old fallback questions
+      // This ensures users who've previously seen problematic questions get the updated ones
+      if (localStorage.getItem(QUESTION_BATCH_CACHE_KEY)) {
+        const cacheJson = localStorage.getItem(QUESTION_BATCH_CACHE_KEY);
+        try {
+          const cache: BatchCacheEntry = JSON.parse(cacheJson || '{}');
+          if (cache.moduleId === 'time') {
+            console.log('Clearing Time module cache to ensure latest questions are used');
+            localStorage.removeItem(QUESTION_BATCH_CACHE_KEY);
+          }
+        } catch (e) {
+          console.warn('Error parsing cache JSON', e);
+        }
+      }
+      
       // Immediately set fallback questions to prevent long loading screens
       const fallbackQuestions = getTimeFallbackQuestions(currentGrade, batchSize);
       console.log(`Using ${fallbackQuestions.length} fallback time questions for grade ${currentGrade} while API loads`);
@@ -251,10 +266,18 @@ export function useQuestionBatch(
     
     // Special handling for Time module
     if (moduleId === 'time') {
+      // Always clear the cache for the Time module when refetching
+      // This ensures users always get the latest fallback questions
+      if (localStorage.getItem(QUESTION_BATCH_CACHE_KEY)) {
+        console.log('Clearing Time module cache when refetching');
+        localStorage.removeItem(QUESTION_BATCH_CACHE_KEY);
+      }
+      
       // First set fallback questions to avoid loading screen
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const currentGrade = currentUser?.grade || user?.grade || 'K';
       const fallbackQuestions = getTimeFallbackQuestions(currentGrade, batchSize);
+      console.log(`Refetching with ${fallbackQuestions.length} fallback time questions`);
       
       setQuestions(fallbackQuestions);
       setCurrentIndex(0);
