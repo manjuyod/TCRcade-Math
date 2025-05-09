@@ -432,18 +432,19 @@ export default function HomePage() {
       
       // Always update stats regardless of module type
       setSessionStats(prev => {
+        const totalQuestionsAttempted = answeredQuestionIds.length + 1; // +1 for current question
         const newStats = {
-          // Only count questions towards session progress when answered correctly
-          questionsAnswered: prev.questionsAnswered + (data.correct ? 1 : 0),
+          // questionsAnswered now becomes our total questions counter (regardless of correctness)
+          questionsAnswered: totalQuestionsAttempted,
           correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: prev.tokensEarned + data.tokensEarned
         };
         
-        // For Math Facts, also update the localStorage progress value - only if correct
-        if (isCurrentlyMathFactsModule && data.correct) {
-          // Update the stored progress to match session stats
-          localStorage.setItem('mathFactsProgress', newStats.questionsAnswered.toString());
-          console.log(`Math Facts progress updated: ${newStats.questionsAnswered}/5 (correct answer)`);
+        // For Math Facts, also update the localStorage progress value based on total attempts
+        if (isCurrentlyMathFactsModule) {
+          // Update stored progress to track total questions attempted
+          localStorage.setItem('mathFactsProgress', totalQuestionsAttempted.toString());
+          console.log(`Math Facts progress updated: ${totalQuestionsAttempted}/5 (question attempted)`);
         }
         
         return newStats;
@@ -561,14 +562,14 @@ export default function HomePage() {
         });
       }
 
-      // Check if session is complete (5 correct questions)
-      // Per user request, progress only increases on correct answers
-      // We need 5 CORRECT answers to complete a session now
-      if ((sessionStats.questionsAnswered + (data.correct ? 1 : 0)) >= sessionSize) {
+      // Check if session is complete (5 total questions, regardless of correctness)
+      // Track total questions attempted rather than just correct ones
+      const totalQuestionsAttempted = answeredQuestionIds.length + 1; // +1 for current question
+      if (totalQuestionsAttempted >= sessionSize) {
         // Update final session stats before showing session complete
-        // Only increment questionsAnswered if the answer was correct
+        // questionsAnswered is now total questions (always 5)
         const finalStats = {
-          questionsAnswered: sessionStats.questionsAnswered + (data.correct ? 1 : 0),
+          questionsAnswered: totalQuestionsAttempted, // This will be 5 at this point
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
@@ -604,10 +605,13 @@ export default function HomePage() {
             .then(() => {
               console.log(`Successfully persisted ${finalStats.tokensEarned} tokens to database`);
               
-              // Check for perfect score and award bonus immediately
-              // We now use the hasPerfectSession flag instead of just comparing stats
-              console.log(`Perfect score check - hasPerfectSession: ${hasPerfectSession}, questions: ${finalStats.questionsAnswered}/${sessionSize}`);
-              if (hasPerfectSession && finalStats.questionsAnswered === sessionSize && finalStats.correctAnswers === finalStats.questionsAnswered) {
+              // Check for perfect score and award bonus for 100% accuracy
+              // Calculate accuracy as correct answers / total questions (always 5)
+              const accuracy = finalStats.correctAnswers / sessionSize;
+              console.log(`Score calculation: ${finalStats.correctAnswers}/${sessionSize} = ${accuracy * 100}% accuracy`);
+              
+              // Award bonus for 100% accuracy (5/5 correct)
+              if (accuracy === 1) {
                 console.log(`PERFECT SCORE BONUS AWARDED!`);
                 const perfectScoreBonus = 20;
                 
@@ -977,12 +981,15 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Show session progress */}
+          {/* Show session progress based on total questions attempted */}
           {!sessionCompleted && (
             <div className="mt-4 text-center">
               <span className="text-gray-600 text-sm">
-                Session Progress: {sessionStats.questionsAnswered}/{sessionSize} questions
+                Session Progress: {answeredQuestionIds.length}/{sessionSize} questions attempted
               </span>
+              <div className="text-sm text-gray-500 mt-1">
+                Correct: {sessionStats.correctAnswers}/{answeredQuestionIds.length} ({Math.round((sessionStats.correctAnswers / Math.max(1, answeredQuestionIds.length)) * 100)}%)
+              </div>
             </div>
           )}
         </div>

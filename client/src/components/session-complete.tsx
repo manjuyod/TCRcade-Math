@@ -202,8 +202,13 @@ export default function SessionComplete({
         
         <div className="grid grid-cols-1 gap-4 mb-8">
           <div className="flex justify-between items-center bg-orange-100 p-6 rounded-xl border-2 border-orange-300">
+            <div className="text-lg font-bold text-gray-800">Questions Attempted:</div>
+            <div className="text-3xl font-extrabold text-orange-600">{totalQuestions}/5</div>
+          </div>
+          
+          <div className="flex justify-between items-center bg-purple-100 p-6 rounded-xl border-2 border-purple-300">
             <div className="text-lg font-bold text-gray-800">Correct Answers:</div>
-            <div className="text-3xl font-extrabold text-orange-600">{correctAnswers}/{totalQuestions}</div>
+            <div className="text-3xl font-extrabold text-purple-600">{correctAnswers}/{totalQuestions}</div>
           </div>
           
           <div className="flex justify-between items-center bg-blue-100 p-6 rounded-xl border-2 border-blue-300">
