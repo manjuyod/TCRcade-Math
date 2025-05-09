@@ -683,28 +683,14 @@ export default function HomePage() {
     setShowFeedback(false);
     setFeedbackData(null);
 
-    // Add safety timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
+    // Use the loadNextQuestion method from our batch loading hook
+    // This simply advances to the next pre-loaded question without any API calls
+    loadNextQuestion();
+    
+    // Set loading to false after a brief delay to prevent flickering
+    setTimeout(() => {
       setIsManuallyLoading(false);
-      console.error('Loading timeout reached');
-    }, 5000);
-
-    try {
-      // Use the loadNextQuestion method from our batch loading hook
-      loadNextQuestion();
-      
-      // Clear timeout if successful
-      clearTimeout(loadingTimeout);
-      
-      // Set loading to false after a brief delay to prevent flickering
-      setTimeout(() => {
-        setIsManuallyLoading(false);
-      }, 100);
-    } catch (error) {
-      console.error('Error loading next question:', error);
-      setIsManuallyLoading(false);
-      clearTimeout(loadingTimeout);
-    }
+    }, 100);
   };
 
   // Updated to use batch loaded questions
