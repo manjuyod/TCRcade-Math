@@ -156,143 +156,129 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Math Subject Mastery</CardTitle>
-        <CardDescription>
-          Track your progress across different math subjects and grade levels.
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Math Subject Mastery</CardTitle>
+            <CardDescription>
+              Track your progress across different math subjects and grade levels.
+            </CardDescription>
+          </div>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={handleResetMasteries}
+            disabled={resetMutation.isPending}
+          >
+            {resetMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Resetting...
+              </>
+            ) : (
+              'Reset All Masteries'
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange} className="flex-1">
-              <div className="flex justify-between items-center mb-2">
-                <TabsList>
-                  {GRADE_LEVELS.map((grade) => {
-                    const isLocked = !isGradeAccessible(grade);
+        <Tabs defaultValue={selectedGrade} onValueChange={handleGradeChange} className="w-full">
+          <TabsList className="mb-4 grid grid-cols-7 w-full">
+            {GRADE_LEVELS.map((grade) => {
+              const isLocked = !isGradeAccessible(grade);
+              return (
+                <TabsTrigger 
+                  key={grade} 
+                  value={grade}
+                  disabled={isLocked}
+                  className={isLocked ? "opacity-50 cursor-not-allowed" : ""}
+                  title={isLocked ? `Complete lower grades to unlock Grade ${grade}` : `Grade ${grade}`}
+                >
+                  {grade === "K" ? "K" : grade}
+                  {isLocked && <span className="ml-1 text-xs">🔒</span>}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {GRADE_LEVELS.map((grade) => (
+            <TabsContent key={grade} value={grade}>
+              <h3 className="text-lg font-medium mb-4">Grade {grade} Subjects</h3>
+              
+              {availableSubjects?.length ? (
+                <Accordion type="single" collapsible className="w-full">
+                  {SUBJECTS_BY_GRADE[grade]?.map((subject) => {
+                    const status = getSubjectStatus(subject);
                     return (
-                      <TabsTrigger 
-                        key={grade} 
-                        value={grade}
-                        disabled={isLocked}
-                        className={isLocked ? "opacity-50 cursor-not-allowed" : ""}
-                        title={isLocked ? `Complete lower grades to unlock Grade ${grade}` : `Grade ${grade}`}
-                      >
-                        Grade {grade}
-                        {isLocked && (
-                          <span className="ml-1 text-xs">🔒</span>
-                        )}
-                      </TabsTrigger>
+                      <AccordionItem key={subject} value={subject}>
+                        <AccordionTrigger className="px-4 py-2 bg-muted/50 rounded-md">
+                          <div className="flex justify-between items-center w-full pr-4">
+                            <span>{SUBJECT_DISPLAY_NAMES[subject] || subject}</span>
+                            {status.unlocked ? (
+                              <Badge className="ml-2 bg-green-500">Unlocked</Badge>
+                            ) : (
+                              <Badge className="ml-2 bg-gray-500">Locked</Badge>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 py-2">
+                          {status.unlocked ? (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>Proficiency</span>
+                                <span>{Math.round(status.proficiencyScore * 100)}%</span>
+                              </div>
+                              <Progress value={status.proficiencyScore * 100} className="h-2" />
+                              
+                              <div className="flex justify-between mt-2 text-sm">
+                                <span>Problems Attempted: {status.attempts}</span>
+                                {status.attempts > 0 && (
+                                  <span>Success Rate: {Math.round((status.correct / status.attempts) * 100)}%</span>
+                                )}
+                              </div>
+                              
+                              {status.attempts >= 30 && status.proficiencyScore >= 0.8 && (
+                                <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
+                                  You've mastered this subject! The next grade level has been unlocked.
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground text-sm">
+                              This subject is locked. Complete earlier grade subjects to unlock.
+                            </div>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
                     );
                   })}
-                </TabsList>
-                
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={handleResetMasteries}
-                  disabled={resetMutation.isPending}
-                  className="ml-2"
-                >
-                  {resetMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Resetting...
-                    </>
-                  ) : (
-                    'Reset All Masteries'
-                  )}
-                </Button>
-              </div>
-
-              {GRADE_LEVELS.map((grade) => (
-                <TabsContent key={grade} value={grade}>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Grade {grade} Subjects</h3>
-                    
-                    {availableSubjects?.length ? (
-                      <Accordion type="single" collapsible className="w-full">
-                        {SUBJECTS_BY_GRADE[grade]?.map((subject) => {
-                          const status = getSubjectStatus(subject);
-                          return (
-                            <AccordionItem key={subject} value={subject}>
-                              <AccordionTrigger className="px-4 py-2 bg-muted/50 rounded-md">
-                                <div className="flex justify-between items-center w-full pr-4">
-                                  <span>{SUBJECT_DISPLAY_NAMES[subject] || subject}</span>
-                                  {status.unlocked ? (
-                                    <Badge className="ml-2 bg-green-500">Unlocked</Badge>
-                                  ) : (
-                                    <Badge className="ml-2 bg-gray-500">Locked</Badge>
-                                  )}
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="px-4 py-2">
-                                {status.unlocked ? (
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between text-sm text-muted-foreground">
-                                      <span>Proficiency</span>
-                                      <span>{Math.round(status.proficiencyScore * 100)}%</span>
-                                    </div>
-                                    <Progress value={status.proficiencyScore * 100} className="h-2" />
-                                    
-                                    <div className="flex justify-between mt-2 text-sm">
-                                      <span>Problems Attempted: {status.attempts}</span>
-                                      {status.attempts > 0 && (
-                                        <span>Success Rate: {Math.round((status.correct / status.attempts) * 100)}%</span>
-                                      )}
-                                    </div>
-                                    
-                                    {status.attempts >= 30 && status.proficiencyScore >= 0.8 && (
-                                      <div className="mt-2 p-2 bg-green-100 text-green-800 rounded-md text-sm">
-                                        You've mastered this subject! The next grade level has been unlocked.
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="text-muted-foreground text-sm">
-                                    This subject is locked. Complete earlier grade subjects to unlock.
-                                  </div>
-                                )}
-                              </AccordionContent>
-                            </AccordionItem>
-                          );
-                        })}
-                      </Accordion>
-                    ) : subjectsLoading ? (
-                      <div className="p-4 text-center border rounded-md bg-muted/50">
-                        <div>
-                          <p>Loading subject data for Grade {grade}...</p>
-                          <Loader2 className="mx-auto mt-2 h-5 w-5 animate-spin" />
-                        </div>
-                      </div>
-                    ) : !isGradeAccessible(grade) ? (
-                      <div className="p-4 text-center border rounded-md bg-muted/50">
-                        <div>
-                          <p className="mb-2">Complete lower grades to unlock Grade {grade}.</p>
-                          <span className="text-2xl">🔒</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center border rounded-md bg-muted/50">
-                        <div>
-                          <p>No subjects available for Grade {grade}.</p>
-                          <Button
-                            onClick={() => refetchSubjects()}
-                            className="mt-2"
-                            variant="outline"
-                            size="sm"
-                          >
-                            Refresh Data
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-        </div>
+                </Accordion>
+              ) : subjectsLoading ? (
+                <div className="p-4 text-center border rounded-md bg-muted/50">
+                  <p>Loading subject data for Grade {grade}...</p>
+                  <Loader2 className="mx-auto mt-2 h-5 w-5 animate-spin" />
+                </div>
+              ) : !isGradeAccessible(grade) ? (
+                <div className="p-4 text-center border rounded-md bg-muted/50">
+                  <p className="mb-2">Complete lower grades to unlock Grade {grade}.</p>
+                  <span className="text-2xl">🔒</span>
+                </div>
+              ) : (
+                <div className="p-4 text-center border rounded-md bg-muted/50">
+                  <p>No subjects available for Grade {grade}.</p>
+                  <Button
+                    onClick={() => refetchSubjects()}
+                    className="mt-2"
+                    variant="outline"
+                    size="sm"
+                  >
+                    Refresh Data
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   );
