@@ -2773,6 +2773,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Set user's preferred difficulty level
+  app.post("/api/user/difficulty", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { difficulty } = req.body;
+      
+      // Validate difficulty is between 1-5
+      if (typeof difficulty !== 'number' || difficulty < 1 || difficulty > 5) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Difficulty must be a number between 1 and 5" 
+        });
+      }
+      
+      // Update user with new preferred difficulty
+      const updatedUser = await storage.updateUser(userId, { 
+        preferredDifficulty: difficulty 
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "User not found" 
+        });
+      }
+      
+      console.log(`User ${userId} updated difficulty preference to ${difficulty}`);
+      
+      res.json({ 
+        success: true, 
+        difficulty: updatedUser.preferredDifficulty,
+        message: "Difficulty preference updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating difficulty preference:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Error updating difficulty preference" 
+      });
+    }
+  });
+  
   // Purchase an avatar item
   app.post("/api/avatar/purchase", ensureAuthenticated, async (req, res) => {
     try {

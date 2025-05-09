@@ -30,6 +30,7 @@ import {
   TabsTrigger
 } from "@/components/ui/tabs";
 import { SubjectMastery } from '@/components/subject-mastery';
+import { DifficultySlider } from '@/components/difficulty-slider';
 
 export default function ProfilePage() {
   const { user, logoutMutation } = useAuth();
@@ -405,6 +406,14 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Adaptive Difficulty Slider */}
+        <div className="mb-6">
+          <DifficultySlider 
+            userId={user.id} 
+            currentDifficulty={user.preferredDifficulty || 3}
+          />
+        </div>
         
         {/* Subject Mastery Section */}
         <div className="mb-6">
