@@ -1,8 +1,78 @@
 import { Question } from '@shared/schema';
 
 /**
+ * Generates SVG clock with specified time
+ * @param hour Hour (1-12)
+ * @param minute Minute (0-59)
+ * @returns SVG string
+ */
+function generateClockSVG(hour: number, minute: number): string {
+  const width = 300;
+  const height = 300;
+  
+  // Calculate angles for clock hands
+  const hourAngle = (hour % 12) * 30 + (minute / 60) * 30; // 30 degrees per hour plus adjustment for minutes
+  const minuteAngle = minute * 6; // 6 degrees per minute
+  
+  // Generate SVG for a clock
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    <!-- Clock face -->
+    <circle cx="${width/2}" cy="${height/2}" r="${width/2 - 10}" fill="white" stroke="black" stroke-width="2"/>
+    
+    <!-- Hour markers -->
+    ${Array.from({length: 12}, (_, i) => {
+      const angle = i * 30 * (Math.PI / 180); // convert to radians
+      const x1 = width/2 + (width/2 - 20) * Math.sin(angle);
+      const y1 = height/2 - (height/2 - 20) * Math.cos(angle);
+      const x2 = width/2 + (width/2 - 10) * Math.sin(angle);
+      const y2 = height/2 - (height/2 - 10) * Math.cos(angle);
+      
+      // For main hours (12, 3, 6, 9), make markers more prominent
+      const isMainHour = i % 3 === 0;
+      const strokeWidth = isMainHour ? 3 : 2;
+      
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="black" stroke-width="${strokeWidth}"/>`;
+    }).join('')}
+    
+    <!-- Hour numbers -->
+    ${Array.from({length: 12}, (_, i) => {
+      const hourNumber = i === 0 ? 12 : i;
+      const angle = i * 30 * (Math.PI / 180); // convert to radians
+      const x = width/2 + (width/2 - 35) * Math.sin(angle);
+      const y = height/2 - (height/2 - 35) * Math.cos(angle) + 5; // +5 for vertical centering
+      
+      return `<text x="${x}" y="${y}" text-anchor="middle" font-size="16" font-weight="bold">${hourNumber}</text>`;
+    }).join('')}
+    
+    <!-- Hour hand -->
+    <line 
+      x1="${width/2}" 
+      y1="${height/2}" 
+      x2="${width/2 + (width/4 - 20) * Math.sin(hourAngle * (Math.PI / 180))}" 
+      y2="${height/2 - (height/4 - 20) * Math.cos(hourAngle * (Math.PI / 180))}" 
+      stroke="black" 
+      stroke-width="4" 
+      stroke-linecap="round"/>
+    
+    <!-- Minute hand -->
+    <line 
+      x1="${width/2}" 
+      y1="${height/2}" 
+      x2="${width/2 + (width/3 - 10) * Math.sin(minuteAngle * (Math.PI / 180))}" 
+      y2="${height/2 - (height/3 - 10) * Math.cos(minuteAngle * (Math.PI / 180))}" 
+      stroke="black" 
+      stroke-width="2" 
+      stroke-linecap="round"/>
+    
+    <!-- Center circle -->
+    <circle cx="${width/2}" cy="${height/2}" r="5" fill="black"/>
+  </svg>`;
+}
+
+/**
  * Pre-defined fallback questions for the time module to avoid loading delays
  * These provide an immediate set of questions while API-generated questions load
+ * Enhanced with a focus on clock reading, AM/PM, time addition and subtraction
  */
 export const timeFallbackQuestions: Record<string, Question[]> = {
   'K': [
@@ -19,6 +89,20 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyNode: null,
       storyText: null,
       storyImage: null
+    },
+    {
+      id: 990001,
+      question: "What time does this clock show?",
+      answer: "3 o'clock",
+      options: ["3 o'clock", "12 o'clock", "6 o'clock", "9 o'clock"],
+      grade: "K",
+      difficulty: 1,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(3, 0)
     },
     {
       id: 999002,
@@ -93,6 +177,34 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyImage: null
     },
     {
+      id: 990002,
+      question: "What time does this clock show?",
+      answer: "4 o'clock",
+      options: ["4 o'clock", "8 o'clock", "2 o'clock", "10 o'clock"],
+      grade: "1",
+      difficulty: 1,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(4, 0)
+    },
+    {
+      id: 990003,
+      question: "What time does this clock show?",
+      answer: "10:30",
+      options: ["10:30", "10:15", "2:30", "10:00"],
+      grade: "1",
+      difficulty: 2,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(10, 30)
+    },
+    {
       id: 999007,
       question: "How many hours are in a day?",
       answer: "24",
@@ -163,6 +275,34 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyNode: null,
       storyText: null,
       storyImage: null
+    },
+    {
+      id: 990004,
+      question: "What time does this clock show?",
+      answer: "7:15",
+      options: ["7:15", "7:45", "8:15", "8:45"],
+      grade: "2",
+      difficulty: 2,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(7, 15)
+    },
+    {
+      id: 990005,
+      question: "Is this time AM or PM?",
+      answer: "AM",
+      options: ["AM", "PM"],
+      grade: "2",
+      difficulty: 2,
+      category: "time",
+      concepts: ["time", "AM/PM"],
+      storyId: null,
+      storyNode: null,
+      storyText: "This is when most people eat breakfast: 7:30 ____",
+      storyImage: generateClockSVG(7, 30)
     },
     {
       id: 999012,
@@ -237,6 +377,48 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyImage: null
     },
     {
+      id: 990006,
+      question: "What time does this clock show?",
+      answer: "2:45",
+      options: ["2:45", "3:45", "9:15", "9:45"],
+      grade: "3",
+      difficulty: 2,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(2, 45)
+    },
+    {
+      id: 990007,
+      question: "Is this time AM or PM?",
+      answer: "PM",
+      options: ["PM", "AM"],
+      grade: "3",
+      difficulty: 2,
+      category: "time",
+      concepts: ["time", "AM/PM"],
+      storyId: null,
+      storyNode: null,
+      storyText: "School usually ends at 3:30 ____",
+      storyImage: generateClockSVG(3, 30)
+    },
+    {
+      id: 990008,
+      question: "If the clock shows 5:30 now, what time will it show in 2 hours?",
+      answer: "7:30",
+      options: ["7:30", "6:30", "5:60", "7:00"],
+      grade: "3",
+      difficulty: 3,
+      category: "time",
+      concepts: ["time", "clock addition"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(5, 30)
+    },
+    {
       id: 999017,
       question: "How many seconds are in 3 minutes?",
       answer: "180",
@@ -307,6 +489,34 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyNode: null,
       storyText: null,
       storyImage: null
+    },
+    {
+      id: 990009,
+      question: "What time does this clock show?",
+      answer: "11:20",
+      options: ["11:20", "12:20", "11:04", "10:20"],
+      grade: "4",
+      difficulty: 3,
+      category: "time",
+      concepts: ["time", "clock reading"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(11, 20)
+    },
+    {
+      id: 990010,
+      question: "If the time is 3:15 PM now, what will the clock show in 1 hour and 45 minutes?",
+      answer: "5:00 PM",
+      options: ["5:00 PM", "4:00 PM", "5:30 PM", "4:30 PM"],
+      grade: "4",
+      difficulty: 3,
+      category: "time",
+      concepts: ["time", "time addition"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(3, 15)
     },
     {
       id: 999022,
@@ -381,6 +591,20 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyImage: null
     },
     {
+      id: 990011,
+      question: "If the clock shows 9:30 AM now, what time was it 1 hour and 45 minutes ago?",
+      answer: "7:45 AM",
+      options: ["7:45 AM", "7:15 AM", "8:15 AM", "8:45 AM"],
+      grade: "5",
+      difficulty: 4,
+      category: "time",
+      concepts: ["time", "time subtraction"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(9, 30)
+    },
+    {
       id: 999027,
       question: "How many minutes are in 3.5 hours?",
       answer: "210",
@@ -451,6 +675,20 @@ export const timeFallbackQuestions: Record<string, Question[]> = {
       storyNode: null,
       storyText: null,
       storyImage: null
+    },
+    {
+      id: 990012,
+      question: "If the clock shows 1:45 PM now and a meeting will last 2 hours and 30 minutes, at what time will the meeting end?",
+      answer: "4:15 PM",
+      options: ["4:15 PM", "3:15 PM", "4:30 PM", "3:45 PM"],
+      grade: "6",
+      difficulty: 4,
+      category: "time",
+      concepts: ["time", "time addition"],
+      storyId: null,
+      storyNode: null,
+      storyText: null,
+      storyImage: generateClockSVG(1, 45)
     },
     {
       id: 999032,
