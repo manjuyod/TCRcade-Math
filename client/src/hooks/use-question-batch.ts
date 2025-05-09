@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Question } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { getTimeFallbackQuestions } from '@/lib/time-fallback-questions';
 
 const QUESTION_BATCH_CACHE_KEY = 'question_batch_cache';
 
@@ -151,17 +152,43 @@ export function useQuestionBatch(
     onSuccess: (data) => {
       if (data && data.length > 0) {
         console.log(`Successfully loaded batch of ${data.length} questions`);
-        setQuestions(data);
-        setCurrentIndex(0);
-        cacheQuestions(moduleId, data);
+        
+        // Special handling for Time module
+        if (moduleId === 'time') {
+          // The Time module already has fallback questions loaded
+          // Only replace them if we got enough real questions (at least 5)
+          if (data.length >= 5) {
+            console.log('Replacing Time module fallback questions with API-generated questions');
+            setQuestions(data);
+            setCurrentIndex(0);
+            cacheQuestions(moduleId, data);
+          } else {
+            console.log('Not enough Time questions from API, keeping fallbacks');
+          }
+        } else {
+          // Normal handling for other modules
+          setQuestions(data);
+          setCurrentIndex(0);
+          cacheQuestions(moduleId, data);
+        }
       } else {
-        setError(new Error('No questions received in batch'));
+        // Don't show error for Time module since we have fallbacks
+        if (moduleId !== 'time') {
+          setError(new Error('No questions received in batch'));
+        }
       }
       setLoading(false);
     },
     onError: (error: Error) => {
       console.error('Error loading question batch:', error);
-      setError(error);
+      
+      // For Time module, don't show errors since we already have fallbacks
+      if (moduleId !== 'time') {
+        setError(error);
+      } else {
+        console.log('Error loading Time module questions, but using fallbacks so no error shown to user');
+      }
+      
       setLoading(false);
     }
   });
@@ -176,6 +203,34 @@ export function useQuestionBatch(
     setLoading(true);
     setError(null);
     
+    // Get current grade for the user
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentGrade = currentUser?.grade || user?.grade || 'K';
+    
+    // Special handling for Time module - use fallback questions immediately
+    // while API questions load in the background
+    if (moduleId === 'time') {
+      // Immediately set fallback questions to prevent long loading screens
+      const fallbackQuestions = getTimeFallbackQuestions(currentGrade, batchSize);
+      console.log(`Using ${fallbackQuestions.length} fallback time questions for grade ${currentGrade} while API loads`);
+      setQuestions(fallbackQuestions);
+      setCurrentIndex(0);
+      setLoading(false);
+      
+      // Try to use cached questions first
+      const cachedQuestions = loadCachedQuestions(moduleId);
+      if (cachedQuestions) {
+        console.log('Found cached time questions, using those instead of fallbacks');
+        setQuestions(cachedQuestions);
+        return;
+      }
+      
+      // Silently load API questions in the background - fallbacks are already showing
+      batchLoadMutation.mutate({ moduleId, count: batchSize });
+      return;
+    }
+    
+    // Normal flow for non-time modules
     // Try to use cached questions first
     const cachedQuestions = loadCachedQuestions(moduleId);
     if (cachedQuestions) {
@@ -193,6 +248,27 @@ export function useQuestionBatch(
   const refetchQuestions = async () => {
     setLoading(true);
     setError(null);
+    
+    // Special handling for Time module
+    if (moduleId === 'time') {
+      // First set fallback questions to avoid loading screen
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const currentGrade = currentUser?.grade || user?.grade || 'K';
+      const fallbackQuestions = getTimeFallbackQuestions(currentGrade, batchSize);
+      
+      setQuestions(fallbackQuestions);
+      setCurrentIndex(0);
+      setLoading(false);
+      
+      // Then try to load API questions in the background
+      return batchLoadMutation.mutateAsync({ moduleId, count: batchSize })
+        .catch(error => {
+          console.error('Error refetching Time module questions:', error);
+          // Don't set error state for Time module as we have fallbacks
+        });
+    }
+    
+    // Normal handling for other modules
     return batchLoadMutation.mutateAsync({ moduleId, count: batchSize })
       .then(() => {
         setCurrentIndex(0);
