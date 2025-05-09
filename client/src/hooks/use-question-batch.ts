@@ -26,13 +26,13 @@ interface UseQuestionBatchReturn {
   /** Error that occurred during loading */
   error: Error | null;
   /** Move to the next question in the batch */
-  nextQuestion: () => void;
+  nextQuestion(): void;
   /** Move to the previous question in the batch */
-  previousQuestion: () => void;
+  previousQuestion(): void;
   /** Go to a specific question by index */
-  goToQuestion: (index: number) => void;
+  goToQuestion(index: number): void;
   /** Refetch the questions */
-  refetchQuestions: () => Promise<void>;
+  refetchQuestions(): Promise<void>;
   /** Whether more questions are available */
   hasNextQuestion: boolean;
   /** Whether previous questions are available */
@@ -346,3 +346,4 @@ export function useQuestionBatch(
     hasPreviousQuestion: currentIndex > 0
   };
 }
+```
