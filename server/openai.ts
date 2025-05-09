@@ -16,9 +16,30 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param questionText The text of the question to check for image references
  */
 function questionReferencesImage(questionText: string): boolean {
-  console.log("Checking if question references an image - disabled per user request");
+  console.log("Checking if question references an image or clock");
   
-  // All image generation is disabled - always return false
+  // Check for clock-related questions first
+  const clockPatterns = [
+    /what time (is|does) the clock show/i,
+    /what time (is|does) (it|the clock) say/i,
+    /what time (is|does) (it|the clock) read/i,
+    /what time (is|do) the (hands|clock hands) show/i,
+    /what time (is) (shown|displayed|indicated) on the clock/i,
+    /the clock shows/i,
+    /hands of the clock/i,
+    /analog clock/i,
+    /read the clock/i,
+    /look at the clock/i,
+    /time on the clock/i
+  ];
+  
+  for (const pattern of clockPatterns) {
+    if (pattern.test(questionText)) {
+      console.log("Clock-related question detected, will generate clock image");
+      return true;
+    }
+  }
+  
   return false;
   
   // NOTE: Original pattern matching code has been commented out per user request
