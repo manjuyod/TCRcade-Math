@@ -69,11 +69,13 @@ export default function FeedbackMessage({
       </div>
       
       <h3 className={`text-xl font-bold mb-2 ${correct ? 'text-secondary' : 'text-danger'}`}>
-        {correct ? 'Correct!' : 'Not quite!'}
+        {correct ? 'Good Job!' : 'Not quite!'}
       </h3>
       
-      {/* Only show correct answer for incorrect responses, no token display */}
-      {!correct && (
+      {/* Display additional message based on correct/incorrect */}
+      {correct ? (
+        <p className="text-gray-600 font-medium">That's the right answer!</p>
+      ) : (
         <p className="text-gray-600">The correct answer is {correctAnswer}</p>
       )}
       
