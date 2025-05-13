@@ -83,7 +83,7 @@ export type QuestionContent = z.infer<typeof questionContentSchema>;
 
 // Questions table - based on actual DB structure
 export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
+  id: bigint("id", { mode: "number" }).primaryKey(),
   category: text("category").notNull(),
   grade: text("grade").notNull(),
   difficulty: integer("difficulty").notNull(),
@@ -253,12 +253,15 @@ export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
 });
 
 // Session table for auth - exists in DB but was missing from schema
-// Use varchar to match the existing session table structure in the database
+// We're excluding the session table from schema pushing to avoid data loss warnings
+// This commented definition is for reference only and won't be used for migrations
+/*
 export const session = pgTable("session", {
   sid: varchar("sid").primaryKey(),
   sess: json("sess").notNull(),
   expire: timestamp("expire").notNull(),
 });
+*/
 
 // These tables from original schema.ts are kept for compatibility but marked as
 // "virtual tables" - they will not be created or modified in the database
@@ -301,7 +304,7 @@ export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
 export const insertSubjectMasterySchema = createInsertSchema(subjectMastery);
 export const insertSubjectDifficultyHistorySchema = createInsertSchema(subjectDifficultyHistory);
-export const insertSessionSchema = createInsertSchema(session);
+// Session schema excluded to avoid conflicts with the existing table
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -317,4 +320,4 @@ export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type SubjectMastery = typeof subjectMastery.$inferSelect;
 export type SubjectDifficultyHistory = typeof subjectDifficultyHistory.$inferSelect;
-export type Session = typeof session.$inferSelect;
+// Session type removed
