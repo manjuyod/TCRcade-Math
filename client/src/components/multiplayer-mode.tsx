@@ -57,24 +57,7 @@ export default function MultiplayerMode() {
   const [roomCode, setRoomCode] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<string>(user?.grade || 'K');
-  const [selectedAdjective, setSelectedAdjective] = useState<string>('');
-  const [selectedNoun, setSelectedNoun] = useState<string>('');
-  
-  // Lists of funny adjectives and nouns for room names
-  const funnyAdjectives = [
-    'Bouncy', 'Fuzzy', 'Jazzy', 'Wacky', 'Zany', 'Quirky', 'Funky', 'Silly',
-    'Wobbly', 'Zippy', 'Squishy', 'Bubbly', 'Giggly', 'Wiggly', 'Jumpy', 'Loopy',
-    'Goofy', 'Wild', 'Bonkers', 'Nutty', 'Speedy', 'Hyper', 'Dizzy', 'Dancing'
-  ];
-  
-  const funnyNouns = [
-    'Penguin', 'Monkey', 'Hippo', 'Panda', 'Potato', 'Pigeon', 'Donut', 'Unicorn',
-    'Giraffe', 'Noodle', 'Pickle', 'Banana', 'Walrus', 'Robot', 'Hamster', 'Dragon',
-    'Koala', 'Sloth', 'Cupcake', 'Alligator', 'Flamingo', 'Moose', 'Raccoon', 'Muffin'
-  ];
-  
-  // Compute room name from selected adjective and noun
-  const roomName = selectedAdjective && selectedNoun ? `${selectedAdjective} ${selectedNoun}` : '';
+  const [roomName, setRoomName] = useState<string>('');
   const [maxPlayers, setMaxPlayers] = useState<number>(4);
   const [gameMode, setGameMode] = useState<'cooperative' | 'competitive'>('competitive');
   const [questionCount, setQuestionCount] = useState<number>(10);
@@ -158,9 +141,6 @@ export default function MultiplayerMode() {
       return res.json() as Promise<MultiplayerRoom>;
     },
     onSuccess: (data) => {
-      // Reset form fields after successful room creation
-      setSelectedAdjective('');
-      setSelectedNoun('');
       setActiveRoomId(data.id);
       setView('room');
       toast({
@@ -531,7 +511,7 @@ export default function MultiplayerMode() {
     if (!roomName.trim()) {
       toast({
         title: 'Error',
-        description: 'Please select both an adjective and a noun for your room name',
+        description: 'Please enter a room name',
         variant: 'destructive',
         dismissTimeout: 3000, // Auto-dismiss after 3 seconds
       });
@@ -778,57 +758,36 @@ export default function MultiplayerMode() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {rooms.map(room => {
-                        // Calculate time remaining until 24-hour expiration
-                        const createdAt = new Date(room.createdAt);
-                        const expiresAt = new Date(createdAt);
-                        expiresAt.setHours(expiresAt.getHours() + 24);
-                        
-                        const now = new Date();
-                        const timeRemaining = expiresAt.getTime() - now.getTime();
-                        
-                        // Format as hours:minutes remaining
-                        const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
-                        const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                        const expirationText = `${hoursRemaining}h ${minutesRemaining}m`;
-                        
-                        return (
-                          <Card key={room.id} className="overflow-hidden">
-                            <div className="flex items-center p-4">
-                              <div className="flex-1">
-                                <div className="font-medium flex items-center justify-between">
-                                  <span>{room.name}</span>
-                                  <Badge variant="outline" className="text-xs flex items-center">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {expirationText}
-                                  </Badge>
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {room.gameType === 'competitive' ? 'Competitive' : 'Cooperative'} • {room.grade} Grade
-                                </div>
-                                <div className="flex mt-2 space-x-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    <Users className="h-3 w-3 mr-1" />
-                                    {room.participants?.length || 0}/{room.maxParticipants || 4}
-                                  </Badge>
-                                  {room.category && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {room.category}
-                                    </Badge>
-                                  )}
-                                </div>
+                      {rooms.map(room => (
+                        <Card key={room.id} className="overflow-hidden">
+                          <div className="flex items-center p-4">
+                            <div className="flex-1">
+                              <div className="font-medium">{room.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {room.gameType === 'competitive' ? 'Competitive' : 'Cooperative'} • {room.grade} Grade
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleJoinRoom(room.id)}
-                                disabled={joinRoomMutation.isPending}
-                              >
-                                Join Game
-                              </Button>
+                              <div className="flex mt-2 space-x-2">
+                                <Badge variant="outline" className="text-xs">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {room.participants?.length || 0}/{room.maxParticipants || 4}
+                                </Badge>
+                                {room.category && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {room.category}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                          </Card>
-                        );
-                      })}
+                            <Button
+                              size="sm"
+                              onClick={() => handleJoinRoom(room.id)}
+                              disabled={joinRoomMutation.isPending}
+                            >
+                              Join Game
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
                   )}
                 </CardContent>
@@ -858,39 +817,12 @@ export default function MultiplayerMode() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="roomName">Room Name</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Select value={selectedAdjective} onValueChange={setSelectedAdjective}>
-                        <SelectTrigger id="adjective">
-                          <SelectValue placeholder="Select Adjective" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {funnyAdjectives.map(adj => (
-                            <SelectItem key={adj} value={adj}>
-                              {adj}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={selectedNoun} onValueChange={setSelectedNoun}>
-                        <SelectTrigger id="noun">
-                          <SelectValue placeholder="Select Noun" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {funnyNouns.map(noun => (
-                            <SelectItem key={noun} value={noun}>
-                              {noun}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="mt-1 text-sm">
-                      {roomName ? (
-                        <span className="font-medium text-primary">{roomName}</span>
-                      ) : (
-                        <span className="text-muted-foreground">Select an adjective and noun for your room name</span>
-                      )}
-                    </div>
+                    <Input
+                      id="roomName"
+                      placeholder="Enter a name for your room"
+                      value={roomName}
+                      onChange={(e) => setRoomName(e.target.value)}
+                    />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1017,12 +949,7 @@ export default function MultiplayerMode() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => {
-                  // Reset form fields when canceling
-                  setSelectedAdjective('');
-                  setSelectedNoun('');
-                  setView('browse');
-                }}>
+                <Button variant="outline" onClick={() => setView('browse')}>
                   Cancel
                 </Button>
                 <Button 

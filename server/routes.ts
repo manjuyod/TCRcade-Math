@@ -351,22 +351,9 @@ const getConceptInfo = (concept: string) => {
 
 // Helper middleware to ensure user is authenticated
 const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
-  // Allow test mode when the test_auth cookie is present (for testing purposes only)
-  const testAuthCookie = req.headers.cookie?.includes('test_auth=true');
-  
-  if (req.isAuthenticated() || testAuthCookie) {
-    // If using test auth, create a mock user if one doesn't exist
-    if (testAuthCookie && !req.user) {
-      // @ts-ignore - This is just for testing
-      req.user = {
-        id: 9999,
-        username: 'test_user',
-        grade: req.query.grade as string || '3'
-      };
-    }
+  if (req.isAuthenticated()) {
     return next();
   }
-  
   res.status(401).json({ error: "Authentication required" });
 };
 
@@ -558,90 +545,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in test Math Facts endpoint:", error);
       return res.status(500).json({ error: "Failed to generate Math Facts question" });
-    }
-  });
-  
-  // Batch question loading endpoint - fetches multiple questions at once
-  app.get("/api/questions/batch", ensureAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const grade = req.query.grade as string || req.user!.grade || "3";
-      const category = req.query.category as string;
-      const count = parseInt(req.query.count as string || "20"); // Default to 20 questions
-      
-      // Cap the count to prevent abuse
-      const questionCount = Math.min(count, 30);
-      
-      console.log(`Batch loading ${questionCount} questions for grade=${grade}, category=${category || 'any'}`);
-      
-      // Check if this is a Math Facts module
-      const isMathFactsModule = category && category.startsWith('math-facts-');
-      let questions = [];
-      
-      if (isMathFactsModule) {
-        // Extract operation from category (e.g., "math-facts-addition" -> "addition")
-        const operation = category.split('-').pop();
-        
-        // For Math Facts, simply generate the specified number of pure computation questions
-        console.log(`Generating ${questionCount} Math Facts questions for grade=${grade}, operation=${operation}`);
-        
-        for (let i = 0; i < questionCount; i++) {
-          questions.push(generateMathFactsQuestion(grade, operation));
-        }
-      } else {
-        // For regular modules, try to fetch from question bank first
-        const excludeIds: number[] = [];
-        
-        // Try to find enough non-duplicate questions
-        for (let i = 0; i < questionCount; i++) {
-          let question = null;
-          
-          // First try to get from question bank
-          try {
-            // Try to get question from bank using imported functions
-            const questionBankService = await import("./question-bank");
-            question = await questionBankService.getRandomQuestionFromBank(grade, category, excludeIds, isMathFactsModule);
-          } catch (error) {
-            console.error("Error fetching batch question from bank:", error);
-          }
-          
-          // If no question found in bank, generate one with OpenAI
-          if (!question) {
-            try {
-              // Parameters for adaptive question generation
-              const params = {
-                grade, 
-                concept: undefined,
-                studentLevel: undefined,
-                previousQuestions: excludeIds,
-                difficulty: undefined, 
-                category: category,
-                forceDynamic: true, // First question should be fresh
-                isMathFactsModule: isMathFactsModule
-              };
-              
-              // Import and use the OpenAI service
-              const openaiService = await import("./openai");
-              question = await openaiService.generateAdaptiveQuestion(params);
-            } catch (error) {
-              console.error("Error generating batch question:", error);
-            }
-          }
-          
-          // Add the question and its ID to our tracking
-          if (question && question.id) {
-            questions.push(question);
-            excludeIds.push(question.id);
-          }
-        }
-      }
-      
-      // Return the batch of questions
-      console.log(`Successfully batch loaded ${questions.length} questions`);
-      return res.json({ questions });
-    } catch (error) {
-      console.error("Error in batch question loading:", error);
-      return res.status(500).json({ error: "Failed to load question batch" });
     }
   });
 
@@ -1083,8 +986,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Track the method used to obtain the question for analytics 
       let questionSource = "database";
-
-      // First check if we can use the cache for this request
+      
+      // Determine if we should use OpenAI to generate fresh question
+      // More aggressive now - use OpenAI more often to ensure variety
+      const shouldUseOpenAI = 
+        forceDynamic || // Explicit request for dynamic content
+        excludeIds.length > 30 || // User has seen a lot of questions already
+        Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
+        
+      // Check if we can use the cache for this request
       if (!forceDynamic && excludeIds.length > 0) {
         // Create cache key based on user parameters
         const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
@@ -1101,46 +1011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // NEW: Try to get a question from our question bank first
-      try {
-        const questionBank = await import('./question-bank');
-        const bankQuestion = await questionBank.getRandomQuestionFromBank(
-          grade, 
-          category, 
-          excludeIds, 
-          isMathFactsModule
-        );
-        
-        if (bankQuestion) {
-          console.log(`Found question in question bank with ID: ${bankQuestion.id}`);
-          questionSource = "question_bank";
-          
-          // Also cache this question for future requests
-          if (!forceDynamic) {
-            const cacheKey = getQuestionCacheKey(userId, grade, category, excludeIds.length);
-            questionCache.set(cacheKey, {
-              question: bankQuestion,
-              timestamp: Date.now()
-            });
-            console.log(`Added question to cache with key: ${cacheKey}`);
-          }
-          
-          return res.json(bankQuestion);
-        } else {
-          console.log("No suitable question found in question bank, falling back to other methods");
-        }
-      } catch (error) {
-        console.error("Error fetching from question bank:", error);
-      }
-      
-      // Determine if we should use OpenAI to generate fresh question
-      // More aggressive now - use OpenAI more often to ensure variety
-      const shouldUseOpenAI = 
-        forceDynamic || // Explicit request for dynamic content
-        excludeIds.length > 30 || // User has seen a lot of questions already
-        Math.random() < 0.3; // 30% random chance for fresh content even without exclusions
-        
-      // Try using OpenAI for generating new questions - only if question bank didn't return any results
+      // Try using OpenAI for generating new questions 
       if (shouldUseOpenAI) {
         try {
           const openaiService = await import('./openai');
@@ -1191,32 +1062,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.warn("Failed to fetch previous question details:", e);
           }
           
-          let generatedQuestion;
-          try {
-            // Try to generate question via OpenAI
-            generatedQuestion = await openaiService.generateAdaptiveQuestion({
-              grade,
-              category,
-              studentLevel: estimatedSkillLevel,
-              difficulty: dynamicDifficulty,
-              // Send detailed question history - or just IDs if we couldn't fetch details
-              previousQuestions: previousQuestionDetails.length > 0 
-                ? previousQuestionDetails 
-                : excludeIds.slice(-15), // Send the most recent questions
-              isMathFactsModule, // Pass flag to indicate if this is a math facts module
-            });
-            console.log("Successfully generated new question via OpenAI");
-          } catch (openaiError) {
-            console.error("Error generating adaptive question:", openaiError);
-            console.log("Falling back to local question generation...");
-            
-            // Import the debug service which has fallback question generation
-            const debugService = await import("./openai-debug");
-            
-            // Use the fallback question generator
-            generatedQuestion = await debugService.generateBasicQuestion(grade, category || "General");
-            console.log("Successfully generated new question via fallback");
-          }
+          const generatedQuestion = await openaiService.generateAdaptiveQuestion({
+            grade,
+            category,
+            studentLevel: estimatedSkillLevel,
+            difficulty: dynamicDifficulty,
+            // Send detailed question history - or just IDs if we couldn't fetch details
+            previousQuestions: previousQuestionDetails.length > 0 
+              ? previousQuestionDetails 
+              : excludeIds.slice(-15), // Send the most recent questions
+            isMathFactsModule, // Pass flag to indicate if this is a math facts module
+          });
           
           if (generatedQuestion && generatedQuestion.question) {
             // Get the unique ID either from the model or generate one
@@ -1240,6 +1096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             questionSource = "openai";
+            console.log("Successfully generated new question via OpenAI");
             
             // Return just the question, not wrapped in another object
             return res.json(newQuestion);
@@ -2993,40 +2850,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MULTIPLAYER ROUTES
   // ==========================
   
-  // Clear expired multiplayer rooms (older than 24 hours)
-  app.post("/api/multiplayer/clear-expired", ensureAuthenticated, async (req, res) => {
-    try {
-      // Check if user is admin
-      if (!req.user?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-      
-      const roomsCleared = await storage.clearExpiredMultiplayerRooms();
-      res.json({ roomsCleared });
-      console.log(`Admin ${req.user.username} cleared ${roomsCleared} expired multiplayer rooms`);
-    } catch (error) {
-      console.error("Error clearing expired multiplayer rooms:", error);
-      res.status(500).json({ error: "Failed to clear expired multiplayer rooms" });
-    }
-  });
-
-  // Clear ALL active multiplayer rooms (admin only)
-  app.post("/api/multiplayer/clear-all", ensureAuthenticated, async (req, res) => {
-    try {
-      // Check if user is admin
-      if (!req.user?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-      
-      const roomsCleared = await storage.clearAllMultiplayerRooms();
-      res.json({ roomsCleared });
-      console.log(`Admin ${req.user.username} cleared ALL ${roomsCleared} active multiplayer rooms`);
-    } catch (error) {
-      console.error("Error clearing all multiplayer rooms:", error);
-      res.status(500).json({ error: "Failed to clear all multiplayer rooms" });
-    }
-  });
-  
   // Get all active multiplayer rooms
   app.get("/api/multiplayer/rooms", ensureAuthenticated, async (req, res) => {
     try {
@@ -3986,34 +3809,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Reset subject mastery data for a user
-  app.post("/api/subject-mastery/reset", ensureAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      
-      // Delete all subject mastery records for the user
-      const success = await storage.resetSubjectMasteries(userId);
-      
-      if (success) {
-        res.json({ 
-          success: true, 
-          message: "Subject masteries have been reset. You can now re-initialize them for any grade." 
-        });
-      } else {
-        res.status(500).json({ 
-          success: false, 
-          error: "Failed to reset subject masteries" 
-        });
-      }
-    } catch (error) {
-      console.error("Error resetting subject masteries:", error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to reset subject masteries" 
-      });
-    }
-  });
-  
   // Get questions specific to user's grade progression for a subject
   app.get("/api/questions/adaptive/:subject", ensureAuthenticated, async (req, res) => {
     try {
@@ -4090,19 +3885,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required field: grade" });
       }
       
-      // Define default subjects for different grade levels (matching module restrictions)
+      // Define default subjects for different grade levels
       const gradeSubjects: Record<string, string[]> = {
-        'K': ['addition', 'subtraction'],
-        '1': ['addition', 'subtraction', 'counting', 'time'],
-        '2': ['addition', 'subtraction', 'place-value', 'multiplication'],
-        '3': ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement'],
-        '4': ['multiplication', 'division', 'fractions', 'decimals', 'measurement'],
-        '5': ['decimals', 'fractions', 'geometry', 'ratios', 'algebra'],
-        '6': ['algebra', 'percentages', 'ratios', 'geometry', 'decimals']
+        '1': ['addition', 'subtraction', 'counting'],
+        '2': ['addition', 'subtraction', 'place-value'],
+        '3': ['addition', 'subtraction', 'multiplication', 'division'],
+        '4': ['multiplication', 'division', 'fractions'],
+        '5': ['decimals', 'fractions', 'geometry'],
+        '6': ['algebra', 'percentages', 'ratios']
       };
       
-      // Get subjects for the specified grade, or default to kindergarten (K) for the lowest grade
-      const subjects = gradeSubjects[grade] || gradeSubjects['K'];
+      // Get subjects for the specified grade, or default to grade 5 subjects if not found
+      const subjects = gradeSubjects[grade] || gradeSubjects['5'];
       
       // Initialize masteries for each subject
       const masteries = [];

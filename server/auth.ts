@@ -92,35 +92,6 @@ export function setupAuth(app: Express) {
       isAdmin: isAdmin || false
     });
 
-    try {
-      // Automatically initialize subject masteries for the user's grade
-      const userGrade = grade || "K";
-      
-      // Define default subjects for different grade levels (matching module restrictions)
-      const gradeSubjects: Record<string, string[]> = {
-        'K': ['addition', 'subtraction'],
-        '1': ['addition', 'subtraction', 'counting', 'time'],
-        '2': ['addition', 'subtraction', 'place-value', 'multiplication'],
-        '3': ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement'],
-        '4': ['multiplication', 'division', 'fractions', 'decimals', 'measurement'],
-        '5': ['decimals', 'fractions', 'geometry', 'ratios', 'algebra'],
-        '6': ['algebra', 'percentages', 'ratios', 'geometry', 'decimals']
-      };
-      
-      // Get subjects for the user's grade
-      const subjects = gradeSubjects[userGrade] || gradeSubjects['K'];
-      
-      // Initialize masteries for each subject
-      for (const subject of subjects) {
-        await storage.unlockGradeForSubject(user.id, subject, userGrade);
-      }
-      
-      console.log(`Initialized subject masteries for new user ${username} with grade ${userGrade}`);
-    } catch (error) {
-      console.error("Error initializing subject masteries for new user:", error);
-      // Continue with login even if initialization fails
-    }
-
     req.login(user, (err) => {
       if (err) return next(err);
       res.status(201).json(user);

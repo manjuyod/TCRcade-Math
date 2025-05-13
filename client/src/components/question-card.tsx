@@ -172,30 +172,8 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       }
     }
     
-    // Submit the answer and track progress
+    // Submit the answer after a slight delay to ensure UI updates first
     setTimeout(() => {
-      const isCorrect = option === question.answer;
-      console.log('Selected answer:', option);
-      console.log('Correct answer:', question.answer);
-      console.log('Is answer correct?', isCorrect ? 'Yes ✅' : 'No ❌');
-      
-      // Don't manage session progress in localStorage anymore
-      // This is now handled in the home-page.tsx component with sessionStats
-      
-      // Get current progress just for display purposes
-      const currentProgress = parseInt(localStorage.getItem('mathFactsProgress') || '0');
-      
-      // Update display only for current question
-      let progressDisplay = document.querySelector('.session-progress');
-      if (!progressDisplay) {
-        progressDisplay = document.createElement('div');
-        progressDisplay.className = 'session-progress text-center mt-4 text-gray-600';
-        document.querySelector('.question-card')?.appendChild(progressDisplay);
-      }
-      progressDisplay.textContent = `Session Progress: ${currentProgress + 1}/5 questions`;
-      
-      // Trigger answer handling with validation result
-      // This will now handle all progress tracking in home-page.tsx
       onAnswer(option);
     }, 100);
   };

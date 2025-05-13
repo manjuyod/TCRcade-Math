@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import { playSound, stopAllSounds } from '@/lib/sounds';
 import { Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { useTokenBalance } from '@/hooks/use-token-balance';
 import { queryClient } from '@/lib/queryClient';
 
 type SessionCompleteProps = {
@@ -13,38 +12,47 @@ type SessionCompleteProps = {
   totalQuestions: number;
   tokensEarned: number;
   onStartNewSession: () => void;
-  isPerfectSession?: boolean; // Add this to pass the hasPerfectSession flag
 };
 
 export default function SessionComplete({
   correctAnswers,
   totalQuestions,
   tokensEarned,
-  onStartNewSession,
-  isPerfectSession = false  // Default to false if not provided
+  onStartNewSession
 }: SessionCompleteProps) {
   const { user } = useAuth();
-  const { updateTokens } = useTokenBalance();
   const accuracy = Math.round((correctAnswers / totalQuestions) * 100);
   
-  // Use the passed isPerfectSession flag instead of just comparing scores
-  // This ensures we're tracking the session history not just the final numbers
-  const isPerfectScore = isPerfectSession;
+  // Check for perfect score (all answers correct)
+  const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
   
-  // Using refs to track if we've already awarded the tokens to prevent duplicate updates
-  const tokensAwardedRef = useRef(false);
+  // Award bonus tokens for perfect score (only once when component mounts)
+  // Using a ref to track if we've already awarded the bonus
   const bonusAwardedRef = useRef(false);
   
-  // The token awards now happen in the HomePage component
-  // No need to award tokens here as they're already awarded when session completes
-  // This prevents double-awarding tokens
-  
-  // Keep the study plan refresh for perfect scores
   useEffect(() => {
-    // Skip if conditions aren't met
-    if (!isPerfectScore || !user) {
+    // Skip if we've already awarded the bonus or if conditions aren't met
+    if (bonusAwardedRef.current || !isPerfectScore || !user) {
       return;
     }
+    
+    // Award 20 bonus tokens for perfect score
+    const perfectScoreBonus = 20;
+    
+    // Mark that we've awarded the bonus to prevent infinite loop
+    bonusAwardedRef.current = true;
+    
+    // Update user tokens in the cache
+    queryClient.setQueryData(['/api/user'], (oldData: any) => {
+      // If there's no previous data, do nothing
+      if (!oldData) return oldData;
+      
+      // Return the updated data
+      return {
+        ...oldData,
+        tokens: oldData.tokens + perfectScoreBonus
+      };
+    });
     
     // After a perfect score, refresh the study plan to update recommendations
     try {
@@ -81,38 +89,14 @@ export default function SessionComplete({
       
       // Trigger confetti animation - VERY limited to prevent crashes
       if (isPerfectScore) {
-        // Two-burst confetti for perfect scores - still limited but more impressive
-        // First burst from left side
+        // Drastically reduced particle count for perfect scores to prevent crashes
         confetti({
-          particleCount: 20, // Limited particles
-          spread: 70,
-          origin: { x: 0.2, y: 0.6 },
-          colors: ['#FFD700', '#FFA500', '#FF4500'], // Gold, orange, red-orange
+          particleCount: 25, // Reduced from 100
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#9370DB'],
           disableForReducedMotion: true
         });
-        
-        // Second burst from right side (delayed slightly)
-        setTimeout(() => {
-          confetti({
-            particleCount: 20, // Limited particles
-            spread: 70,
-            origin: { x: 0.8, y: 0.6 },
-            colors: ['#FFD700', '#FF8C00', '#9370DB'], // Gold, dark orange, purple
-            disableForReducedMotion: true
-          });
-        }, 300);
-        
-        // Optional third burst from center (if performance allows)
-        setTimeout(() => {
-          confetti({
-            particleCount: 15, // Very limited particles for third burst
-            spread: 100,
-            origin: { x: 0.5, y: 0.5 },
-            colors: ['#FFD700', '#FF4500', '#1E90FF'], // Gold, red-orange, blue
-            shapes: ['square'],
-            disableForReducedMotion: true
-          });
-        }, 600);
       } else {
         // Even more limited single burst for normal completion
         confetti({
@@ -181,29 +165,20 @@ export default function SessionComplete({
               : 'Congratulations!'}
           </p>
           {isPerfectScore && (
-            <motion.div 
-              className="mt-2 py-2 px-4 bg-yellow-100 rounded-lg border-2 border-yellow-300 inline-block"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1, y: [0, -3, 0] }}
-              transition={{ 
-                scale: { delay: 0.5, duration: 0.5 },
-                opacity: { delay: 0.5, duration: 0.5 },
-                y: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
-              }}
+            <motion.p 
+              className="text-sm text-green-600 font-bold mt-2"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
             >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl">🏆</span>
-                <span className="text-lg font-extrabold text-yellow-600">+20 PERFECT BONUS!</span>
-                <span className="text-2xl">🏆</span>
-              </div>
-            </motion.div>
+              +20 bonus tokens for perfect accuracy!
+            </motion.p>
           )}
         </motion.div>
         
-        <div className="grid grid-cols-1 gap-4 mb-8">          
-          <div className="flex justify-between items-center bg-purple-100 p-6 rounded-xl border-2 border-purple-300">
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          <div className="flex justify-between items-center bg-orange-100 p-6 rounded-xl border-2 border-orange-300">
             <div className="text-lg font-bold text-gray-800">Correct Answers:</div>
-            <div className="text-3xl font-extrabold text-purple-600">{correctAnswers}/{totalQuestions}</div>
+            <div className="text-3xl font-extrabold text-orange-600">{correctAnswers}/{totalQuestions}</div>
           </div>
           
           <div className="flex justify-between items-center bg-blue-100 p-6 rounded-xl border-2 border-blue-300">
@@ -254,28 +229,17 @@ export default function SessionComplete({
             </Button>
           </Link>
           
-          <Link href="/modules">
-            <Button 
-              onClick={() => {
-                // Stop any playing sounds before navigating
-                stopAllSounds();
-                // Clear any local storage session state
-                localStorage.removeItem('mathFactsProgress');
-                localStorage.removeItem('currentModule');
-                localStorage.removeItem('currentModuleId');
-                localStorage.removeItem('currentModuleType');
-                localStorage.removeItem('currentCategory');
-                localStorage.removeItem('mathFactsOperation');
-                
-                // Force refresh the modules page data when returning
-                queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                queryClient.invalidateQueries({ queryKey: ['/api/user/stats'] });
-              }}
-              className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
-            >
-              Return to Dashboard
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => {
+              // Stop any playing sounds before navigating
+              stopAllSounds();
+              // Use window.location to ensure full page refresh and proper state reset
+              window.location.href = '/';
+            }}
+            className="arcade-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl w-full transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            Return to Dashboard
+          </Button>
         </div>
       </motion.div>
     </motion.div>

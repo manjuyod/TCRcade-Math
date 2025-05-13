@@ -67,10 +67,10 @@ const soundCache: Record<SoundEffect, Howl> = {
     volume: 0.8
   }),
   
-  // Perfect score sound - upgraded for an even more exciting celebration
+  // Perfect score sound
   perfectScore: new Howl({
-    src: ['https://assets.mixkit.co/active_storage/sfx/2008/2008-preview.mp3'], // epic victory fanfare
-    volume: 0.9
+    src: ['https://assets.mixkit.co/active_storage/sfx/1995/1995-preview.mp3'], // victory tune
+    volume: 0.8
   }),
   
   // Goal completion sound

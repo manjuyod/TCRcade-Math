@@ -14,7 +14,7 @@ import {
   subjectDifficultyHistory, type SubjectDifficultyHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, lt, like, asc, isNull, or, inArray, not } from "drizzle-orm";
+import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
 import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
@@ -119,23 +119,12 @@ export class DatabaseStorage implements IStorage {
 
   // Question methods
   async getQuestion(id: number): Promise<Question | undefined> {
-    try {
-      // Validate that ID is within PostgreSQL INTEGER range
-      if (id > 2147483647 || id <= 0) {
-        console.warn(`Invalid question ID: ${id} - outside PostgreSQL INTEGER range`);
-        return undefined;
-      }
-      
-      const [question] = await db
-        .select()
-        .from(questions)
-        .where(eq(questions.id, id));
-      
-      return question;
-    } catch (error) {
-      console.error(`Error fetching question with ID ${id}:`, error);
-      return undefined;
-    }
+    const [question] = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, id));
+    
+    return question;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
@@ -754,53 +743,13 @@ export class DatabaseStorage implements IStorage {
       return code;
     };
     
-    // Handle duplicate room names by adding a number suffix
-    let finalRoomName = roomData.name || 'Game Room';
-    if (finalRoomName) {
-      // Get all active rooms with the same base name or name with number suffix
-      const existingRooms = await db
-        .select()
-        .from(multiplayerRooms)
-        .where(and(
-          eq(multiplayerRooms.isActive, true),
-          or(
-            eq(multiplayerRooms.name, finalRoomName),
-            like(multiplayerRooms.name, `${finalRoomName} (%)`) // Match names like "Name (1)", "Name (2)", etc.
-          )
-        ));
-      
-      if (existingRooms.length > 0) {
-        // Find the highest number suffix
-        let highestSuffix = 0;
-        existingRooms.forEach(room => {
-          // Check if the room name has a number suffix in the format "Name (X)"
-          const match = room.name.match(new RegExp(`${finalRoomName} \((\d+)\)$`));
-          if (match && match[1]) {
-            const suffixNum = parseInt(match[1], 10);
-            if (!isNaN(suffixNum) && suffixNum > highestSuffix) {
-              highestSuffix = suffixNum;
-            }
-          }
-        });
-        
-        // Add suffix if needed
-        if (existingRooms.some(room => room.name === finalRoomName)) {
-          finalRoomName = `${finalRoomName} (${highestSuffix + 1})`;
-        } else if (highestSuffix > 0) {
-          // If no exact match but there are rooms with suffixes
-          finalRoomName = `${finalRoomName} (${highestSuffix + 1})`;
-        }
-      }
-    }
-    
     const roomCode = generateRoomCode();
     
-    // Create the room with the potentially modified name
+    // Create the room
     const [room] = await db
       .insert(multiplayerRooms)
       .values({
         ...roomData,
-        name: finalRoomName,
         hostId,
         roomCode,
         participants: [hostId],
@@ -830,49 +779,7 @@ export class DatabaseStorage implements IStorage {
     return room;
   }
 
-  /**
-   * Clear expired multiplayer rooms (older than 24 hours)
-   * @returns Number of rooms cleared
-   */
-  async clearExpiredMultiplayerRooms(): Promise<number> {
-    // Calculate the date 24 hours ago
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    
-    // Find rooms older than 24 hours and set them as inactive
-    const result = await db
-      .update(multiplayerRooms)
-      .set({ isActive: false })
-      .where(
-        and(
-          eq(multiplayerRooms.isActive, true),
-          lt(multiplayerRooms.createdAt, oneDayAgo)
-        )
-      );
-      
-    console.log(`Cleared ${result.rowCount} expired multiplayer rooms`);
-    return result.rowCount || 0;
-  }
-
-  /**
-   * Clear all active multiplayer rooms (admin only function)
-   * @returns Number of rooms cleared
-   */
-  async clearAllMultiplayerRooms(): Promise<number> {
-    // Set all active rooms to inactive
-    const result = await db
-      .update(multiplayerRooms)
-      .set({ isActive: false })
-      .where(eq(multiplayerRooms.isActive, true));
-      
-    console.log(`Cleared all ${result.rowCount} active multiplayer rooms`);
-    return result.rowCount || 0;
-  }
-
   async listActiveMultiplayerRooms(grade?: string): Promise<MultiplayerRoom[]> {
-    // First, clear any expired rooms (older than 24 hours)
-    await this.clearExpiredMultiplayerRooms();
-    
     let query = db
       .select()
       .from(multiplayerRooms)
@@ -1525,89 +1432,18 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
-    // Define default subjects for different grade levels based on user's current grade
-    const defaultSubjects: Record<string, string[]> = {
-      'K': ['addition', 'subtraction'],
-      '1': ['addition', 'subtraction', 'counting', 'time'],
-      '2': ['addition', 'subtraction', 'place-value', 'multiplication'],
-      '3': ['addition', 'subtraction', 'multiplication', 'division', 'fractions', 'measurement'],
-      '4': ['multiplication', 'division', 'fractions', 'decimals', 'measurement'],
-      '5': ['decimals', 'fractions', 'geometry', 'ratios', 'algebra'],
-      '6': ['algebra', 'percentages', 'ratios', 'geometry', 'decimals']
-    };
+    // Get all subject masteries for this user and grade that are unlocked
+    const userMasteries = await db
+      .select()
+      .from(subjectMastery)
+      .where(and(
+        eq(subjectMastery.userId, userId),
+        eq(subjectMastery.grade, grade),
+        eq(subjectMastery.isUnlocked, true)
+      ));
     
-    try {
-      // First, try to get the user's subject masteries from the database
-      const userMasteries = await db
-        .select()
-        .from(subjectMastery)
-        .where(and(
-          eq(subjectMastery.userId, userId),
-          eq(subjectMastery.grade, grade),
-          eq(subjectMastery.isUnlocked, true)
-        ));
-      
-      // If we have masteries, return those subject names
-      if (userMasteries.length > 0) {
-        return userMasteries.map(mastery => mastery.subject);
-      }
-      
-      // If the user has no masteries for this grade, let's automatically initialize them
-      // This provides a better experience by eliminating empty states
-      console.log(`No subject masteries found for user ${userId} in grade ${grade}. Auto-initializing...`);
-      
-      // Get the default subjects for this grade
-      const subjectsToInitialize = defaultSubjects[grade] || defaultSubjects['K'];
-      
-      // Initialize masteries for each subject
-      const initializedSubjects = [];
-      for (const subject of subjectsToInitialize) {
-        try {
-          await this.unlockGradeForSubject(userId, subject, grade);
-          initializedSubjects.push(subject);
-        } catch (error) {
-          console.error(`Error initializing subject ${subject} for user ${userId} in grade ${grade}:`, error);
-          // Continue with other subjects even if one fails
-        }
-      }
-      
-      return initializedSubjects;
-    } catch (error) {
-      console.error(`Error in getAvailableSubjectsForGrade for user ${userId}, grade ${grade}:`, error);
-      
-      // As a fallback, return the default subjects for this grade
-      // This ensures the UI always has something to display
-      return defaultSubjects[grade] || defaultSubjects['K'];
-    }
-  }
-  
-  /**
-   * Reset all subject masteries for a user (delete them all)
-   * @param userId The user ID
-   * @returns Success status
-   */
-  async resetSubjectMasteries(userId: number): Promise<boolean> {
-    try {
-      // Delete all subject mastery records for this user
-      await db
-        .delete(subjectMastery)
-        .where(eq(subjectMastery.userId, userId));
-        
-      // Also delete related subject difficulty history if that table exists
-      try {
-        await db
-          .delete(subjectDifficultyHistory)
-          .where(eq(subjectDifficultyHistory.userId, userId));
-      } catch (e) {
-        // If the table doesn't exist yet, just continue
-        console.log("Note: subjectDifficultyHistory table may not exist, skipping deletion");
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error resetting subject masteries:', error);
-      return false;
-    }
+    // Return the list of unlocked subjects
+    return userMasteries.map(mastery => mastery.subject);
   }
   
   async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {

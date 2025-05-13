@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
-import { useTokenBalance } from '@/hooks/use-token-balance';
 import { useSessionTimer } from '@/hooks/use-session-timer';
-import { useQuestionBatch } from '@/hooks/use-question-batch';
+import { useQuestionWithHistory } from '@/hooks/use-question-with-history';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import QuestionCard from '@/components/question-card';
@@ -26,17 +25,7 @@ import { queryClient } from '@/lib/queryClient';
 import { Question } from '@shared/schema';
 import { Loader2, Clock, Calendar, Book, BookOpen, Users, Brain, ChevronDown, ChevronUp, Pencil, AlertCircle } from 'lucide-react';
 
-function DashboardStats({ 
-  myScore, 
-  cohortScore, 
-  questionsAnswered, 
-  studyTime 
-}: { 
-  myScore: number; 
-  cohortScore: number; 
-  questionsAnswered: number; 
-  studyTime: string; 
-}) {
+function DashboardStats({ myScore, cohortScore, questionsAnswered, studyTime }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="bg-white p-4 rounded-xl shadow-sm">
@@ -58,7 +47,6 @@ function DashboardStats({
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { tokens, updateTokens } = useTokenBalance();
   const { minutesPlayed, displayMinutes, progressPercentage } = useSessionTimer();
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
   const [feedbackData, setFeedbackData] = useState<{
@@ -92,9 +80,6 @@ export default function HomePage() {
     correctAnswers: 0,
     tokensEarned: 0
   });
-  
-  // Flag to track if any questions were answered incorrectly
-  const [hasPerfectSession, setHasPerfectSession] = useState<boolean>(true);
 
   // Streak tracking
   const [currentStreak, setCurrentStreak] = useState<number>(0);
@@ -205,10 +190,10 @@ export default function HomePage() {
           // Add bonus tokens for time milestone
           if (user) {
             const bonusTokens = currentMinute * 3; // 3 tokens per minute of time milestone
-            
-            // Update tokens using our token balance hook
-            updateTokens(bonusTokens);
-            console.log(`Successfully awarded ${bonusTokens} bonus tokens for time milestone`);
+            queryClient.setQueryData(['/api/user'], {
+              ...user,
+              tokens: user.tokens + bonusTokens
+            });
           }
         }, 500);
       }
@@ -306,18 +291,16 @@ export default function HomePage() {
     }
   }, [currentModuleId]);
 
-  // Use our new batch loading hook for questions
-  // Instead of fetching one at a time, we preload 20 questions at once
+  // Use our enhanced question hook with duplicate prevention
+  // This is more reliable than the previous code
   const {
-    currentQuestion: question,
-    loading: isLoading,
-    nextQuestion: loadNextQuestion,
-    currentIndex: questionIndex,
-    questions: batchQuestions,
-    refetchQuestions: refetchBatch
-  } = useQuestionBatch(
-    currentModuleCategory || '',
-    20 // Load 20 questions at once
+    question,
+    loading: isLoading, 
+    fetchNewQuestion,
+    seenQuestions
+  } = useQuestionWithHistory(
+    user?.grade || '3',
+    currentModuleCategory
   );
 
   // Submit answer mutation
@@ -336,12 +319,6 @@ export default function HomePage() {
           // Check if the answer is correct for Math Facts
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
-          
-          // For Math Facts, we can immediately update the local token count for smoother UI
-          if (isCorrect) {
-            // Update local token balance immediately using our new hook
-            updateTokens(tokensEarned);
-          }
 
           // DON'T update session stats here - it will be handled in onSuccess
           // to prevent double-counting when the component re-renders
@@ -350,7 +327,7 @@ export default function HomePage() {
           return {
             correct: isCorrect,
             tokensEarned: tokensEarned,
-            totalTokens: tokens + (isCorrect ? tokensEarned : 0), // Use our local token count
+            totalTokens: 0, // We don't track this for non-authenticated sessions
             correctAnswer: question.answer
           };
         }
@@ -396,8 +373,8 @@ export default function HomePage() {
           };
         }
 
-        // For other errors, force a new batch of questions
-        refetchBatch();
+        // For other errors, force a new dynamic question
+        fetchNewQuestion(true);
         throw error;
       }
     },
@@ -418,37 +395,17 @@ export default function HomePage() {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
       }
 
-      // Update stats for ALL modules, including Math Facts modules
-      // This ensures session progress is properly tracked for Math Facts modules too
+      // ONLY update session stats if this is not a Math Facts module
+      // For Math Facts modules, the stats were already updated in the try/catch block
       const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
-      
-      // If this answer was incorrect, set perfect session flag to false
-      console.log(`Answer check - isCorrect: ${data.correct}, current hasPerfectSession: ${hasPerfectSession}`);
-      if (!data.correct) {
-        console.log('SETTING hasPerfectSession to FALSE due to incorrect answer');
-        setHasPerfectSession(false);
-        console.log('Incorrect answer - perfect session bonus no longer possible');
-      }
-      
-      // Always update stats regardless of module type
-      setSessionStats(prev => {
-        const totalQuestionsAttempted = answeredQuestionIds.length + 1; // +1 for current question
-        const newStats = {
-          // questionsAnswered now becomes our total questions counter (regardless of correctness)
-          questionsAnswered: totalQuestionsAttempted,
+
+      if (!isCurrentlyMathFactsModule) {
+        setSessionStats(prev => ({
+          questionsAnswered: prev.questionsAnswered + 1,
           correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: prev.tokensEarned + data.tokensEarned
-        };
-        
-        // For Math Facts, also update the localStorage progress value based on total attempts
-        if (isCurrentlyMathFactsModule) {
-          // Update stored progress to track total questions attempted
-          localStorage.setItem('mathFactsProgress', totalQuestionsAttempted.toString());
-          console.log(`Math Facts progress updated: ${totalQuestionsAttempted}/5 (question attempted)`);
-        }
-        
-        return newStats;
-      });
+        }));
+      }
 
       // Update streak counter
       if (data.correct) {
@@ -474,11 +431,11 @@ export default function HomePage() {
             if (user) {
               const bonusTokens = milestone * 2; // 2x tokens for each milestone
 
-              // Update tokens using our token balance hook
-              updateTokens(bonusTokens);
-              
-              // Log the bonus tokens awarded
-              console.log(`Successfully awarded ${bonusTokens} bonus tokens for streak milestone`);
+              // First update local user data 
+              queryClient.setQueryData(['/api/user'], {
+                ...user,
+                tokens: user.tokens + bonusTokens
+              });
 
               // Streak animation completely removed - all state updates removed
 
@@ -529,13 +486,8 @@ export default function HomePage() {
           }
         }
 
-        // Update tokens with our token balance hook if they earned tokens
-        // This keeps the UI consistent by updating the token display immediately
-        if (data.correct && data.tokensEarned > 0) {
-          updateTokens(data.tokensEarned);
-          console.log(`Successfully awarded ${data.tokensEarned} tokens to user`);
-        }
-        
+        // Store current token count to avoid infinite loop when updating user data
+        const finalTokens = data.totalTokens;
         const updatedQuestionsAnswered = user.questionsAnswered + 1;
         const updatedCorrectAnswers = user.correctAnswers + (data.correct ? 1 : 0);
 
@@ -546,6 +498,7 @@ export default function HomePage() {
 
           // If the data is the same as what we just set, don't update to avoid infinite loop
           if (
+            (prevUser as any).tokens === finalTokens && 
             (prevUser as any).grade === updatedGrade &&
             (prevUser as any).questionsAnswered === updatedQuestionsAnswered
           ) {
@@ -554,7 +507,7 @@ export default function HomePage() {
 
           return {
             ...prevUser,
-            // Keep the tokens as they are in the user object since we're using our hook for display
+            tokens: finalTokens,
             grade: updatedGrade,
             questionsAnswered: updatedQuestionsAnswered,
             correctAnswers: updatedCorrectAnswers
@@ -562,96 +515,19 @@ export default function HomePage() {
         });
       }
 
-      // Check if session is complete (5 total questions, regardless of correctness)
-      // Track total questions attempted rather than just correct ones
-      const totalQuestionsAttempted = answeredQuestionIds.length + 1; // +1 for current question
-      if (totalQuestionsAttempted >= sessionSize) {
+      // Check if session is complete (5 questions)
+      // For Math Facts modules, we need to check if we've answered 5 questions locally
+      // We want to stop exactly at 5 questions for all module types
+      if (sessionStats.questionsAnswered + 1 >= sessionSize) {
         // Update final session stats before showing session complete
-        // questionsAnswered is now total questions (always 5)
         const finalStats = {
-          questionsAnswered: totalQuestionsAttempted, // This will be 5 at this point
+          questionsAnswered: sessionStats.questionsAnswered + 1,
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
 
         // Set the final stats
         setSessionStats(finalStats);
-
-        // Submit total session tokens to the API immediately - don't wait for the session complete screen
-        if (finalStats.tokensEarned > 0) {
-          try {
-            // First, update the tokens in UI immediately using the token balance hook
-            updateTokens(finalStats.tokensEarned);
-            console.log(`Immediately awarding ${finalStats.tokensEarned} session tokens to user`);
-            
-            // Then persist to the database
-            fetch('/api/user/stats', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                tokensEarned: finalStats.tokensEarned,
-                correctAnswers: finalStats.correctAnswers,
-                questionsAnswered: finalStats.questionsAnswered
-              }),
-            })
-            .then(response => {
-              if (!response.ok) {
-                throw new Error('Failed to update session tokens');
-              }
-              return response.json();
-            })
-            .then(() => {
-              console.log(`Successfully persisted ${finalStats.tokensEarned} tokens to database`);
-              
-              // Check for perfect score and award bonus for 100% accuracy
-              // Calculate accuracy as correct answers / total questions (always 5)
-              const accuracy = finalStats.correctAnswers / sessionSize;
-              console.log(`Score calculation: ${finalStats.correctAnswers}/${sessionSize} = ${accuracy * 100}% accuracy`);
-              
-              // Award bonus for 100% accuracy (5/5 correct)
-              if (accuracy === 1) {
-                console.log(`PERFECT SCORE BONUS AWARDED!`);
-                const perfectScoreBonus = 20;
-                
-                // Award bonus tokens immediately
-                updateTokens(perfectScoreBonus);
-                console.log(`Immediately awarding ${perfectScoreBonus} bonus tokens for perfect score`);
-                
-                // Persist bonus tokens
-                fetch('/api/user/stats', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    tokensEarned: perfectScoreBonus,
-                    correctAnswers: 0,
-                    questionsAnswered: 0
-                  }),
-                })
-                .then(response => {
-                  if (!response.ok) {
-                    throw new Error('Failed to update perfect score bonus tokens');
-                  }
-                  return response.json();
-                })
-                .then(() => {
-                  console.log(`Successfully persisted ${perfectScoreBonus} bonus tokens to database`);
-                })
-                .catch(error => {
-                  console.error('Error persisting perfect score bonus tokens:', error);
-                });
-              }
-            })
-            .catch(error => {
-              console.error('Error persisting session tokens:', error);
-            });
-          } catch (error) {
-            console.error('Error updating tokens:', error);
-          }
-        }
 
         setTimeout(() => {
           setSessionCompleted(true);
@@ -675,7 +551,7 @@ export default function HomePage() {
     }
   };
 
-  // Updated next question handler using our batch loading hook
+  // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
@@ -687,17 +563,18 @@ export default function HomePage() {
     setShowFeedback(false);
     setFeedbackData(null);
 
-    // Use the loadNextQuestion method from our batch loading hook
-    // This simply advances to the next pre-loaded question without any API calls
-    loadNextQuestion();
-    
-    // Set loading to false after a brief delay to prevent flickering
-    setTimeout(() => {
-      setIsManuallyLoading(false);
-    }, 100);
+    // Use the improved fetchNewQuestion method from our custom hook
+    // This handles all the caching and duplicate prevention automatically
+    fetchNewQuestion(true)
+      .finally(() => {
+        // Set loading to false after a brief delay to prevent flickering
+        setTimeout(() => {
+          setIsManuallyLoading(false);
+        }, 100);
+      });
   };
 
-  // Updated to use batch loaded questions
+  // Simpler version with our improved hook
   const handleStartNewSession = () => {
     // Reset session
     setSessionCompleted(false);
@@ -706,13 +583,6 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0
     });
-    
-    // Reset the perfect score flag to true for a new session
-    setHasPerfectSession(true);
-    
-    // Reset the localStorage progress for Math Facts modules
-    localStorage.setItem('mathFactsProgress', '0');
-    console.log('Math Facts progress reset for new session');
 
     // Clear tracking for a new session
     setAnsweredQuestionIds([]);
@@ -734,9 +604,9 @@ export default function HomePage() {
       console.error('Error refreshing study plan:', error);
     }
 
-    // Use the refetchBatch function from our batch loading hook
-    // This will get a fresh batch of 20 questions
-    refetchBatch()
+    // Use the improved hook's fetchNewQuestion function with forceDynamic=true
+    // This handles all the caching and duplicate prevention automatically
+    fetchNewQuestion(true)
       .finally(() => {
         // Turn off loading after a short delay
         setTimeout(() => {
@@ -780,10 +650,10 @@ export default function HomePage() {
 
       <main className="flex-1 container mx-auto p-4 space-y-8">
         <DashboardStats
-          myScore={user?.correctAnswers || 0}
-          cohortScore={Math.floor((user?.correctAnswers || 0) * 0.9)} // Cohort average as 90% of user's score
-          questionsAnswered={user?.questionsAnswered || 0}
-          studyTime={`${Math.floor(minutesPlayed / 60)}h ${Math.floor(minutesPlayed % 60)}min`}
+          myScore={1150}
+          cohortScore={1025}
+          questionsAnswered={574}
+          studyTime="12h 38min"
         />
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
@@ -853,7 +723,6 @@ export default function HomePage() {
               totalQuestions={sessionStats.questionsAnswered}
               tokensEarned={sessionStats.tokensEarned}
               onStartNewSession={handleStartNewSession}
-              isPerfectSession={hasPerfectSession}
             />
           ) : isLoading || isManuallyLoading || answerMutation.isPending ? (
             <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 flex items-center justify-center min-h-[300px]">
@@ -865,7 +734,6 @@ export default function HomePage() {
               tokensEarned={feedbackData.tokensEarned}
               correctAnswer={feedbackData.correctAnswer}
               onNextQuestion={handleNextQuestion}
-              isSessionComplete={(sessionStats.questionsAnswered + (feedbackData.correct ? 1 : 0)) >= sessionSize}
             />
           ) : question ? (
             currentModuleType === 'word_race' ? (
@@ -890,31 +758,24 @@ export default function HomePage() {
 
                     // Add question to answered questions
                     setAnsweredQuestionIds(prev => [...prev, question.id]);
-                    
-                    // Set perfect session flag to false since this is an incorrect answer
-                    setHasPerfectSession(false);
-                    console.log('Timeout - perfect session bonus no longer possible');
 
                     // Update session stats - this is a timeout, so it's incorrect
-                    // Per user request, we only increment progress on correct answers
-                    // Since this is a timeout (incorrect), don't increment questionsAnswered
                     setSessionStats(prev => ({
-                      questionsAnswered: prev.questionsAnswered, // Don't increment for incorrect answers
-                      correctAnswers: prev.correctAnswers,      // No change for incorrect
-                      tokensEarned: prev.tokensEarned           // No tokens earned
+                      questionsAnswered: prev.questionsAnswered + 1,
+                      correctAnswers: prev.correctAnswers,
+                      tokensEarned: prev.tokensEarned
                     }));
 
                     // Reset streak counter for timeouts
                     setCurrentStreak(0);
 
-                    // Check if session is complete (5 correct questions)
-                    // Per user request, progress only increases on correct answers
-                    // Since this is an incorrect answer, don't increment the count
-                    if (sessionStats.questionsAnswered >= sessionSize) {
+                    // Check if session is complete (5 questions)
+                    // For Math Facts modules, we need to check if we've answered 5 questions locally
+                    // We want to stop exactly at 5 questions for all module types
+                    if (sessionStats.questionsAnswered + 1 >= sessionSize) {
                       // Update final session stats before showing session complete
-                      // For timeout/incorrect answers, don't increment questionsAnswered
                       const finalStats = {
-                        questionsAnswered: sessionStats.questionsAnswered,
+                        questionsAnswered: sessionStats.questionsAnswered + 1,
                         correctAnswers: sessionStats.correctAnswers,
                         tokensEarned: sessionStats.tokensEarned
                       };
@@ -963,33 +824,30 @@ export default function HomePage() {
                     // Update user grade through API (optional implementation)
                     console.log(`Would switch to grade ${nextGrade}`);
 
-                    // For now, just try to fetch a new batch of questions
-                    refetchBatch();
+                    // For now, just try to fetch a new question with forceDynamic=true
+                    fetchNewQuestion(true);
                   }}
                 >
                   Try Different Grade
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Force new batch of questions
-                    refetchBatch();
+                    // Force dynamic question generation
+                    fetchNewQuestion(true);
                   }}
                 >
-                  Generate Questions
+                  Generate Question
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Show session progress based on total questions attempted */}
+          {/* Show session progress */}
           {!sessionCompleted && (
             <div className="mt-4 text-center">
               <span className="text-gray-600 text-sm">
-                Session Progress: {answeredQuestionIds.length}/{sessionSize} questions attempted
+                Session Progress: {sessionStats.questionsAnswered}/{sessionSize} questions
               </span>
-              <div className="text-sm text-gray-500 mt-1">
-                Correct: {sessionStats.correctAnswers}/{answeredQuestionIds.length} ({Math.round((sessionStats.correctAnswers / Math.max(1, answeredQuestionIds.length)) * 100)}%)
-              </div>
             </div>
           )}
         </div>

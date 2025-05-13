@@ -16,8 +16,7 @@ import {
   Sparkles,
   Clock,
   Trophy,
-  UserRoundCheck,
-  AlertCircle
+  UserRoundCheck
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,6 @@ interface Module {
   locked: boolean;
   completeCount: number; // Number of times completed
   bestScore?: number; // Best score achieved
-  minGrade?: string; // Minimum grade level required (K, 1, 2, 3, 4, 5, 6)
 }
 
 export default function ModulesPage() {
@@ -77,8 +75,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'addition',
       locked: false,
-      completeCount: 0,
-      minGrade: 'K' // Available to kindergarten and up
+      completeCount: 0
     },
     {
       id: 'math-facts-subtraction',
@@ -89,8 +86,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'subtraction',
       locked: false,
-      completeCount: 0,
-      minGrade: 'K' // Available to kindergarten and up
+      completeCount: 0
     },
     {
       id: 'math-facts-multiplication',
@@ -101,8 +97,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'multiplication',
       locked: false,
-      completeCount: 0,
-      minGrade: '2' // Available to 2nd grade and up
+      completeCount: 0
     },
     {
       id: 'math-facts-division',
@@ -113,8 +108,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'division',
       locked: false,
-      completeCount: 0,
-      minGrade: '3' // Available to 3rd grade and up
+      completeCount: 0
     },
     // Original modules
     {
@@ -126,8 +120,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'addition',
       locked: false,
-      completeCount: 3,
-      minGrade: 'K' // Available to kindergarten and up
+      completeCount: 3
     },
     {
       id: 'subtraction',
@@ -138,8 +131,7 @@ export default function ModulesPage() {
       difficulty: 1,
       category: 'subtraction',
       locked: false,
-      completeCount: 2,
-      minGrade: 'K' // Available to kindergarten and up
+      completeCount: 2
     },
     {
       id: 'multiplication',
@@ -150,8 +142,7 @@ export default function ModulesPage() {
       difficulty: 2,
       category: 'multiplication',
       locked: false,
-      completeCount: 1,
-      minGrade: '2' // Available to 2nd grade and up
+      completeCount: 1
     },
     {
       id: 'division',
@@ -162,8 +153,7 @@ export default function ModulesPage() {
       difficulty: 2,
       category: 'division',
       locked: false,
-      completeCount: 0,
-      minGrade: '3' // Available to 3rd grade and up
+      completeCount: 0
     },
     {
       id: 'fractions',
@@ -174,8 +164,7 @@ export default function ModulesPage() {
       difficulty: 3,
       category: 'fractions',
       locked: false,
-      completeCount: 0,
-      minGrade: '3' // Available to 3rd grade and up
+      completeCount: 0
     },
     {
       id: 'word-race',
@@ -186,8 +175,7 @@ export default function ModulesPage() {
       difficulty: 3,
       category: 'word-problems',
       locked: false,
-      completeCount: 0,
-      minGrade: '2' // Available to 2nd grade and up
+      completeCount: 0
     },
     {
       id: 'addition-advanced',
@@ -198,8 +186,7 @@ export default function ModulesPage() {
       difficulty: 2,
       category: 'addition',
       locked: false,
-      completeCount: 0,
-      minGrade: '1' // Available to 1st grade and up
+      completeCount: 0
     },
 
     {
@@ -211,8 +198,7 @@ export default function ModulesPage() {
       difficulty: 2,
       category: 'time',
       locked: false,
-      completeCount: 0,
-      minGrade: '1' // Available to 1st grade and up
+      completeCount: 0
     },
     {
       id: 'decimals',
@@ -223,8 +209,7 @@ export default function ModulesPage() {
       difficulty: 4,
       category: 'decimals',
       locked: false,
-      completeCount: 0,
-      minGrade: '4' // Available to 4th grade and up
+      completeCount: 0
     },
     {
       id: 'measurement',
@@ -235,8 +220,7 @@ export default function ModulesPage() {
       difficulty: 4,
       category: 'measurement',
       locked: false,
-      completeCount: 0,
-      minGrade: '3' // Available to 3rd grade and up
+      completeCount: 0
     },
     {
       id: 'ratios',
@@ -247,8 +231,7 @@ export default function ModulesPage() {
       difficulty: 5,
       category: 'ratios',
       locked: false,
-      completeCount: 0,
-      minGrade: '5' // Available to 5th grade and up
+      completeCount: 0
     },
     {
       id: 'algebra',
@@ -259,8 +242,7 @@ export default function ModulesPage() {
       difficulty: 4,
       category: 'algebra',
       locked: false,
-      completeCount: 0,
-      minGrade: '5' // Available to 5th grade and up
+      completeCount: 0
     },
     {
       id: 'mixed',
@@ -271,8 +253,7 @@ export default function ModulesPage() {
       difficulty: 5,
       category: 'mixed',
       locked: true,
-      completeCount: 0,
-      minGrade: '6' // Available to 6th grade and up
+      completeCount: 0
     },
   ];
   
@@ -307,27 +288,8 @@ export default function ModulesPage() {
     ));
   };
   
-  // Function to check if a module is allowed for the user's grade level
-  const isModuleAllowedForGrade = (module: Module): boolean => {
-    if (!module.minGrade || !user?.grade) return true; // If no grade restrictions or no user grade, allow it
-    
-    // Convert grades to numerical values for comparison (K = 0, 1 = 1, 2 = 2, etc.)
-    const moduleGradeNum = module.minGrade === 'K' ? 0 : parseInt(module.minGrade);
-    const userGradeNum = user.grade === 'K' ? 0 : parseInt(user.grade);
-    
-    // Module is allowed if user's grade is equal to or higher than the module's minimum grade
-    return userGradeNum >= moduleGradeNum;
-  };
-  
   // Start module handler
   const handleStartModule = (module: Module) => {
-    // Check if the module is allowed for the user's grade level
-    if (!isModuleAllowedForGrade(module)) {
-      // If not allowed, show an alert and don't proceed
-      alert(`This module requires grade ${module.minGrade} or higher to access. You are currently in grade ${user?.grade}.`);
-      return;
-    }
-    
     console.log(`Loading ${module.gameType} module: ${module.id}`);
     
     // Check if this is a Math Facts module
@@ -475,14 +437,13 @@ export default function ModulesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredModules.map((module) => {
             const gameTypeInfo = getGameTypeInfo(module.gameType);
-            const isAllowed = isModuleAllowedForGrade(module);
             
             return (
               <motion.div
                 key={module.id}
                 whileHover={{ translateY: -5 }}
                 className={`bg-white rounded-xl overflow-hidden shadow-md flex flex-col
-                  ${module.locked || !isAllowed ? 'opacity-60' : ''}`}
+                  ${module.locked ? 'opacity-60' : ''}`}
               >
                 <div className={`${gameTypeInfo.color} p-4 text-white`}>
                   <div className="flex justify-between items-start">
@@ -493,11 +454,6 @@ export default function ModulesPage() {
                         <div className="text-xs mt-1 flex">
                           {getDifficultyStars(module.difficulty)}
                         </div>
-                        {module.minGrade && (
-                          <div className="text-xs mt-1 bg-white/20 px-2 py-0.5 rounded-full">
-                            Grade {module.minGrade}+
-                          </div>
-                        )}
                       </div>
                     </div>
                     {module.completeCount > 0 && (
@@ -518,26 +474,15 @@ export default function ModulesPage() {
                       {module.category}
                     </span>
                   </div>
-                  
-                  {!isAllowed && (
-                    <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded-md flex items-center">
-                      <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                      Requires grade {module.minGrade}+ (Your grade: {user?.grade || 'Unknown'})
-                    </div>
-                  )}
                 </div>
                 
                 <div className="p-4 pt-0">
                   <Button 
-                    className={`w-full font-bold py-2 px-4 rounded-lg transform transition-transform shadow-lg ${
-                      !isAllowed || module.locked
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary hover:bg-primary/90 text-white hover:scale-105 hover:shadow-xl'
-                    }`}
-                    disabled={module.locked || !isAllowed}
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    disabled={module.locked}
                     onClick={() => handleStartModule(module)}
                   >
-                    {module.locked ? 'Locked' : !isAllowed ? `Grade ${module.minGrade}+ Required` : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
+                    {module.locked ? 'Locked' : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
                   </Button>
                 </div>
               </motion.div>
