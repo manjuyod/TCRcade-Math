@@ -1,0 +1,47 @@
+Nice, the simple math‑facts (addition/subtraction/multiplication/division) code has been replaced by an algorithmic generator—do **not** touch that. Instead, focus on all other AI features:
+
+1. **Identify Remaining AI‑Driven Features**  
+   - Scan `server/routes.ts`, `server/openai.ts`, `server/recommendation-engine.ts`, `client/src/lib/questions.ts`, and any related files.  
+   - Collect every function or endpoint that calls OpenAI _outside_ of the simple math‑facts path, including but not limited to:  
+     - **AI Math Tutor**:  
+       - `analyzeStudentResponse`  
+       - `generateMathHint`  
+       - `explainMathConcept`  
+       - `generateAdaptiveQuestion` (when `isMathFactsModule === false`)  
+     - **AI Learning Analytics**:  
+       - `predictStudentPerformance`  
+       - `generateConceptMap`  
+       - `generateMathTimeline`  
+       - `generateAchievements`  
+
+2. **Confirm Broken/OpenAI Errors**  
+   - Run—or simulate—each endpoint/function and capture the error messages.  
+   - Document which calls are failing (e.g. bad imports, missing env vars, bad JSON parsing, invalid response_format, model usage).
+
+3. **Restore & Harden AI Integrations**  
+   - For each broken function:  
+     - Ensure correct `import OpenAI` and `new OpenAI({ apiKey: … })`.  
+     - Validate `process.env.OPENAI_API_KEY` at startup, add helpful error logs if missing.  
+     - Fix the `model` and `response_format` options to match the current SDK.  
+     - Add try/catch around every `.create()` call, returning a graceful fallback if OpenAI is down.  
+     - Re‑enable only the non‑math‑fact branches: hints, explanations, analytics, concept maps, timelines, achievements.  
+
+4. **Re‑Enable Endpoints & Hooks**  
+   - In `routes.ts` and `questions.ts`, re‑wire the client’s “hint” and “learn” actions back to these AI functions.  
+   - Ensure that React’s `useQuestionWithHistory` and any “learn” UI hooks call the restored AI endpoints correctly.  
+
+5. **Prioritize Time & Reliability**  
+   - Add simple caching (in‑memory or Redis) around AI calls if appropriate, to avoid duplicate requests.  
+   - Ensure all AI endpoints respond within a reasonable timeout (e.g. 1 s) or return a fallback JSON.  
+   - Write a minimal performance sanity check in `README.md` showing cold vs. warm response times.
+
+**Deliverables:**  
+- A short summary of which AI functions were broken and how you fixed each.  
+- A diff/PR restoring OpenAI calls in all non‑math‑facts modules.  
+- Unit tests or integration tests verifying:  
+  - `hint`, `analyzeStudentResponse`, `explainMathConcept` produce non‑empty strings.  
+  - Analytics endpoints return valid JSON objects.  
+  - Graceful fallback on API errors.  
+- Updated documentation in `README.md` on how to configure and debug AI features.
+
+Proceed only after you’ve confirmed each restored function works end‑to‑end. Output as a GitHub‑ready PR.```
