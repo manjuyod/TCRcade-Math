@@ -395,17 +395,16 @@ export default function HomePage() {
         setAnsweredQuestionIds(prev => [...prev, question.id]);
       }
 
-      // ONLY update session stats if this is not a Math Facts module
-      // For Math Facts modules, the stats were already updated in the try/catch block
-      const isCurrentlyMathFactsModule = currentModuleId?.startsWith('math-facts-');
-
-      if (!isCurrentlyMathFactsModule) {
-        setSessionStats(prev => ({
-          questionsAnswered: prev.questionsAnswered + 1,
-          correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
-          tokensEarned: prev.tokensEarned + data.tokensEarned
-        }));
-      }
+      // Always update session stats for any module type (including Math Facts modules)
+      // This ensures we always track correct answers consistently
+      setSessionStats(prev => ({
+        questionsAnswered: prev.questionsAnswered + 1,
+        correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
+        tokensEarned: prev.tokensEarned + data.tokensEarned
+      }));
+      
+      // Log for debugging purposes
+      console.log("Updated session stats after answer");
 
       // Update streak counter
       if (data.correct) {
@@ -515,16 +514,21 @@ export default function HomePage() {
         });
       }
 
-      // Check if session is complete (5 questions)
-      // For Math Facts modules, we need to check if we've answered 5 questions locally
-      // We want to stop exactly at 5 questions for all module types
+      // Check if session is complete (exactly 5 questions)
+      // For all module types (including Math Facts), we want exactly 5 questions per session
       if (sessionStats.questionsAnswered + 1 >= sessionSize) {
         // Update final session stats before showing session complete
         const finalStats = {
-          questionsAnswered: sessionStats.questionsAnswered + 1,
+          questionsAnswered: sessionSize, // Always exactly 5 questions
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
+
+        // Log session completion for debugging
+        console.log("Session completed with stats:", 
+          `${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ` +
+          `${finalStats.tokensEarned} tokens earned`
+        );
 
         // Set the final stats
         setSessionStats(finalStats);
@@ -533,10 +537,14 @@ export default function HomePage() {
           setSessionCompleted(true);
           setShowFeedback(false);
 
-          // Play session complete sound
-          playSound('sessionComplete');
-
-          console.log("Session completed with stats:", finalStats);
+          // Play session complete sound based on performance
+          if (finalStats.correctAnswers === sessionSize) {
+            // Play perfect score sound if all questions are correct
+            playSound('perfectScore');
+          } else {
+            // Play regular completion sound
+            playSound('sessionComplete');
+          }
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
     }
@@ -759,26 +767,34 @@ export default function HomePage() {
                     // Add question to answered questions
                     setAnsweredQuestionIds(prev => [...prev, question.id]);
 
-                    // Update session stats - this is a timeout, so it's incorrect
+                    // Update session stats - timed out answer counts as incorrect
                     setSessionStats(prev => ({
                       questionsAnswered: prev.questionsAnswered + 1,
-                      correctAnswers: prev.correctAnswers,
+                      correctAnswers: prev.correctAnswers, // No increment for incorrect answers
                       tokensEarned: prev.tokensEarned
                     }));
+                    
+                    // Log for debugging
+                    console.log("Updated session stats after timeout");
 
                     // Reset streak counter for timeouts
                     setCurrentStreak(0);
 
-                    // Check if session is complete (5 questions)
-                    // For Math Facts modules, we need to check if we've answered 5 questions locally
-                    // We want to stop exactly at 5 questions for all module types
+                    // Check if session is complete (exactly 5 questions)
+                    // For all module types, we want exactly 5 questions per session
                     if (sessionStats.questionsAnswered + 1 >= sessionSize) {
                       // Update final session stats before showing session complete
                       const finalStats = {
-                        questionsAnswered: sessionStats.questionsAnswered + 1,
-                        correctAnswers: sessionStats.correctAnswers,
+                        questionsAnswered: sessionSize, // Always exactly 5 questions
+                        correctAnswers: sessionStats.correctAnswers, // No increment for timeouts
                         tokensEarned: sessionStats.tokensEarned
                       };
+
+                      // Log session completion for debugging
+                      console.log("Session completed after timeout with stats:", 
+                        `${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ` +
+                        `${finalStats.tokensEarned} tokens earned`
+                      );
 
                       // Set the final stats
                       setSessionStats(finalStats);
@@ -787,7 +803,7 @@ export default function HomePage() {
                         setSessionCompleted(true);
                         setShowFeedback(false);
 
-                        // Play session complete sound
+                        // Play session complete sound - always regular since we timed out the last question
                         playSound('sessionComplete');
                       }, 2000); // Show feedback for 2 seconds before showing session complete
                     }
