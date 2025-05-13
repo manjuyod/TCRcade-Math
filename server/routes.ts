@@ -15,6 +15,17 @@ import {
   MathOperation 
 } from './mathFacts';
 
+import {
+  analyzeStudentResponse,
+  generateMathHint,
+  explainMathConcept,
+  generateAdaptiveQuestion,
+  predictStudentPerformance,
+  generateConceptMap,
+  generateMathTimeline,
+  generateAchievements
+} from './openai';
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -320,6 +331,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         message: "Failed to fetch user progress", 
         error: error.message 
+      });
+    }
+  });
+  
+  // AI Math Tutor endpoints
+  app.post('/api/tutor/feedback', ensureAuthenticated, async (req, res) => {
+    try {
+      const { question, studentAnswer, correctAnswer } = req.body;
+      
+      if (!question || !studentAnswer || !correctAnswer) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const feedback = await analyzeStudentResponse(question, studentAnswer, correctAnswer);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error analyzing student response:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze response",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post('/api/tutor/hint', ensureAuthenticated, async (req, res) => {
+    try {
+      const { question, grade, previousAttempts } = req.body;
+      
+      if (!question || !grade) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const hint = await generateMathHint(question, grade, previousAttempts || 0);
+      res.json({ hint });
+    } catch (error) {
+      console.error("Error generating math hint:", error);
+      res.status(500).json({ 
+        error: "Failed to generate hint",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post('/api/tutor/explain', ensureAuthenticated, async (req, res) => {
+    try {
+      const { concept, grade } = req.body;
+      
+      if (!concept || !grade) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const explanation = await explainMathConcept(concept, grade);
+      res.json({ explanation });
+    } catch (error) {
+      console.error("Error explaining math concept:", error);
+      res.status(500).json({ 
+        error: "Failed to explain concept",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // AI Analytics endpoints
+  app.post('/api/analytics/predict', ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const conceptMasteries = await storage.getUserConceptMasteries(userId);
+      const progressHistory = await storage.getUserProgress(userId);
+      
+      const predictions = await predictStudentPerformance(userId, conceptMasteries, progressHistory);
+      res.json(predictions);
+    } catch (error) {
+      console.error("Error predicting student performance:", error);
+      res.status(500).json({ 
+        error: "Failed to predict performance",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get('/api/concept-map/:grade/:concept', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade, concept } = req.params;
+      
+      const conceptMap = await generateConceptMap(grade, concept);
+      res.json(conceptMap);
+    } catch (error) {
+      console.error("Error generating concept map:", error);
+      res.status(500).json({ 
+        error: "Failed to generate concept map",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get('/api/math-timeline/:grade/:concept', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade, concept } = req.params;
+      
+      const timeline = await generateMathTimeline(concept, grade);
+      res.json(timeline);
+    } catch (error) {
+      console.error("Error generating math timeline:", error);
+      res.status(500).json({ 
+        error: "Failed to generate math timeline",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post('/api/achievements/generate', ensureAuthenticated, async (req, res) => {
+    try {
+      const { grade, concepts } = req.body;
+      
+      if (!grade || !Array.isArray(concepts)) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const achievements = await generateAchievements(grade, concepts);
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error generating achievements:", error);
+      res.status(500).json({ 
+        error: "Failed to generate achievements",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // AI-driven adaptive question endpoint
+  app.get('/api/questions/adaptive', ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { grade, concept, category, difficulty } = req.query;
+      
+      // Only use this for non-math-facts content
+      // Math facts should use the dedicated efficient generator
+      if (category?.toString().startsWith('math-facts-')) {
+        return res.redirect(`/api/questions/math-facts?grade=${grade}&operation=${category?.toString().split('-')[2]}`);
+      }
+      
+      const studentContext = {
+        userId,
+        grade: grade?.toString() || '3',
+        concept: concept?.toString() || 'general',
+        category: category?.toString(),
+        difficulty: difficulty ? parseInt(difficulty.toString()) : 3,
+        forceDynamic: true,
+        isMathFactsModule: false
+      };
+      
+      const generatedQuestion = await generateAdaptiveQuestion(studentContext);
+      res.json(generatedQuestion);
+    } catch (error) {
+      console.error("Error generating adaptive question:", error);
+      res.status(500).json({ 
+        error: "Failed to generate adaptive question",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

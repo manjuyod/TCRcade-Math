@@ -11,6 +11,19 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Interface for Adaptive Question Parameters
+export interface AdaptiveQuestionParams {
+  userId?: number;
+  grade: string;
+  concept?: string;
+  studentLevel?: number;
+  difficulty?: number;
+  category?: string;
+  previousQuestions?: any[];
+  forceDynamic?: boolean;
+  isMathFactsModule?: boolean;
+}
+
 /**
  * Checks if a question text references an image or visual
  * @param questionText The text of the question to check for image references
