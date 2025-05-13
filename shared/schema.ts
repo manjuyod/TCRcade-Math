@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -250,8 +250,15 @@ export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
   questionId: integer("question_id"), // ID of the question that was answered, if available
 });
 
+export const questionsAddition = pgTable("questions_addition", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  int1: integer("int1").notNull(),
+  int2: integer("int2").notNull(),
+  int3: integer("int3").notNull(),
+});
+
 export const questionsMultiplication = pgTable("questions_multiplication", {
-  id: serial("id").primaryKey(),
+  id: bigint("id", { mode: "number" }).primaryKey(),
   int1: integer("int1").notNull(),
   int2: integer("int2").notNull(),
   int3: integer("int3").notNull(),
