@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -46,8 +46,8 @@ export const users = pgTable("users", {
   // Password reset fields
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
-  // New field found in actual database
-  preferredDifficulty: integer("preferred_difficulty").default(1).notNull(),
+  // New field found in actual database - using default value of 3 to match DB
+  preferredDifficulty: integer("preferred_difficulty").default(3).notNull(),
 });
 
 // Avatar items that can be unlocked and purchased
@@ -253,8 +253,9 @@ export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
 });
 
 // Session table for auth - exists in DB but was missing from schema
+// Use varchar to match the existing session table structure in the database
 export const session = pgTable("session", {
-  sid: text("sid").primaryKey(),
+  sid: varchar("sid").primaryKey(),
   sess: json("sess").notNull(),
   expire: timestamp("expire").notNull(),
 });
