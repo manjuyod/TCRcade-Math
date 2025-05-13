@@ -263,9 +263,7 @@ export const session = pgTable("session", {
 });
 */
 
-// These tables from original schema.ts are kept for compatibility but marked as
-// "virtual tables" - they will not be created or modified in the database
-// but are kept for code compatibility
+// Tables for math facts operations
 export const questionsAddition = pgTable("questions_addition", {
   id: bigint("id", { mode: "number" }).primaryKey(),
   int1: integer("int1").notNull(),
