@@ -1,0 +1,35 @@
+Can you refactor the simple math facts calculations to focus on algorithmic efficiency. Your mission is to optimize our question‑generation service. Follow these steps exactly:
+
+1. **Confirm Current Workflow**  
+   - Inspect the existing code in `server/routes.ts`, `server/openai.ts`, `server/recommendation-engine.ts`, and `client/src/lib/questions.ts`.  
+   - Summarize the current end‑to‑end flow for “simple math facts” (addition, subtraction, multiplication, division), including all OpenAI calls and fallbacks.
+
+2. **Replace AI‑based Math Facts with Algorithmic Generation**  
+   - Remove all logic that uses OpenAI for simple math facts in the above files.  
+   - Introduce a deterministic, in‑memory “math facts” module that:  
+     - Precomputes or on‑the‑fly generates `(a, b, op)` where `op ∈ {+,−,×,÷}` for user’s grade constraints.  
+     - Guarantees O(1) or amortized O(1) question creation (e.g. via pre‑shuffled array or random sampling + seen‑set).  
+     - Exposes a function `getNextMathFact(grade: number, seen: Set<string>) → { question: string; answer: number; }`.
+
+3. **Prune AI Fallbacks & Harden Degradation Path**  
+   - In your fallback handler (when the algorithmic pool is exhausted or `forceDynamic` is true), implement a robust pure‑code fallback that:  
+     - Generates a simple word problem or computational prompt with parameterized templates.  
+     - Ensures no duplicates via signature hashing.  
+   - Remove any remaining “call‐OpenAI‑for‑math‑facts” branches; AI calls should only remain for higher‑level adaptive questions, not pure math facts.
+
+4. **Optimize for Time Complexity**  
+   - Ensure all new data structures (question pool, seen set, indices) support constant‑time insertion, lookup, and removal.  
+   - Eliminate any O(n) scans on each request against the full pool—use indexing or direct index pointers.  
+   - Add comments and benchmarks (e.g. simple timers) demonstrating sub‑millisecond response for math‑fact generation.
+
+**Deliverables:**  
+- A summary report of the original workflow.  
+- A diff/PR implementing the above in the four target files.  
+- A new `server/mathFacts.ts` (or similar) module exporting `getNextMathFact` and fallback logic.  
+- Unit tests covering:  
+  - All four operations across grade bands.  
+  - Seen‑set behavior (no duplicates until exhaustion).  
+  - Fallback path correctness and performance.  
+- A short performance benchmark in README showing average generation time.  
+
+Proceed only when you can confirm each step.
