@@ -45,13 +45,13 @@ export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomSt
   });
   
   // Get concepts that need work and ensure none are "General"
-  const needsWorkConcepts = analytics.conceptMasteries
+  const needsWorkConcepts = (analytics.conceptMasteries || [])
     .filter((concept: any) => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
     .slice(0, 5)
     .map((concept: any) => concept.concept);
   
   // Get strengths to build on and ensure none are "General"
-  const strengths = analytics.conceptMasteries
+  const strengths = (analytics.conceptMasteries || [])
     .filter((concept: any) => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
     .slice(0, 3)
     .map((concept: any) => concept.concept);
@@ -212,13 +212,13 @@ export default function AiAnalytics() {
     });
     
     // Get concepts that need work and ensure none are "General"
-    const needsWorkConcepts = analytics.conceptMasteries
+    const needsWorkConcepts = (analytics.conceptMasteries || [])
       .filter(concept => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
       .slice(0, 5)
       .map(concept => concept.concept);
     
     // Get strengths to build on and ensure none are "General"
-    const strengths = analytics.conceptMasteries
+    const strengths = (analytics.conceptMasteries || [])
       .filter(concept => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
       .slice(0, 3)
       .map(concept => concept.concept);
@@ -412,9 +412,9 @@ export default function AiAnalytics() {
           <div className="flex items-start">
             <Lightbulb className="h-5 w-5 text-primary mr-3 mt-0.5" />
             <div>
-              <p className="font-medium">Learning Style: {analytics.analytics.learningStyle}</p>
+              <p className="font-medium">Learning Style: {analytics.analytics?.learningStyle || "Visual"}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                {getLearningStyleDescription(analytics.analytics.learningStyle)}
+                {getLearningStyleDescription(analytics.analytics?.learningStyle || "Visual")}
               </p>
             </div>
           </div>
