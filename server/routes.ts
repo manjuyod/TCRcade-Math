@@ -523,32 +523,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
       }
       
+      // Cast session to 'any' to avoid TypeScript errors
+      const sessionData = req.session as any;
+      
       // Initialize or update session batch tracking
-      if (!req.session.currentBatch) {
+      if (!sessionData.currentBatch) {
         // Start a new batch
-        req.session.currentBatch = {
+        sessionData.currentBatch = {
           questions: [questionId],
           correctAnswers: isCorrect ? [questionId] : [],
           start: new Date(),
           count: 1
         };
-        console.log("Started new question batch:", req.session.currentBatch);
+        console.log("Started new question batch:", sessionData.currentBatch);
       } else {
         // Update existing batch
-        req.session.currentBatch.questions.push(questionId);
+        sessionData.currentBatch.questions.push(questionId);
         if (isCorrect) {
-          req.session.currentBatch.correctAnswers.push(questionId);
+          sessionData.currentBatch.correctAnswers.push(questionId);
         }
-        req.session.currentBatch.count += 1;
-        console.log("Updated batch progress:", req.session.currentBatch);
+        sessionData.currentBatch.count += 1;
+        console.log("Updated batch progress:", sessionData.currentBatch);
       }
       
       // Check if this completes a batch of 5 questions
-      const batchComplete = req.session.currentBatch.count >= 5;
+      const batchComplete = sessionData.currentBatch.count >= 5;
       
       // Check if all 5 answers in the batch were correct for the perfect score bonus
       const allCorrect = batchComplete && 
-                         req.session.currentBatch.correctAnswers.length === 5;
+                         sessionData.currentBatch.correctAnswers.length === 5;
       
       // Calculate bonus tokens (20 tokens for perfect score in a batch of 5)
       const bonusTokens = allCorrect ? 20 : 0;
@@ -666,7 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Reset the batch if it's complete - after sending the response
       if (batchComplete) {
-        req.session.currentBatch = undefined;
+        sessionData.currentBatch = undefined;
         console.log("Batch reset after completion");
       }
     } catch (error) {
