@@ -84,6 +84,15 @@ function getUserId(req: Request): number {
   return req.user.id;
 }
 
+// Helper for standardized error responses
+function errorResponse(res: Response, status: number, message: string, error: unknown): void {
+  console.error(`Error: ${message}`, error);
+  res.status(status).json({
+    message,
+    error: error instanceof Error ? error.message : String(error)
+  });
+}
+
 // Authentication middleware
 const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
   if (req.isAuthenticated()) {
@@ -216,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching next question:", error);
       res.status(500).json({ 
         message: "Failed to fetch next question", 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -232,11 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(questions);
     } catch (error) {
-      console.error("Error fetching questions by concept:", error);
-      res.status(500).json({
-        message: "Failed to fetch questions by concept",
-        error: error.message
-      });
+      errorResponse(res, 500, "Failed to fetch questions by concept", error);
     }
   });
   
@@ -252,11 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(questions);
     } catch (error) {
-      console.error("Error fetching questions by grade:", error);
-      res.status(500).json({
-        message: "Failed to fetch questions by grade",
-        error: error.message
-      });
+      errorResponse(res, 500, "Failed to fetch questions by grade", error);
     }
   });
   
