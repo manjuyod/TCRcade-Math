@@ -470,7 +470,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       
       // Extract question ID and answer from request body with validation
-      const { questionId, answer, originalAnswer, originalQuestion } = req.body;
+      const { 
+        questionId, answer, originalAnswer, originalQuestion,
+        category, grade, isCorrect: clientIsCorrect, tokensEarned: clientTokensEarned 
+      } = req.body;
+      
+      // Check if this is a Math Facts module with pre-validated correctness
+      const isMathFactsModule = category && category.startsWith('math-facts-');
       
       if (typeof questionId !== 'number' || !answer) {
         return res.status(400).json({ 
@@ -497,11 +503,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         correctAnswer = question.answer;
       }
       
-      // Check if answer is correct (case-insensitive comparison for robustness)
-      const isCorrect = String(answer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+      // For Math Facts, we can trust client validation (better UX, pre-computed)
+      if (isMathFactsModule && clientIsCorrect !== undefined) {
+        console.log(`Math Facts answer: using client-provided correctness: ${clientIsCorrect}`);
+      }
       
-      // Calculate tokens earned based on correctness and difficulty
-      const tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
+      // For Math Facts, we can use client-provided validation (for better UX) or calculate on server
+      let isCorrect;
+      let tokensEarned;
+      
+      if (isMathFactsModule && clientIsCorrect !== undefined) {
+        // Use client-provided correctness for Math Facts
+        isCorrect = clientIsCorrect;
+        tokensEarned = clientTokensEarned !== undefined ? clientTokensEarned : (isCorrect ? 3 : 0);
+        console.log(`Math Facts: Using client-validated answer (${answer}), correct: ${isCorrect}, tokens: ${tokensEarned}`);
+      } else {
+        // Standard server-side validation for all other question types
+        isCorrect = String(answer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+        tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
+      }
       
       // Update user progress and tokens
       if (userId) {
