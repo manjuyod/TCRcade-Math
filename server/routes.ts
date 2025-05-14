@@ -400,7 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       
       // Get analytics data
-      const analytics = await storage.getUserAnalytics(userId);
+      let analytics = await storage.getUserAnalytics(userId);
       
       // Get concept masteries for the user
       const conceptMasteries = await storage.getUserConceptMasteries(userId);
@@ -409,21 +409,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const progressData = await storage.getUserProgress(userId);
       
       // Transform progress data for frontend charts
+      // Handle fields that may not exist in the progress data
       const recentProgress = progressData
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 
+                       (a.date ? new Date(a.date).getTime() : 0);
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 
+                       (b.date ? new Date(b.date).getTime() : 0);
+          return dateB - dateA;
+        })
         .slice(0, 10)
         .reverse()
         .map(p => ({
-          date: new Date(p.date).toLocaleDateString(),
-          score: p.score,
-          questionsAnswered: p.questionsAnswered,
-          timeSpent: p.timeSpent
+          date: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 
+                (p.date ? new Date(p.date).toLocaleDateString() : new Date().toLocaleDateString()),
+          score: p.score || 0,
+          questionsAnswered: p.completedQuestions || p.questionsAnswered || 0,
+          timeSpent: p.timeSpent || 0
         }));
       
+      // Create a placeholder analytics object if none exists
+      // This ensures the client always has something to display
+      if (!analytics) {
+        analytics = {
+          id: 0,
+          userId,
+          analysisDate: new Date(),
+          learningPatterns: {},
+          recommendations: "Complete more questions to get personalized recommendations.",
+          strengths: [],
+          areasForImprovement: [],
+          engagementAnalysis: {},
+          suggestedActivities: [],
+          learningStyle: "Visual",
+          strengthConcepts: [],
+          weaknessConcepts: [],
+          recommendedActivities: [],
+          generatedAt: new Date()
+        };
+      }
+      
+      // Ensure we send the analytics data in the expected format
       res.json({
-        analytics,
-        conceptMasteries,
-        recentProgress
+        analytics: {
+          analytics, // This nesting is needed to match the client's expectations
+          conceptMasteries,
+          recentProgress
+        }
       });
     } catch (error) {
       console.error("Error fetching analytics:", error);
