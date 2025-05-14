@@ -739,10 +739,10 @@ export default function HomePage() {
 
       <main className="flex-1 container mx-auto p-4 space-y-8">
         <DashboardStats
-          myScore={1150}
-          cohortScore={1025}
-          questionsAnswered={574}
-          studyTime="12h 38min"
+          myScore={user?.correctAnswers || 0}
+          cohortScore={0} // Will be updated when cohort data is available
+          questionsAnswered={user?.questionsAnswered || 0}
+          studyTime={`${Math.floor(minutesPlayed / 60)}h ${minutesPlayed % 60}min`}
         />
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
