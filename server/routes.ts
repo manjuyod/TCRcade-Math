@@ -272,11 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(question);
     } catch (error) {
-      console.error("Error fetching question by id:", error);
-      res.status(500).json({
-        message: "Failed to fetch question",
-        error: error.message
-      });
+      errorResponse(res, 500, "Failed to fetch question", error);
     }
   });
   
@@ -298,11 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(categories);
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      res.status(500).json({
-        message: "Failed to fetch categories",
-        error: error.message
-      });
+      errorResponse(res, 500, "Failed to fetch categories", error);
     }
   });
   
@@ -322,11 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(concepts);
     } catch (error) {
-      console.error("Error fetching concepts:", error);
-      res.status(500).json({
-        message: "Failed to fetch concepts",
-        error: error.message
-      });
+      errorResponse(res, 500, "Failed to fetch concepts", error);
     }
   });
   
