@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error generating math facts question:", error);
       res.status(500).json({ 
         message: "Failed to generate math facts question", 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -187,12 +187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Next endpoint: questions/next
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-      
       const { grade, category, excludeIds } = req.query;
-      const userId = req.user.id;
+      const userId = getUserId(req);
       
       let parsedExcludeIds: number[] = [];
       if (excludeIds) {
@@ -502,8 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/analytics/predict', ensureAuthenticated, async (req, res) => {
     try {
-      assertUser(req);
-      const userId = req.user.id;
+      const userId = getUserId(req);
       const conceptMasteries = await storage.getUserConceptMasteries(userId);
       const progressHistory = await storage.getUserProgress(userId);
       
@@ -570,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI-driven adaptive question endpoint
   app.get('/api/questions/adaptive', ensureAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
       const { grade, concept, category, difficulty } = req.query;
       
       // Only use this for non-math-facts content
