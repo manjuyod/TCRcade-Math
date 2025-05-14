@@ -325,7 +325,7 @@ export default function HomePage() {
           // Check if the answer is correct for Math Facts
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
-
+          
           try {
             // Make API call to server to update tokens and stats
             const response = await fetch('/api/answer', {
@@ -344,7 +344,7 @@ export default function HomePage() {
                 tokensEarned: tokensEarned
               }),
             });
-
+            
             if (response.ok) {
               const apiResult = await response.json();
               return apiResult;
@@ -354,7 +354,7 @@ export default function HomePage() {
           } catch (error) {
             console.warn("Error making Math Facts API call:", error);
           }
-
+          
           // Fallback to simulated response if API call fails
           return {
             correct: isCorrect,
@@ -416,7 +416,7 @@ export default function HomePage() {
 
       // Invalidate user data to refresh token count and question stats in the header and profile
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-
+      
       // Also invalidate progress data to ensure analytics are updated
       queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
       queryClient.invalidateQueries({ queryKey: ['/api/analytics'] });
@@ -441,7 +441,7 @@ export default function HomePage() {
         correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
         tokensEarned: prev.tokensEarned + data.tokensEarned
       }));
-
+      
       // Log for debugging purposes
       console.log("Updated session stats after answer");
 
@@ -573,10 +573,10 @@ export default function HomePage() {
 
         // Set the final stats
         setSessionStats(finalStats);
-
+        
         // Immediately mark as completed to prevent loading another question
         setSessionCompleted(true);
-
+        
         // Show feedback for a moment before transitioning to the completion screen
         setTimeout(() => {
           setShowFeedback(false);
@@ -594,7 +594,7 @@ export default function HomePage() {
       // Legacy fallback check in case server doesn't send batchComplete flag
       else if (sessionStats.questionsAnswered + 1 >= sessionSize) {
         console.log("Using legacy batch completion check (5 questions)");
-
+        
         // Update final session stats before showing session complete
         const finalStats = {
           questionsAnswered: sessionSize, // Always exactly 5 questions
@@ -604,7 +604,7 @@ export default function HomePage() {
 
         // Set the final stats
         setSessionStats(finalStats);
-
+        
         // Immediately mark as completed to prevent loading another question
         setSessionCompleted(true);
 
@@ -641,7 +641,7 @@ export default function HomePage() {
       console.log("Session completed - skipping next question fetch");
       return;
     }
-
+    
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
 
@@ -828,7 +828,7 @@ export default function HomePage() {
               batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
             />
           ) : question ? (
-            (currentModuleType === 'word_race' ) ? (
+            currentModuleType === 'word_race' ? (
               <WordRaceGame
                 question={question}
                 isLoading={false}
@@ -853,11 +853,11 @@ export default function HomePage() {
 
                     // Update session stats - timed out answer counts as incorrect
                     setSessionStats(prev => ({
-                      questionsAnswered: prev.questionsAnswerd + 1,
+                      questionsAnswered: prev.questionsAnswered + 1,
                       correctAnswers: prev.correctAnswers, // No increment for incorrect answers
                       tokensEarned: prev.tokensEarned
                     }));
-
+                    
                     // Log for debugging
                     console.log("Updated session stats after timeout");
 
@@ -985,39 +985,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-// GameType enum and BossRunGame component needs to be defined.
-// This can be added to a new file and imported, or directly added here.
-
-// Example of adding GameType to a separate modules-page.tsx, but we'll add it here for simplicity:
-enum GameType {
-    STANDARD = 'standard',
-    WORD_RACE = 'word_race',
-    BOSS_RUN = 'boss_run',
-  }
-
-// Example of a simple BossRunGame component - needs actual implementation
-function BossRunGame({ question, isLoading, onAnswerSubmit, onGameOver }: { question: any, isLoading: boolean, onAnswerSubmit: (answer: string) => void, onGameOver: (won: boolean) => void }) {
-    return (
-      <div>
-        <h3>Boss Run Game</h3>
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : question ? (
-          <>
-            <p>{question.text}</p>
-            <input type="text" id="answer" name="answer" />
-            <button onClick={() => {
-                const answer = (document.getElementById("answer") as HTMLInputElement).value;
-                onAnswerSubmit(answer);
-                // Placeholder - replace with actual game logic
-                const won = Math.random() > 0.5;
-                onGameOver(won);
-            }}>Submit Answer</button>
-          </>
-        ) : (
-          <div>No question available.</div>
-        )}
-      </div>
-    );
-  }
