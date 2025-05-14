@@ -5,28 +5,40 @@ import Navigation from '@/components/navigation';
 import { User } from '@shared/schema';
 import { getGradeLabel } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type LeaderboardEntry = User & { score: number };
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
   
-  // Fetch leaderboard data
-  const { data: leaderboard, isLoading, error } = useQuery<LeaderboardEntry[]>({
+  // Fetch leaderboard data directly
+  const { data, isLoading, error } = useQuery({
     queryKey: ['/api/leaderboard'],
     refetchOnWindowFocus: false,
-    onSuccess: (data) => {
-      console.log('Leaderboard data received:', data);
-    },
-    onError: (err) => {
-      console.error('Leaderboard fetch error:', err);
-    }
   });
+  
+  useEffect(() => {
+    // Log the raw response data
+    console.log('Raw leaderboard data received:', data);
+    
+    // If we have data, set it to our state
+    if (data && Array.isArray(data)) {
+      console.log('Setting leaderboard entries, count:', data.length);
+      setLeaderboardEntries(data as LeaderboardEntry[]);
+    }
+  }, [data]);
+  
+  useEffect(() => {
+    // Debug log of entries
+    console.log('Current leaderboard entries:', leaderboardEntries);
+  }, [leaderboardEntries]);
   
   if (!user) return null;
   
   // Find user's position in leaderboard
-  const userPosition = leaderboard?.findIndex(entry => entry.id === user.id) || -1;
+  const userPosition = leaderboardEntries.findIndex(entry => entry.id === user.id);
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -42,18 +54,22 @@ export default function LeaderboardPage() {
           <div className="bg-white rounded-3xl shadow-md p-8 flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : leaderboard && leaderboard.length > 0 ? (
+        ) : error ? (
+          <div className="bg-white rounded-3xl shadow-md p-8 text-center">
+            <p className="text-red-500">Error loading leaderboard data. Please try again later.</p>
+          </div>
+        ) : leaderboardEntries && leaderboardEntries.length > 0 ? (
           <div className="bg-white rounded-3xl shadow-md overflow-hidden mb-6">
             {/* Top 3 Players */}
             <div className="flex justify-center items-end p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
-              {leaderboard.length >= 2 && (
+              {leaderboardEntries.length >= 2 && (
                 /* 2nd Place */
                 <div className="flex flex-col items-center mx-4">
                   <div className="w-16 h-16 bg-orange-400 rounded-full border-4 border-white flex items-center justify-center mb-2">
-                    <span className="text-white text-xl font-bold">{leaderboard[1].displayName?.substring(0, 2) || leaderboard[1].username?.substring(0, 2) || "?"}</span>
+                    <span className="text-white text-xl font-bold">{leaderboardEntries[1].displayName?.substring(0, 2) || leaderboardEntries[1].username?.substring(0, 2) || "?"}</span>
                   </div>
                   <div className="bg-orange-500 py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold text-white">{leaderboard[1].score}</span>
+                    <span className="text-xs font-bold text-white">{leaderboardEntries[1].score}</span>
                   </div>
                   <div className="h-20 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">2nd</span>
@@ -61,17 +77,17 @@ export default function LeaderboardPage() {
                 </div>
               )}
               
-              {leaderboard.length >= 1 && (
+              {leaderboardEntries.length >= 1 && (
                 /* 1st Place */
                 <div className="flex flex-col items-center mx-4">
                   <div className="w-20 h-20 bg-orange-500 rounded-full border-4 border-white flex items-center justify-center mb-2 relative">
-                    <span className="text-white text-2xl font-bold">{leaderboard[0].displayName?.substring(0, 2) || leaderboard[0].username?.substring(0, 2) || "?"}</span>
+                    <span className="text-white text-2xl font-bold">{leaderboardEntries[0].displayName?.substring(0, 2) || leaderboardEntries[0].username?.substring(0, 2) || "?"}</span>
                     <div className="absolute -top-6">
                       <i className="ri-award-fill text-4xl text-yellow-400"></i>
                     </div>
                   </div>
                   <div className="bg-orange-500 py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold text-white">{leaderboard[0].score}</span>
+                    <span className="text-xs font-bold text-white">{leaderboardEntries[0].score}</span>
                   </div>
                   <div className="h-28 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">1st</span>
@@ -79,14 +95,14 @@ export default function LeaderboardPage() {
                 </div>
               )}
               
-              {leaderboard.length >= 3 && (
+              {leaderboardEntries.length >= 3 && (
                 /* 3rd Place */
                 <div className="flex flex-col items-center mx-4">
                   <div className="w-16 h-16 bg-orange-300 rounded-full border-4 border-white flex items-center justify-center mb-2">
-                    <span className="text-white text-xl font-bold">{leaderboard[2].displayName?.substring(0, 2) || leaderboard[2].username?.substring(0, 2) || "?"}</span>
+                    <span className="text-white text-xl font-bold">{leaderboardEntries[2].displayName?.substring(0, 2) || leaderboardEntries[2].username?.substring(0, 2) || "?"}</span>
                   </div>
                   <div className="bg-orange-500 py-1 px-3 rounded-full">
-                    <span className="text-xs font-bold text-white">{leaderboard[2].score}</span>
+                    <span className="text-xs font-bold text-white">{leaderboardEntries[2].score}</span>
                   </div>
                   <div className="h-16 w-full bg-white bg-opacity-20 mt-2 rounded-t-lg flex items-end justify-center">
                     <span className="text-white font-bold mb-2">3rd</span>
@@ -97,7 +113,7 @@ export default function LeaderboardPage() {
             
             {/* Rest of Leaderboard */}
             <div className="p-4">
-              {leaderboard.slice(3).map((entry, index) => (
+              {leaderboardEntries.slice(3).map((entry, index) => (
                 <div key={entry.id} className="leaderboard-item flex items-center p-3 border-b border-gray-100">
                   <span className="text-lg font-bold text-white w-10 h-10 flex items-center justify-center rounded-full bg-orange-500">{index + 4}</span>
                   <div className="w-10 h-10 bg-orange-400 rounded-full flex items-center justify-center mx-3">
