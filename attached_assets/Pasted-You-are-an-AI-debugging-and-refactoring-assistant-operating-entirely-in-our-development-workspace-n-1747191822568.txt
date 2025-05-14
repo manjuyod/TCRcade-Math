@@ -1,0 +1,41 @@
+You are an AI debugging and refactoring assistant operating entirely in our development workspace (no branches, no remote pushes, no deploys). A new requirement has emerged for all “play sessions” (both math‑facts and non‑math‑facts modes). You must update the code so that:
+
+1. **Batch Size Enforcement**  
+   - Every session serves exactly 5 questions.  
+   - After the 5th question is answered, **do not** generate or fetch any further questions for that session.
+
+2. **End‑of‑Batch Bonus**  
+   - At the moment the user answers the 5th question, check whether **all five** answers in this batch were correct.  
+   - **If and only if** they are all correct, award an extra **20 tokens** on top of the per‑question tokens.  
+   - Persist this bonus into `users.tokens` atomically along with the per‑question token updates.
+
+3. **Implementation Steps**  
+   a. **Identify** the session controller or service that manages question batches (likely in `playSession.ts` or similar).  
+   b. **Enforce** a hard stop after count of answered questions reaches 5: remove or disable any code path that fetches question 6.  
+   c. **Accumulate** correctness flags for each answered question in the batch (e.g. track `correctCount`).  
+   d. **On answer #5**:  
+      - If `correctCount === 5`, update the database with `UPDATE users SET tokens = tokens + 20 WHERE id = :userId`.  
+      - Include this in the same transaction that writes the per‑question token and question‑answered increments.  
+   e. **Respond** in the API payload with something like:  
+      ```json
+      {
+        "success": true,
+        "batchComplete": true,
+        "bonusAwarded": <true|false>,
+        "newTokenTotal": <number>
+      }
+      ```  
+   f. **Front‑end**:  
+      - Stop showing a “Next Question” button after question #5 and show a “Session Complete” screen with bonus info.  
+      - Display “+20 bonus tokens” only if `bonusAwarded` is true.
+
+4. **Tests & Verification**  
+   - Add or update unit tests for the session service to simulate:  
+     1. Five answers with at least one wrong → no bonus.  
+     2. Five answers all correct → bonus.  
+     3. Ensure no sixth question is returned.  
+   - Run `npm run lint && npm test` (or your test command) and fix any failures.
+
+5. **Summary & Diff**  
+   - Produce a unified diff of all back‑end and front‑end changes.  
+   - List in one line each change (e.g. “Added bonus logic on 5th answer,” “Disabled question fetch past batch size in SessionController,” “Updated SessionComplete UI to show bonus”).    

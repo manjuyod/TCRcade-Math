@@ -523,6 +523,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
       }
       
+      // Initialize or update session batch tracking
+      if (!req.session.currentBatch) {
+        // Start a new batch
+        req.session.currentBatch = {
+          questions: [questionId],
+          correctAnswers: isCorrect ? [questionId] : [],
+          start: new Date(),
+          count: 1
+        };
+        console.log("Started new question batch:", req.session.currentBatch);
+      } else {
+        // Update existing batch
+        req.session.currentBatch.questions.push(questionId);
+        if (isCorrect) {
+          req.session.currentBatch.correctAnswers.push(questionId);
+        }
+        req.session.currentBatch.count += 1;
+        console.log("Updated batch progress:", req.session.currentBatch);
+      }
+      
+      // Check if this completes a batch of 5 questions
+      const batchComplete = req.session.currentBatch.count >= 5;
+      
+      // Check if all 5 answers in the batch were correct for the perfect score bonus
+      const allCorrect = batchComplete && 
+                         req.session.currentBatch.correctAnswers.length === 5;
+      
+      // Calculate bonus tokens (20 tokens for perfect score in a batch of 5)
+      const bonusTokens = allCorrect ? 20 : 0;
+      
+      // Reset batch if complete
+      if (batchComplete) {
+        console.log(`Batch complete! All correct: ${allCorrect}, bonus tokens: ${bonusTokens}`);
+        // We'll reset after the response is sent
+      }
+      
       // Update user progress and tokens
       if (userId) {
         try {
@@ -541,10 +577,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               correctAnswers: newCorrectAnswers
             };
             
+            // Calculate total tokens to add (question tokens + any batch bonus)
+            let totalTokensToAdd = tokensEarned;
+            
+            // Add perfect score bonus if applicable
+            if (bonusTokens > 0) {
+              totalTokensToAdd += bonusTokens;
+              console.log(`Adding perfect score bonus: +${bonusTokens} tokens`);
+            }
+            
             // Add tokens only if earned
-            if (tokensEarned > 0) {
+            if (totalTokensToAdd > 0) {
               const currentTokens = user.tokens || 0;
-              const newTokens = currentTokens + tokensEarned;
+              const newTokens = currentTokens + totalTokensToAdd;
               userUpdate.tokens = newTokens;
               
               // Update the user object in the request to reflect the token change
@@ -604,6 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Send response with standardized format with complete stats
+      // Including new batch completion and bonus info
       res.json({
         success: true,
         correct: isCorrect,
@@ -611,8 +657,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalTokens: userId && req.user ? req.user.tokens : 0,
         questionsAnswered: userId && req.user ? req.user.questionsAnswered : 0,
         correctAnswers: userId && req.user ? req.user.correctAnswers : 0,
-        correctAnswer: correctAnswer
+        correctAnswer: correctAnswer,
+        batchComplete: batchComplete,
+        bonusAwarded: bonusTokens > 0,
+        bonusTokens: bonusTokens,
+        newTokenTotal: userId && req.user ? req.user.tokens : 0
       });
+      
+      // Reset the batch if it's complete - after sending the response
+      if (batchComplete) {
+        req.session.currentBatch = undefined;
+        console.log("Batch reset after completion");
+      }
     } catch (error) {
       errorResponse(res, 500, "Failed to process answer submission", error);
     }

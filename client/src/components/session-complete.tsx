@@ -11,6 +11,8 @@ type SessionCompleteProps = {
   correctAnswers: number;
   totalQuestions: number;
   tokensEarned: number;
+  bonusTokens?: number; // Bonus tokens from server (20 tokens for perfect score)
+  bonusAwarded?: boolean; // Flag from server indicating if bonus was awarded
   onStartNewSession: () => void;
 };
 
@@ -18,6 +20,8 @@ export default function SessionComplete({
   correctAnswers,
   totalQuestions,
   tokensEarned,
+  bonusTokens = 0,
+  bonusAwarded = false,
   onStartNewSession
 }: SessionCompleteProps) {
   const { user } = useAuth();
@@ -26,48 +30,8 @@ export default function SessionComplete({
   // Check for perfect score (all answers correct)
   const isPerfectScore = correctAnswers === totalQuestions && totalQuestions > 0;
   
-  // Award bonus tokens for perfect score (only once when component mounts)
-  // Using a ref to track if we've already awarded the bonus
-  const bonusAwardedRef = useRef(false);
-  
-  useEffect(() => {
-    // Skip if we've already awarded the bonus or if conditions aren't met
-    if (bonusAwardedRef.current || !isPerfectScore || !user) {
-      return;
-    }
-    
-    // Award 20 bonus tokens for perfect score
-    const perfectScoreBonus = 20;
-    
-    // Mark that we've awarded the bonus to prevent infinite loop
-    bonusAwardedRef.current = true;
-    
-    // Update user tokens in the cache
-    queryClient.setQueryData(['/api/user'], (oldData: any) => {
-      // If there's no previous data, do nothing
-      if (!oldData) return oldData;
-      
-      // Return the updated data
-      return {
-        ...oldData,
-        tokens: oldData.tokens + perfectScoreBonus
-      };
-    });
-    
-    // After a perfect score, refresh the study plan to update recommendations
-    try {
-      // Dynamically import to avoid circular dependencies
-      import('@/lib/study-plan').then(module => {
-        module.refreshStudyPlan().then(success => {
-          if (success) {
-            console.log('Study plan refreshed successfully after perfect score');
-          }
-        });
-      });
-    } catch (error) {
-      console.error('Error refreshing study plan after perfect score:', error);
-    }
-  }, [isPerfectScore, user]);
+  // Calculate total tokens earned including any bonus
+  const totalTokensEarned = tokensEarned + bonusTokens;
   
   // Add state to manage cleanup
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
@@ -189,8 +153,10 @@ export default function SessionComplete({
           <div className="flex justify-between items-center bg-green-100 p-6 rounded-xl border-2 border-green-300">
             <div className="text-lg font-bold text-gray-800">Tokens Earned:</div>
             <div className="text-3xl font-extrabold text-green-600">
-              +{isPerfectScore ? tokensEarned + 20 : tokensEarned}
-              {isPerfectScore && <span className="text-sm text-green-600 ml-2">(+20 bonus)</span>}
+              +{totalTokensEarned}
+              {bonusAwarded && (
+                <span className="text-sm text-green-600 ml-2">(+{bonusTokens} bonus)</span>
+              )}
             </div>
           </div>
         </div>
