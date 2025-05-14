@@ -9,13 +9,15 @@ type FeedbackMessageProps = {
   tokensEarned: number;
   correctAnswer: string;
   onNextQuestion: () => void;
+  batchComplete?: boolean; // New prop to indicate session is complete
 };
 
 export default function FeedbackMessage({ 
   correct, 
   tokensEarned, 
   correctAnswer, 
-  onNextQuestion 
+  onNextQuestion,
+  batchComplete = false // Default to false for backward compatibility 
 }: FeedbackMessageProps) {
   // Function to handle clicking Next Question
   const handleNextClick = () => {
@@ -28,14 +30,18 @@ export default function FeedbackMessage({
   };
 
   // Auto-advance to next question after 1 second
+  // Skip auto-advance if batch is complete to prevent showing another question
   useEffect(() => {
-    const timer = setTimeout(() => {
-      handleNextClick();
-    }, 1000);
-    
-    // Clean up timer if component unmounts
-    return () => clearTimeout(timer);
-  }, []);
+    // Only auto-advance if not at the end of a batch
+    if (!batchComplete) {
+      const timer = setTimeout(() => {
+        handleNextClick();
+      }, 1000);
+      
+      // Clean up timer if component unmounts
+      return () => clearTimeout(timer);
+    }
+  }, [batchComplete]);
   
   return (
     <motion.div

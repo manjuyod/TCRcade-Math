@@ -825,6 +825,7 @@ export default function HomePage() {
               tokensEarned={feedbackData.tokensEarned}
               correctAnswer={feedbackData.correctAnswer}
               onNextQuestion={handleNextQuestion}
+              batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
             />
           ) : question ? (
             currentModuleType === 'word_race' ? (
