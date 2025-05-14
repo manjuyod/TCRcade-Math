@@ -864,14 +864,13 @@ export default function HomePage() {
                     // Reset streak counter for timeouts
                     setCurrentStreak(0);
 
-                    // Check if session is complete (exactly 5 questions)
-                    // For all module types, we want exactly 5 questions per session
+                    // Continue session until 5 questions are answered, regardless of correctness
                     if (sessionStats.questionsAnswered + 1 >= sessionSize) {
                       // Update final session stats before showing session complete
                       const finalStats = {
-                        questionsAnswered: sessionSize, // Always exactly 5 questions
-                        correctAnswers: sessionStats.correctAnswers, // No increment for timeouts
-                        tokensEarned: sessionStats.tokensEarned
+                        questionsAnswered: sessionSize,
+                        correctAnswers: sessionStats.correctAnswers + (isCorrect ? 1 : 0),
+                        tokensEarned: sessionStats.tokensEarned + (isCorrect ? tokensEarned : 0)
                       };
 
                       // Log session completion for debugging
