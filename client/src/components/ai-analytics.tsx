@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { playSound } from '@/lib/sounds';
 import { AiAnalytic, ConceptMastery } from '@shared/schema';
+import { generateCustomStudyPlanFromAnalytics } from '@/lib/analytics-helpers';
 import { 
   Loader2, 
   Brain, 
@@ -28,104 +29,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 
-/**
- * Generates a custom study plan based on user analytics
- * This can be called when the user's data changes
- * Exported to allow other components to trigger plan generation
- */
-export function generateCustomStudyPlanFromAnalytics(analytics: any, setCustomStudyPlan: Function, setIsGeneratingPlan: Function, setActiveTab: Function, toast: any) {
-  // Update loading state
-  setIsGeneratingPlan(true);
-  
-  // Notify user that generation is in progress
-  toast({
-    title: "Generating Study Plan",
-    description: "Creating your personalized study plan based on your progress...",
-    dismissTimeout: 3000,
-  });
-  
-  // Get concepts that need work and ensure none are "General"
-  const needsWorkConcepts = (analytics.conceptMasteries || [])
-    .filter((concept: any) => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
-    .slice(0, 5)
-    .map((concept: any) => concept.concept);
-  
-  // Get strengths to build on and ensure none are "General"
-  const strengths = (analytics.conceptMasteries || [])
-    .filter((concept: any) => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
-    .slice(0, 3)
-    .map((concept: any) => concept.concept);
-  
-  // Get the user's grade from analytics (property no longer uses user object)
-  // Default to grade K if not specified
-  const grade = 'K';
-  
-  // Grade-specific topics mapping
-  const gradeTopics: Record<string, string[]> = {
-    'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
-    '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
-    '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
-    '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
-    '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
-    '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
-    '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
-  };
-  
-  // Get relevant topics for the student's grade
-  const relevantTopics = gradeTopics[grade] || 
-    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
-  
-  // Function to get a specific topic (never "General")
-  const getSpecificTopic = (index: number, fallbackIndex: number = 0) => {
-    // If we have a valid non-general concept at this index, use it
-    if (needsWorkConcepts[index] && needsWorkConcepts[index].toLowerCase() !== 'general') {
-      return needsWorkConcepts[index];
-    }
-    // Otherwise use a topic from the grade-specific list
-    return relevantTopics[fallbackIndex % relevantTopics.length];
-  };
-  
-  // Function to get a specific strength (never "General")
-  const getSpecificStrength = (index: number, fallbackIndex: number = 0) => {
-    // If we have a valid non-general strength at this index, use it
-    if (strengths[index] && strengths[index].toLowerCase() !== 'general') {
-      return strengths[index];
-    }
-    // Otherwise use "basic operations" or another default
-    return relevantTopics[fallbackIndex % relevantTopics.length];
-  };
-  
-  // Create bullet points with grade-specific topics, avoiding "General"
-  const studyPlanBullets = [
-    `• Focus daily: ${getSpecificTopic(0, 0)} - 15 minutes of practice with ${relevantTopics[1]} problems`,
-    `• Twice weekly: ${getSpecificTopic(1, 2)} - Use step-by-step problem solving approach`,
-    `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
-    `• Tuesday/Thursday: Work on ${getSpecificTopic(2, 3)} problems at current grade level`,
-    `• Friday review: All topics covered during the week, especially ${getSpecificTopic(0, 0)}`,
-    `• Connect strong concept ${getSpecificStrength(0, 0)} with ${getSpecificTopic(0, 0)}`,
-    `• Create 10 flash cards focusing on ${getSpecificTopic(1, 2)} facts`,
-    `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
-    `• Weekly assessment: Take a 10-question quiz on ${getSpecificTopic(0, 0)}`,
-    `• Build on your strength in ${getSpecificStrength(0, 0)} when learning ${getSpecificTopic(1, 1)}`
-  ];
-  
-  // Update state with the new study plan after a short delay to simulate processing
-  setTimeout(() => {
-    setCustomStudyPlan(studyPlanBullets);
-    setIsGeneratingPlan(false);
-    playSound('levelUp');
-    
-    // Small toast to confirm completion
-    toast({
-      title: "Study Plan Ready",
-      description: "Your personalized study plan has been generated",
-      dismissTimeout: 3000, // Auto-dismiss after 3 seconds
-    });
-    
-    // Make sure the recommendations tab is active to show the plan
-    setActiveTab('recommendations');
-  }, 1000);
-}
+// Study plan generator has been moved to a separate file to fix Fast Refresh issues
 
 export default function AiAnalytics() {
   const { user } = useAuth();
@@ -160,6 +64,11 @@ export default function AiAnalytics() {
     }
   });
   
+  // Extract the nested analytics data
+  const analytics = analyticsData?.analytics?.analytics;
+  const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
+  const recentProgress = analyticsData?.analytics?.recentProgress || [];
+  
   // Generate new analytics
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerateAnalytics = async () => {
@@ -185,11 +94,6 @@ export default function AiAnalytics() {
       setIsGenerating(false);
     }
   };
-  
-  // Extract the nested analytics data
-  const analytics = analyticsData?.analytics?.analytics;
-  const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
-  const recentProgress = analyticsData?.analytics?.recentProgress || [];
   
   // Automatically generate a study plan when analytics data changes
   useEffect(() => {
@@ -218,88 +122,18 @@ export default function AiAnalytics() {
       dismissTimeout: 3000,
     });
     
-    // Get concepts that need work and ensure none are "General"
-    const needsWorkConcepts = (analytics.conceptMasteries || [])
-      .filter(concept => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
-      .slice(0, 5)
-      .map(concept => concept.concept);
-    
-    // Get strengths to build on and ensure none are "General"
-    const strengths = (analytics.conceptMasteries || [])
-      .filter(concept => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
-      .slice(0, 3)
-      .map(concept => concept.concept);
-    
-    // Default to grade K if not specified
-    const grade = 'K';
-    
-    // Grade-specific topics mapping
-    const gradeTopics: Record<string, string[]> = {
-      'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
-      '1': ['addition facts', 'subtraction facts', 'place value', 'measurement', 'time concepts'],
-      '2': ['adding double digits', 'subtracting double digits', 'money', 'telling time', 'basic fractions'],
-      '3': ['multiplication facts', 'division facts', 'fractions', 'measurement', 'graphs'],
-      '4': ['multi-digit multiplication', 'division with remainders', 'decimals', 'fraction operations', 'angles'],
-      '5': ['decimal operations', 'fraction operations', 'algebraic thinking', 'volume', 'coordinate plane'],
-      '6': ['ratios', 'proportions', 'negative numbers', 'expressions', 'equations']
-    };
-    
-    // Get relevant topics for the student's grade
-    const relevantTopics = gradeTopics[grade] || 
-      ['addition', 'subtraction', 'multiplication', 'division', 'fractions'];
-    
-    // Function to get a specific topic (never "General")
-    const getSpecificTopic = (index: number, fallbackIndex: number = 0) => {
-      // If we have a valid non-general concept at this index, use it
-      if (needsWorkConcepts[index] && needsWorkConcepts[index].toLowerCase() !== 'general') {
-        return needsWorkConcepts[index];
-      }
-      // Otherwise use a topic from the grade-specific list
-      return relevantTopics[fallbackIndex % relevantTopics.length];
-    };
-    
-    // Function to get a specific strength (never "General")
-    const getSpecificStrength = (index: number, fallbackIndex: number = 0) => {
-      // If we have a valid non-general strength at this index, use it
-      if (strengths[index] && strengths[index].toLowerCase() !== 'general') {
-        return strengths[index];
-      }
-      // Otherwise use a topic from the grade-specific list
-      return relevantTopics[fallbackIndex % relevantTopics.length];
-    };
-    
-    // Create bullet points with grade-specific topics, avoiding "General"
-    const studyPlanBullets = [
-      `• Focus daily: ${getSpecificTopic(0, 0)} - 15 minutes of practice with ${relevantTopics[1]} problems`,
-      `• Twice weekly: ${getSpecificTopic(1, 2)} - Use step-by-step problem solving approach`,
-      `• Monday/Wednesday: Practice ${relevantTopics[0]} and ${relevantTopics[1]} computational problems`,
-      `• Tuesday/Thursday: Work on ${getSpecificTopic(2, 3)} problems at current grade level`,
-      `• Friday review: All topics covered during the week, especially ${getSpecificTopic(0, 0)}`,
-      `• Connect strong concept ${getSpecificStrength(0, 0)} with ${getSpecificTopic(0, 0)}`,
-      `• Create 10 flash cards focusing on ${getSpecificTopic(1, 2)} facts`,
-      `• Daily practice: ${relevantTopics[4] || "number facts"} for 5-10 minutes`,
-      `• Weekly assessment: Take a 10-question quiz on ${getSpecificTopic(0, 0)}`,
-      `• Build on your strength in ${getSpecificStrength(0, 0)} when learning ${getSpecificTopic(1, 1)}`
-    ];
-    
-    // Update state with the new study plan
-    setTimeout(() => {
-      setCustomStudyPlan(studyPlanBullets);
-      setIsGeneratingPlan(false);
-      playSound('levelUp');
-      
-      // Small toast to confirm completion
-      toast({
-        title: "Study Plan Ready",
-        description: "Your personalized study plan has been updated",
-        dismissTimeout: 3000,
-      });
-      
-      // Make sure the recommendations tab is active to show the plan
-      setActiveTab('recommendations');
-    }, 1000);
-    
-    return studyPlanBullets;
+    // Call the helper function with the nested structure
+    generateCustomStudyPlanFromAnalytics(
+      {
+        analytics,
+        conceptMasteries,
+        recentProgress
+      },
+      setCustomStudyPlan,
+      setIsGeneratingPlan,
+      setActiveTab,
+      toast
+    );
   };
   
   // Loading state
@@ -348,23 +182,18 @@ export default function AiAnalytics() {
     );
   }
   
-  // For debugging
-  if (analytics) {
-    console.log('Analytics data received from API:', analytics);
-  }
-  
   return (
-    <div className="ai-analytics">
-      <div className="header mb-6">
+    <Card className="analytics-card">
+      <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold flex items-center mb-1">
-              <Brain className="h-6 w-6 mr-2 text-primary" />
-              Learning Insights
-            </h2>
-            <p className="text-muted-foreground">
-              AI-powered analysis of your learning patterns and progress
-            </p>
+            <CardTitle className="flex items-center">
+              <Brain className="h-5 w-5 mr-2 text-primary" />
+              Learning Analytics
+            </CardTitle>
+            <CardDescription>
+              AI-powered insights to enhance your learning journey
+            </CardDescription>
           </div>
           <Button 
             variant="outline" 
@@ -377,556 +206,295 @@ export default function AiAnalytics() {
             ) : (
               <RotateCw className="h-4 w-4 mr-2" />
             )}
-            Update Insights
+            Refresh Analytics
           </Button>
         </div>
-        
-        <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-          <div className="flex items-start">
-            <Lightbulb className="h-5 w-5 text-primary mr-3 mt-0.5" />
-            <div>
-              <p className="font-medium">Learning Style: {analytics.analytics?.learningStyle || "Visual"}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {getLearningStyleDescription(analytics.analytics?.learningStyle || "Visual")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      </CardHeader>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 mb-6">
-          <TabsTrigger value="overview">
-            <LineChart className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="strengths">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Strengths
-          </TabsTrigger>
-          <TabsTrigger value="improvements">
-            <TrendingDown className="h-4 w-4 mr-2" />
-            Improvement Areas
-          </TabsTrigger>
-          <TabsTrigger value="recommendations">
-            <Zap className="h-4 w-4 mr-2" />
-            Recommendations
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <StatCard 
-              title="Overall Mastery"
-              value={`${calculateOverallMastery(analytics.conceptMasteries)}%`}
-              icon={<Brain className="h-4 w-4" />}
-              trend={5}
-            />
-            <StatCard 
-              title="Time Invested"
-              value={formatTimeInvested(analytics.recentProgress)}
-              icon={<Clock className="h-4 w-4" />}
-              trend={12}
-            />
-            <StatCard 
-              title="Concepts Mastered"
-              value={countMasteredConcepts(analytics.conceptMasteries)}
-              icon={<BookOpen className="h-4 w-4" />}
-              trend={3}
-            />
-          </div>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">
+              <LineChart className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="mastery">
+              <Star className="h-4 w-4 mr-2" />
+              Mastery
+            </TabsTrigger>
+            <TabsTrigger value="recommendations">
+              <Lightbulb className="h-4 w-4 mr-2" />
+              Study Plan
+            </TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Learning Activity</CardTitle>
-              <CardDescription>Your progress over the last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center">
-                {/* In a real implementation, this would be a chart component */}
-                <div className="text-center text-muted-foreground">
-                  <LineChart className="h-12 w-12 mx-auto mb-3 text-primary/50" />
-                  <p>Activity chart would be rendered here</p>
-                  <p className="text-sm">Showing questions answered, time spent, and mastery</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Star className="h-4 w-4 mr-2 text-yellow-500" />
-                  Top Categories
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Analytics Card 1 - Learning Style */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Brain className="h-4 w-4 mr-2 text-primary" />
+                    Learning Style
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold mb-2">
+                    {analytics.learningStyle || "Visual"}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Your preferred way of processing information
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Analytics Card 2 - Progress */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <TrendingUp className="h-4 w-4 mr-2 text-primary" />
+                    Progress Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="text-2xl font-bold">
+                        {user?.questionsAnswered || 0}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        Questions Answered
+                      </p>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold">
+                        {user?.correctAnswers || 0}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        Correct Answers
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Analytics Card 3 - Strengths */}
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <Star className="h-4 w-4 mr-2 text-primary" />
+                  Your Strengths
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-3">
-                  {['Addition', 'Multiplication', 'Geometry'].map((category, i) => (
-                    <li key={category} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Badge variant="outline" className="mr-2">{i + 1}</Badge>
-                        <span>{category}</span>
-                      </div>
-                      <div>
-                        <Progress value={90 - i * 12} className="w-24 h-2" />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(analytics.strengthConcepts || []).length > 0 ? (
+                    (analytics.strengthConcepts || []).map((strength, index) => (
+                      <Badge key={index} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
+                        {strength}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      Complete more questions to identify your strengths.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart className="h-4 w-4 mr-2 text-primary" />
-                  Learning Patterns
+            {/* Analytics Card 4 - Areas for Improvement */}
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <TrendingDown className="h-4 w-4 mr-2 text-primary" />
+                  Areas for Improvement
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Consistency</span>
-                      <span className="font-medium">Good</span>
-                    </div>
-                    <Progress value={75} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Focus Duration</span>
-                      <span className="font-medium">Excellent</span>
-                    </div>
-                    <Progress value={90} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Answer Accuracy</span>
-                      <span className="font-medium">Average</span>
-                    </div>
-                    <Progress value={60} className="h-2" />
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {(analytics.weaknessConcepts || []).length > 0 ? (
+                    (analytics.weaknessConcepts || []).map((weakness, index) => (
+                      <Badge key={index} variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">
+                        {weakness}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      Complete more questions to identify areas for improvement.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-        
-        {/* Strengths Tab */}
-        <TabsContent value="strengths" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Strongest Concepts</CardTitle>
-              <CardDescription>Areas where you consistently perform well</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Define fallback concepts directly from conceptMasteries to avoid relevantTopics error */}
-                {(analytics.analytics?.strengthConcepts?.length ? 
-                  analytics.analytics.strengthConcepts : 
-                  ((analytics.conceptMasteries && analytics.conceptMasteries.length > 0) ?
-                    analytics.conceptMasteries
-                      .sort((a, b) => b.masteryLevel - a.masteryLevel)
-                      .map(mastery => mastery.concept)
-                      .filter((value, index, self) => self.indexOf(value) === index) :
-                    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'])
-                ).slice(0, 5).map((concept, i) => (
-                  <div key={concept} className="space-y-2">
-                    <div className="flex justify-between">
-                      <h4 className="font-medium">{concept}</h4>
-                      <Badge variant="outline" className="font-mono">
-                        {(analytics.conceptMasteries && analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel) || (90 - i * 5)}% Mastery
-                      </Badge>
+            
+            {/* Analytics Card 5 - Recent Progress Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <LineChart className="h-4 w-4 mr-2 text-primary" />
+                  Recent Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentProgress && recentProgress.length > 0 ? (
+                  <div className="h-64">
+                    {/* Placeholder for chart - would use Recharts in a real implementation */}
+                    <div className="relative h-full flex items-end">
+                      {recentProgress.map((entry, index) => (
+                        <div 
+                          key={index} 
+                          className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
+                          style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
+                        >
+                          <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
+                            <div className="font-medium">{entry.date}</div>
+                            <div className="text-primary">{entry.score} points</div>
+                            <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
+                          </div>
+                          <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
+                        </div>
+                      ))}
                     </div>
-                    <Progress value={(analytics.conceptMasteries && analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel) || (90 - i * 5)} className="h-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {getConceptDescription(concept)}
+                  </div>
+                ) : (
+                  <div className="text-center p-4">
+                    <p className="text-muted-foreground">
+                      Not enough data to display progress chart yet.
                     </p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Skills Analysis</CardTitle>
-              <CardDescription>Your performance across different skill areas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-5">
-                {/* Generate skill ratings based on concept masteries data */}
-                {getSkillRatings(analytics.conceptMasteries).map((skill, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>{skill.name}</span>
-                      <span className="font-medium">{getRatingLabel(skill.value)}</span>
-                    </div>
-                    <Progress value={skill.value} className="h-2" />
-                  </div>
-                ))}
-                
-                {/* Display fallback if no data is available */}
-                {(!analytics.conceptMasteries || analytics.conceptMasteries.length === 0) && (
-                  <>
-                    <div>
-                      <div className="flex justify-between mb-1 text-sm">
-                        <span>Complete more questions to see skills analysis</span>
-                        <span className="font-medium">-</span>
-                      </div>
-                      <Progress value={0} className="h-2" />
-                    </div>
-                  </>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Improvement Areas Tab */}
-        <TabsContent value="improvements" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Areas for Improvement</CardTitle>
-              <CardDescription>Error patterns and concepts that need more practice</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {[
-                  "Place value confusion in multi-digit addition",
-                  "Difficulty with borrowing in subtraction",
-                  "Mixed up multiplication facts",
-                  "Confusion with fraction comparisons",
-                  "Time calculation errors"
-                ].map((error, i) => (
-                  <li key={i} className="flex items-start">
-                    <Badge variant="outline" className="mr-3 mt-0.5">{i + 1}</Badge>
-                    <div>
-                      <p className="font-medium">{error}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {getErrorAnalysis(error)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              
-              {/* Show concept-specific improvement suggestions only if available */}
-              {analytics.analytics.weaknessConcepts && analytics.analytics.weaknessConcepts.length > 0 && (
-                <div className="mt-8 pt-4 border-t border-border">
-                  <h3 className="font-medium text-lg mb-4">Concept Mastery</h3>
-                  <div className="space-y-6">
-                    {analytics.analytics.weaknessConcepts?.slice(0, 5).map((concept, i) => (
-                      <div key={concept} className="space-y-2">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">{concept}</h4>
-                          <Badge variant="outline" className="font-mono">
-                            {40 - i * 8}% Mastery
-                          </Badge>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Mastery Tab */}
+          <TabsContent value="mastery" className="pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center">
+                  <Star className="h-4 w-4 mr-2 text-primary" /> 
+                  Concept Mastery
+                </CardTitle>
+                <CardDescription>
+                  Track your progress across mathematical concepts
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {conceptMasteries && conceptMasteries.length > 0 ? (
+                  <div className="space-y-4">
+                    {conceptMasteries
+                      .filter(mastery => 
+                        mastery.concept && 
+                        mastery.concept.toLowerCase() !== 'general' && 
+                        mastery.attempts > 0
+                      )
+                      .sort((a, b) => b.masteryLevel - a.masteryLevel)
+                      .map((mastery, index) => (
+                        <div key={index} className="concept-mastery-item">
+                          <div className="flex justify-between items-center mb-1">
+                            <div className="font-medium">{mastery.concept}</div>
+                            <div className="text-sm">
+                              <Badge variant={mastery.masteryLevel >= 80 ? "default" : "outline"}>
+                                {mastery.masteryLevel}% Mastery
+                              </Badge>
+                            </div>
+                          </div>
+                          <Progress value={mastery.masteryLevel} className="h-2" />
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>{mastery.totalAttempts || 0} attempts</span>
+                            <span>{mastery.correctAttempts || 0} correct</span>
+                          </div>
                         </div>
-                        <Progress value={40 - i * 8} className="h-2" />
-                        <p className="text-sm text-muted-foreground">
-                          {getImprovementSuggestion(concept)}
-                        </p>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <h3 className="font-medium mb-2">No Mastery Data Yet</h3>
+                    <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                      Complete more questions across different mathematical concepts to see your mastery levels.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Recommendations Tab */}
+          <TabsContent value="recommendations" className="pt-4">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-base flex items-center">
+                      <Lightbulb className="h-4 w-4 mr-2 text-primary" />
+                      Personalized Study Plan
+                    </CardTitle>
+                    <CardDescription>
+                      Follow this plan to improve your skills
+                    </CardDescription>
+                  </div>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={generateCustomStudyPlan}
+                    disabled={isGeneratingPlan}
+                  >
+                    {isGeneratingPlan ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RotateCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh Plan
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {customStudyPlan && customStudyPlan.length > 0 ? (
+                  <div className="space-y-3">
+                    {customStudyPlan.map((item, index) => (
+                      <div key={index} className="flex">
+                        <div className="mr-2 text-primary">{index + 1}.</div>
+                        <div>{item.replace('• ', '')}</div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        {/* Recommendations Tab */}
-        <TabsContent value="recommendations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personalized Learning Plan</CardTitle>
-              <CardDescription>Tailored recommendations to improve your skills</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Custom Study Plan */}
-                {customStudyPlan.length > 0 && (
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
-                    <h3 className="font-semibold text-lg mb-3 flex items-center">
-                      <Zap className="h-5 w-5 mr-2 text-primary" />
-                      Your Custom Study Plan
-                    </h3>
-                    <div className="space-y-2">
-                      {customStudyPlan.map((bullet, i) => (
-                        <p key={i} className="text-sm">{bullet}</p>
-                      ))}
-                    </div>
-                    <div className="mt-3 text-xs text-muted-foreground">
-                      <p>Generated based on your recent learning activity and progress</p>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-4">
-                  <h3 className="font-semibold text-lg mb-4">Study Schedule Suggestion</h3>
-                  <div className="bg-muted rounded-lg p-4">
-                    <p className="mb-3">Based on your learning patterns, we recommend:</p>
-                    <ul className="space-y-2">
-                      <li className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-primary" />
-                        <span>Short, frequent sessions (15-20 minutes) rather than long study periods</span>
-                      </li>
-                      <li className="flex items-center">
-                        <BookOpen className="h-4 w-4 mr-2 text-primary" />
-                        <span>Focus on one concept at a time with plenty of practice problems</span>
-                      </li>
-                      <li className="flex items-center">
-                        <Star className="h-4 w-4 mr-2 text-primary" />
-                        <span>Review mastered concepts weekly to maintain proficiency</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled={isGeneratingPlan}
-                onClick={generateCustomStudyPlan}
-              >
-                {isGeneratingPlan ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Zap className="h-4 w-4 mr-2" />
+                  <div className="text-center py-8">
+                    <Lightbulb className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <h3 className="font-medium mb-2">No Study Plan Yet</h3>
+                    <p className="text-muted-foreground text-sm max-w-md mx-auto mb-4">
+                      Generate a personalized study plan based on your current analytics.
+                    </p>
+                    <Button 
+                      onClick={generateCustomStudyPlan}
+                      disabled={isGeneratingPlan}
+                    >
+                      {isGeneratingPlan ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                      )}
+                      Generate Study Plan
+                    </Button>
+                  </div>
                 )}
-                {isGeneratingPlan ? 'Generating...' : 'Generate Custom Study Plan'}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-// Helper component for stats
-function StatCard({ 
-  title, 
-  value, 
-  icon, 
-  trend 
-}: { 
-  title: string; 
-  value: string | number; 
-  icon: React.ReactNode;
-  trend: number;
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <div className="p-2 bg-primary/10 rounded-full">
-            {icon}
-          </div>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <h3 className="text-2xl font-bold">{value}</h3>
-          <div className={`flex items-center text-xs ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {trend > 0 ? (
-              <ChevronUp className="h-3 w-3 mr-1" />
-            ) : (
-              <ChevronDown className="h-3 w-3 mr-1" />
-            )}
-            <span>{Math.abs(trend)}%</span>
-          </div>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </CardContent>
+      
+      <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
+        <div className="flex items-center">
+          <Clock className="h-3 w-3 mr-1" />
+          Last updated: {analytics?.analysisDate ? new Date(analytics.analysisDate).toLocaleString() : 'Never'}
+        </div>
+      </CardFooter>
     </Card>
   );
-}
-
-// Helper functions for data formatting and descriptions
-function calculateOverallMastery(masteries: ConceptMastery[] = []): number {
-  if (!masteries || masteries.length === 0) return 65; // Default for demo
-  
-  const average = masteries.reduce((sum, mastery) => sum + mastery.masteryLevel, 0) / masteries.length;
-  return Math.round(average);
-}
-
-function formatTimeInvested(progressData: { timeSpent: number }[] = []): string {
-  if (!progressData || progressData.length === 0) return '3h 45m'; // Default for demo
-  
-  const totalMinutes = progressData.reduce((sum, day) => sum + day.timeSpent, 0);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  return `${hours}h ${minutes}m`;
-}
-
-function countMasteredConcepts(masteries: ConceptMastery[] = []): string {
-  if (!masteries || masteries.length === 0) return '12/30'; // Default for demo
-  
-  const mastered = masteries.filter(m => m.masteryLevel >= 80).length;
-  return `${mastered}/${masteries.length}`;
-}
-
-function getLearningStyleDescription(style: string | null): string {
-  switch (style?.toLowerCase()) {
-    case 'visual':
-      return 'You learn best through images, diagrams, and spatial understanding. We recommend using visual aids like charts and diagrams when studying.';
-    case 'auditory':
-      return 'You learn effectively by listening and discussing. Consider reading problems aloud or explaining concepts to others.';
-    case 'reading/writing':
-      return 'You excel with written information. Taking notes and rewriting concepts in your own words helps solidify your understanding.';
-    case 'kinesthetic':
-      return 'You learn through hands-on activities and movement. Use manipulatives and physical objects to reinforce abstract concepts.';
-    case 'verbal':
-      return 'You prefer using words, both in speech and writing. Try explaining concepts aloud or writing out problem solutions step by step.';
-    case 'logical':
-      return 'You enjoy systems and logical reasoning. Focus on understanding the "why" behind mathematical rules and procedures.';
-    case 'social':
-      return 'You learn well in group settings. Consider study groups or collaborative problem-solving sessions.';
-    case 'solitary':
-      return 'You prefer independent study. Set aside quiet time for focused learning and reflection.';
-    case 'analytical':
-      return 'You excel at breaking down problems into components. Focus on understanding each step in a solution process.';
-    default:
-      return 'Complete more questions to help us determine your optimal learning approach.';
-  }
-}
-
-function getConceptDescription(concept: string): string {
-  const descriptions: Record<string, string> = {
-    'Addition': 'You consistently solve addition problems quickly and accurately across various difficulty levels.',
-    'Subtraction': 'You have a strong grasp of subtraction concepts, including borrowing in multi-digit problems.',
-    'Multiplication': 'You demonstrate excellent recall of multiplication facts and apply them effectively.',
-    'Division': 'You show good understanding of division concepts and can work through complex problems.',
-    'Fractions': 'You handle fraction operations well, including comparing, adding, and simplifying fractions.',
-    'Geometry': 'You excel at identifying shapes, understanding properties, and solving spatial problems.',
-    'Time': 'You demonstrate excellent skills in reading clocks and calculating time intervals.',
-    'Money': 'You show strong abilities in calculating with currency and solving money-related problems.',
-    'Place Value': 'You have a solid understanding of place value across different number sizes.',
-    'Word Problems': 'You effectively translate word problems into mathematical equations and solve them.',
-  };
-  
-  return descriptions[concept] || 'You show consistent mastery in this area with a high accuracy rate.';
-}
-
-function getImprovementSuggestion(concept: string): string {
-  const suggestions: Record<string, string> = {
-    'Addition': 'Practice multi-digit addition with regrouping (carrying) to improve accuracy.',
-    'Subtraction': 'Focus on borrowing (regrouping) in complex problems to strengthen your skills.',
-    'Multiplication': 'Review multiplication tables and practice multiplying larger numbers.',
-    'Division': 'Work on long division problems and dividing with remainders.',
-    'Fractions': 'Practice comparing fractions with different denominators and equivalent fractions.',
-    'Geometry': 'Focus on understanding shape properties and calculating area and perimeter.',
-    'Time': 'Practice problems that involve calculating elapsed time between different clock readings.',
-    'Money': 'Work on making change and solving multi-step money problems.',
-    'Place Value': 'Practice identifying place values in large numbers and decimal operations.',
-    'Word Problems': 'Focus on identifying the mathematical operations needed to solve different problem types.',
-  };
-  
-  return suggestions[concept] || 'Spend more time on this concept with focused practice sessions.';
-}
-
-function getErrorAnalysis(error: string): string {
-  const analyses: Record<string, string> = {
-    'Place value confusion in multi-digit addition': 'You sometimes misalign digits when adding larger numbers. Try using grid paper to keep columns aligned.',
-    'Difficulty with borrowing in subtraction': 'Practice breaking down the borrowing process into smaller steps and use visual aids to reinforce understanding.',
-    'Mixed up multiplication facts': 'Create a personalized set of flashcards for the specific multiplication facts you find challenging.',
-    'Confusion with fraction comparisons': 'Convert fractions to the same denominator first, or use visual fraction models to compare sizes.',
-    'Time calculation errors': 'Practice with an analog clock model and work through problems step-by-step.'
-  };
-  
-  return analyses[error] || 'Focus on understanding the underlying concepts and practice with similar problem types.';
-}
-
-// Helper function to derive skill ratings from concept masteries
-function getSkillRatings(conceptMasteries: ConceptMastery[]): Array<{name: string, value: number}> {
-  // Default skills if there's no data
-  if (!conceptMasteries || conceptMasteries.length === 0) {
-    return [
-      { name: 'Problem Solving Speed', value: 0 },
-      { name: 'Computational Accuracy', value: 0 },
-      { name: 'Critical Thinking', value: 0 },
-      { name: 'Pattern Recognition', value: 0 },
-      { name: 'Math Fluency', value: 0 }
-    ];
-  }
-  
-  // Map concept types to skills
-  const skillMap: Record<string, string[]> = {
-    'Problem Solving Speed': ['Word Problems', 'Time', 'Money'],
-    'Computational Accuracy': ['Addition', 'Subtraction', 'Multiplication', 'Division'],
-    'Critical Thinking': ['Word Problems', 'Fractions', 'Percentages'],
-    'Pattern Recognition': ['Patterns', 'Sequences', 'Algebra'],
-    'Math Fluency': ['Addition', 'Subtraction', 'Multiplication', 'Division', 'Mental Math']
-  };
-  
-  return Object.entries(skillMap).map(([skillName, relatedConcepts]) => {
-    // Find mastery levels for all related concepts
-    const relevantMasteries = conceptMasteries.filter(mastery => 
-      relatedConcepts.some(concept => mastery.concept.toLowerCase().includes(concept.toLowerCase()))
-    );
-    
-    // Calculate average mastery level for this skill
-    let value = 0;
-    if (relevantMasteries.length > 0) {
-      value = Math.round(
-        relevantMasteries.reduce((sum, mastery) => sum + mastery.masteryLevel, 0) / 
-        relevantMasteries.length
-      );
-    } else {
-      // If no matching concepts, use all masteries with a lower weight
-      value = conceptMasteries.length > 0 
-        ? Math.round(conceptMasteries.reduce((sum, m) => sum + m.masteryLevel, 0) / conceptMasteries.length * 0.7)
-        : 65; // Default fallback value
-    }
-    
-    return { name: skillName, value };
-  });
-}
-
-// Helper function to convert numeric values to text labels
-function getRatingLabel(value: number): string {
-  if (value >= 90) return 'Excellent';
-  if (value >= 80) return 'Very Good';
-  if (value >= 70) return 'Good';
-  if (value >= 60) return 'Satisfactory';
-  if (value >= 50) return 'Developing';
-  if (value > 0) return 'Needs Practice';
-  return '-';
-}
-
-function formatActivityName(activity: string): string {
-  const nameMap: Record<string, string> = {
-    'flashcards': 'Flashcard Drills',
-    'wordProblems': 'Word Problem Set',
-    'visualModels': 'Visual Learning Module',
-    'gameBasedLearning': 'Math Games',
-    'collaborativePractice': 'Partner Practice',
-    'conceptMapping': 'Concept Mapping',
-
-    'realWorldApplications': 'Real-World Math',
-  };
-  
-  return nameMap[activity] || activity;
-}
-
-function getActivityDescription(activity: string): string {
-  const descriptions: Record<string, string> = {
-    'flashcards': 'Quick practice to reinforce basic facts and operations',
-    'wordProblems': 'Strengthen your ability to apply math concepts to real situations',
-    'visualModels': 'Use visual representations to build deeper understanding',
-    'gameBasedLearning': 'Fun, interactive challenges that reinforce key concepts',
-    'collaborativePractice': 'Work with others to solve problems and share strategies',
-    'conceptMapping': 'Connect related math concepts to build a stronger knowledge framework',
-
-    'realWorldApplications': 'Apply math to everyday situations for practical understanding',
-  };
-  
-  return descriptions[activity] || 'Personalized activities based on your learning needs';
 }

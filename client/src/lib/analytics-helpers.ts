@@ -1,4 +1,5 @@
-import { Toast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { playSound } from '@/lib/sounds';
 
 /**
  * Generates a custom study plan based on user analytics
@@ -9,13 +10,13 @@ export function generateCustomStudyPlanFromAnalytics(
   setCustomStudyPlan: (plan: string[]) => void, 
   setIsGeneratingPlan: (loading: boolean) => void, 
   setActiveTab: (tab: string) => void, 
-  toast: { (props: Toast): void; dismiss: (toastId: string) => void; }
+  toastFn: any
 ) {
   // Update loading state
   setIsGeneratingPlan(true);
   
   // Notify user that generation is in progress
-  toast({
+  toastFn({
     title: "Generating Study Plan",
     description: "Creating your personalized study plan based on your progress...",
     dismissTimeout: 3000,
@@ -78,9 +79,10 @@ export function generateCustomStudyPlanFromAnalytics(
   setTimeout(() => {
     setCustomStudyPlan(studyPlanBullets);
     setIsGeneratingPlan(false);
+    playSound('levelUp');
     
     // Small toast to confirm completion
-    toast({
+    toastFn({
       title: "Study Plan Ready",
       description: "Your personalized study plan has been generated",
       dismissTimeout: 3000, // Auto-dismiss after 3 seconds
