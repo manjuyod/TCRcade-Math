@@ -552,21 +552,23 @@ export default function AiAnalytics() {
             <CardContent>
               <div className="space-y-6">
                 {/* Define fallback concepts directly from conceptMasteries to avoid relevantTopics error */}
-                {(analytics.analytics.strengthConcepts?.length ? 
+                {(analytics.analytics?.strengthConcepts?.length ? 
                   analytics.analytics.strengthConcepts : 
-                  analytics.conceptMasteries
-                    .sort((a, b) => b.masteryLevel - a.masteryLevel)
-                    .map(mastery => mastery.concept)
-                    .filter((value, index, self) => self.indexOf(value) === index)
+                  ((analytics.conceptMasteries && analytics.conceptMasteries.length > 0) ?
+                    analytics.conceptMasteries
+                      .sort((a, b) => b.masteryLevel - a.masteryLevel)
+                      .map(mastery => mastery.concept)
+                      .filter((value, index, self) => self.indexOf(value) === index) :
+                    ['addition', 'subtraction', 'multiplication', 'division', 'fractions'])
                 ).slice(0, 5).map((concept, i) => (
                   <div key={concept} className="space-y-2">
                     <div className="flex justify-between">
                       <h4 className="font-medium">{concept}</h4>
                       <Badge variant="outline" className="font-mono">
-                        {analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel || (90 - i * 5)}% Mastery
+                        {(analytics.conceptMasteries && analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel) || (90 - i * 5)}% Mastery
                       </Badge>
                     </div>
-                    <Progress value={analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel || (90 - i * 5)} className="h-2" />
+                    <Progress value={(analytics.conceptMasteries && analytics.conceptMasteries.find(m => m.concept === concept)?.masteryLevel) || (90 - i * 5)} className="h-2" />
                     <p className="text-sm text-muted-foreground">
                       {getConceptDescription(concept)}
                     </p>
@@ -595,7 +597,7 @@ export default function AiAnalytics() {
                 ))}
                 
                 {/* Display fallback if no data is available */}
-                {analytics.conceptMasteries.length === 0 && (
+                {(!analytics.conceptMasteries || analytics.conceptMasteries.length === 0) && (
                   <>
                     <div>
                       <div className="flex justify-between mb-1 text-sm">
