@@ -828,13 +828,7 @@ export default function HomePage() {
               batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
             />
           ) : question ? (
-            currentModuleType === 'boss_run' ? (
-              <BossRunGame
-                question={getNextMathFact(userGrade || '6', ['addition', 'subtraction', 'multiplication', 'division'][Math.floor(Math.random() * 4)])}
-                onAnswerSubmit={handleAnswerSubmit}
-                bossLevel={1}
-              />
-            ) : currentModuleType === 'word_race' ? (
+            (currentModuleType === 'word_race' ) ? (
               <WordRaceGame
                 question={question}
                 isLoading={false}
