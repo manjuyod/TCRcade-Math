@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Shield } from 'lucide-react';
+import { getNextMathFact } from '@server/mathFacts';
 
 interface BossRunGameProps {
   question: Question;
@@ -14,7 +15,8 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
   const [bossHealth, setBossHealth] = useState(100 * bossLevel);
   const [timeLeft, setTimeLeft] = useState(10);
   const [bossPosition, setBossPosition] = useState(0);
-
+  const [operations] = useState(['addition', 'subtraction', 'multiplication', 'division']);
+  
   // Move boss closer every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -75,18 +77,18 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
         </div>
       </div>
 
-      {/* Boss and Player */}
+      {/* Boss and Player Characters */}
       <div className="flex justify-between items-center mt-32">
         <motion.div 
-          className="bg-purple-500 p-4 rounded-xl"
+          className="text-6xl"
           initial={{ x: 400 }}
           animate={{ x: bossPosition * 40 }}
         >
-          <Shield className="h-16 w-16 text-white" />
+          👾
         </motion.div>
 
-        <div className="bg-blue-500 p-4 rounded-xl">
-          <div className="h-16 w-16 bg-white rounded-full" />
+        <div className="text-6xl">
+          😊
         </div>
       </div>
 
