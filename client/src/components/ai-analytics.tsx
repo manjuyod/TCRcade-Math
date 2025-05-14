@@ -136,7 +136,7 @@ export default function AiAnalytics() {
   
   // Fetch user's AI analytics
   const { 
-    data: analytics, 
+    data: analyticsData, 
     isLoading: isLoadingAnalytics,
     refetch: refetchAnalytics,
     isError: isAnalyticsError,
@@ -186,17 +186,17 @@ export default function AiAnalytics() {
   
   // Automatically generate a study plan when analytics data changes
   useEffect(() => {
-    if (analytics && customStudyPlan.length === 0) {
+    if (analyticsData && customStudyPlan.length === 0) {
       // Only auto-generate if we don't already have a plan
       generateCustomStudyPlanFromAnalytics(
-        analytics, 
+        analyticsData, 
         setCustomStudyPlan, 
         setIsGeneratingPlan, 
         setActiveTab,
         toast
       );
     }
-  }, [analytics, customStudyPlan.length, toast]);
+  }, [analyticsData, customStudyPlan.length, toast]);
   
   // Function to generate a custom study plan based on user data
   const generateCustomStudyPlan = async () => {
@@ -341,43 +341,9 @@ export default function AiAnalytics() {
     );
   }
   
-  // Handle case where we have analytics data structure but no actual analytics object inside it
-  // This is the case we need to fix - API successfully returns but analytics.analytics is null/undefined
-  if (!analytics.analytics) {
-    console.log('API returned successfully but analytics.analytics is missing', analytics);
-    
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Brain className="h-5 w-5 mr-2 text-primary" />
-            AI Learning Analytics
-          </CardTitle>
-          <CardDescription>
-            Generate insights based on your work so far
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-8">
-          <Brain className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-          <h3 className="font-semibold text-lg mb-2">Ready to Generate Analytics</h3>
-          <p className="text-muted-foreground mb-6">
-            You have enough data for us to generate learning insights.
-            Click the button below to analyze your progress.
-          </p>
-          <Button 
-            onClick={handleGenerateAnalytics}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Zap className="h-4 w-4 mr-2" />
-            )}
-            Generate Analytics
-          </Button>
-        </CardContent>
-      </Card>
-    );
+  // For debugging
+  if (analytics) {
+    console.log('Analytics data received from API:', analytics);
   }
   
   return (

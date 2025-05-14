@@ -446,10 +446,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
-      // Ensure we send the analytics data in the expected format
+      // The client expects analytics to be nested under the "analytics" key
       res.json({
         analytics: {
-          analytics, // This nesting is needed to match the client's expectations
+          analytics, // This nesting is intentional to match client expectations
           conceptMasteries,
           recentProgress
         }
@@ -613,7 +613,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate new analytics
       const analytics = await storage.generateUserAnalytics(userId);
       
-      res.json({ success: true, analytics });
+      // Get concept masteries for the user
+      const conceptMasteries = await storage.getUserConceptMasteries(userId);
+      
+      // Get recent progress data for charts
+      const progressData = await storage.getUserProgress(userId);
+      
+      // Transform progress data for frontend charts
+      const recentProgress = progressData
+        .sort((a, b) => {
+          // Safely get dates with optional properties using type assertion
+          const dateA = (a as any).updatedAt ? new Date((a as any).updatedAt).getTime() : 
+                       ((a as any).date ? new Date((a as any).date).getTime() : 0);
+          const dateB = (b as any).updatedAt ? new Date((b as any).updatedAt).getTime() : 
+                       ((b as any).date ? new Date((b as any).date).getTime() : 0);
+          return dateB - dateA;
+        })
+        .slice(0, 10)
+        .reverse()
+        .map(p => ({
+          date: (p as any).updatedAt ? new Date((p as any).updatedAt).toLocaleDateString() : 
+                ((p as any).date ? new Date((p as any).date).toLocaleDateString() : new Date().toLocaleDateString()),
+          score: p.score || 0,
+          questionsAnswered: p.completedQuestions || ((p as any).questionsAnswered || 0),
+          timeSpent: (p as any).timeSpent || 0
+        }));
+        
+      // Return the data in a structure matching what the client expects
+      res.json({ 
+        success: true, 
+        analytics: {
+          analytics,
+          conceptMasteries,
+          recentProgress
+        } 
+      });
     } catch (error) {
       console.error("Error generating analytics:", error);
       res.status(500).json({ 
