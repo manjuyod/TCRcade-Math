@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { questions } from "@shared/schema";
+import { questions, User, UserProgress } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 
@@ -507,23 +507,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userId) {
         try {
           // For all questions (including Math Facts), update the user's total tokens
-          if (tokensEarned > 0) {
+          // Always update question stats, even if no tokens were earned
+          if (req.user) {
             const user = req.user;
-            if (user) {
-              // Update the user's token count in the database
+            
+            // Calculate new values
+            const newQuestionsAnswered = (user.questionsAnswered || 0) + 1;
+            const newCorrectAnswers = (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
+            
+            // Prepare the update with required fields
+            const userUpdate: Partial<User> = {
+              questionsAnswered: newQuestionsAnswered,
+              correctAnswers: newCorrectAnswers
+            };
+            
+            // Add tokens only if earned
+            if (tokensEarned > 0) {
               const currentTokens = user.tokens || 0;
               const newTokens = currentTokens + tokensEarned;
+              userUpdate.tokens = newTokens;
               
-              // Update the user record with new token count
-              await storage.updateUser(userId, {
-                tokens: newTokens,
-                // Also update overall statistics
-                questionsAnswered: (user.questionsAnswered || 0) + 1,
-                correctAnswers: (user.correctAnswers || 0) + (isCorrect ? 1 : 0)
-              });
-              
-              // Update the user object in the request to reflect the change
-              req.user.tokens = newTokens;
+              // Update the user object in the request to reflect the token change
+              user.tokens = newTokens;
+            }
+            
+            // Update the user record with token count and statistics
+            await storage.updateUser(userId, userUpdate);
+            
+            // Also update user stats in the request object to reflect changes
+            if (typeof newQuestionsAnswered === 'number') {
+              user.questionsAnswered = newQuestionsAnswered;
+            }
+            if (typeof newCorrectAnswers === 'number') {
+              user.correctAnswers = newCorrectAnswers;
             }
           }
           
@@ -534,7 +550,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Update user progress in database
             await storage.updateUserProgress(userId, category, {
               completedQuestions: 1,
-              correctAnswers: isCorrect ? 1 : 0,
               score: tokensEarned
             });
             
