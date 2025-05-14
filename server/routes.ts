@@ -463,6 +463,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Handle answer submissions with improved type safety and error handling
+  app.post('/api/answer', ensureAuthenticated, async (req, res) => {
+    try {
+      // Safely access the user ID
+      const userId = getUserId(req);
+      
+      // Extract question ID and answer from request body with validation
+      const { questionId, answer, originalAnswer, originalQuestion } = req.body;
+      
+      if (typeof questionId !== 'number' || !answer) {
+        return res.status(400).json({ 
+          message: "Invalid request parameters", 
+          error: "Question ID must be a number and answer must be provided" 
+        });
+      }
+      
+      // Fetch the question to validate answer if not provided in request
+      let question;
+      let correctAnswer = originalAnswer;
+      
+      if (!correctAnswer) {
+        // If original answer not provided, fetch from database
+        question = await storage.getQuestion(questionId);
+        
+        if (!question) {
+          return res.status(404).json({ 
+            message: "Question not found",
+            error: `No question found with ID ${questionId}` 
+          });
+        }
+        
+        correctAnswer = question.answer;
+      }
+      
+      // Check if answer is correct (case-insensitive comparison for robustness)
+      const isCorrect = String(answer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+      
+      // Calculate tokens earned based on correctness and difficulty
+      const tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
+      
+      // Update user progress 
+      if (userId) {
+        // For non-Math Facts questions, update database
+        // For Math Facts, this is handled client-side to allow non-authenticated use
+        const category = question?.category || 'unknown';
+        
+        if (!category.startsWith('math-facts-')) {
+          try {
+            // Update user progress in database
+            await storage.updateUserProgress(userId, category, {
+              completedQuestions: 1,
+              correctAnswers: isCorrect ? 1 : 0,
+              score: tokensEarned
+            });
+            
+            // Update concept mastery if applicable
+            if (question?.concepts && question.concepts.length > 0) {
+              for (const concept of question.concepts) {
+                await storage.updateConceptMastery(
+                  userId, 
+                  concept, 
+                  question.grade || '3',
+                  isCorrect
+                );
+              }
+            }
+            
+            // Update subject mastery if applicable
+            if (question?.category && question.grade) {
+              await storage.updateSubjectMastery(
+                userId,
+                question.category,
+                question.grade,
+                isCorrect
+              );
+            }
+          } catch (updateError) {
+            console.error("Error updating progress:", updateError);
+            // Continue - don't fail the answer submission if progress update fails
+          }
+        }
+      }
+      
+      // Send response with standardized format
+      res.json({
+        correct: isCorrect,
+        tokensEarned,
+        totalTokens: userId ? (req.user?.tokens || 0) + tokensEarned : 0,
+        correctAnswer: correctAnswer
+      });
+    } catch (error) {
+      errorResponse(res, 500, "Failed to process answer submission", error);
+    }
+  });
+  
+  // Helper function to calculate token rewards based on question difficulty
+  function calculateTokenReward(question: any): number {
+    if (!question) return 1;
+    
+    // Base reward is difficulty level * 2 (default to difficulty 1 if not specified)
+    const difficulty = question.difficulty || 1;
+    let reward = difficulty * 2;
+    
+    // Cap the reward between 1 and 10 tokens
+    return Math.max(1, Math.min(10, reward));
+  }
+  
   // Generate new analytics
   app.post('/api/analytics/generate', ensureAuthenticated, async (req, res) => {
     try {
