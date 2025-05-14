@@ -627,11 +627,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // For non-Math Facts questions, update additional progress metrics
-          const category = question?.category || 'unknown';
+          const category = question?.category || 'general';
           
           if (!category.startsWith('math-facts-')) {
-            // Update user progress in database
-            await storage.updateUserProgress(userId, category, {
+            // Update user progress in database with proper category name
+            const normalizedCategory = category === 'unknown' ? 'general' : category;
+            await storage.updateUserProgress(userId, normalizedCategory, {
               completedQuestions: 1,
               score: tokensEarned
             });
