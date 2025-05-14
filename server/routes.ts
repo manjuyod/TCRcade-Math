@@ -325,11 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(progress);
     } catch (error) {
-      console.error("Error fetching user progress:", error);
-      res.status(500).json({
-        message: "Failed to fetch user progress", 
-        error: error.message 
-      });
+      errorResponse(res, 500, "Failed to fetch user progress", error);
     }
   });
   
