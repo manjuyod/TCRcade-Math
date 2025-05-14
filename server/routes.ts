@@ -121,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error testing math facts:", error);
       res.status(500).json({ 
         message: "Failed to generate test math facts", 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -135,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("OpenAI test error:", error);
       res.status(500).json({ 
         message: "Failed to test OpenAI", 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Question generation error:", error);
       res.status(500).json({ 
         message: "Failed to generate question", 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/progress", ensureAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
       const progress = await storage.getUserProgress(userId);
       
       res.json(progress);
