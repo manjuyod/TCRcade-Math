@@ -1,173 +1,110 @@
-
-import { useState, useEffect, useRef } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
-import { Loader2, Shield, Heart } from 'lucide-react';
-import { playSound } from '@/lib/sounds';
-import QuestionCard from '@/components/question-card';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { Shield } from 'lucide-react';
 
-type BossRunGameProps = {
-  question: Question | undefined;
-  isLoading: boolean;
+interface BossRunGameProps {
+  question: Question;
   onAnswerSubmit: (answer: string) => void;
-  onGameOver: (won: boolean) => void;
-};
+  bossLevel?: number;
+}
 
-export default function BossRunGame({
-  question,
-  isLoading,
-  onAnswerSubmit,
-  onGameOver
-}: BossRunGameProps) {
-  // Game settings
-  const totalTime = 10; // 10 seconds per question
-  const [timeLeft, setTimeLeft] = useState(totalTime);
-  const [isTimerActive, setIsTimerActive] = useState(true);
-  const [bossLevel, setBossLevel] = useState(1);
+export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }: BossRunGameProps) {
   const [bossHealth, setBossHealth] = useState(100 * bossLevel);
+  const [timeLeft, setTimeLeft] = useState(10);
   const [bossPosition, setBossPosition] = useState(0);
-  const [questionCount, setQuestionCount] = useState(0);
-  
-  // Animation controls
-  const containerControls = useAnimation();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Set up timer
+
+  // Move boss closer every 5 seconds
   useEffect(() => {
-    if (isTimerActive && timeLeft > 0) {
-      timerRef.current = setTimeout(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      // Time's up - increment boss position
-      handleBossAdvance();
-    }
-    
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [timeLeft, isTimerActive]);
-  
-  // Reset timer when question changes
+    const interval = setInterval(() => {
+      setBossPosition(prev => {
+        if (prev >= 10) return prev; // Boss reached player
+        return prev + 1;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Timer countdown
   useEffect(() => {
-    setTimeLeft(totalTime);
-    setIsTimerActive(true);
-  }, [question]);
-  
-  const handleBossAdvance = () => {
-    setBossPosition(prev => {
-      const newPosition = prev + 1;
-      if (newPosition >= 10) {
-        onGameOver(false);
-      }
-      return newPosition;
-    });
-  };
-  
-  // Handle answer submission
-  const handleAnswerSubmit = (answer: string) => {
-    setIsTimerActive(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleAnswer = (selectedAnswer: string) => {
     // Calculate damage based on remaining time
     const damage = timeLeft * 10;
-    
-    onAnswerSubmit(answer);
-    
-    // Update boss health if answer was correct
-    if (answer === question?.answer) {
-      setBossHealth(prev => {
-        const newHealth = prev - damage;
-        if (newHealth <= 0) {
-          // Boss defeated
-          playSound('victory');
-          setBossLevel(prev => prev + 1);
-          setBossHealth(100 * (bossLevel + 1));
-          setBossPosition(0);
-        }
-        return Math.max(0, newHealth);
-      });
+
+    // Submit answer and update boss health if correct
+    onAnswerSubmit(selectedAnswer);
+    if (selectedAnswer === question.answer) {
+      setBossHealth(prev => Math.max(0, prev - damage));
     }
-    
-    // Increment question count and check for boss advance
-    setQuestionCount(prev => {
-      const newCount = prev + 1;
-      if (newCount % 2 === 0) {
-        handleBossAdvance();
-      }
-      return newCount;
-    });
+
+    // Reset timer
+    setTimeLeft(10);
   };
-  
-  // Calculate health percentage
-  const healthPercentage = (bossHealth / (100 * bossLevel)) * 100;
-  
+
   return (
-    <motion.div
-      animate={containerControls}
-      className="flex flex-col"
-    >
-      {/* Boss health bar */}
-      <div className="mb-4 bg-white p-4 rounded-xl shadow-md">
-        <div className="flex justify-between items-center mb-2">
-          <span className="font-bold flex items-center text-gray-700">
-            <Shield className="mr-2 h-5 w-5 text-purple-500" />
-            Boss Level {bossLevel}
-          </span>
-          <span className="font-bold text-red-500 flex items-center">
-            <Heart className="mr-2 h-5 w-5" />
-            {bossHealth} HP
-          </span>
-        </div>
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-red-500 transition-all"
-            style={{ width: `${healthPercentage}%` }}
-          />
-        </div>
-      </div>
-      
-      {/* Boss position indicator */}
-      <div className="mb-4 bg-white p-4 rounded-xl shadow-md">
-        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+    <div className="relative min-h-[400px] bg-gray-100 rounded-xl p-6">
+      {/* Boss Health Bar */}
+      <div className="absolute top-4 left-4 right-4">
+        <div className="h-4 bg-gray-200 rounded-full">
           <div 
-            className="h-full bg-purple-500 transition-all"
-            style={{ width: `${(bossPosition / 10) * 100}%` }}
+            className="h-full bg-red-500 rounded-full transition-all"
+            style={{ width: `${(bossHealth / (100 * bossLevel)) * 100}%` }}
           />
         </div>
-        <div className="mt-2 text-sm text-gray-600 text-center">
-          Boss is {10 - bossPosition} steps away!
+        <div className="text-center text-sm mt-1">
+          Boss Health: {bossHealth}/{100 * bossLevel}
         </div>
       </div>
-      
+
       {/* Timer */}
-      <div className="mb-4 bg-white p-4 rounded-xl shadow-md">
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-green-500 transition-all"
-            style={{ width: `${(timeLeft / totalTime) * 100}%` }}
-          />
-        </div>
-        <div className="mt-2 text-center font-bold">
-          {timeLeft}s - Damage potential: {timeLeft * 10}
+      <div className="absolute top-20 left-4 right-4 text-center">
+        <div className="text-2xl font-bold">
+          Time Left: {timeLeft}s
         </div>
       </div>
-      
-      {/* Question card */}
-      {isLoading ? (
-        <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 flex items-center justify-center min-h-[300px]">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+
+      {/* Boss and Player */}
+      <div className="flex justify-between items-center mt-32">
+        <motion.div 
+          className="bg-purple-500 p-4 rounded-xl"
+          initial={{ x: 400 }}
+          animate={{ x: bossPosition * 40 }}
+        >
+          <Shield className="h-16 w-16 text-white" />
+        </motion.div>
+
+        <div className="bg-blue-500 p-4 rounded-xl">
+          <div className="h-16 w-16 bg-white rounded-full" />
         </div>
-      ) : question ? (
-        <QuestionCard
-          question={question}
-          onAnswer={handleAnswerSubmit}
-        />
-      ) : (
-        <div className="question-card bg-white p-6 rounded-3xl shadow-md mb-6 text-center">
-          <p className="text-gray-500">No questions available.</p>
+      </div>
+
+      {/* Question */}
+      <div className="mt-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">{question.question.text}</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {question.options.map((option, index) => (
+            <Button
+              key={index}
+              onClick={() => handleAnswer(option)}
+              className="p-4 text-lg"
+            >
+              {option}
+            </Button>
+          ))}
         </div>
-      )}
-    </motion.div>
+      </div>
+    </div>
   );
 }

@@ -828,7 +828,13 @@ export default function HomePage() {
               batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
             />
           ) : question ? (
-            (currentModuleType === 'word_race' ) ? (
+            currentModuleType === 'boss_run' ? (
+              <BossRunGame
+                question={question}
+                onAnswerSubmit={handleAnswerSubmit}
+                bossLevel={1}
+              />
+            ) : currentModuleType === 'word_race' ? (
               <WordRaceGame
                 question={question}
                 isLoading={false}
