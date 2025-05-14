@@ -181,7 +181,7 @@ function toast({ ...props }: Toast) {
     }
     
     // Auto-dismiss after the timeout (if not disabled)
-    const dismissTimeout = props.dismissTimeout || 3000;
+    const dismissTimeout = props.dismisstimeout || 3000;
     if (dismissTimeout > 0) {
       setTimeout(() => {
         dispatch({ type: "DISMISS_TOAST", toastId: existingId })
@@ -209,7 +209,7 @@ function toast({ ...props }: Toast) {
 
   // Auto-dismiss toast after a timeout
   const DEFAULT_DISMISS_TIMEOUT = 3000 // 3 seconds
-  const dismissTimeout = props.dismissTimeout || DEFAULT_DISMISS_TIMEOUT
+  const dismissTimeout = props.dismisstimeout || DEFAULT_DISMISS_TIMEOUT
   
   dispatch({
     type: "ADD_TOAST",

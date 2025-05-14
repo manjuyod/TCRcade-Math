@@ -96,8 +96,10 @@ export default function MultiplayerMode() {
     "Explorers", "Champions", "Guardians", "Legends", "Masters"
   ];
 
-  const [selectedAdjective, setSelectedAdjective] = useState<string>("");
-  const [selectedNoun, setSelectedNoun] = useState<string>("");
+  // Initialize with random adjective and noun for convenience
+  const getRandomItem = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  const [selectedAdjective, setSelectedAdjective] = useState<string>(getRandomItem(ROOM_ADJECTIVES));
+  const [selectedNoun, setSelectedNoun] = useState<string>(getRandomItem(ROOM_NOUNS));
   const roomName = selectedAdjective && selectedNoun ? `${selectedAdjective} ${selectedNoun}` : "";
   const [maxPlayers, setMaxPlayers] = useState<number>(4);
   const [gameMode, setGameMode] = useState<'cooperative' | 'competitive'>('competitive');
@@ -554,7 +556,7 @@ export default function MultiplayerMode() {
         title: 'Error',
         description: 'Please enter a room name',
         variant: 'destructive',
-        dismissTimeout: 3000, // Auto-dismiss after 3 seconds
+        dismisstimeout: 3000, // Auto-dismiss after 3 seconds
       });
       return;
     }
