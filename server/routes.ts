@@ -394,6 +394,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // AI Analytics endpoints
+  // Get current analytics
+  app.get('/api/analytics', ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get analytics data
+      const analytics = await storage.getUserAnalytics(userId);
+      
+      // Get concept masteries for the user
+      const conceptMasteries = await storage.getUserConceptMasteries(userId);
+      
+      // Get recent progress data for charts
+      const progressData = await storage.getUserProgress(userId);
+      
+      // Transform progress data for frontend charts
+      const recentProgress = progressData
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10)
+        .reverse()
+        .map(p => ({
+          date: new Date(p.date).toLocaleDateString(),
+          score: p.score,
+          questionsAnswered: p.questionsAnswered,
+          timeSpent: p.timeSpent
+        }));
+      
+      res.json({
+        analytics,
+        conceptMasteries,
+        recentProgress
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch analytics",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
+  // Generate new analytics
+  app.post('/api/analytics/generate', ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Generate new analytics
+      const analytics = await storage.generateUserAnalytics(userId);
+      
+      res.json({ success: true, analytics });
+    } catch (error) {
+      console.error("Error generating analytics:", error);
+      res.status(500).json({ 
+        error: "Failed to generate analytics",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   app.post('/api/analytics/predict', ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user.id;

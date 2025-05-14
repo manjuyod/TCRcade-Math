@@ -1,0 +1,48 @@
+When a user clicks Generate Analytics, the UI always shows:
+"""
+No Analytics Available  
+We don't have enough data yet to generate personalized insights. Complete more questions to unlock this feature.
+"""
+even though the analytics API call is returning a successful payload.
+
+Your goals:
+
+Confirm the existing workflow:
+
+Trace the front‑end action (e.g. onClick → analyticsService.fetchInsights()).
+
+Follow the network request to our analytics endpoint (e.g. /api/learning‑analytics).
+
+Examine how the response is parsed and how the “enough data” flag is computed in code (likely in analytics.ts or the React component’s state logic).
+
+Identify the root cause:
+
+Which condition or threshold check (data.length < MIN_QUESTIONS, response.metrics == null, etc.) is always evaluating as “insufficient”?
+
+Is the API payload shape different than expected (e.g. renamed fields or nested under a data wrapper)?
+
+Are there off‑by‑one or type‑mismatch errors preventing the check from seeing valid data?
+
+Propose and implement a fix:
+
+Update the threshold logic to match real data volumes (for example, change if (questionsAnswered.length < 5) to if (questionsAnswered.length < 1) or use the actual array coming back).
+
+Correct any payload‑parsing bugs (e.g. response.analytics vs. response.data.analytics).
+
+Ensure that when the API returns insights, the “no data” message is bypassed and the insights are rendered.
+
+Add robustness:
+
+Introduce a fallback that logs unexpected payloads and surfaces a developer console warning instead of silently showing the “no data” message.
+
+Write or update a unit test in analytics.test.ts (or equivalent) to simulate a successful API response and assert that insights render correctly.
+
+Output:
+
+A short diagnostic report pinpointing the broken check.
+
+A patch (diff or full file) that corrects the logic.
+
+The new or updated unit test verifying the fix.
+
+Proceed step by step, clearly labelling each section of your answer.”
