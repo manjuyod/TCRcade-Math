@@ -76,6 +76,14 @@ function cleanCache() {
 // Periodically clean the cache (every hour)
 setInterval(cleanCache, 60 * 60 * 1000);
 
+// Helper to safely access req.user
+function getUserId(req: Request): number {
+  if (!req.user || !req.user.id) {
+    throw new Error("User is not authenticated or has no ID");
+  }
+  return req.user.id;
+}
+
 // Authentication middleware
 const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
   if (req.isAuthenticated()) {
@@ -402,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current analytics
   app.get('/api/analytics', ensureAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
       
       // Get analytics data
       let analytics = await storage.getUserAnalytics(userId);
@@ -477,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate new analytics
   app.post('/api/analytics/generate', ensureAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
       
       // Generate new analytics
       const analytics = await storage.generateUserAnalytics(userId);
@@ -494,6 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/analytics/predict', ensureAuthenticated, async (req, res) => {
     try {
+      assertUser(req);
       const userId = req.user.id;
       const conceptMasteries = await storage.getUserConceptMasteries(userId);
       const progressHistory = await storage.getUserProgress(userId);
