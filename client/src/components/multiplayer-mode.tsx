@@ -57,7 +57,28 @@ export default function MultiplayerMode() {
   const [roomCode, setRoomCode] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<string>(user?.grade || 'K');
-  const [roomName, setRoomName] = useState<string>('');
+  // Room name generation constants
+  const ROOM_ADJECTIVES = [
+    "Epic", "Mighty", "Clever", "Brave", "Speedy", 
+    "Blazing", "Brilliant", "Cosmic", "Dynamic", "Fearless",
+    "Fiery", "Fluffy", "Gigantic", "Glowing", "Jolly",
+    "Jumbo", "Magical", "Mega", "Nimble", "Peppy",
+    "Rapid", "Silly", "Sparkling", "Super", "Turbo",
+    "Whimsical", "Zany", "Amazing", "Electric", "Fantastic"
+  ];
+  
+  const ROOM_NOUNS = [
+    "Tigers", "Eagles", "Dragons", "Wizards", "Knights",
+    "Rockets", "Pandas", "Dolphins", "Llamas", "Monkeys",
+    "Ninjas", "Pirates", "Dinosaurs", "Robots", "Unicorns",
+    "Heroes", "Giants", "Sharks", "Wolves", "Astronauts",
+    "Zombies", "Aliens", "Vikings", "Penguins", "Jaguars",
+    "Explorers", "Champions", "Guardians", "Legends", "Masters"
+  ];
+
+  const [selectedAdjective, setSelectedAdjective] = useState<string>("");
+  const [selectedNoun, setSelectedNoun] = useState<string>("");
+  const roomName = selectedAdjective && selectedNoun ? `${selectedAdjective} ${selectedNoun}` : "";
   const [maxPlayers, setMaxPlayers] = useState<number>(4);
   const [gameMode, setGameMode] = useState<'cooperative' | 'competitive'>('competitive');
   const [questionCount, setQuestionCount] = useState<number>(10);
@@ -815,14 +836,42 @@ export default function MultiplayerMode() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="roomName">Room Name</Label>
-                    <Input
-                      id="roomName"
-                      placeholder="Enter a name for your room"
-                      value={roomName}
-                      onChange={(e) => setRoomName(e.target.value)}
-                    />
+                  <div className="space-y-4">
+                    <div className="grid gap-2">
+                      <Label>Room Name Generator</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select value={selectedAdjective} onValueChange={setSelectedAdjective}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select adjective" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROOM_ADJECTIVES.map(adj => (
+                              <SelectItem key={adj} value={adj}>
+                                {adj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={selectedNoun} onValueChange={setSelectedNoun}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select noun" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROOM_NOUNS.map(noun => (
+                              <SelectItem key={noun} value={noun}>
+                                {noun}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted p-3 rounded-md text-center">
+                      <div className="text-xs text-muted-foreground">Room Name</div>
+                      <div className="font-bold text-lg">{roomName || "Choose name components above"}</div>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
