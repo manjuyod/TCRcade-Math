@@ -309,25 +309,57 @@ export default function HomePage() {
       console.log(`Submitting answer for question ID: ${questionId}, answer: ${answer}`);
 
       try {
-        // Check if this is a Math Facts module (which doesn't need authentication)
+        // Check if this is a Math Facts module
         const isMathFactsModule = currentModuleId?.startsWith('math-facts-');
 
-        // For Math Facts modules, handle the answer locally without making an API call
+        // Extract the operation from module ID
+        const operation = isMathFactsModule 
+          ? currentModuleId?.split('-').pop() 
+          : '';
+
+        // For Math Facts modules, we still need to track stats and tokens in the database,
+        // but we'll handle the answer validation locally first for better UX
         if (isMathFactsModule && question) {
-          console.log(`Math Facts local answer handling (${currentModuleId})`);
+          console.log(`Math Facts answer processing (${currentModuleId})`);
 
           // Check if the answer is correct for Math Facts
           const isCorrect = answer === question.answer;
           const tokensEarned = isCorrect ? 3 : 0;
-
-          // DON'T update session stats here - it will be handled in onSuccess
-          // to prevent double-counting when the component re-renders
-
-          // Return a simulated API response
+          
+          try {
+            // Make API call to server to update tokens and stats
+            const response = await fetch('/api/answer', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                questionId: questionId,
+                answer: answer,
+                originalAnswer: question.answer,
+                category: `math-facts-${operation}`,
+                grade: user?.grade || '3',
+                isCorrect: isCorrect,
+                tokensEarned: tokensEarned
+              }),
+            });
+            
+            if (response.ok) {
+              const apiResult = await response.json();
+              return apiResult;
+            } else {
+              console.warn("Math Facts API call failed, falling back to local handling");
+            }
+          } catch (error) {
+            console.warn("Error making Math Facts API call:", error);
+          }
+          
+          // Fallback to simulated response if API call fails
           return {
             correct: isCorrect,
             tokensEarned: tokensEarned,
-            totalTokens: 0, // We don't track this for non-authenticated sessions
+            totalTokens: user?.tokens || 0,
             correctAnswer: question.answer
           };
         }
