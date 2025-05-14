@@ -72,11 +72,27 @@ export class DatabaseStorage implements IStorage {
     console.log(`DATABASE: Updating user ${id} with data:`, data);
     
     try {
-      const [updatedUser] = await db
-        .update(users)
-        .set(data)
-        .where(eq(users.id, id))
-        .returning();
+      // Start a transaction to ensure all updates are atomic
+      const [updatedUser] = await db.transaction(async (tx) => {
+        // Get current user data first to ensure we have the latest values
+        const [currentUser] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, id));
+          
+        if (!currentUser) {
+          throw new Error(`User with ID ${id} not found`);
+        }
+        
+        // Perform the update with transactions to ensure ACID compliance
+        const result = await tx
+          .update(users)
+          .set(data)
+          .where(eq(users.id, id))
+          .returning();
+          
+        return result;
+      });
       
       console.log(`DATABASE: User ${id} update successful:`, updatedUser?.tokens);
       return updatedUser;

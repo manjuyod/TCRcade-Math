@@ -382,8 +382,12 @@ export default function HomePage() {
       // Play sound based on result
       playSound(data.correct ? 'correct' : 'incorrect');
 
-      // Invalidate user data to refresh token count in the header
+      // Invalidate user data to refresh token count and question stats in the header and profile
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      
+      // Also invalidate progress data to ensure analytics are updated
+      queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/analytics'] });
 
       // Show feedback
       setFeedbackData({

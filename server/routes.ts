@@ -583,11 +583,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Send response with standardized format
+      // Send response with standardized format with complete stats
       res.json({
+        success: true,
         correct: isCorrect,
         tokensEarned,
         totalTokens: userId && req.user ? req.user.tokens : 0,
+        questionsAnswered: userId && req.user ? req.user.questionsAnswered : 0,
+        correctAnswers: userId && req.user ? req.user.correctAnswers : 0,
         correctAnswer: correctAnswer
       });
     } catch (error) {

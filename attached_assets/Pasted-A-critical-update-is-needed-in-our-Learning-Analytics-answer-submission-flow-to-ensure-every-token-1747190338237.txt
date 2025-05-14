@@ -1,0 +1,41 @@
+A critical update is needed in our Learning Analytics “answer submission” flow to ensure every token award and question count is persisted correctly. Follow these steps:
+
+1. **Identify the Submission Logic**  
+   - Locate the endpoint or service method that processes each answered question (e.g. `POST /api/answer`).  
+   - Find where `tokensEarned`, `isCorrect`, and the question payload are handled in that flow.
+
+2. **Enforce Token Persistence**  
+   - For **every** question answered, including bonus tokens, update the `users.tokens` column in the database.  
+   - Use an atomic operation (e.g. `UPDATE users SET tokens = tokens + :tokensEarned WHERE id = :userId`).  
+   - Ensure no conditional branch skips token updates (even for “math-facts” or other categories).
+
+3. **Increment Question Counters**  
+   - After persisting tokens, increment `users.questions_answered` by 1 on **every** submission.  
+   - If `isCorrect === true`, also increment `users.correct_answers` by 1.  
+   - Use a single upsert or transaction so all three counters update together, preventing partial writes.
+
+4. **Reflect Changes in Request Object**  
+   - Update in‑memory `req.user` or session object to reflect the new totals immediately, so subsequent logic and the response payload include the updated values.
+
+5. **Update the API Response**  
+   - Return the updated totals in the JSON payload:  
+     ```json
+     {
+       "success": true,
+       "tokens": <new total tokens>,
+       "questionsAnswered": <new total questions answered>,
+       "correctAnswers": <new total correct answers>
+     }
+     ```
+
+6. **Front‑end Mapping**  
+   - Ensure the client code consumes these response fields and updates its state/store accordingly, so the UI shows the instantly persisted totals.
+
+7. **Lint & Test**  
+   - Run `npm run lint && npm test` (or equivalent).  
+   - Add or update unit tests to mock a submission and assert that tokens, questionsAnswered, and correctAnswers in the database and in the API response have increased correctly.
+
+8. **Summarize & Output**  
+   - After applying, produce a unified diff of all back‑end changes (and any front‑end mapping updates).  
+   - List each fix in one line (e.g. “Updated answer endpoint to always upsert tokens, questionsAnswered, correctAnswers”).  
+   - Do **not** commit or push—return this report and diff for manual review.
