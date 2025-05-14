@@ -14,8 +14,28 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { playSound } from '@/lib/sounds';
 import { MultiplayerRoom, Question } from '@shared/schema';
 import { Loader2, Users, Clock, Trophy, Shield, Zap, Crown, Share2, RefreshCw, PlusCircle, Key } from 'lucide-react';
+
 import QuestionCard from './question-card';
 import { ProgressBar } from '@/components/progress-bar';
+
+// Random adjectives and nouns for room name generation
+const ROOM_ADJECTIVES = [
+  "Epic", "Mighty", "Clever", "Brave", "Speedy", 
+  "Blazing", "Brilliant", "Cosmic", "Dynamic", "Fearless",
+  "Fiery", "Fluffy", "Gigantic", "Glowing", "Jolly",
+  "Jumbo", "Magical", "Mega", "Nimble", "Peppy",
+  "Rapid", "Silly", "Sparkling", "Super", "Turbo",
+  "Whimsical", "Zany", "Amazing", "Electric", "Fantastic"
+];
+
+const ROOM_NOUNS = [
+  "Tigers", "Eagles", "Dragons", "Wizards", "Knights",
+  "Rockets", "Pandas", "Dolphins", "Llamas", "Monkeys",
+  "Ninjas", "Pirates", "Dinosaurs", "Robots", "Unicorns",
+  "Heroes", "Giants", "Sharks", "Wolves", "Astronauts",
+  "Zombies", "Aliens", "Vikings", "Penguins", "Jaguars",
+  "Explorers", "Champions", "Guardians", "Legends", "Masters"
+];
 
 // Possible room statuses
 type RoomStatus = 'waiting' | 'starting' | 'playing' | 'finished';
@@ -168,7 +188,7 @@ export default function MultiplayerMode() {
         title: 'Room created',
         description: `Room "${data.name}" has been created. Share code: ${data.roomCode}`,
         variant: 'default',
-        dismissTimeout: 3000 // Auto-dismiss after 3 seconds
+        dismisstimeout: 3000 // Auto-dismiss after 3 seconds
       });
     },
     onError: (error) => {

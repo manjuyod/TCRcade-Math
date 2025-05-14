@@ -12,7 +12,7 @@ const TOAST_REMOVE_DELAY = 3000
 
 // Extended ToastProps to include dismissTimeout
 export interface ExtendedToastProps extends ToastProps {
-  dismissTimeout?: number; // Time in ms after which toast auto-dismisses
+  dismisstimeout?: number; // Time in ms after which toast auto-dismisses
 }
 
 type ToasterToast = ExtendedToastProps & {
