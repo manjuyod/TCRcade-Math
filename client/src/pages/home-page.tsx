@@ -553,21 +553,51 @@ export default function HomePage() {
         });
       }
 
-      // Check if session is complete (exactly 5 questions)
-      // For all module types (including Math Facts), we want exactly 5 questions per session
-      if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+      // Check if batch is complete from server response
+      // The server tracks batches of 5 questions and sets batchComplete flag
+      if (data.batchComplete) {
+        // Update final session stats before showing session complete
+        // Include any bonus tokens from perfect score
+        const finalStats = {
+          questionsAnswered: sessionSize, // Always exactly 5 questions
+          correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
+          tokensEarned: sessionStats.tokensEarned + data.tokensEarned + (data.bonusTokens || 0)
+        };
+
+        // Log session completion for debugging
+        console.log("Batch complete! Stats:", 
+          `${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ` +
+          `${finalStats.tokensEarned} tokens earned` +
+          (data.bonusAwarded ? ` (includes ${data.bonusTokens} bonus tokens)` : "")
+        );
+
+        // Set the final stats
+        setSessionStats(finalStats);
+
+        setTimeout(() => {
+          setSessionCompleted(true);
+          setShowFeedback(false);
+
+          // Play session complete sound based on whether bonus was awarded
+          if (data.bonusAwarded) {
+            // Play perfect score sound if bonus was awarded (all 5 correct)
+            playSound('perfectScore');
+          } else {
+            // Play regular completion sound
+            playSound('sessionComplete');
+          }
+        }, 2000); // Show feedback for 2 seconds before showing session complete
+      } 
+      // Legacy fallback check in case server doesn't send batchComplete flag
+      else if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+        console.log("Using legacy batch completion check (5 questions)");
+        
         // Update final session stats before showing session complete
         const finalStats = {
           questionsAnswered: sessionSize, // Always exactly 5 questions
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned
         };
-
-        // Log session completion for debugging
-        console.log("Session completed with stats:", 
-          `${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ` +
-          `${finalStats.tokensEarned} tokens earned`
-        );
 
         // Set the final stats
         setSessionStats(finalStats);
@@ -769,6 +799,8 @@ export default function HomePage() {
               correctAnswers={sessionStats.correctAnswers}
               totalQuestions={sessionStats.questionsAnswered}
               tokensEarned={sessionStats.tokensEarned}
+              bonusTokens={sessionStats.correctAnswers === sessionSize ? 20 : 0}
+              bonusAwarded={sessionStats.correctAnswers === sessionSize}
               onStartNewSession={handleStartNewSession}
             />
           ) : isLoading || isManuallyLoading || answerMutation.isPending ? (
