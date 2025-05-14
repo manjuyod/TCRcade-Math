@@ -382,6 +382,9 @@ export default function HomePage() {
       // Play sound based on result
       playSound(data.correct ? 'correct' : 'incorrect');
 
+      // Invalidate user data to refresh token count in the header
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+
       // Show feedback
       setFeedbackData({
         correct: data.correct,
