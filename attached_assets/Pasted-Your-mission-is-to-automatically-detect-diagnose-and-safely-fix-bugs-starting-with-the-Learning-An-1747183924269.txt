@@ -1,0 +1,42 @@
+Your mission is to automatically detect, diagnose, and safely fix bugs—starting with the Learning Analytics feature and then across the entire codebase—**without** creating any branches or pushing anything to a remote. Follow this workflow step by step:
+
+1. **Workspace Preparation**  
+   - Assume you are already on the up‑to‑date `dev` (or `main`) checkout.  
+   - Do **not** create or switch branches, and do **not** push or trigger any CI/CD.
+
+2. **Static Analysis**  
+   - Run the linter (e.g. `npm run lint`, `flake8`) and type‑checker (TypeScript, MyPy, Flow).  
+   - Collect all lint errors, warnings, and type failures into a list.
+
+3. **Test Suite Execution**  
+   - Run the full test suite (`npm test`, `pytest`, etc.).  
+   - Record every failing test, including error messages and stack traces.
+
+4. **Auto‑Fix Loop**  
+   For each issue in the combined list of lint/type errors and failing tests, do the following in isolation within the workspace:  
+   a. **Diagnose** the root cause by examining the relevant file/function.  
+   b. **Generate** a minimal patch that addresses only this one issue (e.g. fix an import path, adjust a threshold, correct a typo).  
+   c. **Apply** the patch to the files on disk.  
+   d. **Re‑run** static analysis and tests:  
+      - If **all checks now pass**, keep the change and proceed.  
+      - If any check still fails, **revert** that change and mark the issue for human review.
+
+5. **Patch Bundling**  
+   - After all auto‑fixable issues are handled, produce a single unified diff (patch) that contains all applied changes.
+
+6. **Summary Report**  
+   - List which issues were auto‑fixed (with a one‑line description each).  
+   - List which issues were deferred for manual review (with file paths and error summaries).  
+   - Include the unified diff patch at the end of your report.
+
+7. **Exit**  
+   - Return only your summary report and the diff.  
+   - Do **not** commit or push anything—this patch is for a developer to review and merge manually.
+
+**Critical Constraints:**  
+- No branch creation or switching.  
+- No remote pushes or CI/CD triggers.  
+- Only apply changes that pass all lint and test checks; defer ambiguous cases.  
+- Keep each fix minimal and self‑contained.  
+
+Proceed through each step and output your final report and patch when you’re done.  

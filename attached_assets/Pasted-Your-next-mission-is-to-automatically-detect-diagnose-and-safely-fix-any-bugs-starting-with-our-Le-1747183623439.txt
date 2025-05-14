@@ -1,0 +1,54 @@
+Your next mission is to automatically detect, diagnose, and safely fix any bugs—starting with our Learning Analytics feature and extending across the entire codebase—while never modifying `main` directly. Follow this workflow step by step:
+
+1. **Branch Creation**  
+   - Checkout a new branch named `auto/bugfixes-<timestamp>` (e.g. `auto/bugfixes-20250513-17h30`).  
+   - If the branch already exists, reset it to the latest `main` head.
+
+2. **Static Analysis**  
+   - Run our linter (`npm run lint`, `flake8`, etc.) and type‑checker (TypeScript, MyPy, Flow).  
+   - Collect all lint errors, warnings, and type failures into a list.
+
+3. **Test Suite Execution**  
+   - Run the full test suite (`npm test`, `pytest`, etc.).  
+   - Record every failing test, including error messages and stack traces.
+
+4. **Auto‑Fix Loop**  
+   For each issue in the combined list of lint/type errors and failing tests, do the following in isolation:
+   a. **Diagnose the root cause** by examining the relevant file, function, or import.  
+   b. **Generate a minimal patch** that addresses only this one issue (e.g. fix an import path, adjust a threshold, correct a misspelled variable, update an assertion).  
+   c. **Apply the patch** to the branch.  
+   d. **Re‑run static analysis and tests**:
+      - If **all checks now pass**, keep the patch and move on to the next issue.  
+      - If any check still fails, **revert** the patch and record that this issue requires human review.
+
+5. **Manual Review Preparation**  
+   - Summarize which issues were auto‑fixed vs. which were deferred.  
+   - For deferred issues, include file paths, error summaries, and any diagnostic notes you gathered.
+
+6. **Pull Request Creation**  
+   - Push the branch to origin.  
+   - Open a draft pull request against `main` with:
+     - **Title:** “Auto‑fix bugs and lint/type errors”  
+     - **Body:**  
+       1. A list of all auto‑fixed issues (with brief descriptions and diffs).  
+       2. A list of issues needing human review (with context and error logs).  
+       3. Instructions for running the same workflow locally:  
+          ```
+          git fetch origin
+          git checkout auto/bugfixes-<timestamp>
+          npm install   # or pip install -r requirements.txt
+          npm run lint && npm test
+          ```
+     - Assign appropriate reviewers or teams.
+
+7. **Exit**  
+   - Post the URL of the created pull request.  
+   - Provide a one‑paragraph summary of the total fixes applied and the remaining action items.
+
+**Important Constraints:**  
+- Never merge or push directly to `main`.  
+- Keep each patch minimal and self‑contained.  
+- Only auto‑fix issues that pass all checks; do not guess at complex logic bugs.  
+- Log and defer anything ambiguous or out of scope for automated fixing.
+
+Proceed through each step methodically, reporting progress and pausing only to open the pull request at the end.
