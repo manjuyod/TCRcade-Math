@@ -128,17 +128,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeaderboard(): Promise<Array<User & { score: number }>> {
-    const leaderboardUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.isAdmin, false))
-      .orderBy(desc(users.tokens))
-      .limit(20);
-    
-    return leaderboardUsers.map(user => ({
-      ...user,
-      score: user.tokens
-    }));
+    try {
+      const leaderboardUsers = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.tokens))
+        .limit(20);
+      
+      // Log for debugging
+      console.log(`Leaderboard users found: ${leaderboardUsers.length}`);
+      
+      return leaderboardUsers.map(user => ({
+        ...user,
+        score: user.tokens || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      return [];
+    }
   }
 
   // Question methods
