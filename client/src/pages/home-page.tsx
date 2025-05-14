@@ -573,9 +573,12 @@ export default function HomePage() {
 
         // Set the final stats
         setSessionStats(finalStats);
-
+        
+        // Immediately mark as completed to prevent loading another question
+        setSessionCompleted(true);
+        
+        // Show feedback for a moment before transitioning to the completion screen
         setTimeout(() => {
-          setSessionCompleted(true);
           setShowFeedback(false);
 
           // Play session complete sound based on whether bonus was awarded
@@ -601,9 +604,12 @@ export default function HomePage() {
 
         // Set the final stats
         setSessionStats(finalStats);
+        
+        // Immediately mark as completed to prevent loading another question
+        setSessionCompleted(true);
 
+        // Show feedback for a moment before transitioning to the completion screen
         setTimeout(() => {
-          setSessionCompleted(true);
           setShowFeedback(false);
 
           // Play session complete sound based on performance
@@ -630,6 +636,12 @@ export default function HomePage() {
 
   // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
+    // Skip loading next question if session is completed
+    if (sessionCompleted) {
+      console.log("Session completed - skipping next question fetch");
+      return;
+    }
+    
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
 
