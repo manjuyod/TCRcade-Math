@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,7 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
   // Timer countdown
   useEffect(() => {
     if (gameOver) return;
-    
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0) {
@@ -51,7 +50,7 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
 
   const handleAnswer = (selectedAnswer: string) => {
     if (gameOver) return;
-    
+
     // Calculate damage based on remaining time
     const damage = timeLeft * 10;
 
