@@ -329,6 +329,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/leaderboard", ensureAuthenticated, async (req, res) => {
+    try {
+      const leaderboard = await storage.getLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      errorResponse(res, 500, "Failed to fetch leaderboard data", error);
+    }
+  });
+  
   // AI Math Tutor endpoints
   app.post('/api/tutor/feedback', ensureAuthenticated, async (req, res) => {
     try {
