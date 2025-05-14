@@ -1,0 +1,44 @@
+A new issue has surfaced: user progress and token counts in the Learning Analytics feature are not persisting between page loads. Data is not being written to—or read from—the database correctly. Your mission is to trace, diagnose, and patch this end to end. Follow these steps:
+
+1. **Confirm Current Workflow**  
+   - Locate where “progress” and “tokens” updates are triggered in the front end (e.g. React component, context or Redux action).  
+   - Trace the network calls when progress or token updates occur (e.g. POST or PUT to `/api/user_progress`).  
+   - Identify where the front end fetches persisted stats on page load (e.g. GET from `/api/user_progress/:userId`).
+
+2. **Inspect Database Schema**  
+   - Examine the `user` and `user_progress` tables:  
+     - Confirm columns exist for cumulative tokens and progress metrics.  
+     - Verify primary keys, foreign keys, and any unique constraints.  
+   - Run manual SQL queries to see if writes are landing in `user_progress` (e.g. `SELECT * FROM user_progress WHERE user_id = X`).
+
+3. **Examine Back‑end Logic**  
+   - Find the controller or service handling progress updates:  
+     - Check whether it’s using `INSERT`, `UPDATE`, or an upsert (`ON CONFLICT DO UPDATE`).  
+     - Ensure it uses the correct user identifier and isn’t inadvertently creating new rows each request.  
+   - Find the handler for loading progress:  
+     - Verify it queries the right table and maps columns correctly into the API response.
+
+4. **Review Front‑end Persistence**  
+   - Confirm that the front end’s fetch logic correctly maps API response fields into state (e.g. `analyticsContext.set({ tokens: response.tokens, progress: response.progress })`).  
+   - Ensure no part of the client code is resetting state on reload or overwriting persisted values with defaults.
+
+5. **Reproduce and Diagnose**  
+   - Simulate a user answering questions to increment tokens/progress, then reload and observe API payloads and UI state.  
+   - Note discrepancies between what the backend stores and what the frontend displays.
+
+6. **Generate & Apply Fixes**  
+   - **Database patch** (if needed): add/migrate columns or adjust constraints for cumulative storage.  
+   - **Backend patch**: convert write logic to upsert or correct UPDATE statements; fix any mapping errors in response.  
+   - **Frontend patch**: correct fetch and state-mapping logic; remove any code that clears persisted data on reload.  
+   - After each patch, re-run lint/type checks and the test suite (`npm run lint && npm test` or `pytest`):  
+     - If **all pass**, keep the change;  
+     - If any fail, revert and defer that issue for manual review.
+
+7. **Summarize & Bundle**  
+   - Produce a unified diff of all changes applied.  
+   - List each fix with a one-line description (e.g. “Changed INSERT to UPSERT in progressController,” “Mapped `total_tokens` instead of `session_tokens` in frontend API response”).  
+   - List any deferred issues requiring further human investigation.
+
+8. **Output**  
+   - Return only your summary report and the unified diff.  
+   - Do **not** commit or push—provide this patch for a developer to review and merge manually.  

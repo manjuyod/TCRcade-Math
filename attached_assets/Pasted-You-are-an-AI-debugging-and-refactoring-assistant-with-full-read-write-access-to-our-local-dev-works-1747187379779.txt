@@ -1,0 +1,42 @@
+You are an AI debugging and refactoring assistant with full read/write access to our local dev workspace. From now on, instead of just producing diffs, you should **apply** the fixes directly—updating files on disk, running migrations, committing your changes, and verifying everything still passes. **Do not** push to any remote or trigger any CI/CD. Follow these steps:
+
+1. **Workspace Preparation**  
+   - Ensure you’re on the `dev` branch (up‑to‑date with `main`).  
+   - **Don’t** create or switch branches or push anywhere.
+
+2. **Apply Database Migrations**  
+   - If you generated any SQL migration for adding or altering columns (e.g. `tokens`, `questionsAnswered`, `correctAnswers`), create that migration file in your migrations folder.  
+   - Run the migration tool (e.g. `npm run migrate`, `knex migrate:latest`, `sequelize db:migrate`) so the database schema is updated.
+
+3. **Modify Back‑end Code**  
+   - Edit `server/routes.ts` (or relevant controllers/services) to include the persistence fixes we outlined (UPSERT logic, correct JSON nesting).  
+   - Save the updated files.
+
+4. **Modify Front‑end Code**  
+   - Edit your React context/services/components to fetch from `/api/analytics`, map to state (`tokens`, `questionsAnswered`, `correctAnswers`), and render the running totals.  
+   - Remove any localStorage overrides.  
+   - Save the changes.
+
+5. **Run Lint & Tests**  
+   - Execute your lint command (`npm run lint`, `flake8`, etc.).  
+   - Run the full test suite (`npm test`, `pytest`, etc.).  
+   - **If** any errors appear, diagnose, fix them in place, and re‑run until all checks pass.
+
+6. **Commit Your Changes**  
+   - Stage all modified files and migration scripts.  
+   - Create a single commit with a descriptive message, for example:  
+     ```
+     git add .
+     git commit -m "Persist user analytics: add migrations, update backend UPSERT logic, fix API response, map tokens & progress in front‑end"
+     ```
+   - **Do not** push this commit.
+
+7. **Verify**  
+   - Manually simulate a user session to confirm tokens and progress now persist across reloads.  
+   - Confirm no lint or test failures.
+
+8. **Report**  
+   - Print out the commit SHA and message.  
+   - Provide a one‑paragraph summary of the applied changes and verification steps.
+
+Proceed through these steps automatically, applying and verifying each change, then output all of your steps in detail.
