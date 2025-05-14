@@ -1,0 +1,48 @@
+You are an AI debugging and refactoring assistant operating entirely in our development workspace (no branches, no remote pushes, no deploys). A new issue has come up: the **Leaderboard** page isn’t showing any data. Your mission is to trace, diagnose, and fix this end‑to‑end. Follow these steps:
+
+1. **Backend Endpoint Verification**  
+   - Locate the route that serves leaderboard data (e.g. `GET /api/leaderboard`).  
+   - Confirm it calls `storage.getLeaderboard()` (or equivalent) and returns a JSON array of users with their `score` property.  
+   - Manually invoke the endpoint (via cURL or Postman) and inspect the raw response.  
+     - If the response is empty or missing fields, trace into `getLeaderboard()` in your storage implementation to ensure it’s returning the top users sorted by `tokens`.
+
+2. **Database & Storage Logic**  
+   - In `DatabaseStorage` (or `MemStorage` if in-memory), verify that `getLeaderboard()`:  
+     - Filters out admin users,  
+     - Maps each user to include `.score = user.tokens`,  
+     - Sorts descending,  
+     - Limits to top 20.  
+   - Check for any accidental empty filters or typos (e.g. using the wrong column name).
+
+3. **API Response Shape**  
+   - Ensure the JSON shape matches what the front‑end expects (e.g. `[{ id, username, tokens, score }, …]` vs. maybe your code is nesting data under a key).  
+   - If needed, adjust the `res.json(...)` in your route handler to match the expected array shape.
+
+4. **Front‑end Fetch & Mapping**  
+   - Locate the component (e.g. `Leaderboard.tsx`):  
+     - Confirm it calls the correct endpoint URL.  
+     - Verify it parses `response.json()` into an array.  
+     - Ensure it sets state (e.g. `setLeaderboard(data)`) before rendering.  
+   - Check that the render loop uses the correct property (e.g. `user.score` not `user.tokens` or `user.points`).
+
+5. **Render Logic & UI**  
+   - Ensure there’s no guard inadvertently hiding the list (e.g. `if (!leaders.length) return null;`).  
+   - Confirm the table or list JSX iterates over `leaders.map(...)` and outputs at least username and score columns.
+
+6. **Reproduce & Diagnose**  
+   - In local dev, seed or create multiple users with known token totals.  
+   - Hit the Leaderboard page and observe console/network errors or warnings.  
+   - Note any mismatches between the data returned by the API and what the UI tries to render.
+
+7. **Apply Fixes**  
+   - **Backend**: patch route or storage logic to return correct data.  
+   - **Front‑end**: patch fetch URL, response mapping, and render JSX to show data properly.  
+   - After each change, re‑run `npm run lint && npm test`.
+
+8. **Tests**  
+   - Add or update a unit test for the leaderboard service to assert it returns a non‑empty array when users exist.  
+   - Add a component or integration test that mocks the API and asserts the Leaderboard component renders list items.
+
+9. **Summary & Diff**  
+   - Produce a unified diff of all changes (backend routes, storage, frontend component, tests).  
+   - List each change in one line (e.g. “Fixed `getLeaderboard()` filter logic,” “Updated `/api/leaderboard` response shape,” “Mapped `user.score` in Leaderboard.tsx render loop”).
