@@ -146,14 +146,16 @@ export default function AiAnalytics() {
       const res = await fetch('/api/analytics');
       if (!res.ok) throw new Error('Failed to fetch analytics');
       return res.json() as Promise<{
-        analytics: AiAnalytic;
-        conceptMasteries: ConceptMastery[];
-        recentProgress: {
-          date: string;
-          score: number;
-          questionsAnswered: number;
-          timeSpent: number;
-        }[];
+        analytics: {
+          analytics: AiAnalytic;
+          conceptMasteries: ConceptMastery[];
+          recentProgress: {
+            date: string;
+            score: number;
+            questionsAnswered: number;
+            timeSpent: number;
+          }[];
+        }
       }>;
     }
   });
@@ -184,12 +186,17 @@ export default function AiAnalytics() {
     }
   };
   
+  // Extract the nested analytics data
+  const analytics = analyticsData?.analytics?.analytics;
+  const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
+  const recentProgress = analyticsData?.analytics?.recentProgress || [];
+  
   // Automatically generate a study plan when analytics data changes
   useEffect(() => {
     if (analyticsData && customStudyPlan.length === 0) {
       // Only auto-generate if we don't already have a plan
       generateCustomStudyPlanFromAnalytics(
-        analyticsData, 
+        analyticsData.analytics, 
         setCustomStudyPlan, 
         setIsGeneratingPlan, 
         setActiveTab,
