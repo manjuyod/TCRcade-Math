@@ -503,14 +503,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate tokens earned based on correctness and difficulty
       const tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
       
-      // Update user progress 
+      // Update user progress and tokens
       if (userId) {
-        // For non-Math Facts questions, update database
-        // For Math Facts, this is handled client-side to allow non-authenticated use
-        const category = question?.category || 'unknown';
-        
-        if (!category.startsWith('math-facts-')) {
-          try {
+        try {
+          // For all questions (including Math Facts), update the user's total tokens
+          if (tokensEarned > 0) {
+            const user = req.user;
+            if (user) {
+              // Update the user's token count in the database
+              const currentTokens = user.tokens || 0;
+              const newTokens = currentTokens + tokensEarned;
+              
+              // Update the user record with new token count
+              await storage.updateUser(userId, {
+                tokens: newTokens,
+                // Also update overall statistics
+                questionsAnswered: (user.questionsAnswered || 0) + 1,
+                correctAnswers: (user.correctAnswers || 0) + (isCorrect ? 1 : 0)
+              });
+              
+              // Update the user object in the request to reflect the change
+              req.user.tokens = newTokens;
+            }
+          }
+          
+          // For non-Math Facts questions, update additional progress metrics
+          const category = question?.category || 'unknown';
+          
+          if (!category.startsWith('math-facts-')) {
             // Update user progress in database
             await storage.updateUserProgress(userId, category, {
               completedQuestions: 1,
@@ -539,10 +559,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 isCorrect
               );
             }
-          } catch (updateError) {
-            console.error("Error updating progress:", updateError);
-            // Continue - don't fail the answer submission if progress update fails
           }
+        } catch (updateError) {
+          console.error("Error updating progress:", updateError);
+          // Continue - don't fail the answer submission if progress update fails
         }
       }
       
@@ -550,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         correct: isCorrect,
         tokensEarned,
-        totalTokens: userId ? (req.user?.tokens || 0) + tokensEarned : 0,
+        totalTokens: userId && req.user ? req.user.tokens : 0,
         correctAnswer: correctAnswer
       });
     } catch (error) {
