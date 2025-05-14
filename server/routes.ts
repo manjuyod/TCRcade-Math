@@ -52,12 +52,13 @@ function cleanCache() {
   const now = Date.now();
   let expiredCount = 0;
   
-  for (const [key, entry] of questionCache.entries()) {
+  // Convert entries to array to avoid MapIterator issues
+  Array.from(questionCache.entries()).forEach(([key, entry]) => {
     if (now - entry.timestamp > CACHE_TTL) {
       questionCache.delete(key);
       expiredCount++;
     }
-  }
+  });
   
   // If cache is too large, remove oldest entries
   if (questionCache.size > CACHE_MAX_SIZE) {
@@ -105,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching questions:", error);
       res.status(500).json({ 
         message: "Failed to fetch questions",
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -178,6 +179,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Next endpoint: questions/next
   app.get("/api/questions/next", ensureAuthenticated, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
       const { grade, category, excludeIds } = req.query;
       const userId = req.user.id;
       
@@ -410,22 +415,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Transform progress data for frontend charts
       // Handle fields that may not exist in the progress data
+      // Using type assertion to handle properties that might not exist in the type definition
+      // but could be present in the actual data
       const recentProgress = progressData
         .sort((a, b) => {
-          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 
-                       (a.date ? new Date(a.date).getTime() : 0);
-          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 
-                       (b.date ? new Date(b.date).getTime() : 0);
+          // Safely get dates with optional properties using type assertion for additional properties
+          const dateA = (a as any).updatedAt ? new Date((a as any).updatedAt).getTime() : 
+                       ((a as any).date ? new Date((a as any).date).getTime() : 0);
+          const dateB = (b as any).updatedAt ? new Date((b as any).updatedAt).getTime() : 
+                       ((b as any).date ? new Date((b as any).date).getTime() : 0);
           return dateB - dateA;
         })
         .slice(0, 10)
         .reverse()
         .map(p => ({
-          date: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 
-                (p.date ? new Date(p.date).toLocaleDateString() : new Date().toLocaleDateString()),
+          date: (p as any).updatedAt ? new Date((p as any).updatedAt).toLocaleDateString() : 
+                ((p as any).date ? new Date((p as any).date).toLocaleDateString() : new Date().toLocaleDateString()),
           score: p.score || 0,
-          questionsAnswered: p.completedQuestions || p.questionsAnswered || 0,
-          timeSpent: p.timeSpent || 0
+          questionsAnswered: p.completedQuestions || ((p as any).questionsAnswered || 0),
+          timeSpent: (p as any).timeSpent || 0
         }));
       
       // Create a placeholder analytics object if none exists
