@@ -12,9 +12,15 @@ export default function LeaderboardPage() {
   const { user } = useAuth();
   
   // Fetch leaderboard data
-  const { data: leaderboard, isLoading } = useQuery<LeaderboardEntry[]>({
+  const { data: leaderboard, isLoading, error } = useQuery<LeaderboardEntry[]>({
     queryKey: ['/api/leaderboard'],
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    onSuccess: (data) => {
+      console.log('Leaderboard data received:', data);
+    },
+    onError: (err) => {
+      console.error('Leaderboard fetch error:', err);
+    }
   });
   
   if (!user) return null;

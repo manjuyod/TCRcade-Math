@@ -331,9 +331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/leaderboard", ensureAuthenticated, async (req, res) => {
     try {
+      console.log("Fetching leaderboard data...");
       const leaderboard = await storage.getLeaderboard();
+      console.log(`Leaderboard fetched: ${leaderboard.length} entries`);
+      console.log("Sample data:", leaderboard.slice(0, 2));
       res.json(leaderboard);
     } catch (error) {
+      console.error("Error in leaderboard fetch:", error);
       errorResponse(res, 500, "Failed to fetch leaderboard data", error);
     }
   });
