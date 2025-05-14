@@ -532,7 +532,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // Update the user record with token count and statistics
-            await storage.updateUser(userId, userUpdate);
+            console.log("DATABASE UPDATE: Updating user tokens and stats:", userUpdate);
+            const updatedUser = await storage.updateUser(userId, userUpdate);
+            console.log("DATABASE UPDATE: Updated user result:", updatedUser ? "Success" : "Failed");
             
             // Also update user stats in the request object to reflect changes
             if (typeof newQuestionsAnswered === 'number') {
