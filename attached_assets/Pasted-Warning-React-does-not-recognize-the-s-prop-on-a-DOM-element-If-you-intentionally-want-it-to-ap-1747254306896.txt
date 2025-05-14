@@ -1,0 +1,23 @@
+Warning: React does not recognize the `%s` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `%s` instead. If you accidentally passed it from a parent component, remove it from the DOM element.%s dismissTimeout dismisstimeout 
+    at li
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=b961280e:41:13
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=b961280e:52:11
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=b961280e:33:11
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=b961280e:41:13
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AQ3GFC6I.js?v=b961280e:59:7
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=b961280e:52:11
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=b961280e:33:11
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=b961280e:109:15
+    at Provider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GAQZSTL3.js?v=b961280e:48:15)
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=b961280e:325:7
+    at Presence (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-55OCLHHI.js?v=b961280e:24:11)
+    at https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=b961280e:273:13
+    at _c3 (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/src/components/ui/toast.tsx:62:41)
+    at Provider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GAQZSTL3.js?v=b961280e:48:15)
+    at Provider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=b961280e:28:15)
+    at CollectionProvider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=b961280e:89:13)
+    at ToastProvider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-toast.js?v=b961280e:53:5)
+    at Toaster (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/src/components/ui/toaster.tsx:29:22)
+    at AuthProvider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/src/hooks/use-auth.tsx:27:32)
+    at QueryClientProvider (https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b961280e:2805:3)
+    at App
