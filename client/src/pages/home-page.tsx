@@ -830,7 +830,7 @@ export default function HomePage() {
           ) : question ? (
             currentModuleType === 'boss_run' ? (
               <BossRunGame
-                question={question}
+                question={getNextMathFact(userGrade || '6', ['addition', 'subtraction', 'multiplication', 'division'][Math.floor(Math.random() * 4)])}
                 onAnswerSubmit={handleAnswerSubmit}
                 bossLevel={1}
               />

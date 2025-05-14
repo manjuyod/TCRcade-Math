@@ -15,45 +15,72 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
   const [bossHealth, setBossHealth] = useState(100 * bossLevel);
   const [timeLeft, setTimeLeft] = useState(10);
   const [bossPosition, setBossPosition] = useState(0);
-  const [operations] = useState(['addition', 'subtraction', 'multiplication', 'division']);
-  
-  // Move boss closer every 5 seconds
+  const [questionCount, setQuestionCount] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+
+  // Move boss closer every 2 questions
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (questionCount >= 2) {
       setBossPosition(prev => {
-        if (prev >= 10) return prev; // Boss reached player
+        if (prev >= 10) {
+          setGameOver(true);
+          return prev;
+        }
         return prev + 1;
       });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+      setQuestionCount(0);
+    }
+  }, [questionCount]);
 
   // Timer countdown
   useEffect(() => {
+    if (gameOver) return;
+    
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 0) return 0;
+        if (prev <= 0) {
+          setQuestionCount(c => c + 1);
+          return 10;
+        }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [gameOver]);
 
   const handleAnswer = (selectedAnswer: string) => {
+    if (gameOver) return;
+    
     // Calculate damage based on remaining time
     const damage = timeLeft * 10;
 
     // Submit answer and update boss health if correct
     onAnswerSubmit(selectedAnswer);
     if (selectedAnswer === question.answer) {
-      setBossHealth(prev => Math.max(0, prev - damage));
+      setBossHealth(prev => {
+        const newHealth = Math.max(0, prev - damage);
+        if (newHealth <= 0) {
+          setGameOver(true);
+        }
+        return newHealth;
+      });
     }
 
-    // Reset timer
+    setQuestionCount(prev => prev + 1);
     setTimeLeft(10);
   };
+
+  if (gameOver) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-100 rounded-xl p-6">
+        <h2 className="text-3xl font-bold mb-4">
+          {bossHealth <= 0 ? "Victory! Boss Defeated!" : "Game Over - Boss Reached You!"}
+        </h2>
+        <Button onClick={() => window.location.reload()}>Play Again</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[400px] bg-gray-100 rounded-xl p-6">
@@ -77,7 +104,7 @@ export default function BossRunGame({ question, onAnswerSubmit, bossLevel = 1 }:
         </div>
       </div>
 
-      {/* Boss and Player Characters */}
+      {/* Boss and Player */}
       <div className="flex justify-between items-center mt-32">
         <motion.div 
           className="text-6xl"
