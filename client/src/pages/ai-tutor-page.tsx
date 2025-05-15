@@ -428,7 +428,7 @@ export default function AiTutorPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <p className="text-lg font-medium">{currentQuestion.question}</p>
+                  <p className="text-lg font-medium">{typeof currentQuestion.question === 'object' ? currentQuestion.question.text : currentQuestion.question}</p>
                 </CardContent>
               </Card>
               
