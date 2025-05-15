@@ -429,12 +429,18 @@ export default function AiTutorPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="flex justify-center items-center">
-                    <p 
-                      className="text-lg font-medium"
-                      style={currentQuestion.question?.style || {}}
-                    >
-                      {currentQuestion.question?.text || currentQuestion.question}
-                    </p>
+                    {typeof currentQuestion.question === 'object' ? (
+                      <p 
+                        className="text-lg font-medium"
+                        style={currentQuestion.question.style || {}}
+                      >
+                        {currentQuestion.question.text}
+                      </p>
+                    ) : (
+                      <p className="text-lg font-medium">
+                        {currentQuestion.question}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
