@@ -17,7 +17,7 @@ import { Loader2, Users, Clock, Trophy, Shield, Zap, Crown, Share2, RefreshCw, P
 
 import QuestionCard from './question-card';
 import { ProgressBar } from '@/components/progress-bar';
-
+/*
 // Random adjectives and nouns for room name generation
 const ROOM_ADJECTIVES = [
   "Epic", "Mighty", "Clever", "Brave", "Speedy", 
@@ -36,7 +36,7 @@ const ROOM_NOUNS = [
   "Zombies", "Aliens", "Vikings", "Penguins", "Jaguars",
   "Explorers", "Champions", "Guardians", "Legends", "Masters"
 ];
-
+*/
 // Possible room statuses
 type RoomStatus = 'waiting' | 'starting' | 'playing' | 'finished';
 
