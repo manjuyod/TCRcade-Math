@@ -47,7 +47,7 @@ export default function ModulesPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { minutesPlayed, progressPercentage } = useSessionTimer();
-  
+
   // Stats for the dashboard
   const userStats = {
     minutesPlayed: minutesPlayed, // Use real-time session data
@@ -56,13 +56,13 @@ export default function ModulesPage() {
     totalQuestions: user?.questionsAnswered || 0, 
     accuracy: user?.questionsAnswered ? Math.round((user.correctAnswers / user.questionsAnswered) * 100) : 0
   };
-  
+
   // Active game filter
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  
+
   // Use the progress percentage from the timer hook
   const timeProgress = progressPercentage;
-  
+
   // Game modules list (these would come from API in a real implementation)
   const modules: Module[] = [
     // Math Facts modules (pure computation only, no word problems)
@@ -256,7 +256,7 @@ export default function ModulesPage() {
       completeCount: 0
     },
   ];
-  
+
   // Filter modules based on active filter
   const filteredModules = modules.filter(module => {
     if (activeFilter === 'all') return true;
@@ -265,7 +265,7 @@ export default function ModulesPage() {
     if (activeFilter === 'locked') return module.locked;
     return module.category === activeFilter;
   });
-  
+
   // Get game type label and color
   const getGameTypeInfo = (type: GameType) => {
     switch(type) {
@@ -277,7 +277,7 @@ export default function ModulesPage() {
         return { label: 'Standard', color: 'bg-gray-500' };
     }
   };
-  
+
   // Get difficulty stars
   const getDifficultyStars = (difficulty: number) => {
     return Array(5).fill(0).map((_, i) => (
@@ -287,39 +287,39 @@ export default function ModulesPage() {
       />
     ));
   };
-  
+
   // Start module handler
   const handleStartModule = (module: Module) => {
     console.log(`Loading ${module.gameType} module: ${module.id}`);
-    
+
     // Check if this is a Math Facts module
     const isMathFactsModule = module.id.startsWith('math-facts-');
-    
+
     // Store the module ID and its game type
     localStorage.setItem('currentModuleId', module.id);
     localStorage.setItem('currentModuleType', module.gameType);
-    
+
     // For Math Facts modules, we need to set additional information
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')
       const operation = module.id.split('-').pop() || 'addition';
       console.log(`Loading Math Facts with grade=${user?.grade || 'K'}, operation=${operation}`);
-      
+
       // Store the operation for the Math Facts module
       localStorage.setItem('mathFactsOperation', operation);
     }
-    
+
     // Navigate to home page (question session)
     setLocation('/');
   };
-  
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
-      
+
       <main className="flex-1 container mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-center mb-6">Math Modules Dashboard</h1>
-        
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow">
@@ -335,7 +335,7 @@ export default function ModulesPage() {
               <ProgressBar progress={timeProgress} height={10} />
             </div>
           </div>
-          
+
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="flex items-center">
               <Sparkles className="h-5 w-5 text-amber-500 mr-2" />
@@ -352,7 +352,7 @@ export default function ModulesPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="flex items-center">
               <UserRoundCheck className="h-5 w-5 text-green-500 mr-2" />
@@ -370,7 +370,7 @@ export default function ModulesPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Filters */}
         <div className="mb-6 overflow-x-auto pb-2">
           <div className="flex space-x-2 min-w-max">
@@ -432,18 +432,39 @@ export default function ModulesPage() {
             </Button>
           </div>
         </div>
-        
+
         {/* Modules Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredModules.map((module) => {
-            const gameTypeInfo = getGameTypeInfo(module.gameType);
-            
+                const gameTypeInfo = getGameTypeInfo(module.gameType);
+
+                // Determine if module should be locked based on grade and difficulty
+                const shouldLock = () => {
+                  if (!user?.grade) return true;
+
+                  switch(user.grade) {
+                    case 'K':
+                      return module.difficulty > 1;
+                    case '1':
+                      return module.difficulty > 2;
+                    case '2':
+                      return module.difficulty > 3;
+                    case '3':
+                      return module.difficulty > 4;
+                    default:
+                      return false; // 4th and above have full access
+                  }
+                };
+
+                // Apply the lock status
+                const isLocked = module.locked || shouldLock();
+
             return (
               <motion.div
                 key={module.id}
                 whileHover={{ translateY: -5 }}
                 className={`bg-white rounded-xl overflow-hidden shadow-md flex flex-col
-                  ${module.locked ? 'opacity-60' : ''}`}
+                  ${isLocked ? 'opacity-60' : ''}`}
               >
                 <div className={`${gameTypeInfo.color} p-4 text-white`}>
                   <div className="flex justify-between items-start">
@@ -463,7 +484,7 @@ export default function ModulesPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="p-4 flex-grow">
                   <p className="text-sm text-gray-600 mb-2">{module.description}</p>
                   <div className="flex items-center mt-4 mb-1">
@@ -475,22 +496,22 @@ export default function ModulesPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="p-4 pt-0">
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transform transition-transform hover:scale-105 shadow-lg hover:shadow-xl"
-                    disabled={module.locked}
-                    onClick={() => handleStartModule(module)}
-                  >
-                    {module.locked ? 'Locked' : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
-                  </Button>
+                    disabled={isLocked}
+                  onClick={() => handleStartModule(module)}
+                >
+                  {isLocked ? (shouldLock() ? `Unlocks in Grade ${user?.grade === 'K' ? '1' : Number(user?.grade || 0) + 1}` : 'Locked') : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
+                </Button>
                 </div>
               </motion.div>
             );
           })}
         </div>
       </main>
-      
+
       <Navigation active="home" />
     </div>
   );
