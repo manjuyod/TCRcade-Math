@@ -27,6 +27,10 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
   const [attempts, setAttempts] = useState(0);
   const { toast } = useToast();
 
+  // Extract question text from the question object
+  const questionObject = JSON.parse(question);
+  const questionText = questionObject.text;
+
   const handleCheckAnswer = async () => {
     if (!answer.trim()) {
       toast({
@@ -44,11 +48,11 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
         studentAnswer: answer,
         correctAnswer
       });
-      
+
       const data = await response.json();
       setFeedback(data.feedback);
       setIsCorrect(data.isCorrect);
-      
+
       if (!data.isCorrect) {
         setAttempts(prev => prev + 1);
       }
@@ -72,7 +76,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
         grade,
         previousAttempts: attempts
       });
-      
+
       const data = await response.json();
       setHint(data.hint);
     } catch (error) {
@@ -103,7 +107,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
         concept,
         grade
       });
-      
+
       const data = await response.json();
       setExplanation(data.explanation);
     } catch (error) {
@@ -139,12 +143,15 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
               </TabsTrigger>
             )}
           </TabsList>
-          
+
           <TabsContent value="help">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="answer">Your Answer:</Label>
                 <div className="flex gap-2 mt-1">
+                <div className="mb-4 text-2xl font-bold text-center">
+                {questionText}
+              </div>
                   <Input
                     id="answer"
                     placeholder="Enter your answer here"
@@ -163,7 +170,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
                   </Button>
                 </div>
               </div>
-              
+
               {isCorrect !== null && (
                 <Alert className={isCorrect ? "bg-green-50" : "bg-amber-50"}>
                   <AlertCircle className={isCorrect ? "text-green-500" : "text-amber-500"} />
@@ -175,7 +182,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="hint">
             <div className="space-y-4">
               <Button onClick={handleGetHint} disabled={loading === "hint"} className="w-full">
@@ -191,7 +198,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
                   </>
                 )}
               </Button>
-              
+
               {hint && (
                 <Alert className="bg-blue-50">
                   <LightbulbIcon className="h-4 w-4 text-blue-500" />
@@ -203,7 +210,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
               )}
             </div>
           </TabsContent>
-          
+
           {concept && (
             <TabsContent value="learn">
               <div className="space-y-4">
@@ -220,7 +227,7 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
                     </>
                   )}
                 </Button>
-                
+
                 {explanation && (
                   <Alert className="bg-purple-50">
                     <BookOpen className="h-4 w-4 text-purple-500" />
