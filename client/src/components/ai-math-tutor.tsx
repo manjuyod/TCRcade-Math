@@ -151,9 +151,6 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
               <div>
                 <Label htmlFor="answer">Your Answer:</Label>
                 <div className="flex gap-2 mt-1">
-                <div className="mb-4 text-2xl font-bold text-center">
-                {questionText}
-              </div>
                   <Input
                     id="answer"
                     placeholder="Enter your answer here"
