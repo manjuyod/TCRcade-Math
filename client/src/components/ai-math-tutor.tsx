@@ -27,9 +27,11 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
   const [attempts, setAttempts] = useState(0);
   const { toast } = useToast();
 
-  // Extract question text from the question object
-  const questionObject = JSON.parse(question);
-  const questionText = questionObject.text;
+  // Handle both string and object question formats
+  const questionObject = typeof question === 'string' ? 
+    (question.startsWith('{') ? JSON.parse(question) : { text: question }) : 
+    question;
+  const questionText = typeof questionObject === 'object' ? questionObject.text : question;
 
   const handleCheckAnswer = async () => {
     if (!answer.trim()) {
