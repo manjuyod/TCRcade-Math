@@ -503,7 +503,7 @@ export default function ModulesPage() {
                     disabled={isLocked}
                   onClick={() => handleStartModule(module)}
                 >
-                  {isLocked ? (shouldLock() ? `Unlocks in Grade ${user?.grade === 'K' ? '1' : Number(user?.grade || 0) + 1}` : 'Locked') : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
+                  {isLocked ? 'Locked' : module.completeCount > 0 ? 'Play Again' : 'Start Module'}
                 </Button>
                 </div>
               </motion.div>
