@@ -44,46 +44,46 @@ export default function AiTutorPage() {
       // First show loading state
       setIsLoading(true);
       setCurrentQuestion(null);
-      
+
       // Construct parameters for the API request
       const params = new URLSearchParams();
       params.append('grade', selectedGrade);
       if (selectedCategory) {
         params.append('category', selectedCategory);
       }
-      
+
       // Add timestamp to force a fresh request every time
       params.append('t', Date.now().toString());
-      
+
       // Force dynamic question generation for variety
       params.append('forceDynamic', 'true');
-      
+
       // Avoid getting the same question by tracking previous IDs
       if (currentQuestion?.id) {
         params.append('exclude', currentQuestion.id.toString());
       }
-      
+
       console.log(`AI Tutor: Fetching new question with params: ${params.toString()}`);
-      
+
       // Show loading feedback
       toast({
         title: "Generating question",
         description: "Creating a new math problem for you...",
       });
-      
+
       const res = await apiRequest('GET', `/api/questions/next?${params}`);
       const data = await res.json();
-      
+
       // Debug the response
       console.log("AI Tutor API response:", data);
-      
+
       // Check if we received a valid question
       if (data && data.id) {
         console.log("New question received:", data);
-        
+
         // Store the complete question object directly
         setCurrentQuestion(data);
-        
+
         toast({
           title: "New problem ready!",
           description: "A fresh math problem has been generated for you.",
@@ -95,7 +95,7 @@ export default function AiTutorPage() {
           variant: "destructive",
         });
       }
-      
+
       // Turn off loading state
       setIsLoading(false);
     } catch (error) {
@@ -428,10 +428,17 @@ export default function AiTutorPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <p className="text-lg font-medium">{typeof currentQuestion.question === 'object' ? currentQuestion.question.text : currentQuestion.question}</p>
+                  <div className="flex justify-center items-center">
+                    <p 
+                      className="text-lg font-medium"
+                      style={typeof currentQuestion.question === 'object' ? currentQuestion.question.style : {}}
+                    >
+                      {typeof currentQuestion.question === 'object' ? currentQuestion.question.text : currentQuestion.question}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
-              
+
               <AIMathTutorComponent 
                 question={currentQuestion.question}
                 correctAnswer={currentQuestion.answer}
@@ -478,7 +485,7 @@ export default function AiTutorPage() {
                 grade="3"
                 concept="waiting"
               />
-              
+
               <div className="mt-4 text-center text-sm flex flex-col items-center justify-center bg-muted/30 p-3 rounded-lg">
                 <p className="text-muted-foreground mb-2">This is a sample problem to show you how the AI Math Tutor works.</p>
                 <Button 
