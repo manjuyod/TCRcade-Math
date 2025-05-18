@@ -115,6 +115,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Get available subjects for a grade
+  app.get("/api/subjects/available/:grade", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { grade } = req.params;
+
+      const availableSubjects = await storage.getAvailableSubjectsForGrade(userId, grade);
+      res.json(availableSubjects);
+    } catch (error) {
+      console.error("Error fetching available subjects:", error);
+      res.status(500).json({
+        message: "Failed to fetch available subjects",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Get subject masteries for the current user
   // Initialize subject masteries for a grade
 app.post("/api/subject-mastery/initialize", ensureAuthenticated, async (req, res) => {
