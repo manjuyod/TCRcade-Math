@@ -173,12 +173,6 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
       const subjectMasteries = await storage.getUserSubjectMasteries(userId);
-      res.setHeader(
-        "Cache-Control",
-        "no-store, no-cache, must-revalidate, proxy-revalidate",
-      );
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
       res.json(subjectMasteries);
     } catch (error) {
       console.error("Error fetching subject masteries:", error);
