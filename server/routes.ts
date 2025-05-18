@@ -116,7 +116,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Get subject masteries for the current user
-  app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
+  // Initialize subject masteries for a grade
+app.post("/api/subject-mastery/initialize", ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { grade } = req.body;
+
+    if (!grade) {
+      return res.status(400).json({ message: "Grade is required" });
+    }
+
+    // Get available subjects for this grade
+    const subjects = ['addition', 'subtraction', 'multiplication', 'division', 'fractions'].filter(subject => {
+      // Filter subjects based on grade level
+      const gradeNum = parseInt(grade);
+      if (gradeNum <= 2) return ['addition', 'subtraction'].includes(subject);
+      if (gradeNum <= 4) return !['geometry', 'algebra'].includes(subject);
+      return true;
+    });
+
+    // Initialize each subject
+    const initializedSubjects = [];
+    for (const subject of subjects) {
+      const mastery = await storage.unlockGradeForSubject(userId, subject, grade);
+      initializedSubjects.push(mastery);
+    }
+
+    res.json(initializedSubjects);
+  } catch (error) {
+    console.error("Error initializing subject masteries:", error);
+    res.status(500).json({
+      message: "Failed to initialize subject masteries",
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
       const subjectMasteries = await storage.getUserSubjectMasteries(userId);
