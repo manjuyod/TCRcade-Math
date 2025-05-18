@@ -36,7 +36,7 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    }
+    },
   };
 
   app.set("trust proxy", 1);
@@ -64,32 +64,53 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const { username, password, displayName, grade, initials, isAdmin } = req.body;
-    
+    const { username, password, displayName, grade, initials, isAdmin } =
+      req.body;
+
     if (!username || !password) {
       return res.status(400).send("Username and password are required");
     }
-    
+
     // Validate initials (3 letters for arcade-style)
-    if (initials && (initials.length !== 3 || !/^[A-Za-z]{3}$/.test(initials))) {
+    if (
+      initials &&
+      (initials.length !== 3 || !/^[A-Za-z]{3}$/.test(initials))
+    ) {
       return res.status(400).send("Initials must be exactly 3 letters");
     }
-    
+
     // By default, set initials to the first 3 letters of username (uppercase)
     const defaultInitials = username.substring(0, 3).toUpperCase();
-    
+
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
       return res.status(400).send("Username already exists");
     }
 
+    // Determine the user's grade or default to Kindergarten
+    const gradeLevel = grade || "K";
+
+    // Dynamically fetch concepts for the selected grade
+    const weaknessConcepts = await storage.getConceptsForGrade(gradeLevel);
+
     const user = await storage.createUser({
       username,
       password: await hashPassword(password),
       displayName: displayName || username,
-      grade: grade || "K",
+      grade: gradeLevel,
       initials: initials || defaultInitials,
-      isAdmin: isAdmin || false
+      isAdmin: isAdmin || false,
+
+      // Subject mastery initialization
+      strengthConcepts: [],
+      weaknessConcepts,
+    });
+
+    // Log for confirmation during testing
+    console.log("New user registered with subject mastery:", {
+      grade: gradeLevel,
+      strengthConcepts: [],
+      weaknessConcepts,
     });
 
     req.login(user, (err) => {
@@ -111,39 +132,41 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     // Reset daily tokens if it's a new day
     const now = new Date();
     const lastActive = req.user?.lastActive;
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const lastActiveDay = lastActive ? new Date(
-      lastActive.getFullYear(), 
-      lastActive.getMonth(), 
-      lastActive.getDate()
-    ) : null;
-    
+    const lastActiveDay = lastActive
+      ? new Date(
+          lastActive.getFullYear(),
+          lastActive.getMonth(),
+          lastActive.getDate(),
+        )
+      : null;
+
     // Updates to make to user profile
     const updates: Partial<User> = {};
-    
+
     // Check if it's July 4th (month index is 0-based, so 6 = July)
     const isJulyFourth = now.getMonth() === 6 && now.getDate() === 4;
-    
+
     // Check if user's grade needs to be advanced (only on July 4th)
     if (isJulyFourth && req.user?.grade) {
-      const lastYear = req.user.lastGradeAdvancement ? 
-        new Date(req.user.lastGradeAdvancement).getFullYear() : 
-        null;
-      
+      const lastYear = req.user.lastGradeAdvancement
+        ? new Date(req.user.lastGradeAdvancement).getFullYear()
+        : null;
+
       // Only advance grade if it hasn't been advanced this year
       if (!lastYear || lastYear < now.getFullYear()) {
         const currentGrade = req.user.grade;
-        
+
         // Advance to next grade level if not already at grade 12
-        if (currentGrade !== '12') {
+        if (currentGrade !== "12") {
           let nextGrade: string;
-          
-          if (currentGrade === 'K') {
-            nextGrade = '1';
+
+          if (currentGrade === "K") {
+            nextGrade = "1";
           } else {
             const gradeNum = parseInt(currentGrade);
             if (!isNaN(gradeNum) && gradeNum < 12) {
@@ -152,15 +175,17 @@ export function setupAuth(app: Express) {
               nextGrade = currentGrade; // Keep the same if parsing fails
             }
           }
-          
+
           updates.grade = nextGrade;
           updates.lastGradeAdvancement = now;
-          
-          console.log(`Advancing user ${req.user.username} from grade ${currentGrade} to ${nextGrade}`);
+
+          console.log(
+            `Advancing user ${req.user.username} from grade ${currentGrade} to ${nextGrade}`,
+          );
         }
       }
     }
-    
+
     if (lastActiveDay && today > lastActiveDay) {
       // It's a new day, reset daily tokens and update streak
       updates.dailyTokensEarned = 0;
@@ -171,58 +196,84 @@ export function setupAuth(app: Express) {
       updates.streakDays = 1;
       updates.lastActive = now;
     }
-    
+
     // Apply updates if there are any
     if (Object.keys(updates).length > 0) {
-      storage.updateUser(req.user.id, updates)
-        .then(updatedUser => {
+      storage
+        .updateUser(req.user.id, updates)
+        .then((updatedUser) => {
           if (updatedUser) {
             res.json(updatedUser);
           } else {
+            res.setHeader(
+              "Cache-Control",
+              "no-store, no-cache, must-revalidate, proxy-revalidate",
+            );
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
             res.json(req.user);
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error updating user:", error);
+          res.setHeader(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          );
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
           res.json(req.user);
         });
     } else {
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate",
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.json(req.user);
     }
   });
-  
+
   // Update user profile
   app.patch("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const { displayName, grade, interests } = req.body;
-      
+
       // Only update fields that were provided
       const updateData: Partial<User> = {};
       if (displayName !== undefined) updateData.displayName = displayName;
       if (grade !== undefined) updateData.grade = grade;
       if (interests !== undefined) updateData.interests = interests;
-      
+
       // Generate initials if display name changes
       if (displayName) {
         updateData.initials = displayName
-          .split(' ')
-          .map(name => name[0])
-          .join('')
+          .split(" ")
+          .map((name) => name[0])
+          .join("")
           .toUpperCase()
           .substring(0, 2);
       }
-      
+
       // Update user
-      storage.updateUser(req.user.id, updateData)
-        .then(updatedUser => {
+      storage
+        .updateUser(req.user.id, updateData)
+        .then((updatedUser) => {
           if (!updatedUser) {
             return res.status(404).json({ error: "User not found" });
           }
+          res.setHeader(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          );
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
           res.json(updatedUser);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error updating user profile:", error);
           res.status(500).json({ error: "Failed to update user profile" });
         });

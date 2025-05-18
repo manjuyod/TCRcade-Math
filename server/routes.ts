@@ -9,11 +9,11 @@ import { db } from "./db";
 /**
  * Import the efficient, deterministic math facts module
  */
-import { 
-  getNextMathFact, 
-  generateFallbackWordProblem, 
-  MathOperation 
-} from './mathFacts';
+import {
+  getNextMathFact,
+  generateFallbackWordProblem,
+  MathOperation,
+} from "./mathFacts";
 
 import {
   analyzeStudentResponse,
@@ -23,8 +23,8 @@ import {
   predictStudentPerformance,
   generateConceptMap,
   generateMathTimeline,
-  generateAchievements
-} from './openai';
+  generateAchievements,
+} from "./openai";
 
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
@@ -40,11 +40,16 @@ interface CacheEntry {
 const questionCache = new Map<string, CacheEntry>();
 
 // Helper function to create a consistent cache key for questions
-function getQuestionCacheKey(userId: number, grade: string, category: string | undefined, previousQuestionCount: number): string {
+function getQuestionCacheKey(
+  userId: number,
+  grade: string,
+  category: string | undefined,
+  previousQuestionCount: number,
+): string {
   // Create cache buckets based on how many questions the user has already seen (in blocks of 5)
   // This ensures students at similar progress levels get appropriately challenging questions
   const progressBucket = Math.floor(previousQuestionCount / 5) * 5;
-  return `question-${userId}-${grade}-${category || 'all'}-${progressBucket}`;
+  return `question-${userId}-${grade}-${category || "all"}-${progressBucket}`;
 }
 
 // Function to purge old cache entries (called periodically)
@@ -85,11 +90,16 @@ function getUserId(req: Request): number {
 }
 
 // Helper for standardized error responses
-function errorResponse(res: Response, status: number, message: string, error: unknown): void {
+function errorResponse(
+  res: Response,
+  status: number,
+  message: string,
+  error: unknown,
+): void {
   console.error(`Error: ${message}`, error);
   res.status(status).json({
     message,
-    error: error instanceof Error ? error.message : String(error)
+    error: error instanceof Error ? error.message : String(error),
   });
 }
 
@@ -105,6 +115,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Get subject masteries for the current user
+  app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const subjectMasteries = await storage.getUserSubjectMasteries(userId);
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate",
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.json(subjectMasteries);
+    } catch (error) {
+      console.error("Error fetching subject masteries:", error);
+      res.status(500).json({
+        message: "Failed to fetch subject masteries",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   // Get all questions (with filters)
   app.get("/api/questions", ensureAuthenticated, async (req, res) => {
     try {
@@ -112,7 +143,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let dbQuestions;
       if (grade) {
-        dbQuestions = await storage.getQuestionsByGrade(grade as string, category as string);
+        dbQuestions = await storage.getQuestionsByGrade(
+          grade as string,
+          category as string,
+        );
       } else {
         // Get all questions (implement pagination later)
         dbQuestions = await db.select().from(questions).limit(100);
@@ -121,9 +155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(dbQuestions);
     } catch (error) {
       console.error("Error fetching questions:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch questions",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -132,13 +166,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/test/math-facts", async (req, res) => {
     const { grade = "3", operation = "multiplication" } = req.query;
     try {
-      const question = getNextMathFact(grade as string, operation as MathOperation);
+      const question = getNextMathFact(
+        grade as string,
+        operation as MathOperation,
+      );
       res.json(question);
     } catch (error) {
       console.error("Error testing math facts:", error);
-      res.status(500).json({ 
-        message: "Failed to generate test math facts", 
-        error: error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        message: "Failed to generate test math facts",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -150,9 +187,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "OpenAI connectivity test endpoint" });
     } catch (error) {
       console.error("OpenAI test error:", error);
-      res.status(500).json({ 
-        message: "Failed to test OpenAI", 
-        error: error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        message: "Failed to test OpenAI",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -165,9 +202,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Question generation debug endpoint" });
     } catch (error) {
       console.error("Question generation error:", error);
-      res.status(500).json({ 
-        message: "Failed to generate question", 
-        error: error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        message: "Failed to generate question",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -179,16 +216,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate an efficient math fact question
       const question = getNextMathFact(
-        grade as string, 
-        operation as MathOperation
+        grade as string,
+        operation as MathOperation,
       );
 
       res.json(question);
     } catch (error) {
       console.error("Error generating math facts question:", error);
-      res.status(500).json({ 
-        message: "Failed to generate math facts question", 
-        error: error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        message: "Failed to generate math facts question",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -209,11 +246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const question = await storage.getAdaptiveQuestion(
-        userId, 
+        userId,
         grade as string,
-        req.query.forceDynamic === 'true',
+        req.query.forceDynamic === "true",
         category as string,
-        parsedExcludeIds
+        parsedExcludeIds,
       );
 
       if (!question) {
@@ -223,43 +260,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(question);
     } catch (error) {
       console.error("Error fetching next question:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch next question", 
-        error: error instanceof Error ? error.message : String(error)
+      res.status(500).json({
+        message: "Failed to fetch next question",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
 
-  app.get("/api/questions/concept/:grade/:concept", ensureAuthenticated, async (req, res) => {
-    try {
-      const { grade, concept } = req.params;
-      const questions = await storage.getQuestionsByConcept(grade, concept);
+  app.get(
+    "/api/questions/concept/:grade/:concept",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { grade, concept } = req.params;
+        const questions = await storage.getQuestionsByConcept(grade, concept);
 
-      if (!questions || questions.length === 0) {
-        return res.status(404).json({ message: "No questions found for this concept" });
+        if (!questions || questions.length === 0) {
+          return res
+            .status(404)
+            .json({ message: "No questions found for this concept" });
+        }
+
+        res.json(questions);
+      } catch (error) {
+        errorResponse(res, 500, "Failed to fetch questions by concept", error);
       }
+    },
+  );
 
-      res.json(questions);
-    } catch (error) {
-      errorResponse(res, 500, "Failed to fetch questions by concept", error);
-    }
-  });
+  app.get(
+    "/api/questions/grade/:grade",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { grade } = req.params;
+        const { category } = req.query;
+        const questions = await storage.getQuestionsByGrade(
+          grade,
+          category as string,
+        );
 
-  app.get("/api/questions/grade/:grade", ensureAuthenticated, async (req, res) => {
-    try {
-      const { grade } = req.params;
-      const { category } = req.query;
-      const questions = await storage.getQuestionsByGrade(grade, category as string);
+        if (!questions || questions.length === 0) {
+          return res
+            .status(404)
+            .json({ message: "No questions found for this grade" });
+        }
 
-      if (!questions || questions.length === 0) {
-        return res.status(404).json({ message: "No questions found for this grade" });
+        res.json(questions);
+      } catch (error) {
+        errorResponse(res, 500, "Failed to fetch questions by grade", error);
       }
-
-      res.json(questions);
-    } catch (error) {
-      errorResponse(res, 500, "Failed to fetch questions by grade", error);
-    }
-  });
+    },
+  );
 
   app.get("/api/questions/:id", ensureAuthenticated, async (req, res) => {
     try {
@@ -280,16 +332,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // For now, we use a hardcoded list of categories
       const categories = [
-        'addition',
-        'subtraction', 
-        'multiplication', 
-        'division',
-        'fractions',
-        'decimals',
-        'geometry',
-        'measurement',
-        'time',
-        'money'
+        "addition",
+        "subtraction",
+        "multiplication",
+        "division",
+        "fractions",
+        "decimals",
+        "geometry",
+        "measurement",
+        "time",
+        "money",
       ];
 
       res.json(categories);
@@ -309,7 +361,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const concepts = await storage.getConceptsForGrade(grade as string);
 
       if (!concepts || concepts.length === 0) {
-        return res.status(404).json({ message: "No concepts found for this grade" });
+        return res
+          .status(404)
+          .json({ message: "No concepts found for this grade" });
       }
 
       res.json(concepts);
@@ -343,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Math Tutor endpoints
-  app.post('/api/tutor/feedback', ensureAuthenticated, async (req, res) => {
+  app.post("/api/tutor/feedback", ensureAuthenticated, async (req, res) => {
     try {
       const { question, studentAnswer, correctAnswer } = req.body;
 
@@ -351,18 +405,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const feedback = await analyzeStudentResponse(question, studentAnswer, correctAnswer);
+      const feedback = await analyzeStudentResponse(
+        question,
+        studentAnswer,
+        correctAnswer,
+      );
       res.json(feedback);
     } catch (error) {
       console.error("Error analyzing student response:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to analyze response",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
-  app.post('/api/tutor/hint', ensureAuthenticated, async (req, res) => {
+  app.post("/api/tutor/hint", ensureAuthenticated, async (req, res) => {
     try {
       const { question, grade, previousAttempts } = req.body;
 
@@ -370,18 +428,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const hint = await generateMathHint(question, grade, previousAttempts || 0);
+      const hint = await generateMathHint(
+        question,
+        grade,
+        previousAttempts || 0,
+      );
       res.json({ hint });
     } catch (error) {
       console.error("Error generating math hint:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to generate hint",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
-  app.post('/api/tutor/explain', ensureAuthenticated, async (req, res) => {
+  app.post("/api/tutor/explain", ensureAuthenticated, async (req, res) => {
     try {
       const { concept, grade } = req.body;
 
@@ -393,16 +455,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ explanation });
     } catch (error) {
       console.error("Error explaining math concept:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to explain concept",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
   // AI Analytics endpoints
   // Get current analytics
-  app.get('/api/analytics', ensureAuthenticated, async (req, res) => {
+  app.get("/api/analytics", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
 
@@ -422,20 +484,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recentProgress = progressData
         .sort((a, b) => {
           // Safely get dates with optional properties using type assertion for additional properties
-          const dateA = (a as any).updatedAt ? new Date((a as any).updatedAt).getTime() : 
-                       ((a as any).date ? new Date((a as any).date).getTime() : 0);
-          const dateB = (b as any).updatedAt ? new Date((b as any).updatedAt).getTime() : 
-                       ((b as any).date ? new Date((b as any).date).getTime() : 0);
+          const dateA = (a as any).updatedAt
+            ? new Date((a as any).updatedAt).getTime()
+            : (a as any).date
+              ? new Date((a as any).date).getTime()
+              : 0;
+          const dateB = (b as any).updatedAt
+            ? new Date((b as any).updatedAt).getTime()
+            : (b as any).date
+              ? new Date((b as any).date).getTime()
+              : 0;
           return dateB - dateA;
         })
         .slice(0, 10)
         .reverse()
-        .map(p => ({
-          date: (p as any).updatedAt ? new Date((p as any).updatedAt).toLocaleDateString() : 
-                ((p as any).date ? new Date((p as any).date).toLocaleDateString() : new Date().toLocaleDateString()),
+        .map((p) => ({
+          date: (p as any).updatedAt
+            ? new Date((p as any).updatedAt).toLocaleDateString()
+            : (p as any).date
+              ? new Date((p as any).date).toLocaleDateString()
+              : new Date().toLocaleDateString(),
           score: p.score || 0,
-          questionsAnswered: p.completedQuestions || ((p as any).questionsAnswered || 0),
-          timeSpent: (p as any).timeSpent || 0
+          questionsAnswered:
+            p.completedQuestions || (p as any).questionsAnswered || 0,
+          timeSpent: (p as any).timeSpent || 0,
         }));
 
       // Create a placeholder analytics object if none exists
@@ -446,7 +518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
           analysisDate: new Date(),
           learningPatterns: {},
-          recommendations: "Complete more questions to get personalized recommendations.",
+          recommendations:
+            "Complete more questions to get personalized recommendations.",
           strengths: [],
           areasForImprovement: [],
           engagementAnalysis: {},
@@ -455,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           strengthConcepts: [],
           weaknessConcepts: [],
           recommendedActivities: [],
-          generatedAt: new Date()
+          generatedAt: new Date(),
         };
       }
 
@@ -464,37 +537,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         analytics: {
           analytics, // This nesting is intentional to match client expectations
           conceptMasteries,
-          recentProgress
-        }
+          recentProgress,
+        },
       });
     } catch (error) {
       console.error("Error fetching analytics:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch analytics",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
   // Handle answer submissions with improved type safety and error handling
-  app.post('/api/answer', ensureAuthenticated, async (req, res) => {
+  app.post("/api/answer", ensureAuthenticated, async (req, res) => {
     try {
       // Safely access the user ID
       const userId = getUserId(req);
 
       // Extract question ID and answer from request body with validation
-      const { 
-        questionId, answer, originalAnswer, originalQuestion,
-        category, grade, isCorrect: clientIsCorrect, tokensEarned: clientTokensEarned 
+      const {
+        questionId,
+        answer,
+        originalAnswer,
+        originalQuestion,
+        category,
+        grade,
+        isCorrect: clientIsCorrect,
+        tokensEarned: clientTokensEarned,
       } = req.body;
 
       // Check if this is a Math Facts module with pre-validated correctness
-      const isMathFactsModule = category && category.startsWith('math-facts-');
+      const isMathFactsModule = category && category.startsWith("math-facts-");
 
-      if (typeof questionId !== 'number' || !answer) {
-        return res.status(400).json({ 
-          message: "Invalid request parameters", 
-          error: "Question ID must be a number and answer must be provided" 
+      if (typeof questionId !== "number" || !answer) {
+        return res.status(400).json({
+          message: "Invalid request parameters",
+          error: "Question ID must be a number and answer must be provided",
         });
       }
 
@@ -507,9 +586,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         question = await storage.getQuestion(questionId);
 
         if (!question) {
-          return res.status(404).json({ 
+          return res.status(404).json({
             message: "Question not found",
-            error: `No question found with ID ${questionId}` 
+            error: `No question found with ID ${questionId}`,
           });
         }
 
@@ -518,7 +597,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // For Math Facts, we can trust client validation (better UX, pre-computed)
       if (isMathFactsModule && clientIsCorrect !== undefined) {
-        console.log(`Math Facts answer: using client-provided correctness: ${clientIsCorrect}`);
+        console.log(
+          `Math Facts answer: using client-provided correctness: ${clientIsCorrect}`,
+        );
       }
 
       // For Math Facts, we can use client-provided validation (for better UX) or calculate on server
@@ -528,11 +609,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isMathFactsModule && clientIsCorrect !== undefined) {
         // Use client-provided correctness for Math Facts
         isCorrect = clientIsCorrect;
-        tokensEarned = clientTokensEarned !== undefined ? clientTokensEarned : (isCorrect ? 3 : 0);
-        console.log(`Math Facts: Using client-validated answer (${answer}), correct: ${isCorrect}, tokens: ${tokensEarned}`);
+        tokensEarned =
+          clientTokensEarned !== undefined
+            ? clientTokensEarned
+            : isCorrect
+              ? 3
+              : 0;
+        console.log(
+          `Math Facts: Using client-validated answer (${answer}), correct: ${isCorrect}, tokens: ${tokensEarned}`,
+        );
       } else {
         // Standard server-side validation for all other question types
-        isCorrect = String(answer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+        isCorrect =
+          String(answer).trim().toLowerCase() ===
+          String(correctAnswer).trim().toLowerCase();
         tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
       }
 
@@ -546,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questions: [questionId],
           correctAnswers: isCorrect ? [questionId] : [],
           start: new Date(),
-          count: 1
+          count: 1,
         };
         console.log("Started new question batch:", sessionData.currentBatch);
       } else {
@@ -563,15 +653,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const batchComplete = sessionData.currentBatch.count >= 5;
 
       // Check if all 5 answers in the batch were correct for the perfect score bonus
-      const allCorrect = batchComplete && 
-                         sessionData.currentBatch.correctAnswers.length === 5;
+      const allCorrect =
+        batchComplete && sessionData.currentBatch.correctAnswers.length === 5;
 
       // Calculate bonus tokens (20 tokens for perfect score in a batch of 5)
       const bonusTokens = allCorrect ? 20 : 0;
 
       // Reset batch if complete
       if (batchComplete) {
-        console.log(`Batch complete! All correct: ${allCorrect}, bonus tokens: ${bonusTokens}`);
+        console.log(
+          `Batch complete! All correct: ${allCorrect}, bonus tokens: ${bonusTokens}`,
+        );
         // We'll reset after the response is sent
       }
 
@@ -585,12 +677,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Calculate new values
             const newQuestionsAnswered = (user.questionsAnswered || 0) + 1;
-            const newCorrectAnswers = (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
+            const newCorrectAnswers =
+              (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
 
             // Prepare the update with required fields
             const userUpdate: Partial<User> = {
               questionsAnswered: newQuestionsAnswered,
-              correctAnswers: newCorrectAnswers
+              correctAnswers: newCorrectAnswers,
             };
 
             // Calculate total tokens to add (question tokens + any batch bonus)
@@ -613,38 +706,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // Update the user record with token count and statistics
-            console.log("DATABASE UPDATE: Updating user tokens and stats:", userUpdate);
+            console.log(
+              "DATABASE UPDATE: Updating user tokens and stats:",
+              userUpdate,
+            );
             const updatedUser = await storage.updateUser(userId, userUpdate);
-            console.log("DATABASE UPDATE: Updated user result:", updatedUser ? "Success" : "Failed");
+            console.log(
+              "DATABASE UPDATE: Updated user result:",
+              updatedUser ? "Success" : "Failed",
+            );
 
             // Also update user stats in the request object to reflect changes
-            if (typeof newQuestionsAnswered === 'number') {
+            if (typeof newQuestionsAnswered === "number") {
               user.questionsAnswered = newQuestionsAnswered;
             }
-            if (typeof newCorrectAnswers === 'number') {
+            if (typeof newCorrectAnswers === "number") {
               user.correctAnswers = newCorrectAnswers;
             }
           }
 
           // For non-Math Facts questions, update additional progress metrics
-          const category = question?.category || 'general';
+          const category = question?.category || "general";
 
-          if (!category.startsWith('math-facts-')) {
+          if (!category.startsWith("math-facts-")) {
             // Update user progress in database with proper category name
-            const normalizedCategory = category === 'unknown' ? 'general' : category;
+            const normalizedCategory =
+              category === "unknown" ? "general" : category;
             await storage.updateUserProgress(userId, normalizedCategory, {
               completedQuestions: 1,
-              score: tokensEarned
+              score: tokensEarned,
             });
 
             // Update concept mastery if applicable
             if (question?.concepts && question.concepts.length > 0) {
               for (const concept of question.concepts) {
                 await storage.updateConceptMastery(
-                  userId, 
-                  concept, 
-                  question.grade || '3',
-                  isCorrect
+                  userId,
+                  concept,
+                  question.grade || "3",
+                  isCorrect,
                 );
               }
             }
@@ -655,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 userId,
                 question.category,
                 question.grade,
-                isCorrect
+                isCorrect,
               );
             }
           }
@@ -678,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         batchComplete: batchComplete,
         bonusAwarded: bonusTokens > 0,
         bonusTokens: bonusTokens,
-        newTokenTotal: userId && req.user ? req.user.tokens : 0
+        newTokenTotal: userId && req.user ? req.user.tokens : 0,
       });
 
       // Reset the batch if it's complete - after sending the response
@@ -704,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Generate new analytics
-  app.post('/api/analytics/generate', ensureAuthenticated, async (req, res) => {
+  app.post("/api/analytics/generate", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
 
@@ -721,135 +821,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recentProgress = progressData
         .sort((a, b) => {
           // Safely get dates with optional properties using type assertion
-          const dateA = (a as any).updatedAt ? new Date((a as any).updatedAt).getTime() : 
-                       ((a as any).date ? new Date((a as any).date).getTime() : 0);
-          const dateB = (b as any).updatedAt ? new Date((b as any).updatedAt).getTime() : 
-                       ((b as any).date ? new Date((b as any).date).getTime() : 0);
+          const dateA = (a as any).updatedAt
+            ? new Date((a as any).updatedAt).getTime()
+            : (a as any).date
+              ? new Date((a as any).date).getTime()
+              : 0;
+          const dateB = (b as any).updatedAt
+            ? new Date((b as any).updatedAt).getTime()
+            : (b as any).date
+              ? new Date((b as any).date).getTime()
+              : 0;
           return dateB - dateA;
         })
         .slice(0, 10)
         .reverse()
-        .map(p => ({
-          date: (p as any).updatedAt ? new Date((p as any).updatedAt).toLocaleDateString() : 
-                ((p as any).date ? new Date((p as any).date).toLocaleDateString() : new Date().toLocaleDateString()),
+        .map((p) => ({
+          date: (p as any).updatedAt
+            ? new Date((p as any).updatedAt).toLocaleDateString()
+            : (p as any).date
+              ? new Date((p as any).date).toLocaleDateString()
+              : new Date().toLocaleDateString(),
           score: p.score || 0,
-          questionsAnswered: p.completedQuestions || ((p as any).questionsAnswered || 0),
-          timeSpent: (p as any).timeSpent || 0
+          questionsAnswered:
+            p.completedQuestions || (p as any).questionsAnswered || 0,
+          timeSpent: (p as any).timeSpent || 0,
         }));
 
       // Return the data in a structure matching what the client expects
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         analytics: {
           analytics,
           conceptMasteries,
-          recentProgress
-        } 
+          recentProgress,
+        },
       });
     } catch (error) {
       console.error("Error generating analytics:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to generate analytics",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
-  app.post('/api/analytics/predict', ensureAuthenticated, async (req, res) => {
+  app.post("/api/analytics/predict", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const conceptMasteries = await storage.getUserConceptMasteries(userId);
       const progressHistory = await storage.getUserProgress(userId);
 
-      const predictions = await predictStudentPerformance(userId, conceptMasteries, progressHistory);
+      const predictions = await predictStudentPerformance(
+        userId,
+        conceptMasteries,
+        progressHistory,
+      );
       res.json(predictions);
     } catch (error) {
       console.error("Error predicting student performance:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to predict performance",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
-  app.get('/api/concept-map/:grade/:concept', ensureAuthenticated, async (req, res) => {
-    try {
-      const { grade, concept } = req.params;
+  app.get(
+    "/api/concept-map/:grade/:concept",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { grade, concept } = req.params;
 
-      const conceptMap = await generateConceptMap(grade, concept);
-      res.json(conceptMap);
-    } catch (error) {
-      console.error("Error generating concept map:", error);
-      res.status(500).json({ 
-        error: "Failed to generate concept map",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.get('/api/math-timeline/:grade/:concept', ensureAuthenticated, async (req, res) => {
-    try {
-      const { grade, concept } = req.params;
-
-      const timeline = await generateMathTimeline(concept, grade);
-      res.json(timeline);
-    } catch (error) {
-      console.error("Error generating math timeline:", error);
-      res.status(500).json({ 
-        error: "Failed to generate math timeline",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post('/api/achievements/generate', ensureAuthenticated, async (req, res) => {
-    try {
-      const { grade, concepts } = req.body;
-
-      if (!grade || !Array.isArray(concepts)) {
-        return res.status(400).json({ error: "Missing required fields" });
+        const conceptMap = await generateConceptMap(grade, concept);
+        res.json(conceptMap);
+      } catch (error) {
+        console.error("Error generating concept map:", error);
+        res.status(500).json({
+          error: "Failed to generate concept map",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
       }
+    },
+  );
 
-      const achievements = await generateAchievements(grade, concepts);
-      res.json(achievements);
-    } catch (error) {
-      console.error("Error generating achievements:", error);
-      res.status(500).json({ 
-        error: "Failed to generate achievements",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
+  app.get(
+    "/api/math-timeline/:grade/:concept",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { grade, concept } = req.params;
+
+        const timeline = await generateMathTimeline(concept, grade);
+        res.json(timeline);
+      } catch (error) {
+        console.error("Error generating math timeline:", error);
+        res.status(500).json({
+          error: "Failed to generate math timeline",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  app.post(
+    "/api/achievements/generate",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { grade, concepts } = req.body;
+
+        if (!grade || !Array.isArray(concepts)) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        const achievements = await generateAchievements(grade, concepts);
+        res.json(achievements);
+      } catch (error) {
+        console.error("Error generating achievements:", error);
+        res.status(500).json({
+          error: "Failed to generate achievements",
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  );
 
   // AI-driven adaptive question endpoint
-  app.get('/api/questions/adaptive', ensureAuthenticated, async (req, res) => {
+  app.get("/api/questions/adaptive", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const { grade, concept, category, difficulty } = req.query;
 
       // Only use this for non-math-facts content
       // Math facts should use the dedicated efficient generator
-      if (category?.toString().startsWith('math-facts-')) {
-        return res.redirect(`/api/questions/math-facts?grade=${grade}&operation=${category?.toString().split('-')[2]}`);
+      if (category?.toString().startsWith("math-facts-")) {
+        return res.redirect(
+          `/api/questions/math-facts?grade=${grade}&operation=${category?.toString().split("-")[2]}`,
+        );
       }
 
       const studentContext = {
         userId,
-        grade: grade?.toString() || '3',
-        concept: concept?.toString() || 'general',
+        grade: grade?.toString() || "3",
+        concept: concept?.toString() || "general",
         category: category?.toString(),
         difficulty: difficulty ? parseInt(difficulty.toString()) : 3,
         forceDynamic: true,
-        isMathFactsModule: false
+        isMathFactsModule: false,
       };
 
       const generatedQuestion = await generateAdaptiveQuestion(studentContext);
       res.json(generatedQuestion);
     } catch (error) {
       console.error("Error generating adaptive question:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to generate adaptive question",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
