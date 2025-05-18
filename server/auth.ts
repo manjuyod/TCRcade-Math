@@ -205,32 +205,17 @@ export function setupAuth(app: Express) {
           if (updatedUser) {
             res.json(updatedUser);
           } else {
-            res.setHeader(
-              "Cache-Control",
-              "no-store, no-cache, must-revalidate, proxy-revalidate",
-            );
-            res.setHeader("Pragma", "no-cache");
-            res.setHeader("Expires", "0");
+            
             res.json(req.user);
           }
         })
         .catch((error) => {
           console.error("Error updating user:", error);
-          res.setHeader(
-            "Cache-Control",
-            "no-store, no-cache, must-revalidate, proxy-revalidate",
-          );
-          res.setHeader("Pragma", "no-cache");
-          res.setHeader("Expires", "0");
+          
           res.json(req.user);
         });
     } else {
-      res.setHeader(
-        "Cache-Control",
-        "no-store, no-cache, must-revalidate, proxy-revalidate",
-      );
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
+      
       res.json(req.user);
     }
   });
@@ -265,12 +250,7 @@ export function setupAuth(app: Express) {
           if (!updatedUser) {
             return res.status(404).json({ error: "User not found" });
           }
-          res.setHeader(
-            "Cache-Control",
-            "no-store, no-cache, must-revalidate, proxy-revalidate",
-          );
-          res.setHeader("Pragma", "no-cache");
-          res.setHeader("Expires", "0");
+          
           res.json(updatedUser);
         })
         .catch((error) => {
