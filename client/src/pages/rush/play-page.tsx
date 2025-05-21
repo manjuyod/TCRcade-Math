@@ -146,6 +146,18 @@ export default function MathRushPlayPage() {
     }
   }, [timeRemaining, gameStarted]);
   
+  // Effect to focus the input when the question changes
+  useEffect(() => {
+    if (gameStarted && !gameOver && inputRef.current && questions.length > 0) {
+      // Focus with a slight delay to ensure UI has updated
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 50);
+    }
+  }, [gameStarted, gameOver, currentQuestionIndex, questions.length]);
+  
   // Function to format question text - now just returns the question text directly
   const formatQuestionText = (question: RushQuestion) => {
     // The question text is already formatted by the server
