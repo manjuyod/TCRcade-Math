@@ -260,12 +260,15 @@ export default function MathRushPlayPage() {
     })));
     
     try {
-      console.log('Submitting results:', { correct: correctCount, total: MATH_RUSH_RULES.questionCount });
+      console.log('Submitting results:', { correct: correctCount, total: totalAnswered });
       
-      // Submit results to server - use the expected question count
+      // Calculate the actual number of questions answered rather than using a fixed count
+      const actualQuestionsAnswered = totalAnswered;
+      
+      // Submit results to server using actual questions answered
       const response = await apiRequest('POST', '/api/rush/complete', {
         correct: correctCount,
-        total: MATH_RUSH_RULES.questionCount,
+        total: actualQuestionsAnswered,
         durationSec,
         mode
       });
@@ -277,10 +280,10 @@ export default function MathRushPlayPage() {
       const data = await response.json();
       console.log('Server response:', data);
       
-      // Store results for the completion page
+      // Store results for the completion page with actual questions answered
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
-        total: MATH_RUSH_RULES.questionCount,
+        total: actualQuestionsAnswered,
         durationSec,
         mode,
         tokens: data.tokens || 0,
