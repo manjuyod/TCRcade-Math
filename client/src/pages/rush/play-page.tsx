@@ -306,51 +306,29 @@ export default function MathRushPlayPage() {
                     {formatQuestionText(currentQuestion)}
                   </div>
                   
-                  {/* Display multiple choice options if available */}
-                  {currentQuestion.options && currentQuestion.options.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-3 w-full max-w-md mb-4">
-                      {currentQuestion.options.map((option, index) => (
-                        <Button
-                          key={index}
-                          onClick={() => {
-                            setAnswer(option);
-                            setTimeout(() => handleSubmitAnswer(), 100);
-                          }}
-                          className={`text-xl py-6 ${
-                            answer === option 
-                              ? 'bg-orange-500 hover:bg-orange-600' 
-                              : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-                          }`}
-                          disabled={feedbackVisible || gameOver}
-                        >
-                          {option}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex w-full max-w-md items-center space-x-2">
-                      <Input
-                        ref={inputRef}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Enter your answer"
-                        className="text-xl py-6"
-                        disabled={feedbackVisible || gameOver}
-                      />
-                      <Button 
-                        onClick={handleSubmitAnswer}
-                        disabled={!answer.trim() || feedbackVisible || gameOver}
-                        size="lg"
-                        className="bg-orange-500 hover:bg-orange-600"
-                      >
-                        Submit
-                      </Button>
-                    </div>
-                  )}
+                  {/* Always use text input for answers */}
+                  <div className="flex w-full max-w-md items-center space-x-2">
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                      placeholder="Enter your answer"
+                      className="text-xl py-6"
+                      disabled={feedbackVisible || gameOver}
+                    />
+                    <Button 
+                      onClick={handleSubmitAnswer}
+                      disabled={!answer.trim() || feedbackVisible || gameOver}
+                      size="lg"
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      Submit
+                    </Button>
+                  </div>
                   
                   {/* Feedback message */}
                   <AnimatePresence>
