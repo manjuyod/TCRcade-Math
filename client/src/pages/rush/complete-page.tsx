@@ -96,9 +96,9 @@ export default function MathRushCompletePage() {
     );
   }
   
-  // Calculate percentage correct
-  const percentCorrect = results.total > 0 
-    ? Math.round((results.correct / results.total) * 100) 
+  // Calculate percentage correct based on all 20 questions
+  const percentCorrect = MATH_RUSH_RULES.questionCount > 0 
+    ? Math.round((results.correct / MATH_RUSH_RULES.questionCount) * 100) 
     : 0;
   
   // Get time settings
