@@ -56,6 +56,7 @@ export default function MathRushPlayPage() {
   
   // Get settings from localStorage
   const mode = localStorage.getItem('mathRushMode') || 'addition';
+  const questionType = localStorage.getItem('mathRushQuestionType') || '';
   const timeOption = localStorage.getItem('mathRushTimeOption') || 'SHORT';
   const timeSeconds = parseInt(localStorage.getItem('mathRushTimeSeconds') || '60');
   

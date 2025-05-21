@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { questions, User, UserProgress } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 
 /**
@@ -1041,11 +1041,12 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         : "questions_multiplication";
       
       // Query distinct types from the appropriate table
-      const result = await db.execute(sql`
+      const query = sql`
         SELECT DISTINCT type FROM ${sql.raw(table)}
         WHERE type IS NOT NULL
         ORDER BY type;
-      `);
+      `;
+      const result = await db.execute(query);
       
       // Extract types from the result
       const types = result.rows?.map(row => row.type) || [];

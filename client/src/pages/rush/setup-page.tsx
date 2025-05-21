@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { MATH_RUSH_RULES } from '@shared/mathRushRules';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { 
   ArrowRight, 
   Timer,
@@ -12,7 +13,8 @@ import {
   Star,
   Minus,
   X,
-  Divide
+  Divide,
+  Loader2
 } from 'lucide-react';
 import { 
   Card, 
@@ -25,6 +27,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function MathRushSetupPage() {
   const { user } = useAuth();
@@ -32,10 +41,29 @@ export default function MathRushSetupPage() {
   
   // State for selected options
   const [mode, setMode] = useState<typeof MATH_RUSH_RULES.modes[number]>('addition');
+  const [questionType, setQuestionType] = useState<string>('');
   const [timeOption, setTimeOption] = useState<'SHORT' | 'LONG'>('SHORT');
   
   // Get time in seconds from the selected time option
   const timeSeconds = MATH_RUSH_RULES.timeSettings[timeOption].sec;
+  
+  // Fetch question types based on selected operation
+  const { data: typeData, isLoading: typesLoading } = useQuery({
+    queryKey: ['/api/rush/types', mode],
+    queryFn: async () => {
+      const response = await fetch(`/api/rush/types?operation=${mode}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch question types');
+      }
+      return response.json();
+    },
+    enabled: !!mode,
+  });
+  
+  // Reset type selection when operation changes
+  useEffect(() => {
+    setQuestionType('');
+  }, [mode]);
   
   // Handle start button click
   const handleStart = () => {
@@ -44,9 +72,20 @@ export default function MathRushSetupPage() {
     localStorage.setItem('mathRushTimeOption', timeOption);
     localStorage.setItem('mathRushTimeSeconds', timeSeconds.toString());
     
+    // Save question type if selected
+    if (questionType) {
+      localStorage.setItem('mathRushQuestionType', questionType);
+    } else {
+      localStorage.removeItem('mathRushQuestionType');
+    }
+    
     // Navigate to the play page
     navigate('/rush/play');
   };
+  
+  // Check if we can proceed (type must be selected if types are available)
+  const canProceed = !typesLoading && 
+    (!(typeData?.types?.length) || questionType !== '');
   
   // Get icon for each mode
   const getModeIcon = (mode: typeof MATH_RUSH_RULES.modes[number]) => {
@@ -102,7 +141,7 @@ export default function MathRushSetupPage() {
             <CardContent className="pt-6">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Select Operation</h3>
+                  <h3 className="text-lg font-medium mb-3">1. Select Operation</h3>
                   <RadioGroup
                     value={mode}
                     onValueChange={(value) => setMode(value as typeof MATH_RUSH_RULES.modes[number])}
@@ -120,8 +159,35 @@ export default function MathRushSetupPage() {
                   </RadioGroup>
                 </div>
                 
+                {/* Type selection - only shown after operation is selected */}
+                {typesLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading question types...</span>
+                  </div>
+                ) : typeData?.types?.length > 0 ? (
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">2. Select Type</h3>
+                    <Select
+                      value={questionType}
+                      onValueChange={setQuestionType}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select question type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {typeData.types.map((type: string) => (
+                          <SelectItem key={type} value={type}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+                
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Select Time</h3>
+                  <h3 className="text-lg font-medium mb-3">{typeData?.types?.length > 0 ? "3" : "2"}. Select Time</h3>
                   <RadioGroup
                     value={timeOption}
                     onValueChange={(value) => setTimeOption(value as 'SHORT' | 'LONG')}
@@ -167,9 +233,23 @@ export default function MathRushSetupPage() {
                   You will have {timeSeconds} seconds to answer {MATH_RUSH_RULES.questionCount} questions
                 </p>
               </div>
-              <Button onClick={handleStart} size="lg" className="bg-orange-500 hover:bg-orange-600">
-                Start Rush
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button 
+                onClick={handleStart} 
+                size="lg" 
+                className="bg-orange-500 hover:bg-orange-600"
+                disabled={!canProceed}
+              >
+                {typesLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    Start Rush
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>

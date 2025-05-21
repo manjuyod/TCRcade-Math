@@ -66,12 +66,27 @@ export async function getRushQuestions(
       ? "questions_addition"
       : "questions_multiplication";
     
-    const result = await db.execute(sql`
-      SELECT id, ${sql.raw(mode)} as type, int1, int2, int3
-      FROM ${sql.raw(table)}
-      ORDER BY random()
-      LIMIT ${MATH_RUSH_RULES.questionCount};
-    `);
+    // Build the query based on whether a type filter is provided
+    let query;
+    
+    if (type) {
+      query = sql`
+        SELECT id, int1, int2, int3, type
+        FROM ${sql.raw(table)}
+        WHERE type = ${type}
+        ORDER BY random()
+        LIMIT ${MATH_RUSH_RULES.questionCount};
+      `;
+    } else {
+      query = sql`
+        SELECT id, int1, int2, int3, type
+        FROM ${sql.raw(table)}
+        ORDER BY random()
+        LIMIT ${MATH_RUSH_RULES.questionCount};
+      `;
+    }
+    
+    const result = await db.execute(query);
     
     return result.rows || [];
   }
