@@ -51,7 +51,11 @@ export default function MathRushSetupPage() {
   const { data: typeData, isLoading: typesLoading } = useQuery({
     queryKey: ['/api/rush/types', mode],
     queryFn: async () => {
-      const response = await fetch(`/api/rush/types?operation=${mode}`);
+      const response = await fetch(`/api/rush/types?operation=${mode}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch question types');
       }
