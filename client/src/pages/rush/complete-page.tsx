@@ -96,10 +96,12 @@ export default function MathRushCompletePage() {
     );
   }
   
-  // Calculate percentage correct based on all 20 questions
-  const percentCorrect = MATH_RUSH_RULES.questionCount > 0 
-    ? Math.round((results.correct / MATH_RUSH_RULES.questionCount) * 100) 
+  // Calculate percentage correct based on actual number of correct answers
+  const percentCorrect = results.total > 0 
+    ? Math.round((results.correct / results.total) * 100) 
     : 0;
+    
+  console.log(`Calculating percentage: ${results.correct} correct out of ${results.total} total = ${percentCorrect}%`);
   
   // Get time settings
   const timeSettings = MATH_RUSH_RULES.timeSettings[results.timeOption];
