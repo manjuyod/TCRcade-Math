@@ -69,7 +69,7 @@ export default function MathRushSetupPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      <Navigation />
+      <Navigation active="home" />
       
       <main className="flex-1 container max-w-4xl py-6 px-4">
         <div className="mb-6 flex items-center">

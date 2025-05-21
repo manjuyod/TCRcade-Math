@@ -10,6 +10,9 @@ import ProfilePage from "@/pages/profile-page";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import AdminPage from "@/pages/admin-page";
 import ModulesPage from "@/pages/modules-page";
+import MathRushSetupPage from "@/pages/rush/setup-page";
+import MathRushPlayPage from "@/pages/rush/play-page";
+import MathRushCompletePage from "@/pages/rush/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -62,6 +65,9 @@ function Router() {
       <ProtectedRoute path="/practice" component={CreateQuizPage} />
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
+      <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
+      <ProtectedRoute path="/rush/play" component={MathRushPlayPage} />
+      <ProtectedRoute path="/rush/complete" component={MathRushCompletePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
