@@ -2,6 +2,41 @@ import { db } from "./db";           // existing Drizzle instance
 import { sql } from "drizzle-orm";
 import { MATH_RUSH_RULES } from "../shared/mathRushRules";
 
+/**
+ * Get available question types for a given operation
+ * @param operation - The math operation (addition, subtraction, etc.)
+ * @returns Array of available question types
+ */
+export async function getQuestionTypes(operation: string): Promise<string[]> {
+  // Determine which table to query based on the operation
+  const table = operation === "addition" || operation === "subtraction"
+    ? "questions_addition"
+    : "questions_multiplication";
+  
+  console.log(`Getting question types for operation '${operation}' from table '${table}'`);
+  
+  try {
+    // Query the database for distinct types
+    const query = sql`
+      SELECT DISTINCT type FROM ${sql.raw(table)}
+      WHERE type IS NOT NULL
+      ORDER BY type;
+    `;
+    
+    const result = await db.execute(query);
+    console.log("Database query result for types:", result.rows);
+    
+    // Extract types from the result and ensure they're strings
+    const types = (result.rows?.map(row => String(row.type)) || []) as string[];
+    console.log(`Found ${types.length} types:`, types);
+    
+    return types;
+  } catch (error) {
+    console.error(`Error fetching question types for ${operation}:`, error);
+    return [];
+  }
+}
+
 export async function getRushQuestions(
   mode: typeof MATH_RUSH_RULES.modes[number],
   type?: string

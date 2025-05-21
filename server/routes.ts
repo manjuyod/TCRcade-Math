@@ -1036,32 +1036,20 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
       console.log("Rush types API called with params:", req.query);
       const { operation = "addition" } = req.query;
       
-      // Determine which table to query based on the operation
-      const table = operation === "addition" || operation === "subtraction"
-        ? "questions_addition"
-        : "questions_multiplication";
-
-      console.log("Using table:", table);
-      
-      // Query the database for distinct types
-      const query = sql`
-        SELECT DISTINCT type FROM ${sql.raw(table)}
-        WHERE type IS NOT NULL
-        ORDER BY type;
-      `;
-      
-      const result = await db.execute(query);
-      console.log("Database query result:", result.rows);
-      
-      // Extract types from the result
-      const types = result.rows?.map(row => row.type) || [];
+      // Use the dedicated function to get question types
+      const { getQuestionTypes } = await import("./mathRush");
+      let types = await getQuestionTypes(operation as string);
       
       // If no types found, provide some defaults based on operation
       if (types.length === 0) {
-        if (table === "questions_addition") {
-          types.push("ones", "addition");
+        const isAddition = operation === "addition" || operation === "subtraction";
+        
+        if (isAddition) {
+          types = ["ones", "addition"];
+          console.log("No types found in database, using default addition types:", types);
         } else {
-          types.push("multiplication", "times_tables");
+          types = ["multiplication", "times_tables"];
+          console.log("No types found in database, using default multiplication types:", types);
         }
       }
       
