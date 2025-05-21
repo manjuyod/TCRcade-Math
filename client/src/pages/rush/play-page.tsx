@@ -4,7 +4,7 @@ import { MATH_RUSH_RULES } from '@shared/mathRushRules';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import Header from '@/components/header';
-import { useSessionTimer } from '@/hooks/use-session-timer';
+import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { 
   Timer,
   Check,
@@ -69,7 +69,7 @@ export default function MathRushPlayPage() {
     startTimer, 
     stopTimer, 
     isRunning 
-  } = useSessionTimer(timeSeconds);
+  } = useCountdownTimer(timeSeconds);
   
   // Load questions when component mounts
   useEffect(() => {
