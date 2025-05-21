@@ -76,7 +76,16 @@ export default function MathRushPlayPage() {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await apiRequest('GET', `/api/rush/questions?mode=${mode}`);
+        // Build the API URL with query parameters
+        let url = `/api/rush/questions?mode=${mode}`;
+        
+        // Add type parameter if available
+        if (questionType) {
+          url += `&type=${questionType}`;
+        }
+        
+        console.log(`Fetching Math Rush questions with mode: ${mode}${questionType ? `, type: ${questionType}` : ''}`);
+        const response = await apiRequest('GET', url);
         const data = await response.json();
         
         if (data.questions && Array.isArray(data.questions)) {
