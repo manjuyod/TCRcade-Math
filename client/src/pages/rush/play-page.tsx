@@ -280,10 +280,10 @@ export default function MathRushPlayPage() {
       const data = await response.json();
       console.log('Server response:', data);
       
-      // Store results for the completion page with actual questions answered
+      // Store results for the completion page with the final question count
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
-        total: actualQuestionsAnswered,
+        total: totalAnswered,
         durationSec,
         mode,
         tokens: data.tokens || 0,
