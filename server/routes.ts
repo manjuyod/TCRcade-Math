@@ -1031,7 +1031,6 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
   });
 
   // Math Rush routes
-  // Add console log for debugging
   app.get("/api/rush/types", async (req, res) => {
     try {
       console.log("Rush types API called with params:", req.query);
@@ -1044,19 +1043,31 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
 
       console.log("Using table:", table);
       
-      // Use direct SQL query for simplicity
-      let types;
-      if (table === "questions_addition") {
-        // Hardcode some available types for testing
-        types = ["ones", "addition"];
-        console.log("Returning hardcoded types for addition:", types);
-      } else {
-        // Hardcode some available types for testing
-        types = ["multiplication", "times_tables"];
-        console.log("Returning hardcoded types for multiplication:", types);
+      // Query the database for distinct types
+      const query = sql`
+        SELECT DISTINCT type FROM ${sql.raw(table)}
+        WHERE type IS NOT NULL
+        ORDER BY type;
+      `;
+      
+      const result = await db.execute(query);
+      console.log("Database query result:", result.rows);
+      
+      // Extract types from the result
+      const types = result.rows?.map(row => row.type) || [];
+      
+      // If no types found, provide some defaults based on operation
+      if (types.length === 0) {
+        if (table === "questions_addition") {
+          types.push("ones", "addition");
+        } else {
+          types.push("multiplication", "times_tables");
+        }
       }
       
-      // Set proper content type and CORS headers
+      console.log("Returning types:", types);
+      
+      // Set proper content type
       res.setHeader('Content-Type', 'application/json');
       res.json({ types });
     } catch (error) {
