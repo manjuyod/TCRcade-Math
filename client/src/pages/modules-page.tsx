@@ -308,11 +308,19 @@ export default function ModulesPage() {
 
     // Check if this is a Math Facts module
     const isMathFactsModule = module.id.startsWith('math-facts-');
-
+    
     // Store the module ID and its game type
     localStorage.setItem('currentModuleId', module.id);
     localStorage.setItem('currentModuleType', module.gameType);
 
+    // Handle different module types
+    if (module.gameType === GameType.MATH_RUSH) {
+      // For Math Rush, navigate to the rush setup page
+      console.log('Loading math rush module, navigating to setup page');
+      setLocation('/rush/setup');
+      return;
+    }
+    
     // For Math Facts modules, we need to set additional information
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')
