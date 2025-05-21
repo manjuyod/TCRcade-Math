@@ -205,8 +205,12 @@ export function calculateRushTokens(correct: number, total: number, durationSec:
   // Calculate tokens based on correct answers (3 tokens per 5 correct for SHORT, 2 per 5 for LONG)
   const baseTokens = Math.floor(correct / 5) * setting.tokensPer5;
   
-  // Add perfect bonus if all answers are correct AND they've completed the expected number of questions
-  const isPerfect = (correct === total) && (total === MATH_RUSH_RULES.questionCount);
+  // Give perfect bonus if either:
+  // 1. They got all 20 questions correct, or
+  // 2. They got all the questions they attempted correct (didn't miss any)
+  const isPerfect = (correct === total && total === MATH_RUSH_RULES.questionCount) || 
+                    (correct === total && total >= MATH_RUSH_RULES.questionCount * 0.75); // At least 75% completion
+                    
   const perfectBonus = isPerfect ? setting.bonusPerfect : 0;
   
   console.log(`Token calculation: ${correct}/${total} correct, ${baseTokens} base tokens, isPerfect: ${isPerfect}, bonus: ${perfectBonus}`);
