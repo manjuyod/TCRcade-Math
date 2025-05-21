@@ -1,0 +1,183 @@
+Prompt for the Replit agent
+Project context (do not change)
+
+Stack: React + TS (client), Node/Express + TS (server), Drizzle ORM, Postgres.
+
+Core files:
+
+client/src/pages/modules-page.tsx – module catalog & UI
+
+client/src/pages – new pages live here
+
+client/src/hooks/useSessionTimer.ts – countdown logic
+
+client/src/hooks/useQuestionWithHistory.ts – question flow
+
+server/mathFacts.ts – existing fact generator
+
+server/routes/ – Express routers
+
+shared/types.ts – enums & cross-tier types
+
+Goal
+Implement a new “Math Rush” module that lets a learner sprint through 20 mixed-operation questions under a time limit, with token rewards that vary by the chosen time setting.
+
+1 ▸ Shared rule object
+Create shared/mathRushRules.ts:
+
+ts
+Copy
+Edit
+export const MATH_RUSH_RULES = {
+  modes: ["addition", "subtraction", "multiplication", "division"] as const,
+
+  timeSettings: {
+    SHORT: { sec: 60,        // 60-second rush
+             tokensPer5: 3,
+             bonusPerfect: 20 },
+    LONG:  { sec: 90,        // 90-second rush
+             tokensPer5: 2,
+             bonusPerfect: 15 }
+  } as const,
+
+  questionCount: 20
+} as const;
+All layers must import { MATH_RUSH_RULES } instead of hard-coding values.
+
+2 ▸ Database sources
+-Addition / Subtraction – questions_addition (columns: id, int1, int2, int3)
+
+--addition: int1 + int2 = int3
+
+--subtraction: int3 - int1 = int2
+
+-Multiplication / Division – questions_multiplication (same columns)
+
+--multiplication: int1 * int2 = int3
+
+--division: int3 ÷ int1 = int2 (verify: the DB stores dividend in int3)
+
+-Mixed a mixed bag of addition / subtraction / multiplication / division
+
+Each game pulls exactly 20 random rows whose operation matches the selected mode.
+
+3 ▸ Types & module catalog
+Extend GameType enum with MATH_RUSH.
+
+Append a Math Rush object to modules-page.tsx:
+
+ts
+Copy
+Edit
+{
+  id: "math_rush",
+  name: "Math Rush",
+  description: "Timed 20-question sprint in the operation of your choice.",
+  gameType: GameType.MATH_RUSH
+}
+4 ▸ Server-side adapter
+In server/mathRush.ts:
+
+ts
+Copy
+Edit
+import { db } from "./db";           // existing Drizzle instance
+import { sql } from "drizzle-orm";
+import { MATH_RUSH_RULES } from "../shared/mathRushRules";
+
+export async function getRushQuestions(
+  mode: typeof MATH_RUSH_RULES.modes[number]
+) {
+  const table =
+    mode === "addition" || mode === "subtraction"
+      ? "questions_addition"
+      : "questions_multiplication";
+
+  return db.execute(sql`
+    SELECT id, int1, int2, int3
+    FROM ${sql.raw(table)}
+    ORDER BY random()
+    LIMIT ${MATH_RUSH_RULES.questionCount};
+  `);
+}
+5 ▸ Express routes (routes/mathRush.ts)
+ts
+Copy
+Edit
+router.get("/api/rush/questions", async (req, res) => {
+  const { mode = "addition" } = req.query;
+  const questions = await getRushQuestions(mode as any);
+  res.json({ questions });
+});
+
+router.post("/api/rush/complete", async (req, res) => {
+  const { correct, total, durationSec } = req.body;
+  // compute tokens
+  const setting =
+    durationSec <= MATH_RUSH_RULES.timeSettings.SHORT.sec
+      ? MATH_RUSH_RULES.timeSettings.SHORT
+      : MATH_RUSH_RULES.timeSettings.LONG;
+
+  const tokens =
+    Math.floor(correct / 5) * setting.tokensPer5 +
+    (correct === total ? setting.bonusPerfect : 0);
+
+  // TODO: persist token credit …
+
+  res.json({ tokens });
+});
+Mount this router in server/routes/index.ts.
+
+6 ▸ Client flow
+Module click → navigate to /rush/setup.
+
+/rush/setup page:
+
+Show radio buttons for operation and time setting (60 s or 90 s).
+
+On “Start”, push selections into localStorage and route to /rush/play.
+
+/rush/play:
+
+Fetch /api/rush/questions?mode=….
+
+Use useSessionTimer with the chosen sec.
+
+Render each question with fill-in-the-blank component.
+
+After questionCount answers or timer expiry, POST results to /api/rush/complete then route to /rush/complete.
+
+/rush/complete:
+
+Show tokens earned, correct/total, and buttons for “Try another Rush” or “Back to Modules”.
+
+Reuse QuestionCard, useQuestionWithHistory, etc., extending only where needed.
+
+7 ▸ Token scoring unit tests
+Given (correct=17, total=20, durationSec=60) → Math.floor(17/5)*3 = 9 tokens.
+
+(20, 20, 60) → 12 + 20 = 32 tokens.
+
+(20, 20, 90) → 8 + 15 = 23 tokens.
+
+Write Jest tests in server/__tests__/rushScoring.test.ts.
+
+8 ▸ E2E happy path (Playwright)
+Click “Math Rush” → setup page renders.
+
+Choose “Multiplication” + “60 s” → play page shows timer 60 → 0.
+
+Answer 20 questions fast → completion screen shows token count matching rule.
+
+9 ▸ Clarification protocol
+Before coding, print a numbered list of clarification questions for anything that’s ambiguous (e.g., division formula, bonus caps, failure states). Wait for my answers, then proceed.
+
+Hand-off instructions to yourself
+
+Make a plan.md with todo items in the order above.
+
+Implement, commit with conventional commits (feat(rush): …, test(rush): …).
+
+Run npm test and Playwright; ensure green.
+
+Ping me for review.
