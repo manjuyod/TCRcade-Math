@@ -23,11 +23,15 @@ import { ProgressBar } from '@/components/progress-bar';
 
 // Type for rush questions
 type RushQuestion = {
-  id: number;
-  type: 'addition' | 'subtraction' | 'multiplication' | 'division';
-  int1: number;
-  int2: number;
-  int3: number;
+  id: number | string;
+  type?: string;
+  operation?: string;
+  question: string;
+  answer: string;
+  options: string[];
+  int1?: number;
+  int2?: number;
+  int3?: number;
 };
 
 // Type for answer result
@@ -142,36 +146,16 @@ export default function MathRushPlayPage() {
     }
   }, [timeRemaining, gameStarted]);
   
-  // Function to format question text
+  // Function to format question text - now just returns the question text directly
   const formatQuestionText = (question: RushQuestion) => {
-    switch (question.type) {
-      case 'addition':
-        return `${question.int1} + ${question.int2} = ?`;
-      case 'subtraction':
-        return `${question.int3} - ${question.int1} = ?`;
-      case 'multiplication':
-        return `${question.int1} × ${question.int2} = ?`;
-      case 'division':
-        return `${question.int3} ÷ ${question.int1} = ?`;
-      default:
-        return '';
-    }
+    // The question text is already formatted by the server
+    return question.question;
   };
   
   // Function to get correct answer for a question
   const getCorrectAnswer = (question: RushQuestion): string => {
-    switch (question.type) {
-      case 'addition':
-        return question.int3.toString();
-      case 'subtraction':
-        return question.int2.toString();
-      case 'multiplication':
-        return question.int3.toString();
-      case 'division':
-        return question.int2.toString();
-      default:
-        return '';
-    }
+    // The correct answer is already provided by the server
+    return question.answer;
   };
   
   // Handle answer submission
@@ -322,28 +306,51 @@ export default function MathRushPlayPage() {
                     {formatQuestionText(currentQuestion)}
                   </div>
                   
-                  <div className="flex w-full max-w-md items-center space-x-2">
-                    <Input
-                      ref={inputRef}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder="Enter your answer"
-                      className="text-xl py-6"
-                      disabled={feedbackVisible || gameOver}
-                    />
-                    <Button 
-                      onClick={handleSubmitAnswer}
-                      disabled={!answer.trim() || feedbackVisible || gameOver}
-                      size="lg"
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
-                      Submit
-                    </Button>
-                  </div>
+                  {/* Display multiple choice options if available */}
+                  {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3 w-full max-w-md mb-4">
+                      {currentQuestion.options.map((option, index) => (
+                        <Button
+                          key={index}
+                          onClick={() => {
+                            setAnswer(option);
+                            setTimeout(() => handleSubmitAnswer(), 100);
+                          }}
+                          className={`text-xl py-6 ${
+                            answer === option 
+                              ? 'bg-orange-500 hover:bg-orange-600' 
+                              : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                          }`}
+                          disabled={feedbackVisible || gameOver}
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex w-full max-w-md items-center space-x-2">
+                      <Input
+                        ref={inputRef}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Enter your answer"
+                        className="text-xl py-6"
+                        disabled={feedbackVisible || gameOver}
+                      />
+                      <Button 
+                        onClick={handleSubmitAnswer}
+                        disabled={!answer.trim() || feedbackVisible || gameOver}
+                        size="lg"
+                        className="bg-orange-500 hover:bg-orange-600"
+                      >
+                        Submit
+                      </Button>
+                    </div>
+                  )}
                   
                   {/* Feedback message */}
                   <AnimatePresence>
