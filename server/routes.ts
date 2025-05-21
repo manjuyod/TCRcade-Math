@@ -1031,9 +1031,35 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
   });
 
   // Math Rush routes
+  app.get("/api/rush/types", async (req, res) => {
+    try {
+      const { operation = "addition" } = req.query;
+      
+      // Determine which table to query based on the operation
+      const table = operation === "addition" || operation === "subtraction"
+        ? "questions_addition"
+        : "questions_multiplication";
+      
+      // Query distinct types from the appropriate table
+      const result = await db.execute(sql`
+        SELECT DISTINCT type FROM ${sql.raw(table)}
+        WHERE type IS NOT NULL
+        ORDER BY type;
+      `);
+      
+      // Extract types from the result
+      const types = result.rows?.map(row => row.type) || [];
+      
+      res.json({ types });
+    } catch (error) {
+      console.error('Error fetching question types:', error);
+      res.status(500).json({ error: 'Failed to fetch types' });
+    }
+  });
+
   app.get("/api/rush/questions", async (req, res) => {
     try {
-      const { mode = "addition" } = req.query;
+      const { mode = "addition", type } = req.query;
       const userId = getUserId(req);
       
       // Dynamically import the Math Rush functionality and rules
@@ -1047,7 +1073,7 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         });
       }
       
-      const questions = await getRushQuestions(mode as any);
+      const questions = await getRushQuestions(mode as any, type as string);
       res.json({ questions });
     } catch (error) {
       console.error('Error fetching rush questions:', error);

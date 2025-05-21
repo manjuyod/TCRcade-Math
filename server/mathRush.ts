@@ -3,7 +3,8 @@ import { sql } from "drizzle-orm";
 import { MATH_RUSH_RULES } from "../shared/mathRushRules";
 
 export async function getRushQuestions(
-  mode: typeof MATH_RUSH_RULES.modes[number]
+  mode: typeof MATH_RUSH_RULES.modes[number],
+  type?: string
 ) {
   if (mode === "mixed") {
     // For mixed mode, we need to get a mix of questions from both tables
