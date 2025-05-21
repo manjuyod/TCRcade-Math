@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { MATH_RUSH_RULES } from '@shared/mathRushRules';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
+import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { 
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 
 // Result data structure
 type MathRushResults = {
@@ -39,9 +41,11 @@ type MathRushResults = {
 export default function MathRushCompletePage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   
   // State for results
   const [results, setResults] = useState<MathRushResults | null>(null);
+  const [statsUpdated, setStatsUpdated] = useState(false);
   
   // Load results from localStorage when component mounts
   useEffect(() => {
@@ -60,6 +64,38 @@ export default function MathRushCompletePage() {
       navigate('/rush/setup');
     }
   }, []);
+  
+  // Update user stats when results are loaded
+  useEffect(() => {
+    const updateUserStats = async () => {
+      if (results && user && !statsUpdated) {
+        try {
+          // Update user statistics on the server
+          const response = await apiRequest('POST', '/api/user/stats/update', {
+            questions_answered: results.total,
+            correct_answers: results.correct,
+            tokens_earned: results.tokens
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update user statistics');
+          }
+          
+          setStatsUpdated(true);
+          console.log('User statistics updated successfully');
+        } catch (error) {
+          console.error('Error updating user statistics:', error);
+          toast({
+            title: 'Statistics Error',
+            description: 'Your session stats couldn\'t be updated. Progress may not be saved.',
+            variant: 'destructive'
+          });
+        }
+      }
+    };
+    
+    updateUserStats();
+  }, [results, user, statsUpdated, toast]);
   
   // Handle "Try Again" button click
   const handleTryAgain = () => {
