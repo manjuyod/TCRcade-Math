@@ -179,6 +179,7 @@ export default function MultiplayerMode() {
       gameType: 'cooperative' | 'competitive';
       settings: { questionCount: number; timeLimit: number };
     }) => {
+      console.log('Creating room with data:', data);
       const res = await apiRequest('POST', '/api/multiplayer/rooms', data);
       if (!res.ok) throw new Error('Failed to create room');
       return res.json() as Promise<MultiplayerRoom>;

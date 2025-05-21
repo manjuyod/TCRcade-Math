@@ -211,8 +211,16 @@ export default function MathRushPlayPage() {
     setTimeout(() => {
       setFeedbackVisible(false);
       
-      // Check if we've reached the end or if we're out of time
-      if (currentQuestionIndex >= MATH_RUSH_RULES.questionCount - 1 || timeRemaining <= 0) {
+      // Check if this was the final (20th) question
+      const isLastQuestion = currentQuestionIndex >= MATH_RUSH_RULES.questionCount - 1;
+      
+      if (isLastQuestion) {
+        // We've finished grading the last question, now end the game
+        console.log("Final question completed! Ending game.");
+        handleGameOver();
+      } else if (timeRemaining <= 0 && !isLastQuestion) {
+        // Time ran out and we're not on the last question
+        console.log("Time expired before reaching final question. Ending game.");
         handleGameOver();
       } else {
         // Move to next question
