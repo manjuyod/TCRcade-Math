@@ -109,12 +109,8 @@ export default function MathRushCompletePage() {
   // Calculate tokens breakdown
   const regularTokens = Math.floor(results.correct / 5) * timeSettings.tokensPer5;
   
-  // Give perfect bonus if either:
-  // 1. They got all 20 questions correct, or
-  // 2. They got all the questions they attempted correct (didn't miss any)
-  const isPerfect = 
-    (results.correct === MATH_RUSH_RULES.questionCount) || 
-    (results.correct === results.total && results.total >= MATH_RUSH_RULES.questionCount * 0.75);
+  // Give perfect bonus for perfect accuracy (all attempted questions correct)
+  const isPerfect = results.correct === results.total && results.correct > 0;
     
   const perfectBonus = isPerfect ? timeSettings.bonusPerfect : 0;
   

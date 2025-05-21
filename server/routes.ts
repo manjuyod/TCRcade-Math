@@ -1110,6 +1110,9 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
       // Calculate tokens earned
       const tokens = calculateRushTokens(correct, total, durationSec);
       
+      // For debugging
+      console.log(`Token calculation for Math Rush: ${correct}/${total} correct in ${durationSec}s - total tokens: ${tokens}`);
+      
       // Update user tokens in database if user is authenticated
       if (userId) {
         // Get current user
