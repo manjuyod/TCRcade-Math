@@ -26,7 +26,8 @@ import { useSessionTimer } from '@/hooks/use-session-timer';
 // Mini-game module types
 enum GameType {
   STANDARD = 'standard',
-  WORD_RACE = 'word_race' // New game type with countdown timer
+  WORD_RACE = 'word_race', // New game type with countdown timer
+  MATH_RUSH = 'math_rush' // Timed 20-question sprint
 }
 
 // Module definition with game type and difficulty
@@ -255,6 +256,17 @@ export default function ModulesPage() {
       locked: true,
       completeCount: 0
     },
+    {
+      id: 'math_rush',
+      name: 'Math Rush',
+      description: 'Timed 20-question sprint in the operation of your choice',
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-orange-500" />,
+      difficulty: 3,
+      category: 'mixed',
+      locked: false,
+      completeCount: 0
+    },
   ];
 
   // Filter modules based on active filter
@@ -273,6 +285,8 @@ export default function ModulesPage() {
         return { label: 'Standard Q&A', color: 'bg-primary' };
       case GameType.WORD_RACE:
         return { label: 'Timed Challenge', color: 'bg-red-500' };
+      case GameType.MATH_RUSH:
+        return { label: 'Timed Sprint', color: 'bg-orange-500' };
       default:
         return { label: 'Standard', color: 'bg-gray-500' };
     }
