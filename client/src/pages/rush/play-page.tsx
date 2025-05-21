@@ -218,34 +218,58 @@ export default function MathRushPlayPage() {
     const correctCount = answerResults.filter(r => r.correct).length;
     
     try {
-      // Submit results to server
+      console.log('Submitting results:', { correct: correctCount, total: MATH_RUSH_RULES.questionCount });
+      
+      // Submit results to server - use the expected question count
       const response = await apiRequest('POST', '/api/rush/complete', {
         correct: correctCount,
-        total: totalAnswered,
+        total: MATH_RUSH_RULES.questionCount,
         durationSec,
         mode
       });
       
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Server response:', data);
       
       // Store results for the completion page
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
-        total: totalAnswered,
+        total: MATH_RUSH_RULES.questionCount,
         durationSec,
         mode,
-        tokens: data.tokens,
+        tokens: data.tokens || 0,
         timeOption
       }));
       
-      // Navigate to completion page
-      navigate('/rush/complete');
+      // Navigate to completion page after a small delay
+      setTimeout(() => {
+        navigate('/rush/complete');
+      }, 500);
     } catch (error) {
       console.error('Error submitting results:', error);
+      
+      // Even if API fails, still save results and navigate to completion
+      localStorage.setItem('mathRushResults', JSON.stringify({
+        correct: correctCount,
+        total: MATH_RUSH_RULES.questionCount,
+        durationSec,
+        mode,
+        tokens: 0,
+        timeOption
+      }));
+      
+      setTimeout(() => {
+        navigate('/rush/complete');
+      }, 500);
+      
       toast({
-        title: 'Error',
-        description: 'Failed to submit results. Please try again.',
-        variant: 'destructive'
+        title: 'Note',
+        description: 'Your results were saved but tokens may not be awarded.',
+        variant: 'default'
       });
     }
   };

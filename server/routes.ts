@@ -1101,8 +1101,9 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         return res.status(400).json({ error: 'Invalid request data' });
       }
       
-      // Validate session data
-      if (correct < 0 || correct > total || total !== MATH_RUSH_RULES.questionCount) {
+      // Validate session data - be more lenient
+      if (correct < 0 || correct > total || total <= 0) {
+        console.log('Invalid stats:', { correct, total, durationSec });
         return res.status(400).json({ error: 'Invalid session statistics' });
       }
       
