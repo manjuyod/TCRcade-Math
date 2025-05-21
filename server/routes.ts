@@ -1030,6 +1030,81 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     }
   });
 
+  // Math Rush routes
+  app.get("/api/rush/questions", async (req, res) => {
+    try {
+      const { mode = "addition" } = req.query;
+      const userId = getUserId(req);
+      
+      // Dynamically import the Math Rush functionality and rules
+      const { getRushQuestions } = await import("./mathRush");
+      const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
+      
+      // Validate that mode is one of the allowed modes
+      if (!MATH_RUSH_RULES.modes.includes(mode as any)) {
+        return res.status(400).json({ 
+          error: `Invalid mode. Must be one of: ${MATH_RUSH_RULES.modes.join(', ')}` 
+        });
+      }
+      
+      const questions = await getRushQuestions(mode as any);
+      res.json({ questions });
+    } catch (error) {
+      console.error('Error fetching rush questions:', error);
+      res.status(500).json({ error: 'Failed to fetch questions' });
+    }
+  });
+
+  app.post("/api/rush/complete", async (req, res) => {
+    try {
+      const { correct, total, durationSec, mode } = req.body;
+      const userId = getUserId(req);
+      
+      // Dynamically import the Math Rush functionality and rules
+      const { calculateRushTokens } = await import("./mathRush");
+      const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
+      
+      if (typeof correct !== 'number' || typeof total !== 'number' || typeof durationSec !== 'number') {
+        return res.status(400).json({ error: 'Invalid request data' });
+      }
+      
+      // Validate session data
+      if (correct < 0 || correct > total || total !== MATH_RUSH_RULES.questionCount) {
+        return res.status(400).json({ error: 'Invalid session statistics' });
+      }
+      
+      // Calculate tokens earned
+      const tokens = calculateRushTokens(correct, total, durationSec);
+      
+      // Update user tokens in database if user is authenticated
+      if (userId) {
+        // Get current user
+        const user = await storage.getUser(userId);
+        if (user) {
+          // Update user's tokens
+          const updatedUser = await storage.updateUser(userId, {
+            tokens: (user.tokens || 0) + tokens
+          });
+          
+          // Log the completion
+          console.log(`User ${userId} completed Math Rush mode ${mode} with ${correct}/${total} correct in ${durationSec}s. Earned ${tokens} tokens.`);
+        }
+      }
+      
+      // Return the results
+      res.json({ 
+        tokens,
+        correct,
+        total,
+        durationSec,
+        mode
+      });
+    } catch (error) {
+      console.error('Error completing rush:', error);
+      res.status(500).json({ error: 'Failed to process completion' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
