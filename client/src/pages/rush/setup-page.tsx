@@ -55,7 +55,9 @@ export default function MathRushSetupPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch question types');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched question types:', data);
+      return data;
     },
     enabled: !!mode,
   });
