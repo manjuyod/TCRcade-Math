@@ -57,6 +57,7 @@ export default function MathRushPlayPage() {
   const [feedbackText, setFeedbackText] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [timerExpired, setTimerExpired] = useState(false);
   
   // Get settings from localStorage
   const mode = localStorage.getItem('mathRushMode') || 'addition';
@@ -140,11 +141,20 @@ export default function MathRushPlayPage() {
   }, [loading, questions, gameStarted]);
   
   // Effect to handle game over when timer reaches zero
+  // BUT allow the user to finish the 20th question if they're on it
   useEffect(() => {
     if (timeRemaining === 0 && gameStarted && !gameOver) {
-      handleGameOver();
+      // Only end the game if we're not on the final question
+      // This allows the user to finish the last question even if time runs out
+      if (currentQuestionIndex < MATH_RUSH_RULES.questionCount - 1) {
+        handleGameOver();
+      } else {
+        // Just show the timer has expired, but don't end the game yet
+        // Let the user submit their final answer
+        setTimerExpired(true);
+      }
     }
-  }, [timeRemaining, gameStarted]);
+  }, [timeRemaining, gameStarted, currentQuestionIndex]);
   
   // Effect to focus the input when the question changes
   useEffect(() => {
@@ -394,6 +404,21 @@ export default function MathRushPlayPage() {
                           <X className="h-5 w-5 mr-2" />
                         )}
                         {feedbackText}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Timer expired message for final question */}
+                  <AnimatePresence>
+                    {timerExpired && currentQuestionIndex === MATH_RUSH_RULES.questionCount - 1 && !gameOver && !feedbackVisible && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center mt-6 p-3 rounded-md bg-amber-100 text-amber-800"
+                      >
+                        <Clock className="h-5 w-5 mr-2" />
+                        Time's up! But you can still finish this final question to complete your session.
                       </motion.div>
                     )}
                   </AnimatePresence>
