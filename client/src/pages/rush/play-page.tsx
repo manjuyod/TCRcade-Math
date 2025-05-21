@@ -229,6 +229,17 @@ export default function MathRushPlayPage() {
     const totalAnswered = answerResults.length;
     const correctCount = answerResults.filter(r => r.correct).length;
     
+    // Detailed logging for debugging
+    console.log('Final answer results:', JSON.stringify(answerResults));
+    console.log(`Total questions attempted: ${totalAnswered}`);
+    console.log(`Total correct answers: ${correctCount}`);
+    console.log(`Correct answer details:`, answerResults.map((r, i) => ({
+      questionIndex: i, 
+      correct: r.correct,
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer
+    })));
+    
     try {
       console.log('Submitting results:', { correct: correctCount, total: MATH_RUSH_RULES.questionCount });
       
