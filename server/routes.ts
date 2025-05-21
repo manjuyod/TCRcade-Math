@@ -1115,11 +1115,12 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         // Get current user
         const user = await storage.getUser(userId);
         if (user) {
-          // Update user's tokens and track statistics
+          // Update user's tokens and track statistics using casting to handle type system conflicts
           const updatedUser = await storage.updateUser(userId, {
             tokens: (user.tokens || 0) + tokens,
-            questionsAnswered: (user.questionsAnswered || 0) + total,
-            correctAnswers: (user.correctAnswers || 0) + correct
+            // Use type assertion to handle schema vs database mismatch
+            ['questions_answered' as keyof typeof user]: ((user as any).questions_answered || 0) + total,
+            ['correct_answers' as keyof typeof user]: ((user as any).correct_answers || 0) + correct
           });
           
           console.log(`DATABASE: Updating user ${userId} with data: { tokens: ${(user.tokens || 0) + tokens} }`);
@@ -1163,11 +1164,12 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Calculate new statistics
+      // Calculate new statistics - using type assertions to handle schema conflicts
       const updatedStats = {
-        questionsAnswered: (user.questionsAnswered || 0) + questionsAnswered,
-        correctAnswers: (user.correctAnswers || 0) + correctAnswers,
-        tokens: (user.tokens || 0) + tokensEarned
+        tokens: (user.tokens || 0) + tokensEarned,
+        // Use type assertions to bridge gap between TypeScript schema and database
+        ['questions_answered' as keyof typeof user]: ((user as any).questions_answered || 0) + questionsAnswered,
+        ['correct_answers' as keyof typeof user]: ((user as any).correct_answers || 0) + correctAnswers
       };
       
       // Update user in the database
@@ -1181,7 +1183,11 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
       
       res.json({ 
         success: true,
-        updated: updatedStats
+        updated: {
+          tokens: updatedUser.tokens,
+          questions_answered: (updatedUser as any).questions_answered,
+          correct_answers: (updatedUser as any).correct_answers
+        }
       });
     } catch (error) {
       console.error("Error updating user statistics:", error);

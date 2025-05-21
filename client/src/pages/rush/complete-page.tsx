@@ -67,35 +67,10 @@ export default function MathRushCompletePage() {
   
   // Update user stats when results are loaded
   useEffect(() => {
-    const updateUserStats = async () => {
-      if (results && user && !statsUpdated) {
-        try {
-          // Update user statistics on the server
-          const response = await apiRequest('POST', '/api/user/stats/update', {
-            questionsAnswered: results.total,
-            correctAnswers: results.correct,
-            tokensEarned: results.tokens
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to update user statistics');
-          }
-          
-          setStatsUpdated(true);
-          console.log('User statistics updated successfully');
-        } catch (error) {
-          console.error('Error updating user statistics:', error);
-          toast({
-            title: 'Statistics Error',
-            description: 'Your session stats couldn\'t be updated. Progress may not be saved.',
-            variant: 'destructive'
-          });
-        }
-      }
-    };
-    
-    updateUserStats();
-  }, [results, user, statsUpdated, toast]);
+    // We don't need to update stats here anymore since they're already updated
+    // in the /api/rush/complete endpoint on the server
+    setStatsUpdated(true);
+  }, [results, user]);
   
   // Handle "Try Again" button click
   const handleTryAgain = () => {
