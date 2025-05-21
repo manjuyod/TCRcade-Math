@@ -106,7 +106,7 @@ export default function MathRushCompletePage() {
   
   // Calculate tokens breakdown
   const regularTokens = Math.floor(results.correct / 5) * timeSettings.tokensPer5;
-  const perfectBonus = results.correct === results.total && results.total === MATH_RUSH_RULES.questionCount
+  const perfectBonus = results.correct === MATH_RUSH_RULES.questionCount && results.total === MATH_RUSH_RULES.questionCount
     ? timeSettings.bonusPerfect
     : 0;
   
