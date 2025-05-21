@@ -41,89 +41,154 @@ export async function getRushQuestions(
   mode: typeof MATH_RUSH_RULES.modes[number],
   type?: string
 ) {
-  if (mode === "mixed") {
-    // For mixed mode, we need to get a mix of questions from both tables
+  try {
+    console.log(`Getting questions for mode: ${mode}, type: ${type || 'any'}`);
     
-    // Get questions from questions_addition (for addition and subtraction)
-    const additionResult = await db.execute(sql`
-      SELECT id, 'addition' as type, int1, int2, int3
-      FROM questions_addition
-      ORDER BY random()
-      LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
-    `);
-    
-    const subtractionResult = await db.execute(sql`
-      SELECT id, 'subtraction' as type, int1, int2, int3
-      FROM questions_addition
-      ORDER BY random()
-      LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
-    `);
-    
-    // Get questions from questions_multiplication (for multiplication and division)
-    const multiplicationResult = await db.execute(sql`
-      SELECT id, 'multiplication' as type, int1, int2, int3
-      FROM questions_multiplication
-      ORDER BY random()
-      LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
-    `);
-    
-    const divisionResult = await db.execute(sql`
-      SELECT id, 'division' as type, int1, int2, int3
-      FROM questions_multiplication
-      ORDER BY random()
-      LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
-    `);
-    
-    // Convert results to arrays
-    const additionQuestions = additionResult.rows || [];
-    const subtractionQuestions = subtractionResult.rows || [];
-    const multiplicationQuestions = multiplicationResult.rows || [];
-    const divisionQuestions = divisionResult.rows || [];
-    
-    // Combine all questions
-    const combinedQuestions = [
-      ...additionQuestions,
-      ...subtractionQuestions,
-      ...multiplicationQuestions,
-      ...divisionQuestions
-    ];
-    
-    // Shuffle the array to mix the question types
-    for (let i = combinedQuestions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [combinedQuestions[i], combinedQuestions[j]] = [combinedQuestions[j], combinedQuestions[i]];
-    }
-    
-    // Trim to exact question count
-    return combinedQuestions.slice(0, MATH_RUSH_RULES.questionCount);
-  } else {
-    const table = mode === "addition" || mode === "subtraction"
-      ? "questions_addition"
-      : "questions_multiplication";
-    
-    // Build the query based on whether a type filter is provided
-    let query;
-    
-    if (type) {
-      query = sql`
-        SELECT id, int1, int2, int3, type
-        FROM ${sql.raw(table)}
-        WHERE type = ${type}
+    if (mode === "mixed") {
+      // For mixed mode, we need to get a mix of questions from both tables
+      
+      // Get questions from questions_addition (for addition and subtraction)
+      const additionResult = await db.execute(sql`
+        SELECT id, 'addition' as mode, int1, int2, int3, type
+        FROM questions_addition
         ORDER BY random()
-        LIMIT ${MATH_RUSH_RULES.questionCount};
-      `;
+        LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
+      `);
+      
+      const subtractionResult = await db.execute(sql`
+        SELECT id, 'subtraction' as mode, int1, int2, int3, type
+        FROM questions_addition
+        ORDER BY random()
+        LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
+      `);
+      
+      // Get questions from questions_multiplication (for multiplication and division)
+      const multiplicationResult = await db.execute(sql`
+        SELECT id, 'multiplication' as mode, int1, int2, int3, type
+        FROM questions_multiplication
+        ORDER BY random()
+        LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
+      `);
+      
+      const divisionResult = await db.execute(sql`
+        SELECT id, 'division' as mode, int1, int2, int3, type
+        FROM questions_multiplication
+        ORDER BY random()
+        LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
+      `);
+      
+      // Convert results to arrays
+      const additionQuestions = additionResult.rows || [];
+      const subtractionQuestions = subtractionResult.rows || [];
+      const multiplicationQuestions = multiplicationResult.rows || [];
+      const divisionQuestions = divisionResult.rows || [];
+      
+      // Combine all questions
+      const combinedQuestions = [
+        ...additionQuestions,
+        ...subtractionQuestions,
+        ...multiplicationQuestions,
+        ...divisionQuestions
+      ];
+      
+      // Shuffle the array to mix the question types
+      for (let i = combinedQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [combinedQuestions[i], combinedQuestions[j]] = [combinedQuestions[j], combinedQuestions[i]];
+      }
+      
+      // Format questions for client use
+      const formattedQuestions = combinedQuestions.slice(0, MATH_RUSH_RULES.questionCount).map(q => {
+        // Format based on operation
+        const question = formatMathRushQuestion(q);
+        return question;
+      });
+      
+      console.log(`Returning ${formattedQuestions.length} mixed questions`);
+      return formattedQuestions;
     } else {
-      query = sql`
-        SELECT id, int1, int2, int3, type
-        FROM ${sql.raw(table)}
-        ORDER BY random()
-        LIMIT ${MATH_RUSH_RULES.questionCount};
-      `;
+      const table = mode === "addition" || mode === "subtraction"
+        ? "questions_addition"
+        : "questions_multiplication";
+      
+      // Build the query based on whether a type filter is provided
+      let query;
+      
+      if (type) {
+        query = sql`
+          SELECT id, int1, int2, int3, type
+          FROM ${sql.raw(table)}
+          WHERE type = ${type}
+          ORDER BY random()
+          LIMIT ${MATH_RUSH_RULES.questionCount};
+        `;
+      } else {
+        query = sql`
+          SELECT id, int1, int2, int3, type
+          FROM ${sql.raw(table)}
+          ORDER BY random()
+          LIMIT ${MATH_RUSH_RULES.questionCount};
+        `;
+      }
+      
+      const result = await db.execute(query);
+      console.log(`Database query returned ${result.rows?.length || 0} rows`);
+      
+      // Format questions for client use
+      const formattedQuestions = (result.rows || []).map(q => {
+        return formatMathRushQuestion({...q, mode});
+      });
+      
+      console.log(`Returning ${formattedQuestions.length} ${mode} questions`);
+      return formattedQuestions;
+    }
+  } catch (error) {
+    console.error('Error in getRushQuestions:', error);
+    // Return some default questions if database fails
+    return [];
+  }
+  
+  /**
+   * Format a database row into a proper question object for the client
+   */
+  function formatMathRushQuestion(q: any) {
+    const { id, mode: operation = mode, int1, int2, int3, type } = q;
+    let questionText = '';
+    let answer = '';
+    let options = [];
+    
+    if (operation === 'addition') {
+      questionText = `${int1} + ${int2} = ?`;
+      answer = String(int1 + int2);
+    } else if (operation === 'subtraction') {
+      questionText = `${int1 + int2} - ${int1} = ?`;
+      answer = String(int2);
+    } else if (operation === 'multiplication') {
+      questionText = `${int1} × ${int2} = ?`;
+      answer = String(int1 * int2);
+    } else if (operation === 'division') {
+      const dividend = int1 * int2;
+      questionText = `${dividend} ÷ ${int1} = ?`;
+      answer = String(int2);
     }
     
-    const result = await db.execute(query);
+    // Generate options (including the correct answer)
+    const answerNum = parseInt(answer);
+    options = [
+      String(answerNum - 2),
+      String(answerNum - 1),
+      answer,
+      String(answerNum + 1)
+    ].sort(() => Math.random() - 0.5);
     
-    return result.rows || [];
+    return {
+      id,
+      question: questionText,
+      answer,
+      options,
+      type: type || operation,
+      operation,
+    };
   }
 }
 
