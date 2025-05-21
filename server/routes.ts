@@ -116,64 +116,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Get available subjects for a grade
-  app.get("/api/subjects/available/:grade", ensureAuthenticated, async (req, res) => {
-    try {
-      const userId = getUserId(req);
-      const { grade } = req.params;
+  app.get(
+    "/api/subjects/available/:grade",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const userId = getUserId(req);
+        const { grade } = req.params;
 
-      const availableSubjects = await storage.getAvailableSubjectsForGrade(userId, grade);
-      res.json(availableSubjects);
-    } catch (error) {
-      console.error("Error fetching available subjects:", error);
-      res.status(500).json({
-        message: "Failed to fetch available subjects",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+        const availableSubjects = await storage.getAvailableSubjectsForGrade(
+          userId,
+          grade,
+        );
+        res.json(availableSubjects);
+      } catch (error) {
+        console.error("Error fetching available subjects:", error);
+        res.status(500).json({
+          message: "Failed to fetch available subjects",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
 
   // Get subject masteries for the current user
   // Initialize subject masteries for a grade
-app.post("/api/subject-mastery/initialize", ensureAuthenticated, async (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const { grade } = req.body;
+  app.post(
+    "/api/subject-mastery/initialize",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const userId = getUserId(req);
+        const { grade } = req.body;
 
-    if (!grade) {
-      return res.status(400).json({ message: "Grade is required" });
-    }
+        if (!grade) {
+          return res.status(400).json({ message: "Grade is required" });
+        }
 
-    // Get available subjects for this grade
-    const subjects = ['addition', 'subtraction', 'multiplication', 'division', 'fractions'].filter(subject => {
-      // Filter subjects based on grade level
-      const gradeNum = parseInt(grade);
-      if (gradeNum <= 2) return ['addition', 'subtraction'].includes(subject);
-      if (gradeNum <= 4) return !['geometry', 'algebra'].includes(subject);
-      return true;
-    });
+        // Get available subjects for this grade
+        const subjects = [
+          "addition",
+          "subtraction",
+          "multiplication",
+          "division",
+          "fractions",
+        ].filter((subject) => {
+          // Filter subjects based on grade level
+          const gradeNum = parseInt(grade);
+          if (gradeNum <= 2)
+            return ["addition", "subtraction"].includes(subject);
+          if (gradeNum <= 4) return !["geometry", "algebra"].includes(subject);
+          return true;
+        });
 
-    // Initialize each subject
-    const initializedSubjects = [];
-    for (const subject of subjects) {
-      const mastery = await storage.unlockGradeForSubject(userId, subject, grade);
-      initializedSubjects.push(mastery);
-    }
+        // Initialize each subject
+        const initializedSubjects = [];
+        for (const subject of subjects) {
+          const mastery = await storage.unlockGradeForSubject(
+            userId,
+            subject,
+            grade,
+          );
+          initializedSubjects.push(mastery);
+        }
 
-    res.json(initializedSubjects);
-  } catch (error) {
-    console.error("Error initializing subject masteries:", error);
-    res.status(500).json({
-      message: "Failed to initialize subject masteries",
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
-});
+        res.json(initializedSubjects);
+      } catch (error) {
+        console.error("Error initializing subject masteries:", error);
+        res.status(500).json({
+          message: "Failed to initialize subject masteries",
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
 
-app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
+  app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
       const subjectMasteries = await storage.getUserSubjectMasteries(userId);
-      
+
       res.json(subjectMasteries);
     } catch (error) {
       console.error("Error fetching subject masteries:", error);
@@ -1035,32 +1057,39 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       console.log("Rush types API called with params:", req.query);
       const { operation = "addition" } = req.query;
-      
+
       // Use the dedicated function to get question types
       const { getQuestionTypes } = await import("./mathRush");
       let types = await getQuestionTypes(operation as string);
-      
+
       // If no types found, provide some defaults based on operation
       if (types.length === 0) {
-        const isAddition = operation === "addition" || operation === "subtraction";
-        
+        const isAddition =
+          operation === "addition" || operation === "subtraction";
+
         if (isAddition) {
           types = ["ones", "addition"];
-          console.log("No types found in database, using default addition types:", types);
+          console.log(
+            "No types found in database, using default addition types:",
+            types,
+          );
         } else {
           types = ["multiplication", "times_tables"];
-          console.log("No types found in database, using default multiplication types:", types);
+          console.log(
+            "No types found in database, using default multiplication types:",
+            types,
+          );
         }
       }
-      
+
       console.log("Returning types:", types);
-      
+
       // Set proper content type
-      res.setHeader('Content-Type', 'application/json');
+      res.setHeader("Content-Type", "application/json");
       res.json({ types });
     } catch (error) {
-      console.error('Error fetching question types:', error);
-      res.status(500).json({ error: 'Failed to fetch types' });
+      console.error("Error fetching question types:", error);
+      res.status(500).json({ error: "Failed to fetch types" });
     }
   });
 
@@ -1068,23 +1097,23 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const { mode = "addition", type } = req.query;
       const userId = getUserId(req);
-      
+
       // Dynamically import the Math Rush functionality and rules
       const { getRushQuestions } = await import("./mathRush");
       const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
-      
+
       // Validate that mode is one of the allowed modes
       if (!MATH_RUSH_RULES.modes.includes(mode as any)) {
-        return res.status(400).json({ 
-          error: `Invalid mode. Must be one of: ${MATH_RUSH_RULES.modes.join(', ')}` 
+        return res.status(400).json({
+          error: `Invalid mode. Must be one of: ${MATH_RUSH_RULES.modes.join(", ")}`,
         });
       }
-      
+
       const questions = await getRushQuestions(mode as any, type as string);
       res.json({ questions });
     } catch (error) {
-      console.error('Error fetching rush questions:', error);
-      res.status(500).json({ error: 'Failed to fetch questions' });
+      console.error("Error fetching rush questions:", error);
+      res.status(500).json({ error: "Failed to fetch questions" });
     }
   });
 
@@ -1092,27 +1121,28 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const { correct, total, durationSec, mode } = req.body;
       const userId = getUserId(req);
-      
+
       // Dynamically import the Math Rush functionality and rules
       const { calculateRushTokens } = await import("./mathRush");
       const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
-      
-      if (typeof correct !== 'number' || typeof total !== 'number' || typeof durationSec !== 'number') {
-        return res.status(400).json({ error: 'Invalid request data' });
+
+      if (
+        typeof correct !== "number" ||
+        typeof total !== "number" ||
+        typeof durationSec !== "number"
+      ) {
+        return res.status(400).json({ error: "Invalid request data" });
       }
-      
+
       // Validate session data - be more lenient
       if (correct < 0 || correct > total || total <= 0) {
-        console.log('Invalid stats:', { correct, total, durationSec });
-        return res.status(400).json({ error: 'Invalid session statistics' });
+        console.log("Invalid stats:", { correct, total, durationSec });
+        return res.status(400).json({ error: "Invalid session statistics" });
       }
-      
+
       // Calculate tokens earned
       const tokens = calculateRushTokens(correct, total, durationSec);
-      
-      // For debugging
-      console.log(`Token calculation for Math Rush: ${correct}/${total} correct in ${durationSec}s - total tokens: ${tokens}`);
-      
+
       // Update user tokens in database if user is authenticated
       if (userId) {
         // Get current user
@@ -1122,30 +1152,62 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
           const updatedUser = await storage.updateUser(userId, {
             tokens: (user.tokens || 0) + tokens,
             // Use type assertion to handle schema vs database mismatch
-            ['questions_answered' as keyof typeof user]: ((user as any).questions_answered || 0) + total,
-            ['correct_answers' as keyof typeof user]: ((user as any).correct_answers || 0) + correct
+            ["questions_answered" as keyof typeof user]:
+              ((user as any).questions_answered || 0) + total,
+            ["correct_answers" as keyof typeof user]:
+              ((user as any).correct_answers || 0) + correct,
           });
-          
-          console.log(`DATABASE: Updating user ${userId} with data: { tokens: ${(user.tokens || 0) + tokens} }`);
-          console.log(`DATABASE: User ${userId} update successful: ${(user.tokens || 0) + tokens}`);
-          
+
+          console.log(
+            `DATABASE: Updating user ${userId} with data: { tokens: ${(user.tokens || 0) + tokens} }`,
+          );
+          console.log(
+            `DATABASE: User ${userId} update successful: ${(user.tokens || 0) + tokens}`,
+          );
+
           // Log the completion
-          console.log(`User ${userId} completed Math Rush mode ${mode} with ${correct}/${total} correct in ${durationSec}s. Earned ${tokens} tokens.`);
+          console.log(
+            `User ${userId} completed Math Rush mode ${mode} with ${correct}/${total} correct in ${durationSec}s. Earned ${tokens} tokens.`,
+          );
         }
       }
-      
+
       // Return the results
-      res.json({ 
+      res.json({
         tokens,
         correct,
         total,
         durationSec,
-        mode
+        mode,
       });
     } catch (error) {
-      console.error('Error completing rush:', error);
-      res.status(500).json({ error: 'Failed to process completion' });
+      console.error("Error completing rush:", error);
+      res.status(500).json({ error: "Failed to process completion" });
     }
+  });
+
+  app.post("/api/multiplayer/rooms", async (req, res) => {
+    const { name, grade, category, maxPlayers, gameType, settings } = req.body;
+
+    if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Mock implementation for now
+    const roomId = Math.floor(Math.random() * 10000);
+    const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+    res.status(201).json({
+      id: roomId,
+      name,
+      roomCode,
+      players: [],
+      settings,
+      gameType,
+      grade,
+      category,
+      maxPlayers,
+    });
   });
 
   // Endpoint to update user statistics
@@ -1153,50 +1215,61 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
       const { questionsAnswered, correctAnswers, tokensEarned } = req.body;
-      
+
       // Validate input
-      if (typeof questionsAnswered !== 'number' || typeof correctAnswers !== 'number' || typeof tokensEarned !== 'number') {
-        return res.status(400).json({ 
-          error: 'Invalid input. Required numeric fields: questionsAnswered, correctAnswers, tokensEarned' 
+      if (
+        typeof questionsAnswered !== "number" ||
+        typeof correctAnswers !== "number" ||
+        typeof tokensEarned !== "number"
+      ) {
+        return res.status(400).json({
+          error:
+            "Invalid input. Required numeric fields: questionsAnswered, correctAnswers, tokensEarned",
         });
       }
-      
+
       // Get current user data
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Calculate new statistics - using type assertions to handle schema conflicts
       const updatedStats = {
         tokens: (user.tokens || 0) + tokensEarned,
         // Use type assertions to bridge gap between TypeScript schema and database
-        ['questions_answered' as keyof typeof user]: ((user as any).questions_answered || 0) + questionsAnswered,
-        ['correct_answers' as keyof typeof user]: ((user as any).correct_answers || 0) + correctAnswers
+        ["questions_answered" as keyof typeof user]:
+          ((user as any).questions_answered || 0) + questionsAnswered,
+        ["correct_answers" as keyof typeof user]:
+          ((user as any).correct_answers || 0) + correctAnswers,
       };
-      
+
       // Update user in the database
       const updatedUser = await storage.updateUser(userId, updatedStats);
-      
+
       if (!updatedUser) {
-        return res.status(500).json({ error: "Failed to update user statistics" });
+        return res
+          .status(500)
+          .json({ error: "Failed to update user statistics" });
       }
-      
-      console.log(`User ${userId} stats updated: +${questionsAnswered} questions, +${correctAnswers} correct, +${tokensEarned} tokens`);
-      
-      res.json({ 
+
+      console.log(
+        `User ${userId} stats updated: +${questionsAnswered} questions, +${correctAnswers} correct, +${tokensEarned} tokens`,
+      );
+
+      res.json({
         success: true,
         updated: {
           tokens: updatedUser.tokens,
           questions_answered: (updatedUser as any).questions_answered,
-          correct_answers: (updatedUser as any).correct_answers
-        }
+          correct_answers: (updatedUser as any).correct_answers,
+        },
       });
     } catch (error) {
       console.error("Error updating user statistics:", error);
       res.status(500).json({
         error: "Failed to update user statistics",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });

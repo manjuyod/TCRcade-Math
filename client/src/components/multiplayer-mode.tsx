@@ -179,7 +179,7 @@ export default function MultiplayerMode() {
       gameType: 'cooperative' | 'competitive';
       settings: { questionCount: number; timeLimit: number };
     }) => {
-      console.log('Creating room with data:', data);
+      // console.log('Creating room with data:', data);
       const res = await apiRequest('POST', '/api/multiplayer/rooms', data);
       if (!res.ok) throw new Error('Failed to create room');
       return res.json() as Promise<MultiplayerRoom>;
@@ -1042,6 +1042,8 @@ export default function MultiplayerMode() {
   }
   
   // Room view (waiting, playing, or results)
+  console.log('Rendering room view with activeRoomId:', activeRoomId)
+  console.log('isActive?:', activeRoom);
   if (activeRoomId) {
     // Loading room
     if (isLoadingRoom && !activeRoom) {

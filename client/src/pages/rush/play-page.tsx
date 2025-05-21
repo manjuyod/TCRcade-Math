@@ -194,15 +194,16 @@ export default function MathRushPlayPage() {
     setFeedbackText(isAnswerCorrect ? 'Correct!' : 'Incorrect!');
     setFeedbackVisible(true);
     
-    // Save result
-    setAnswerResults(prev => [
-      ...prev,
-      {
-        correct: isAnswerCorrect,
-        userAnswer: answer,
-        correctAnswer
-      }
-    ]);
+    // Create the new result
+    const newResult = {
+      correct: isAnswerCorrect,
+      userAnswer: answer,
+      correctAnswer
+    };
+    
+    // Save result - include the 20th answer
+    const nextResults = [...answerResults, newResult];
+    setAnswerResults(nextResults);
     
     // Clear input
     setAnswer('');
@@ -217,11 +218,11 @@ export default function MathRushPlayPage() {
       if (isLastQuestion) {
         // We've finished grading the last question, now end the game
         console.log("Final question completed! Ending game.");
-        handleGameOver();
+        handleGameOver(nextResults);
       } else if (timeRemaining <= 0 && !isLastQuestion) {
         // Time ran out and we're not on the last question
         console.log("Time expired before reaching final question. Ending game.");
-        handleGameOver();
+        handleGameOver(nextResults);
       } else {
         // Move to next question
         setCurrentQuestionIndex(prevIndex => prevIndex + 1);
@@ -235,7 +236,9 @@ export default function MathRushPlayPage() {
   };
   
   // Handle game over
-  const handleGameOver = async () => {
+  const handleGameOver = async (
+    finalResults: AnswerResult[] = answerResults
+  ) => {
     // Stop the timer
     stopTimer();
     setGameOver(true);
@@ -244,15 +247,15 @@ export default function MathRushPlayPage() {
     const endTime = Date.now();
     const durationSec = Math.round((endTime - startTimeRef.current) / 1000);
     
-    // Calculate stats
-    const totalAnswered = answerResults.length;
-    const correctCount = answerResults.filter(r => r.correct).length;
+    // Calculate stats using the provided finalResults
+    const totalAnswered = finalResults.length;
+    const correctCount = finalResults.filter(r => r.correct).length;
     
     // Detailed logging for debugging
-    console.log('Final answer results:', JSON.stringify(answerResults));
+    console.log('Final answer results:', JSON.stringify(finalResults));
     console.log(`Total questions attempted: ${totalAnswered}`);
     console.log(`Total correct answers: ${correctCount}`);
-    console.log(`Correct answer details:`, answerResults.map((r, i) => ({
+    console.log(`Correct answer details:`, finalResults.map((r, i) => ({
       questionIndex: i, 
       correct: r.correct,
       userAnswer: r.userAnswer,
@@ -262,13 +265,10 @@ export default function MathRushPlayPage() {
     try {
       console.log('Submitting results:', { correct: correctCount, total: totalAnswered });
       
-      // Calculate the actual number of questions answered rather than using a fixed count
-      const actualQuestionsAnswered = totalAnswered;
-      
-      // Submit results to server using actual questions answered
+      // Submit results to server using the final results count
       const response = await apiRequest('POST', '/api/rush/complete', {
         correct: correctCount,
-        total: actualQuestionsAnswered,
+        total: totalAnswered,
         durationSec,
         mode
       });
