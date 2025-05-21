@@ -1115,10 +1115,15 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
         // Get current user
         const user = await storage.getUser(userId);
         if (user) {
-          // Update user's tokens
+          // Update user's tokens and track statistics
           const updatedUser = await storage.updateUser(userId, {
-            tokens: (user.tokens || 0) + tokens
+            tokens: (user.tokens || 0) + tokens,
+            questionsAnswered: (user.questionsAnswered || 0) + total,
+            correctAnswers: (user.correctAnswers || 0) + correct
           });
+          
+          console.log(`DATABASE: Updating user ${userId} with data: { tokens: ${(user.tokens || 0) + tokens} }`);
+          console.log(`DATABASE: User ${userId} update successful: ${(user.tokens || 0) + tokens}`);
           
           // Log the completion
           console.log(`User ${userId} completed Math Rush mode ${mode} with ${correct}/${total} correct in ${durationSec}s. Earned ${tokens} tokens.`);
@@ -1136,6 +1141,54 @@ app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     } catch (error) {
       console.error('Error completing rush:', error);
       res.status(500).json({ error: 'Failed to process completion' });
+    }
+  });
+
+  // Endpoint to update user statistics
+  app.post("/api/user/stats/update", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { questionsAnswered, correctAnswers, tokensEarned } = req.body;
+      
+      // Validate input
+      if (typeof questionsAnswered !== 'number' || typeof correctAnswers !== 'number' || typeof tokensEarned !== 'number') {
+        return res.status(400).json({ 
+          error: 'Invalid input. Required numeric fields: questionsAnswered, correctAnswers, tokensEarned' 
+        });
+      }
+      
+      // Get current user data
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Calculate new statistics
+      const updatedStats = {
+        questionsAnswered: (user.questionsAnswered || 0) + questionsAnswered,
+        correctAnswers: (user.correctAnswers || 0) + correctAnswers,
+        tokens: (user.tokens || 0) + tokensEarned
+      };
+      
+      // Update user in the database
+      const updatedUser = await storage.updateUser(userId, updatedStats);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update user statistics" });
+      }
+      
+      console.log(`User ${userId} stats updated: +${questionsAnswered} questions, +${correctAnswers} correct, +${tokensEarned} tokens`);
+      
+      res.json({ 
+        success: true,
+        updated: updatedStats
+      });
+    } catch (error) {
+      console.error("Error updating user statistics:", error);
+      res.status(500).json({
+        error: "Failed to update user statistics",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

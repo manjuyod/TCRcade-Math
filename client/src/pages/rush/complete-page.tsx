@@ -72,9 +72,9 @@ export default function MathRushCompletePage() {
         try {
           // Update user statistics on the server
           const response = await apiRequest('POST', '/api/user/stats/update', {
-            questions_answered: results.total,
-            correct_answers: results.correct,
-            tokens_earned: results.tokens
+            questionsAnswered: results.total,
+            correctAnswers: results.correct,
+            tokensEarned: results.tokens
           });
           
           if (!response.ok) {
