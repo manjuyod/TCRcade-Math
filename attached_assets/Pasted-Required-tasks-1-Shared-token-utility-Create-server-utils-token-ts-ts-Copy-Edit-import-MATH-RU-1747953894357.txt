@@ -1,0 +1,89 @@
+Required tasks
+1 ▸ Shared token utility
+Create server/utils/token.ts:
+
+ts
+Copy
+Edit
+import { MATH_RUSH_RULES } from "@shared/mathRushRules";
+
+export function calcTokensRush(correct: number, total: number, duration: number) {
+  const setting = duration <= MATH_RUSH_RULES.timeSettings.SHORT.sec
+    ? MATH_RUSH_RULES.timeSettings.SHORT
+    : MATH_RUSH_RULES.timeSettings.LONG;
+
+  return Math.floor(correct / 5) * setting.tokensPer5 +
+         (correct === total ? setting.bonusPerfect : 0);
+}
+Add similar calcTokensFacts (existing logic, moved here).
+
+2 ▸ server/routes.ts
+Replace ad-hoc token math with calls to the new util.
+
+After updating DB, res.json({ tokens, balance }) and
+io.to(userId).emit("token_updated", balance) (socket.io already set up for chat; reuse).
+
+3 ▸ server/modules/mathRush.ts
+Remove inline token math; import calcTokensRush.
+
+Validate result (>=0 && <= 2_147_483_647).
+
+Return { tokens, balance }.
+
+4 ▸ client/src/hooks/use-auth.tsx
+Add:
+
+ts
+Copy
+Edit
+useEffect(() => {
+  socket.on("token_updated", (newBal: number) => {
+    setAuth(s => ({ ...s, user: { ...s.user, tokens: newBal }}));
+  });
+  return () => socket.off("token_updated");
+}, []);
+Expose refreshTokens() that calls /api/auth/me when manual sync needed.
+
+5 ▸ rush/play-page.tsx
+After successful POST to /api/rush/complete, optimistically update local balance:
+
+ts
+Copy
+Edit
+auth.updateTokens(prev => prev + data.tokens);
+Render token count from useAuth() so change is instant.
+
+6 ▸ Tests
+Jest unit
+bash
+Copy
+Edit
+server/utils/token.test.ts
+✓ calcTokensRush(20/20, 60s) -> 32
+✓ rejects negative counts
+Integration
+bash
+Copy
+Edit
+server/routes.rush.test.ts
+POST /api/rush/complete
+↳ returns 200, correct tokens, DB balance updated
+Playwright E2E
+Log in as test user with 100 tokens.
+
+Finish a 60-s Rush with 20/20 correct.
+
+Expect balance text to show 132 without page reload.
+
+Clarification protocol
+Before coding, output a numbered list of questions if anything above is unclear (e.g. socket namespace, DB column name, existing auth context). Wait for my answers, then begin.
+
+Hand-off to yourself
+
+Generate plan.md with the tasks above.
+
+Commit step-wise (feat(token): …, refactor(rush): …, test(token): …).
+
+Run npm test && npx playwright test; ensure all green.
+
+Post success summary.
