@@ -1,4 +1,4 @@
-import { db } from "./db";           // existing Drizzle instance
+import { db } from "../db";           // existing Drizzle instance
 import { sql } from "drizzle-orm";
 import { MATH_RUSH_RULES } from "../../shared/mathRushRules";
 
