@@ -272,7 +272,7 @@ export default function HomePage() {
         const isMathFactsModule = currentModuleId.startsWith("math-facts-");
 
         // Use the full module ID for math facts, otherwise extract just the category
-        const category = isMathFactsModule
+        let category = isMathFactsModule
           ? currentModuleId
           : currentModuleId.includes("-")
             ? currentModuleId.split("-")[0]

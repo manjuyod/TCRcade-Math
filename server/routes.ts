@@ -1,10 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { questions, User, UserProgress } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
+import { calcTokensRush, calcTokensFacts, validateTokenAmount } from "./utils/token";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -679,12 +681,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isMathFactsModule && clientIsCorrect !== undefined) {
         // Use client-provided correctness for Math Facts
         isCorrect = clientIsCorrect;
-        tokensEarned =
-          clientTokensEarned !== undefined
-            ? clientTokensEarned
-            : isCorrect
-              ? 3
-              : 0;
+        // Calculate tokens using shared utility for consistency
+        tokensEarned = isCorrect ? calcTokensFacts(1, 1) : 0;
+        
+        // Validate token amount
+        if (!validateTokenAmount(tokensEarned)) {
+          console.error("Invalid token amount calculated for math facts:", tokensEarned);
+          tokensEarned = 0;
+        }
+        
         console.log(
           `Math Facts: Using client-validated answer (${answer}), correct: ${isCorrect}, tokens: ${tokensEarned}`,
         );
@@ -1122,10 +1127,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { correct, total, durationSec, mode } = req.body;
       const userId = getUserId(req);
 
-      // Dynamically import the Math Rush functionality and rules
-      const { calculateRushTokens } = await import("./modules/mathRush");
-      const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
-
       if (
         typeof correct !== "number" ||
         typeof total !== "number" ||
@@ -1140,8 +1141,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid session statistics" });
       }
 
-      // Calculate tokens earned
-      const tokens = calculateRushTokens(correct, total, durationSec);
+      // Calculate tokens earned using shared utility
+      const tokens = calcTokensRush(correct, total, durationSec);
+
+      // Validate token amount
+      if (!validateTokenAmount(tokens)) {
+        console.error("Invalid token amount calculated:", tokens);
+        return res.status(500).json({ error: "Token calculation error" });
+      }
 
       // Update user tokens in database if user is authenticated
       if (userId) {
@@ -1158,12 +1165,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ((user as any).correct_answers || 0) + correct,
           });
 
+          const newBalance = (user.tokens || 0) + tokens;
+          
           console.log(
-            `DATABASE: Updating user ${userId} with data: { tokens: ${(user.tokens || 0) + tokens} }`,
+            `DATABASE: Updating user ${userId} with data: { tokens: ${newBalance} }`,
           );
           console.log(
-            `DATABASE: User ${userId} update successful: ${(user.tokens || 0) + tokens}`,
+            `DATABASE: User ${userId} update successful: ${newBalance}`,
           );
+
+          // Emit real-time token update to client
+          const tokenNamespace = (global as any).tokenNamespace;
+          if (tokenNamespace) {
+            tokenNamespace.to(`user_${userId}`).emit("token_updated", newBalance);
+          }
 
           // Log the completion
           console.log(
@@ -1275,5 +1290,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Set up Socket.IO with dedicated namespace for token updates
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
+  // Create dedicated namespace for token updates
+  const tokenNamespace = io.of('/tokens');
+  
+  tokenNamespace.on('connection', (socket) => {
+    console.log('Client connected to token namespace:', socket.id);
+    
+    socket.on('disconnect', () => {
+      console.log('Client disconnected from token namespace:', socket.id);
+    });
+  });
+
+  // Make io available globally for token updates
+  (global as any).tokenNamespace = tokenNamespace;
+  
   return httpServer;
 }
