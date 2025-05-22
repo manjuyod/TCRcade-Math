@@ -1,6 +1,6 @@
 import { db } from "./db";           // existing Drizzle instance
 import { sql } from "drizzle-orm";
-import { MATH_RUSH_RULES } from "../shared/mathRushRules";
+import { MATH_RUSH_RULES } from "../../shared/mathRushRules";
 
 /**
  * Get available question types for a given operation

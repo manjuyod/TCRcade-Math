@@ -13,7 +13,7 @@ import {
   getNextMathFact,
   generateFallbackWordProblem,
   MathOperation,
-} from "./mathFacts";
+} from "./modules/mathFacts";
 
 import {
   analyzeStudentResponse,
