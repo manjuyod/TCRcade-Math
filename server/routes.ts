@@ -1059,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { operation = "addition" } = req.query;
 
       // Use the dedicated function to get question types
-      const { getQuestionTypes } = await import("./mathRush");
+      const { getQuestionTypes } = await import("./modules/mathRush");
       let types = await getQuestionTypes(operation as string);
 
       // If no types found, provide some defaults based on operation
@@ -1099,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
 
       // Dynamically import the Math Rush functionality and rules
-      const { getRushQuestions } = await import("./mathRush");
+      const { getRushQuestions } = await import("./modules/mathRush");
       const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
 
       // Validate that mode is one of the allowed modes
@@ -1123,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
 
       // Dynamically import the Math Rush functionality and rules
-      const { calculateRushTokens } = await import("./mathRush");
+      const { calculateRushTokens } = await import("./modules/mathRush");
       const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
 
       if (
