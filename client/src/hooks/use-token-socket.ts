@@ -38,7 +38,7 @@ export function useTokenSocket() {
     });
 
     // Listen for real-time token updates
-    socket.on('token_updated', (newTokenBalance: number) => {
+    const handleTokenUpdate = (newTokenBalance: number) => {
       console.log(`Received real-time token update: ${newTokenBalance} tokens`);
       
       // Update the user query cache with new token balance
@@ -48,7 +48,17 @@ export function useTokenSocket() {
         }
         return oldUser;
       });
-    });
+    };
+
+    socket.on('token_updated', handleTokenUpdate);
+
+    // Reconcile token balance every 30 seconds
+    const intervalId = setInterval(() => {
+      queryClient.invalidateQueries({
+        queryKey: ['/api/user'],
+        exact: true,
+      });
+    }, 30_000);
 
     socket.on('disconnect', () => {
       console.log('Disconnected from token updates namespace');
@@ -61,8 +71,10 @@ export function useTokenSocket() {
     // Cleanup on unmount or user change
     return () => {
       if (socket) {
+        socket.off('token_updated', handleTokenUpdate);
         socket.disconnect();
       }
+      clearInterval(intervalId);
     };
   }, [user?.id]);
 
