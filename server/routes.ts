@@ -791,6 +791,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               updatedUser ? "Success" : "Failed",
             );
 
+            // Emit real-time token update to client if tokens were added
+            if (totalTokensToAdd > 0 && updatedUser) {
+              const tokenNamespace = (global as any).tokenNamespace;
+              if (tokenNamespace) {
+                tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser.tokens);
+                console.log(`Emitted token update for user ${userId}: ${updatedUser.tokens} tokens`);
+              }
+            }
+
             // Also update user stats in the request object to reflect changes
             if (typeof newQuestionsAnswered === "number") {
               user.questionsAnswered = newQuestionsAnswered;

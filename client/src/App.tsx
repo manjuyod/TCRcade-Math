@@ -16,6 +16,7 @@ import MathRushCompletePage from "@/pages/rush/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
+import { TokenSocketProvider } from "@/components/token-socket-provider";
 import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
@@ -108,11 +109,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ScrollToTop />
-        <NavigationWrapper>
-          <Router />
-        </NavigationWrapper>
-        <Toaster />
+        <TokenSocketProvider>
+          <ScrollToTop />
+          <NavigationWrapper>
+            <Router />
+          </NavigationWrapper>
+          <Toaster />
+        </TokenSocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
