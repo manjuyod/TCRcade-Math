@@ -134,8 +134,8 @@ export function generateFractionsPuzzle(
             return {
               kind: "equivalent",
               frac: baseFrac,
-              options: [`${baseNum}/${baseDen} = x/${newDen}`],
-              answerSet: new Set([answer.toString()]),
+              options: [`${baseNum}/${baseDen} = ?/${newDen}`],
+              answerSet: [answer.toString()],
               level: levelIndex
             };
           } else {
@@ -146,8 +146,8 @@ export function generateFractionsPuzzle(
             return {
               kind: "equivalent",
               frac: baseFrac,
-              options: [`${baseNum}/${baseDen} = ${newNum}/x`],
-              answerSet: new Set([answer.toString()]),
+              options: [`${baseNum}/${baseDen} = ${newNum}/?`],
+              answerSet: [answer.toString()],
               level: levelIndex
             };
           }

@@ -162,11 +162,11 @@ export default function FractionsPlayPage() {
       case 'equivalent':
         if (question.level <= 1) {
           // Single answer for levels 1-2
-          return question.answerSet.has(answer.trim());
+          return question.answerSet.includes(answer.trim());
         } else {
           // Multi-select for levels 3+
           const selected = Array.from(selectedOptions);
-          const correct = Array.from(question.answerSet);
+          const correct = question.answerSet;
           return selected.length === correct.length && 
                  selected.every(opt => correct.includes(opt));
         }
