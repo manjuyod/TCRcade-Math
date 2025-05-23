@@ -146,7 +146,16 @@ export default function FractionsSetupPage() {
                   size="lg"
                   className="px-8 py-3 text-lg font-semibold"
                 >
-                  Start Fractions Puzzle
+                  Start {selectedSkill ? 
+                    (selectedSkill === 'define' ? 'Fraction Definition' :
+                     selectedSkill === 'gcdSimplify' ? 'GCD & Simplify' :
+                     selectedSkill === 'simplify' ? 'Simplify Fractions' :
+                     selectedSkill === 'equivalent' ? 'Equivalent Fractions' :
+                     selectedSkill === 'addSub' ? 'Add & Subtract' :
+                     selectedSkill === 'mulDiv' ? 'Multiply & Divide' :
+                     selectedSkill === 'mixedImproper' ? 'Mixed & Improper' :
+                     'Fractions Puzzle') 
+                    : 'Fractions Puzzle'}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
