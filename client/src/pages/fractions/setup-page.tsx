@@ -103,16 +103,6 @@ export default function FractionsSetupPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 mb-6">
-                <div className="text-center space-y-2">
-                  <div className="text-sm text-muted-foreground">
-                    <strong>20 Questions</strong> • <strong>5 Difficulty Levels</strong> • <strong>Skill Mastery</strong>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Earn 3 tokens per 5 correct answers + 20 bonus tokens for perfect score!
-                  </div>
-                </div>
-              </div>
 
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Select Your Skill:</h3>

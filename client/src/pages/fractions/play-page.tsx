@@ -63,7 +63,6 @@ export default function FractionsPlayPage() {
       return response.json();
     },
     staleTime: Infinity, // Don't refetch once loaded
-    cacheTime: Infinity, // Keep in cache
     refetchOnWindowFocus: false
   });
 
@@ -263,6 +262,7 @@ export default function FractionsPlayPage() {
                   }
                 }}
                 disabled={showFeedback}
+                autoFocus={!showFeedback}
               />
             </div>
           </div>

@@ -30,7 +30,7 @@ export function FractionInput({
     }
   }, [autoFocus, disabled]);
   return (
-    <div className="flex items-center justify-center space-x-1">
+    <div className="flex items-center justify-center space-x-3">
       <Input
         ref={numeratorRef}
         value={numerator}
@@ -40,7 +40,7 @@ export function FractionInput({
         className="w-16 text-center text-sm"
         disabled={disabled}
       />
-      <span className="text-xl font-bold text-gray-600">/</span>
+      <span className="text-xl font-bold text-gray-600 mx-2">/</span>
       <Input
         value={denominator}
         onChange={(e) => onDenominatorChange(e.target.value)}
