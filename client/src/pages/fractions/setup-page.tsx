@@ -14,11 +14,26 @@ export default function FractionsSetupPage() {
   const [, navigate] = useLocation();
   const [selectedSkill, setSelectedSkill] = useState<string>('');
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!selectedSkill) return;
     
     // Store selected skill
     localStorage.setItem('fractionsSkill', selectedSkill);
+    
+    // Force generate new questions when starting
+    try {
+      const response = await fetch('/api/fractions/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: selectedSkill })
+      });
+      
+      if (response.ok) {
+        console.log('Questions generated successfully');
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+    }
     
     // Navigate to play page
     navigate('/fractions/play');
