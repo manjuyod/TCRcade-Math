@@ -27,7 +27,8 @@ import { useSessionTimer } from '@/hooks/use-session-timer';
 enum GameType {
   STANDARD = 'standard',
   WORD_RACE = 'word_race', // New game type with countdown timer
-  MATH_RUSH = 'math_rush' // Timed 20-question sprint
+  MATH_RUSH = 'math_rush', // Timed 20-question sprint
+  FRACTIONS_PUZZLE = 'fractions_puzzle' // 20-question fractions mastery module
 }
 
 // Module definition with game type and difficulty
@@ -157,10 +158,10 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'fractions',
-      name: 'Fraction Puzzle',
-      description: 'Master fractions with practical examples and computational practice',
-      gameType: GameType.STANDARD,
+      id: 'fractions_puzzle',
+      name: 'Fractions Puzzle',
+      description: 'Master fractions through 20 progressively harder questions',
+      gameType: GameType.FRACTIONS_PUZZLE,
       icon: <Puzzle className="h-12 w-12 text-blue-500" />,
       difficulty: 3,
       category: 'fractions',
@@ -287,6 +288,8 @@ export default function ModulesPage() {
         return { label: 'Timed Challenge', color: 'bg-red-500' };
       case GameType.MATH_RUSH:
         return { label: 'Timed Sprint', color: 'bg-orange-500' };
+      case GameType.FRACTIONS_PUZZLE:
+        return { label: 'Skill Mastery', color: 'bg-blue-500' };
       default:
         return { label: 'Standard', color: 'bg-gray-500' };
     }
@@ -318,6 +321,13 @@ export default function ModulesPage() {
       // For Math Rush, navigate to the rush setup page
       console.log('Loading math rush module, navigating to setup page');
       setLocation('/rush/setup');
+      return;
+    }
+
+    if (module.gameType === GameType.FRACTIONS_PUZZLE) {
+      // For Fractions Puzzle, navigate to the setup page
+      console.log('Loading fractions puzzle module, navigating to setup page');
+      setLocation('/fractions/setup');
       return;
     }
     
