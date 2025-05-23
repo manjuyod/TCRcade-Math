@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 
 interface FractionInputProps {
@@ -8,6 +9,7 @@ interface FractionInputProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
   disabled?: boolean;
   placeholder?: string;
+  autoFocus?: boolean;
 }
 
 export function FractionInput({ 
@@ -17,11 +19,20 @@ export function FractionInput({
   onDenominatorChange, 
   onKeyDown,
   disabled = false,
-  placeholder = "Enter fraction"
+  placeholder = "Enter fraction",
+  autoFocus = false
 }: FractionInputProps) {
+  const numeratorRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    if (autoFocus && numeratorRef.current && !disabled) {
+      numeratorRef.current.focus();
+    }
+  }, [autoFocus, disabled]);
   return (
     <div className="flex items-center justify-center space-x-1">
       <Input
+        ref={numeratorRef}
         value={numerator}
         onChange={(e) => onNumeratorChange(e.target.value)}
         onKeyDown={onKeyDown}

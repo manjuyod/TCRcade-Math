@@ -9,7 +9,8 @@ interface FractionBarProps {
 
 export function FractionBar({ numerator, denominator, colorIndex, className = "" }: FractionBarProps) {
   const color = FRACTIONS_PUZZLE_RULES.colors[colorIndex % FRACTIONS_PUZZLE_RULES.colors.length];
-  const barWidth = Math.min(460, window.innerWidth * 0.7); // Responsive width
+  const containerWidth = Math.min(400, typeof window !== 'undefined' ? window.innerWidth * 0.6 : 400);
+  const barWidth = containerWidth - 20; // Leave some padding
   
   // Calculate section width
   const sectionWidth = barWidth / denominator;
@@ -21,7 +22,8 @@ export function FractionBar({ numerator, denominator, colorIndex, className = ""
           width={barWidth} 
           height="60" 
           className="mx-auto"
-          style={{ maxWidth: '400px' }}
+          viewBox={`0 0 ${barWidth} 60`}
+          style={{ maxWidth: `${containerWidth}px`, width: '100%' }}
         >
           {/* Draw all sections */}
           {Array.from({ length: denominator }, (_, i) => (

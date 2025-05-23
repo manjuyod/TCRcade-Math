@@ -103,13 +103,50 @@ export default function FractionsPlayPage() {
   const isAnswerCorrect = (question: FPQuestion, answer: string): boolean => {
     if (!question || !answer) return false;
     
+    // Helper function to check if two fractions are equivalent
+    const areFractionsEquivalent = (ans1: string, ans2: string): boolean => {
+      const parseToImproper = (frac: string): { num: number, den: number } | null => {
+        const trimmed = frac.trim();
+        if (trimmed.includes(' ')) {
+          // Mixed number like "2 1/3"
+          const parts = trimmed.split(' ');
+          if (parts.length === 2) {
+            const whole = parseInt(parts[0]);
+            const fracParts = parts[1].split('/');
+            if (fracParts.length === 2) {
+              const num = parseInt(fracParts[0]);
+              const den = parseInt(fracParts[1]);
+              return { num: whole * den + num, den };
+            }
+          }
+        } else if (trimmed.includes('/')) {
+          // Regular fraction like "7/3"
+          const fracParts = trimmed.split('/');
+          if (fracParts.length === 2) {
+            return { num: parseInt(fracParts[0]), den: parseInt(fracParts[1]) };
+          }
+        }
+        return null;
+      };
+      
+      const frac1 = parseToImproper(ans1);
+      const frac2 = parseToImproper(ans2);
+      
+      if (!frac1 || !frac2) return ans1.toLowerCase() === ans2.toLowerCase();
+      
+      // Check if fractions are equivalent by cross multiplication
+      return frac1.num * frac2.den === frac2.num * frac1.den;
+    };
+    
     switch (question.kind) {
       case 'define':
       case 'simplify':
-      case 'addSub':
-      case 'mulDiv':
       case 'mixedImproper':
         return answer.trim().toLowerCase() === question.answer.toLowerCase();
+      case 'addSub':
+      case 'mulDiv':
+        // Allow both improper fractions and mixed numbers for arithmetic
+        return areFractionsEquivalent(answer, question.answer);
       
       case 'gcdSimplify':
         // For GCD simplify, answer should be "gcd,simplified" format
@@ -176,6 +213,12 @@ export default function FractionsPlayPage() {
       setGcdStep(1);
       setGcdAnswer('');
       setShowFeedback(false);
+      
+      // Auto-focus the first input after a brief delay
+      setTimeout(() => {
+        const firstInput = document.querySelector('input') as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }, 100);
     } else {
       // Complete session
       const correctCount = userAnswers.filter((_, i) => 
