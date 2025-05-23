@@ -20,8 +20,8 @@ export function FractionBar({ numerator, denominator, colorIndex, className = ""
         <svg 
           width={barWidth} 
           height="60" 
-          className="border border-gray-300 rounded mx-auto"
-          style={{ maxWidth: '460px' }}
+          className="mx-auto"
+          style={{ maxWidth: '400px' }}
         >
           {/* Draw all sections */}
           {Array.from({ length: denominator }, (_, i) => (

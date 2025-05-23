@@ -12,6 +12,8 @@ import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { FractionBar } from '@/components/FractionBar';
 import { ProgressBar } from '@/components/progress-bar';
+import { FractionInput } from '@/components/FractionInput';
+import { StackedFraction } from '@/components/StackedFraction';
 import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +30,8 @@ export default function FractionsPlayPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
+  const [numeratorInput, setNumeratorInput] = useState('');
+  const [denominatorInput, setDenominatorInput] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [gcdStep, setGcdStep] = useState(1); // For gcdSimplify questions
   const [gcdAnswer, setGcdAnswer] = useState('');
@@ -36,6 +40,20 @@ export default function FractionsPlayPage() {
   
   // Get selected skill from localStorage
   const skill = localStorage.getItem('fractionsSkill') || 'define';
+  
+  // Get skill display name
+  const getSkillDisplayName = (skill: string) => {
+    const skillNames = {
+      define: 'Define Fractions',
+      gcdSimplify: 'GCD & Simplify',
+      simplify: 'Simplify Fractions',
+      equivalent: 'Equivalent Fractions',
+      addSub: 'Add & Subtract',
+      mulDiv: 'Multiply & Divide',
+      mixedImproper: 'Mixed & Improper'
+    };
+    return skillNames[skill as keyof typeof skillNames] || 'Fractions Puzzle';
+  };
   
   // Fetch questions
   const { data: questionsData, isLoading } = useQuery({
@@ -120,9 +138,14 @@ export default function FractionsPlayPage() {
   const handleSubmit = () => {
     let finalAnswer = currentAnswer;
     
+    // Handle fraction inputs
+    if (numeratorInput && denominatorInput) {
+      finalAnswer = `${numeratorInput}/${denominatorInput}`;
+    }
+    
     // Handle special cases
     if (currentQuestion.kind === 'gcdSimplify') {
-      finalAnswer = `${gcdAnswer},${currentAnswer}`;
+      finalAnswer = `${gcdAnswer},${finalAnswer || currentAnswer}`;
     } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 1) {
       finalAnswer = Array.from(selectedOptions).join(',');
     }
@@ -135,6 +158,11 @@ export default function FractionsPlayPage() {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = finalAnswer;
     setUserAnswers(newAnswers);
+    
+    // Auto-advance to next question after 1.5 seconds
+    setTimeout(() => {
+      handleNext();
+    }, 1500);
   };
 
   const handleNext = () => {
@@ -142,6 +170,8 @@ export default function FractionsPlayPage() {
       // Next question
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setCurrentAnswer('');
+      setNumeratorInput('');
+      setDenominatorInput('');
       setSelectedOptions(new Set());
       setGcdStep(1);
       setGcdAnswer('');
@@ -439,7 +469,7 @@ export default function FractionsPlayPage() {
       <Header />
       <Navigation active="home" />
       
-      <main className="flex-1 container max-w-4xl py-6 px-4">
+      <main className="flex-1 w-full max-w-4xl mx-auto py-6 px-4">
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
