@@ -13,6 +13,7 @@ import Navigation from '@/components/navigation';
 import { FractionBar } from '@/components/FractionBar';
 import { ProgressBar } from '@/components/progress-bar';
 import { FractionInput } from '@/components/FractionInput';
+import { MixedNumberInput } from '@/components/MixedNumberInput';
 import { StackedFraction } from '@/components/StackedFraction';
 import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
 import { apiRequest } from '@/lib/queryClient';
@@ -32,6 +33,7 @@ export default function FractionsPlayPage() {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [numeratorInput, setNumeratorInput] = useState('');
   const [denominatorInput, setDenominatorInput] = useState('');
+  const [wholeInput, setWholeInput] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [gcdStep, setGcdStep] = useState(1); // For gcdSimplify questions
   const [gcdAnswer, setGcdAnswer] = useState('');
@@ -291,7 +293,11 @@ export default function FractionsPlayPage() {
                 <div className="flex justify-center">
                   <Input
                     value={gcdAnswer}
-                    onChange={(e) => setGcdAnswer(e.target.value)}
+                    onChange={(e) => {
+                      // Only allow numbers
+                      const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                      setGcdAnswer(numericValue);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
                         setGcdStep(2);
@@ -407,7 +413,11 @@ export default function FractionsPlayPage() {
               <div className="flex justify-center">
                 <Input
                   value={currentAnswer}
-                  onChange={(e) => setCurrentAnswer(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numbers and spaces for mixed numbers
+                    const value = e.target.value.replace(/[^0-9\s\/]/g, '');
+                    setCurrentAnswer(value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
                       handleSubmit();
@@ -484,19 +494,19 @@ export default function FractionsPlayPage() {
                 <span className="text-2xl font-bold">=</span>
                 <span className="text-2xl font-bold text-gray-400">?</span>
               </div>
-              <p className="text-sm text-muted-foreground">Answer as an improper fraction or mixed number</p>
+              <p className="text-sm text-muted-foreground">Answer as a fraction in lowest terms</p>
             </div>
             <div className="flex justify-center">
-              <Input
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
+              <FractionInput
+                numerator={numeratorInput}
+                denominator={denominatorInput}
+                onNumeratorChange={setNumeratorInput}
+                onDenominatorChange={setDenominatorInput}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                  if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                     handleSubmit();
                   }
                 }}
-                placeholder="e.g., 7/4 or 1 3/4"
-                className="w-40 text-center"
                 disabled={showFeedback}
                 autoFocus={!showFeedback}
               />
@@ -524,19 +534,19 @@ export default function FractionsPlayPage() {
                 <span className="text-2xl font-bold">=</span>
                 <span className="text-2xl font-bold text-gray-400">?</span>
               </div>
-              <p className="text-sm text-muted-foreground">Answer as an improper fraction or mixed number</p>
+              <p className="text-sm text-muted-foreground">Answer as a fraction in lowest terms</p>
             </div>
             <div className="flex justify-center">
-              <Input
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
+              <FractionInput
+                numerator={numeratorInput}
+                denominator={denominatorInput}
+                onNumeratorChange={setNumeratorInput}
+                onDenominatorChange={setDenominatorInput}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                  if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                     handleSubmit();
                   }
                 }}
-                placeholder="e.g., 7/4 or 1 3/4"
-                className="w-40 text-center"
                 disabled={showFeedback}
                 autoFocus={!showFeedback}
               />
@@ -581,13 +591,39 @@ export default function FractionsPlayPage() {
               </p>
             </div>
             <div className="flex justify-center">
-              <Input
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
-                placeholder="Answer"
-                className="w-40 text-center"
-                disabled={showFeedback}
-              />
+              {currentQuestion.given.includes(' ') ? (
+                // Converting mixed number to improper fraction - use fraction input
+                <FractionInput
+                  numerator={numeratorInput}
+                  denominator={denominatorInput}
+                  onNumeratorChange={setNumeratorInput}
+                  onDenominatorChange={setDenominatorInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
+                      handleSubmit();
+                    }
+                  }}
+                  disabled={showFeedback}
+                  autoFocus={!showFeedback}
+                />
+              ) : (
+                // Converting improper fraction to mixed number - use 3-box input
+                <MixedNumberInput
+                  whole={wholeInput}
+                  numerator={numeratorInput}
+                  denominator={denominatorInput}
+                  onWholeChange={setWholeInput}
+                  onNumeratorChange={setNumeratorInput}
+                  onDenominatorChange={setDenominatorInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showFeedback && wholeInput.trim() && numeratorInput.trim() && denominatorInput.trim()) {
+                      handleSubmit();
+                    }
+                  }}
+                  disabled={showFeedback}
+                  autoFocus={!showFeedback}
+                />
+              )}
             </div>
           </div>
         );
