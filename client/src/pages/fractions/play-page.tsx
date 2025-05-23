@@ -45,11 +45,9 @@ export default function FractionsPlayPage() {
       return response.json();
     }
   });
-  console.log('Question Data:', questionsData);
 
   const questions: FPQuestion[] = questionsData?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
-  
   
   // Calculate progress
   const currentLevel = Math.min(4, Math.floor(currentQuestionIndex / 4)) + 1;
