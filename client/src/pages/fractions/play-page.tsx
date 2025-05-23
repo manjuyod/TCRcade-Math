@@ -213,6 +213,7 @@ export default function FractionsPlayPage() {
       setCurrentAnswer('');
       setNumeratorInput('');
       setDenominatorInput('');
+      setWholeInput('');
       setSelectedOptions(new Set());
       setGcdStep(1);
       setGcdAnswer('');
