@@ -55,13 +55,16 @@ export default function FractionsPlayPage() {
     return skillNames[skill as keyof typeof skillNames] || 'Fractions Puzzle';
   };
   
-  // Fetch questions
+  // Fetch all questions once at the start
   const { data: questionsData, isLoading } = useQuery({
     queryKey: ['/api/fractions/questions', skill],
     queryFn: async () => {
       const response = await fetch(`/api/fractions/questions?skill=${skill}`);
       return response.json();
-    }
+    },
+    staleTime: Infinity, // Don't refetch once loaded
+    cacheTime: Infinity, // Keep in cache
+    refetchOnWindowFocus: false
   });
 
   const questions: FPQuestion[] = questionsData?.questions || [];
