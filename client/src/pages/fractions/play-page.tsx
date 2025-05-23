@@ -295,16 +295,29 @@ export default function FractionsPlayPage() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
                         setGcdStep(2);
+                        // Auto-focus the first fraction input after step transition
+                        setTimeout(() => {
+                          const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
+                          if (firstInput) firstInput.focus();
+                        }, 100);
                       }
                     }}
                     placeholder="GCD"
                     className="w-24 text-center"
                     disabled={showFeedback}
+                    autoFocus={!showFeedback}
                   />
                 </div>
                 <div className="flex justify-center">
                   <Button 
-                    onClick={() => setGcdStep(2)}
+                    onClick={() => {
+                      setGcdStep(2);
+                      // Auto-focus the first fraction input after step transition
+                      setTimeout(() => {
+                        const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
+                        if (firstInput) firstInput.focus();
+                      }, 100);
+                    }}
                     disabled={!gcdAnswer || showFeedback}
                   >
                     Next Step
@@ -326,6 +339,7 @@ export default function FractionsPlayPage() {
                       }
                     }}
                     disabled={showFeedback}
+                    autoFocus={!showFeedback}
                   />
                 </div>
               </div>
@@ -441,18 +455,36 @@ export default function FractionsPlayPage() {
           <div className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-4">Calculate:</h3>
-              <div className="text-2xl font-bold mb-4">
-                {currentQuestion.left.num}/{currentQuestion.left.den} {currentQuestion.op} {currentQuestion.right.num}/{currentQuestion.right.den} = ?
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <StackedFraction 
+                  numerator={currentQuestion.left.num} 
+                  denominator={currentQuestion.left.den}
+                  className="text-xl"
+                />
+                <span className="text-2xl font-bold">{currentQuestion.op}</span>
+                <StackedFraction 
+                  numerator={currentQuestion.right.num} 
+                  denominator={currentQuestion.right.den}
+                  className="text-xl"
+                />
+                <span className="text-2xl font-bold">=</span>
+                <span className="text-2xl font-bold text-gray-400">?</span>
               </div>
-              <p className="text-sm text-muted-foreground">Give your answer in lowest terms</p>
+              <p className="text-sm text-muted-foreground">Answer as an improper fraction or mixed number</p>
             </div>
             <div className="flex justify-center">
               <Input
                 value={currentAnswer}
                 onChange={(e) => setCurrentAnswer(e.target.value)}
-                placeholder="Answer"
-                className="w-32 text-center"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                    handleSubmit();
+                  }
+                }}
+                placeholder="e.g., 7/4 or 1 3/4"
+                className="w-40 text-center"
                 disabled={showFeedback}
+                autoFocus={!showFeedback}
               />
             </div>
           </div>
@@ -463,18 +495,36 @@ export default function FractionsPlayPage() {
           <div className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-4">Calculate:</h3>
-              <div className="text-2xl font-bold mb-4">
-                {currentQuestion.left.num}/{currentQuestion.left.den} {currentQuestion.op} {currentQuestion.right.num}/{currentQuestion.right.den} = ?
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <StackedFraction 
+                  numerator={currentQuestion.left.num} 
+                  denominator={currentQuestion.left.den}
+                  className="text-xl"
+                />
+                <span className="text-2xl font-bold">{currentQuestion.op}</span>
+                <StackedFraction 
+                  numerator={currentQuestion.right.num} 
+                  denominator={currentQuestion.right.den}
+                  className="text-xl"
+                />
+                <span className="text-2xl font-bold">=</span>
+                <span className="text-2xl font-bold text-gray-400">?</span>
               </div>
-              <p className="text-sm text-muted-foreground">Give your answer in lowest terms</p>
+              <p className="text-sm text-muted-foreground">Answer as an improper fraction or mixed number</p>
             </div>
             <div className="flex justify-center">
               <Input
                 value={currentAnswer}
                 onChange={(e) => setCurrentAnswer(e.target.value)}
-                placeholder="Answer"
-                className="w-32 text-center"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                    handleSubmit();
+                  }
+                }}
+                placeholder="e.g., 7/4 or 1 3/4"
+                className="w-40 text-center"
                 disabled={showFeedback}
+                autoFocus={!showFeedback}
               />
             </div>
           </div>
