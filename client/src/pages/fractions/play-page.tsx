@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, X, Calculator } from 'lucide-react';
+import { ArrowRight, Check, X, Calculator, Star, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,24 @@ export default function FractionsPlayPage() {
   const [gcdStep, setGcdStep] = useState(1); // For gcdSimplify questions
   const [gcdAnswer, setGcdAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  
+  // Audio refs for sound effects
+  const correctSoundRef = useRef<HTMLAudioElement | null>(null);
+  const incorrectSoundRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Initialize audio elements
+  useEffect(() => {
+    // Create success sound (high-pitched beep)
+    const correctAudio = new Audio();
+    correctAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhEAAAFWq79uJbGggAAA==";
+    correctSoundRef.current = correctAudio;
+    
+    // Create error sound (lower tone)
+    const incorrectAudio = new Audio();
+    incorrectAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhEAAAF0q39uFZGAcAAA==";
+    incorrectSoundRef.current = incorrectAudio;
+  }, []);
   const [isCorrect, setIsCorrect] = useState(false);
   
   // Get selected skill from localStorage
@@ -195,6 +214,37 @@ export default function FractionsPlayPage() {
     const correct = isAnswerCorrect(currentQuestion, finalAnswer);
     setIsCorrect(correct);
     setShowFeedback(true);
+    
+    // Trigger sound effects and animations
+    if (correct) {
+      // Play success sound
+      if (correctSoundRef.current) {
+        correctSoundRef.current.currentTime = 0;
+        correctSoundRef.current.play().catch(() => {
+          // Handle autoplay restrictions gracefully
+        });
+      }
+      
+      // Trigger confetti animation
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1']
+      });
+      
+      // Show celebration animation
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 1000);
+    } else {
+      // Play error sound
+      if (incorrectSoundRef.current) {
+        incorrectSoundRef.current.currentTime = 0;
+        incorrectSoundRef.current.play().catch(() => {
+          // Handle autoplay restrictions gracefully
+        });
+      }
+    }
     
     // Store answer
     const newAnswers = [...userAnswers];
@@ -733,24 +783,126 @@ export default function FractionsPlayPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`mt-6 p-4 rounded-lg ${
+                  className={`mt-6 p-4 rounded-lg relative overflow-hidden ${
                     isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
+                  {/* Celebration overlay for correct answers */}
+                  {isCorrect && showCelebration && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 pointer-events-none"
+                    >
+                      {/* Sparkle animations */}
+                      {[...Array(8)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ 
+                            opacity: 0, 
+                            scale: 0,
+                            x: Math.random() * 100 - 50,
+                            y: Math.random() * 100 - 50
+                          }}
+                          animate={{ 
+                            opacity: [0, 1, 0], 
+                            scale: [0, 1.5, 0],
+                            rotate: 360
+                          }}
+                          transition={{ 
+                            duration: 1,
+                            delay: i * 0.1,
+                            ease: "easeOut"
+                          }}
+                          className="absolute"
+                          style={{
+                            left: `${20 + (i * 10)}%`,
+                            top: `${20 + (i % 3) * 20}%`
+                          }}
+                        >
+                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        </motion.div>
+                      ))}
+                      
+                      {/* Sparkles effect */}
+                      {[...Array(12)].map((_, i) => (
+                        <motion.div
+                          key={`sparkle-${i}`}
+                          initial={{ 
+                            opacity: 0, 
+                            scale: 0,
+                            x: Math.random() * 120 - 60,
+                            y: Math.random() * 120 - 60
+                          }}
+                          animate={{ 
+                            opacity: [0, 1, 0], 
+                            scale: [0, 1, 0],
+                            x: Math.random() * 200 - 100,
+                            y: Math.random() * 200 - 100
+                          }}
+                          transition={{ 
+                            duration: 0.8,
+                            delay: i * 0.05,
+                            ease: "easeOut"
+                          }}
+                          className="absolute"
+                          style={{
+                            left: '50%',
+                            top: '50%'
+                          }}
+                        >
+                          <Sparkles className="h-2 w-2 text-blue-400 fill-current" />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
+                  
+                  <div className="flex items-center space-x-2 relative z-10">
                     {isCorrect ? (
-                      <Check className="h-5 w-5 text-green-600" />
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 300, 
+                          damping: 20,
+                          delay: 0.1
+                        }}
+                      >
+                        <Check className="h-5 w-5 text-green-600" />
+                      </motion.div>
                     ) : (
-                      <X className="h-5 w-5 text-red-600" />
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 200, 
+                          damping: 15
+                        }}
+                      >
+                        <X className="h-5 w-5 text-red-600" />
+                      </motion.div>
                     )}
-                    <span className={`font-semibold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-                      {isCorrect ? 'Correct!' : 'Incorrect'}
-                    </span>
+                    <motion.span 
+                      className={`font-semibold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {isCorrect ? 'Excellent work!' : 'Not quite right'}
+                    </motion.span>
                   </div>
                   {!isCorrect && (
-                    <div className="mt-2 text-sm text-red-700">
+                    <motion.div 
+                      className="mt-2 text-sm text-red-700"
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
                       The correct answer is: {currentQuestion.answer}
-                    </div>
+                    </motion.div>
                   )}
                 </motion.div>
               )}
