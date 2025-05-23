@@ -393,13 +393,60 @@ export default function FractionsPlayPage() {
           return (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-4">Solve for x:</h3>
-                <div className="flex justify-center mb-4">
-                  {/* Parse and display as stacked fractions */}
+                <h3 className="text-lg font-semibold mb-4">Complete the equation:</h3>
+                <div className="flex justify-center items-center space-x-4">
+                  {/* Parse and display with integrated input */}
                   {currentQuestion.options[0].split(' = ').map((part: string, index: number) => (
                     <div key={index} className="flex items-center">
-                      {index > 0 && <span className="mx-4 text-xl font-bold">=</span>}
-                      {part.includes('/') ? (
+                      {index > 0 && <span className="mx-4 text-2xl font-bold">=</span>}
+                      {part.includes('/') && part.includes('?') ? (
+                        // Fraction with ? - replace with integrated input box
+                        <div className="flex flex-col items-center">
+                          {part.split('/')[0] === '?' ? (
+                            <>
+                              <Input
+                                value={currentAnswer}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9]/g, '');
+                                  setCurrentAnswer(value);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                                    handleSubmit();
+                                  }
+                                }}
+                                className="w-14 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                disabled={showFeedback}
+                                autoFocus={!showFeedback}
+                                placeholder="?"
+                              />
+                              <div className="h-0.5 bg-gray-800 w-14 my-2"></div>
+                              <span className="text-xl font-bold">{part.split('/')[1]}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xl font-bold">{part.split('/')[0]}</span>
+                              <div className="h-0.5 bg-gray-800 w-14 my-2"></div>
+                              <Input
+                                value={currentAnswer}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9]/g, '');
+                                  setCurrentAnswer(value);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                                    handleSubmit();
+                                  }
+                                }}
+                                className="w-14 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                disabled={showFeedback}
+                                autoFocus={!showFeedback}
+                                placeholder="?"
+                              />
+                            </>
+                          )}
+                        </div>
+                      ) : part.includes('/') ? (
                         <StackedFraction 
                           numerator={part.split('/')[0]} 
                           denominator={part.split('/')[1]}
@@ -411,24 +458,6 @@ export default function FractionsPlayPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="flex justify-center">
-                <Input
-                  value={currentAnswer}
-                  onChange={(e) => {
-                    // Only allow numbers for equivalent fractions
-                    const value = e.target.value.replace(/[^0-9]/g, '');
-                    setCurrentAnswer(value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
-                      handleSubmit();
-                    }
-                  }}
-                  placeholder={currentQuestion.level === 0 ? "Enter number" : "Enter fraction"}
-                  className="w-32 text-center"
-                  disabled={showFeedback}
-                />
               </div>
             </div>
           );
@@ -659,7 +688,16 @@ export default function FractionsPlayPage() {
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate('/fractions/setup')}
+            onClick={() => {
+              if (currentQuestionIndex > 0) {
+                // Show confirmation dialog if progress exists
+                if (confirm('Are you sure you want to exit? You will lose your progress in this skill.')) {
+                  navigate('/fractions/setup');
+                }
+              } else {
+                navigate('/fractions/setup');
+              }
+            }}
           >
             <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
             Back to Setup
