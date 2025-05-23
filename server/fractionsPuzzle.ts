@@ -124,11 +124,13 @@ export function generateFractionsPuzzle(
         const baseFrac = { num: baseNum, den: baseDen };
         
         if (levelIndex === 0) {
-          // Level 1: only numerator or denominator
+          // Level 1: generate equivalent by multiplying both by same factor
           const solvingForNumerator = Math.random() < 0.5;
           if (solvingForNumerator) {
-            const newDen = randInt(baseDen + 1, 10);
-            const answer = (baseNum * newDen) / baseDen;
+            // Solve for numerator: a/b = x/c where c = b * factor
+            const factor = randInt(2, 4);
+            const newDen = baseDen * factor;
+            const answer = baseNum * factor;
             return {
               kind: "equivalent",
               frac: baseFrac,
@@ -137,8 +139,10 @@ export function generateFractionsPuzzle(
               level: levelIndex
             };
           } else {
-            const newNum = randInt(baseNum + 1, 10);
-            const answer = (newNum * baseDen) / baseNum;
+            // Solve for denominator: a/b = c/x where c = a * factor
+            const factor = randInt(2, 4);
+            const newNum = baseNum * factor;
+            const answer = baseDen * factor;
             return {
               kind: "equivalent",
               frac: baseFrac,

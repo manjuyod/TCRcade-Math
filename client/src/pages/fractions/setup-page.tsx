@@ -75,25 +75,26 @@ export default function FractionsSetupPage() {
       <Header />
       <Navigation active="home" />
       
-      <main className="flex-1 container max-w-4xl py-6 px-4">
-        <div className="mb-6 flex items-center">
-          <Button
-            variant="ghost"
-            className="mr-2"
-            onClick={() => navigate('/modules')}
-          >
-            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-            Back to Modules
-          </Button>
-        </div>
+      <main className="flex-1 flex items-center justify-center py-6 px-4">
+        <div className="w-full max-w-4xl">
+          <div className="mb-6 flex items-center">
+            <Button
+              variant="ghost"
+              className="mr-2"
+              onClick={() => navigate('/modules')}
+            >
+              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+              Back to Modules
+            </Button>
+          </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6"
-        >
-          <Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex justify-center"
+          >
+            <Card className="w-full max-w-2xl">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold text-primary">
                 Fractions Puzzle
