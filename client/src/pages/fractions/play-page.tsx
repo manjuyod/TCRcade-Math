@@ -206,16 +206,16 @@ export default function FractionsPlayPage() {
               />
             </div>
             <div className="flex justify-center">
-              <Input
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
+              <FractionInput
+                numerator={numeratorInput}
+                denominator={denominatorInput}
+                onNumeratorChange={setNumeratorInput}
+                onDenominatorChange={setDenominatorInput}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                  if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                     handleSubmit();
                   }
                 }}
-                placeholder="Enter fraction (e.g., 3/4)"
-                className="w-32 text-center"
                 disabled={showFeedback}
               />
             </div>
@@ -226,9 +226,14 @@ export default function FractionsPlayPage() {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">
-                Simplify {currentQuestion.frac.num}/{currentQuestion.frac.den}
-              </h3>
+              <h3 className="text-lg font-semibold mb-4">Simplify this fraction:</h3>
+              <div className="flex justify-center mb-4">
+                <StackedFraction 
+                  numerator={currentQuestion.frac.num} 
+                  denominator={currentQuestion.frac.den}
+                  className="text-2xl"
+                />
+              </div>
               <p className="text-sm text-muted-foreground mb-4">
                 Step 1: Find the GCD, then Step 2: Write the simplified form
               </p>
@@ -264,16 +269,16 @@ export default function FractionsPlayPage() {
               <div className="space-y-4">
                 <p className="text-center">Now simplify the fraction:</p>
                 <div className="flex justify-center">
-                  <Input
-                    value={currentAnswer}
-                    onChange={(e) => setCurrentAnswer(e.target.value)}
+                  <FractionInput
+                    numerator={numeratorInput}
+                    denominator={denominatorInput}
+                    onNumeratorChange={setNumeratorInput}
+                    onDenominatorChange={setDenominatorInput}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !showFeedback && currentAnswer.trim() && gcdAnswer.trim()) {
+                      if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim() && gcdAnswer.trim()) {
                         handleSubmit();
                       }
                     }}
-                    placeholder="Simplified fraction"
-                    className="w-32 text-center"
                     disabled={showFeedback}
                   />
                 </div>
@@ -289,21 +294,25 @@ export default function FractionsPlayPage() {
               <h3 className="text-lg font-semibold mb-4">
                 Simplify this fraction to lowest terms:
               </h3>
-              <div className="text-2xl font-bold mb-4">
-                {currentQuestion.frac.num}/{currentQuestion.frac.den}
+              <div className="flex justify-center mb-4">
+                <StackedFraction 
+                  numerator={currentQuestion.frac.num} 
+                  denominator={currentQuestion.frac.den}
+                  className="text-2xl"
+                />
               </div>
             </div>
             <div className="flex justify-center">
-              <Input
-                value={currentAnswer}
-                onChange={(e) => setCurrentAnswer(e.target.value)}
+              <FractionInput
+                numerator={numeratorInput}
+                denominator={denominatorInput}
+                onNumeratorChange={setNumeratorInput}
+                onDenominatorChange={setDenominatorInput}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                  if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                     handleSubmit();
                   }
                 }}
-                placeholder="Simplified fraction"
-                className="w-32 text-center"
                 disabled={showFeedback}
               />
             </div>
@@ -343,8 +352,15 @@ export default function FractionsPlayPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">
-                  Which fractions are equivalent to {currentQuestion.frac.num}/{currentQuestion.frac.den}?
+                  Which fractions are equivalent to:
                 </h3>
+                <div className="flex justify-center mb-4">
+                  <StackedFraction 
+                    numerator={currentQuestion.frac.num} 
+                    denominator={currentQuestion.frac.den}
+                    className="text-xl"
+                  />
+                </div>
                 <p className="text-sm text-muted-foreground">Select all that apply</p>
               </div>
               <div className="grid gap-3">
@@ -489,7 +505,7 @@ export default function FractionsPlayPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                Fractions Puzzle
+                {getSkillDisplayName(skill)}
               </CardTitle>
             </CardHeader>
             <CardContent>
