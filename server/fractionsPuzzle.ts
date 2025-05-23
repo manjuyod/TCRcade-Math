@@ -6,7 +6,7 @@ export type FPQuestion =
   | { kind: "define";        bar: Fraction; colorIndex: number; answer: string }
   | { kind: "gcdSimplify";   frac: Fraction; gcd: number; answer: string }
   | { kind: "simplify";      frac: Fraction; answer: string }
-  | { kind: "equivalent";    frac: Fraction; options: string[]; answerSet: Set<string>; level: number }
+  | { kind: "equivalent";    frac: Fraction; options: string[]; answerSet: string[]; level: number }
   | { kind: "addSub";        left: Fraction; right: Fraction; op: "+"|"-"; answer: string }
   | { kind: "mulDiv";        left: Fraction; right: Fraction; op: "×"|"÷"; answer: string }
   | { kind: "mixedImproper"; given: string; answer: string };
