@@ -158,7 +158,7 @@ export function generateFractionsPuzzle(
           return {
             kind: "equivalent",
             frac: baseFrac,
-            options: [`${baseNum}/${baseDen} = ?/?`],
+            options: [`${baseNum}/${baseDen} = FRACTION_INPUT`],
             answerSet: [],
             answer: "Any equivalent fraction",
             level: levelIndex

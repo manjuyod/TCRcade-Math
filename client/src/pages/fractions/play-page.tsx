@@ -533,11 +533,11 @@ export default function FractionsPlayPage() {
                             />
                           )
                         ) : part.includes('/') ? (
-                          <StackedFraction 
-                            numerator={part.split('/')[0]} 
-                            denominator={part.split('/')[1]}
-                            className="text-2xl"
-                          />
+                          <div className="flex flex-col items-center justify-center min-w-[80px]">
+                            <span className="text-2xl font-bold h-10 flex items-center">{part.split('/')[0]}</span>
+                            <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
+                            <span className="text-2xl font-bold h-10 flex items-center">{part.split('/')[1]}</span>
+                          </div>
                         ) : (
                           <span className="text-2xl font-bold">{part}</span>
                         )}
@@ -555,14 +555,15 @@ export default function FractionsPlayPage() {
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Find an equivalent fraction:</h3>
                 <div className="flex justify-center items-center space-x-6 mb-6">
-                  <StackedFraction 
-                    numerator={currentQuestion.frac.num} 
-                    denominator={currentQuestion.frac.den}
-                    className="text-2xl"
-                  />
-                  <span className="text-3xl font-bold text-gray-700">=</span>
+                  {/* Left fraction - same size as input boxes */}
                   <div className="flex flex-col items-center justify-center min-w-[80px]">
-                    {/* Numerator input */}
+                    <span className="text-2xl font-bold h-10 flex items-center">{currentQuestion.frac.num}</span>
+                    <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
+                    <span className="text-2xl font-bold h-10 flex items-center">{currentQuestion.frac.den}</span>
+                  </div>
+                  <span className="text-3xl font-bold text-gray-700">=</span>
+                  {/* Right fraction - input boxes */}
+                  <div className="flex flex-col items-center justify-center min-w-[80px]">
                     <Input
                       value={numeratorInput}
                       onChange={(e) => {
@@ -577,11 +578,9 @@ export default function FractionsPlayPage() {
                       className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
                       autoFocus={!showFeedback}
-                      placeholder="num"
+                      placeholder="?"
                     />
-                    {/* Fraction line */}
                     <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
-                    {/* Denominator input */}
                     <Input
                       value={denominatorInput}
                       onChange={(e) => {
@@ -595,7 +594,7 @@ export default function FractionsPlayPage() {
                       }}
                       className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
-                      placeholder="den"
+                      placeholder="?"
                     />
                   </div>
                 </div>
