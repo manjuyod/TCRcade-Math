@@ -562,44 +562,39 @@ export default function FractionsPlayPage() {
                     <span className="text-2xl font-bold h-10 flex items-center">{currentQuestion.frac.den}</span>
                   </div>
                   <span className="text-3xl font-bold text-gray-700">=</span>
-                  {/* Right fraction - TWO INPUT BOXES */}
-                  <div className="flex flex-col items-center justify-center min-w-[80px] bg-yellow-100 p-2 rounded-lg border-2 border-yellow-300">
-                    {/* NUMERATOR INPUT BOX */}
+                  {/* Right fraction - input boxes */}
+                  <div className="flex flex-col items-center justify-center min-w-[80px]">
                     <Input
                       value={numeratorInput}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, '');
                         setNumeratorInput(value);
-                        console.log('NUMERATOR INPUT:', value);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                           handleSubmit();
                         }
                       }}
-                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-red-500 bg-green-100 rounded-md"
+                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
                       autoFocus={!showFeedback}
-                      placeholder="NUM"
+                      placeholder="?"
                     />
-                    {/* FRACTION LINE */}
                     <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
-                    {/* DENOMINATOR INPUT BOX */}
                     <Input
                       value={denominatorInput}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9]/g, '');
                         setDenominatorInput(value);
-                        console.log('DENOMINATOR INPUT:', value);
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
                           handleSubmit();
                         }
                       }}
-                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-red-500 bg-green-100 rounded-md"
+                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
-                      placeholder="DEN"
+                      placeholder="?"
                     />
                   </div>
                 </div>
