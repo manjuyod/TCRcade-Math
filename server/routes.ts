@@ -17,6 +17,12 @@ import {
   MathOperation,
 } from "./modules/mathFacts";
 
+/**
+ * Import the fractions puzzle module
+ */
+import { generateFractionsPuzzle } from "./fractionsPuzzle";
+import { FRACTIONS_PUZZLE_RULES as R } from "../shared/fractionsPuzzleRules";
+
 import {
   analyzeStudentResponse,
   generateMathHint,
@@ -1207,6 +1213,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error completing rush:", error);
       res.status(500).json({ error: "Failed to process completion" });
+    }
+  });
+
+  // Fractions Puzzle routes
+  app.get("/api/fractions/questions", async (req, res) => {
+    try {
+      const { skill = "define" } = req.query;
+      
+      const questions = Array.from({ length: R.questionCount }, (_, i) =>
+        generateFractionsPuzzle(skill as any, i)
+      );
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating fractions questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
+  app.post("/api/fractions/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const { correct, total, skill } = req.body;
+      const userId = getUserId(req);
+      
+      // Calculate tokens
+      const tokens = Math.floor(correct / 5) * R.tokensPer5 + (correct === total ? R.bonusPerfect : 0);
+      
+      // Update user tokens
+      const user = await storage.getUser(userId);
+      if (user) {
+        const updatedUser = await storage.updateUser(userId, { 
+          tokens: (user.tokens || 0) + tokens 
+        });
+
+        // Emit real-time token update to client
+        const tokenNamespace = (global as any).tokenNamespace;
+        if (tokenNamespace) {
+          tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser?.tokens || 0);
+        }
+      }
+      
+      // Update concept mastery for fractions
+      await storage.updateConceptMastery(
+        userId, 
+        `fractions-${skill}`, 
+        "3", // Grade 3+ for fractions
+        correct === total // Perfect score means mastery
+      );
+      
+      res.json({ tokens, totalTokens: (user?.tokens || 0) + tokens });
+    } catch (error) {
+      console.error("Error completing fractions puzzle:", error);
+      res.status(500).json({ error: "Failed to complete session" });
     }
   });
 
