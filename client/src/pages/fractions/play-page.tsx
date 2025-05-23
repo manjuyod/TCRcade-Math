@@ -526,7 +526,7 @@ export default function FractionsPlayPage() {
                                   handleSubmit();
                                 }
                               }}
-                              className="w-20 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                              className="w-20 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                               disabled={showFeedback}
                               autoFocus={!showFeedback}
                               placeholder="?"
@@ -562,6 +562,7 @@ export default function FractionsPlayPage() {
                   />
                   <span className="text-3xl font-bold text-gray-700">=</span>
                   <div className="flex flex-col items-center justify-center min-w-[80px]">
+                    {/* Numerator input */}
                     <Input
                       value={numeratorInput}
                       onChange={(e) => {
@@ -576,9 +577,11 @@ export default function FractionsPlayPage() {
                       className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
                       autoFocus={!showFeedback}
-                      placeholder="?"
+                      placeholder="num"
                     />
+                    {/* Fraction line */}
                     <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
+                    {/* Denominator input */}
                     <Input
                       value={denominatorInput}
                       onChange={(e) => {
@@ -592,7 +595,7 @@ export default function FractionsPlayPage() {
                       }}
                       className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                       disabled={showFeedback}
-                      placeholder="?"
+                      placeholder="den"
                     />
                   </div>
                 </div>
