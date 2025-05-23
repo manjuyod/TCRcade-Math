@@ -185,11 +185,15 @@ export default function FractionsPlayPage() {
           return answerArray.includes(answer.trim());
         } else if (question.level === 2) {
           // Level 2: Check if fractions are equivalent
-          const inputFrac = parseToImproper(answer);
+          const parts = answer.split('/');
+          if (parts.length !== 2) return false;
+          const inputNum = parseInt(parts[0]);
+          const inputDen = parseInt(parts[1]);
+          if (isNaN(inputNum) || isNaN(inputDen) || inputDen === 0) return false;
+          
           const baseFrac = question.frac;
-          if (!inputFrac) return false;
           // Check if fractions are equivalent by cross multiplication
-          return inputFrac.num * baseFrac.den === baseFrac.num * inputFrac.den;
+          return inputNum * baseFrac.den === baseFrac.num * inputDen;
         } else {
           // Multi-select for levels 3+
           const selected = Array.from(selectedOptions);
@@ -510,6 +514,23 @@ export default function FractionsPlayPage() {
                           numerator={part.split('/')[0]} 
                           denominator={part.split('/')[1]}
                           className="text-xl"
+                        />
+                      ) : part === 'x' ? (
+                        <Input
+                          value={currentAnswer}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            setCurrentAnswer(value);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                              handleSubmit();
+                            }
+                          }}
+                          className="w-16 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                          disabled={showFeedback}
+                          autoFocus={!showFeedback}
+                          placeholder="?"
                         />
                       ) : (
                         <span className="text-xl font-bold">{part}</span>
