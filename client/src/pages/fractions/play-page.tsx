@@ -180,11 +180,11 @@ export default function FractionsPlayPage() {
                parts[1].trim() === question.answer;
       
       case 'equivalent':
-        if (question.level === 0) {
-          // Level 1: Single number answer
+        if (question.level <= 1) {
+          // Single answer for levels 1
           const answerArray = Array.isArray(question.answerSet) ? question.answerSet : Array.from(question.answerSet);
           return answerArray.includes(answer.trim());
-        } else if (question.level === 1) {
+        } else if (question.level === 2) {
           // Level 2: Check if fractions are equivalent
           const parts = answer.split('/');
           if (parts.length !== 2) return false;
@@ -219,9 +219,9 @@ export default function FractionsPlayPage() {
     // Handle special cases
     if (currentQuestion.kind === 'gcdSimplify') {
       finalAnswer = `${gcdAnswer},${finalAnswer || currentAnswer}`;
-    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level === 1) {
+    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level === 2) {
       finalAnswer = `${numeratorInput}/${denominatorInput}`;
-    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 1) {
+    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 2) {
       finalAnswer = Array.from(selectedOptions).join(',');
     }
     
@@ -468,7 +468,7 @@ export default function FractionsPlayPage() {
                           // Handle any part containing ?
                           part.includes('/') ? (
                             // Fraction with ? - replace with integrated input box
-                            <div className="flex flex-col items-center justify-center">
+                            <div className="flex flex-col items-center justify-center min-w-[80px]">
                               {part.split('/')[0] === '?' ? (
                                 <>
                                   <Input
@@ -482,18 +482,18 @@ export default function FractionsPlayPage() {
                                         handleSubmit();
                                       }
                                     }}
-                                    className="w-16 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                    className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                                     disabled={showFeedback}
                                     autoFocus={!showFeedback}
                                     placeholder="?"
                                   />
-                                  <div className="h-0.5 bg-gray-800 w-16 my-1"></div>
-                                  <span className="text-xl font-bold h-12 flex items-center">{part.split('/')[1]}</span>
+                                  <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
+                                  <span className="text-2xl font-bold h-10 flex items-center">{part.split('/')[1]}</span>
                                 </>
                               ) : (
                                 <>
-                                  <span className="text-xl font-bold h-12 flex items-center">{part.split('/')[0]}</span>
-                                  <div className="h-0.5 bg-gray-800 w-16 my-1"></div>
+                                  <span className="text-2xl font-bold h-10 flex items-center">{part.split('/')[0]}</span>
+                                  <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
                                   <Input
                                     value={currentAnswer}
                                     onChange={(e) => {
@@ -505,7 +505,7 @@ export default function FractionsPlayPage() {
                                         handleSubmit();
                                       }
                                     }}
-                                    className="w-16 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                    className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
                                     disabled={showFeedback}
                                     autoFocus={!showFeedback}
                                     placeholder="?"
@@ -548,42 +548,96 @@ export default function FractionsPlayPage() {
               </div>
             </div>
           );
-        } else {
-          // Multi-select for levels 3+
+        } else if (currentQuestion.level === 1) {
+          // Level 2: Two input fields for complete fraction
           return (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-4">
-                  Which fractions are equivalent to:
-                </h3>
-                <div className="flex justify-center mb-4">
+                <h3 className="text-lg font-semibold mb-4">Find an equivalent fraction:</h3>
+                <div className="flex justify-center items-center space-x-6 mb-6">
                   <StackedFraction 
                     numerator={currentQuestion.frac.num} 
                     denominator={currentQuestion.frac.den}
-                    className="text-xl"
+                    className="text-2xl"
+                  />
+                  <span className="text-3xl font-bold text-gray-700">=</span>
+                  <div className="flex flex-col items-center justify-center min-w-[80px]">
+                    <Input
+                      value={numeratorInput}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        setNumeratorInput(value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
+                          handleSubmit();
+                        }
+                      }}
+                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                      disabled={showFeedback}
+                      autoFocus={!showFeedback}
+                      placeholder="?"
+                    />
+                    <div className="h-0.5 bg-gray-800 w-16 my-2"></div>
+                    <Input
+                      value={denominatorInput}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '');
+                        setDenominatorInput(value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
+                          handleSubmit();
+                        }
+                      }}
+                      className="w-16 h-10 text-center text-2xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                      disabled={showFeedback}
+                      placeholder="?"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">Enter any equivalent fraction (multiply or divide both parts by the same number)</p>
+              </div>
+            </div>
+          );
+        } else {
+          // Levels 3+: Multiple choice selection
+          return (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-4">Select all equivalent fractions:</h3>
+                <div className="mb-6">
+                  <StackedFraction 
+                    numerator={currentQuestion.frac.num} 
+                    denominator={currentQuestion.frac.den}
+                    className="text-2xl"
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">Select all that apply</p>
+                <p className="text-sm text-muted-foreground mb-4">Choose all fractions that equal the one above</p>
               </div>
-              <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {currentQuestion.options.map((option: string, index: number) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
                     <Checkbox
                       id={`option-${index}`}
                       checked={selectedOptions.has(option)}
                       onCheckedChange={(checked) => {
-                        const newSet = new Set(selectedOptions);
+                        const newSelected = new Set(selectedOptions);
                         if (checked) {
-                          newSet.add(option);
+                          newSelected.add(option);
                         } else {
-                          newSet.delete(option);
+                          newSelected.delete(option);
                         }
-                        setSelectedOptions(newSet);
+                        setSelectedOptions(newSelected);
                       }}
                       disabled={showFeedback}
                     />
-                    <label htmlFor={`option-${index}`} className="text-lg">
-                      {option}
+                    <label htmlFor={`option-${index}`} className="text-lg cursor-pointer flex-1">
+                      <StackedFraction 
+                        numerator={option.split('/')[0]} 
+                        denominator={option.split('/')[1]}
+                        className="inline-block"
+                      />
                     </label>
                   </div>
                 ))}
