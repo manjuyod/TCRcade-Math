@@ -211,6 +211,11 @@ export default function FractionsPlayPage() {
                   <Input
                     value={gcdAnswer}
                     onChange={(e) => setGcdAnswer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
+                        setGcdStep(2);
+                      }
+                    }}
                     placeholder="GCD"
                     className="w-24 text-center"
                     disabled={showFeedback}
@@ -232,6 +237,11 @@ export default function FractionsPlayPage() {
                   <Input
                     value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !showFeedback && currentAnswer.trim() && gcdAnswer.trim()) {
+                        handleSubmit();
+                      }
+                    }}
                     placeholder="Simplified fraction"
                     className="w-32 text-center"
                     disabled={showFeedback}
@@ -257,6 +267,11 @@ export default function FractionsPlayPage() {
               <Input
                 value={currentAnswer}
                 onChange={(e) => setCurrentAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                    handleSubmit();
+                  }
+                }}
                 placeholder="Simplified fraction"
                 className="w-32 text-center"
                 disabled={showFeedback}
@@ -280,6 +295,11 @@ export default function FractionsPlayPage() {
                 <Input
                   value={currentAnswer}
                   onChange={(e) => setCurrentAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                      handleSubmit();
+                    }
+                  }}
                   placeholder={currentQuestion.level === 0 ? "Enter number" : "Enter fraction"}
                   className="w-32 text-center"
                   disabled={showFeedback}
