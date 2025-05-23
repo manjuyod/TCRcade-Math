@@ -1221,9 +1221,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { skill = "define" } = req.query;
       
+      console.log(`Generating fractions questions for skill: ${skill}`);
+      
       const questions = Array.from({ length: R.questionCount }, (_, i) =>
         generateFractionsPuzzle(skill as any, i)
       );
+      
+      console.log(`Generated ${questions.length} questions for skill ${skill}`);
+      
       res.json({ questions });
     } catch (error) {
       console.error("Error generating fractions questions:", error);

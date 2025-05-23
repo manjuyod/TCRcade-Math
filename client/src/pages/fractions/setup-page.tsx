@@ -93,71 +93,112 @@ export default function FractionsSetupPage() {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-primary">
-                🧩 Fractions Puzzle
+          <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+            <CardHeader className="text-center pb-8 pt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <Puzzle className="h-8 w-8" />
+              </div>
+              <CardTitle className="text-3xl font-bold mb-2">
+                Fractions Puzzle
               </CardTitle>
-              <CardDescription className="text-lg">
-                Choose a fraction skill to master through 20 progressively challenging questions!
+              <CardDescription className="text-blue-100 text-lg font-medium">
+                Master fraction skills through adaptive learning
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 mb-6">
-                <div className="text-center space-y-2">
-                  <div className="text-sm text-muted-foreground">
-                    📊 <strong>20 Questions</strong> • 🎯 <strong>5 Difficulty Levels</strong> • 🏆 <strong>Skill Mastery</strong>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Earn 3 tokens per 5 correct answers + 20 bonus tokens for perfect score!
-                  </div>
+            <CardContent className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-blue-600 mb-1">20</div>
+                  <div className="text-sm text-muted-foreground">Questions</div>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-purple-600 mb-1">5</div>
+                  <div className="text-sm text-muted-foreground">Difficulty Levels</div>
+                </div>
+                <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-green-600 mb-1">32</div>
+                  <div className="text-sm text-muted-foreground">Max Tokens</div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Select Your Skill:</h3>
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-8">
+                <p className="text-sm text-center text-yellow-800 dark:text-yellow-200">
+                  <strong>Token System:</strong> Earn 3 tokens per 5 correct answers, plus 20 bonus tokens for a perfect score!
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="font-semibold text-xl text-center text-gray-800 dark:text-gray-200">
+                  Choose Your Challenge
+                </h3>
                 
                 <RadioGroup value={selectedSkill} onValueChange={setSelectedSkill}>
-                  <div className="grid gap-3">
-                    {FRACTIONS_PUZZLE_RULES.skills.map((skill) => {
+                  <div className="grid gap-4">
+                    {FRACTIONS_PUZZLE_RULES.skills.map((skill, index) => {
                       const skillInfo = getSkillInfo(skill);
+                      const isSelected = selectedSkill === skill;
                       return (
-                        <div key={skill} className="flex items-center space-x-3">
-                          <RadioGroupItem value={skill} id={skill} />
+                        <motion.div 
+                          key={skill}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="relative"
+                        >
+                          <RadioGroupItem value={skill} id={skill} className="sr-only" />
                           <Label 
                             htmlFor={skill} 
-                            className="flex-1 cursor-pointer"
+                            className="cursor-pointer block"
                           >
-                            <Card className="p-3 hover:bg-accent transition-colors">
-                              <div className="flex items-center space-x-3">
-                                <div className="text-primary">
+                            <Card className={`p-5 transition-all duration-300 hover:shadow-lg border-2 ${
+                              isSelected 
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg' 
+                                : 'border-gray-200 hover:border-blue-300 bg-white dark:bg-gray-800'
+                            }`}>
+                              <div className="flex items-center space-x-4">
+                                <div className={`p-3 rounded-full ${
+                                  isSelected 
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                }`}>
                                   {skillInfo.icon}
                                 </div>
                                 <div className="flex-1">
-                                  <div className="font-medium">{skillInfo.title}</div>
-                                  <div className="text-sm text-muted-foreground">
+                                  <div className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                                    {skillInfo.title}
+                                  </div>
+                                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                     {skillInfo.description}
                                   </div>
                                 </div>
+                                {isSelected && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"
+                                  >
+                                    <ArrowRight className="h-3 w-3 text-white" />
+                                  </motion.div>
+                                )}
                               </div>
                             </Card>
                           </Label>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
                 </RadioGroup>
               </div>
 
-              <div className="mt-8 flex justify-center">
+              <div className="mt-10 flex justify-center">
                 <Button
                   onClick={handleStart}
                   disabled={!selectedSkill}
                   size="lg"
-                  className="px-8 py-3 text-lg font-semibold"
+                  className="px-12 py-4 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  Start Fractions Puzzle
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  {selectedSkill ? 'Begin Challenge' : 'Select a Skill First'}
+                  {selectedSkill && <ArrowRight className="ml-2 h-5 w-5" />}
                 </Button>
               </div>
             </CardContent>
