@@ -980,7 +980,70 @@ export default function FractionsPlayPage() {
         </div>
 
         {/* Exit confirmation dialog */}
-        <ExitConfirmationDialog />
+        <AnimatePresence>
+          {showExitDialog && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 z-40"
+                onClick={() => setShowExitDialog(false)}
+              />
+              
+              {/* Dialog */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+              >
+                <Card className="border-2 border-orange-200 shadow-xl">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="rounded-full bg-orange-100 p-2">
+                        <AlertTriangle className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-gray-900">
+                          Exit Skill?
+                        </CardTitle>
+                        <p className="text-sm text-gray-600 mt-1">
+                          You're making great progress!
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-gray-700">
+                      If you leave now, you'll lose your progress in this skill and need to start over.
+                    </p>
+                    <div className="flex space-x-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowExitDialog(false)}
+                        className="flex-1"
+                      >
+                        Keep Playing
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          setShowExitDialog(false);
+                          navigate('/fractions/setup');
+                        }}
+                        className="flex-1"
+                      >
+                        Exit Anyway
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
