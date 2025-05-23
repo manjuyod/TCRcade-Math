@@ -179,6 +179,11 @@ export default function FractionsPlayPage() {
               <Input
                 value={currentAnswer}
                 onChange={(e) => setCurrentAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                    handleSubmit();
+                  }
+                }}
                 placeholder="Enter fraction (e.g., 3/4)"
                 className="w-32 text-center"
                 disabled={showFeedback}
@@ -434,7 +439,7 @@ export default function FractionsPlayPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                🧩 Fractions Puzzle
+                Fractions Puzzle
               </CardTitle>
             </CardHeader>
             <CardContent>

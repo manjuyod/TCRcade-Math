@@ -106,7 +106,7 @@ export default function FractionsCompletePage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold text-primary">
-                🧩 Fractions Puzzle Complete!
+                Fractions Puzzle Complete!
               </CardTitle>
               <div className="text-lg text-muted-foreground">
                 {getSkillTitle(result.skill)}
