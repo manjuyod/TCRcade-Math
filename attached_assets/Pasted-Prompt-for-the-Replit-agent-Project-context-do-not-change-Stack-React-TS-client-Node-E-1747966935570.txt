@@ -1,0 +1,328 @@
+Prompt for the Replit agent  
+Project context (do not change)  
+Stack: React + TS (client), Node/Express + TS (server), Drizzle ORM, Postgres.  
+
+Core files (present already):  
+client/src/pages/modules-page.tsx           – module catalog & UI  
+client/src/hooks/useSessionTimer.ts         – countdown logic (unused here)  
+client/src/hooks/useQuestionWithHistory.ts  – question flow  
+server/mathFacts.ts                         – reference generator  
+server/routes/                              – Express routers  
+shared/types.ts                             – enums & cross-tier types  
+
+Goal  
+Implement a new **“Fractions Puzzle”** module.  
+A learner chooses one fraction *skill*; the session auto-ramps through five difficulty levels while presenting **20 questions**.  No timer.  
+Token formula: `tokens = floor(correct/5)*3 + (perfect ? 20 : 0)`.
+
+──────────────────────────────────────────────────────────────────────
+1 ▸ Shared rules object
+Create **shared/fractionsPuzzleRules.ts**:
+
+```ts
+export const FRACTIONS_PUZZLE_RULES = {
+  skills: [
+    "define",          // identify fraction from bar
+    "gcdSimplify",     // step 1: pick GCD, step 2: type simplified form
+    "simplify",        // just type lowest terms
+    "equivalent",      // multi-select all equivalents
+    "addSub",          // add OR subtract fractions (different dens)
+    "mulDiv",          // multiply OR divide fractions
+    "mixedImproper"    // convert mixed ↔ improper
+  ] as const,
+
+  /** five internal difficulty tiers (auto-advance every 4 Qs) */
+  levels: [
+    { maxDen: 10  },   // Level 1   (denominator ≤ 10)
+    { maxDen: 20  },   // Level 2   (≤ 20)
+    { maxDen: 30  },   // Level 3   (≤ 30)
+    { maxDen: 40  },   // Level 4   (≤ 40)
+    { maxDen: 25, mixedAllowed: true } // Level 5, focus on mixed/“non-nice” fractions
+  ] as const,
+
+  questionCount: 20,
+  tokensPer5: 3,
+  bonusPerfect: 20
+} as const;
+All layers must import FRACTIONS_PUZZLE_RULES—no hard-coding.
+
+──────────────────────────────────────────────────────────────────────
+2 ▸ Server-side question generator
+Add server/fractionsPuzzle.ts:
+
+ts
+Copy
+Edit
+import { FRACTIONS_PUZZLE_RULES as R } from "../shared/fractionsPuzzleRules";
+
+/* utility helpers – gcd, lcm, randInt, simplify(), etc. */
+
+export type Fraction = { num: number; den: number };           // always den>0
+export type FPQuestion =
+  | { kind: "define";        bar: Fraction;                     answer: string }
+  | { kind: "gcdSimplify";   frac: Fraction;                    gcd: number; answer: string }
+  | { kind: "simplify";      frac: Fraction;                    answer: string }
+  | { kind: "equivalent";    frac: Fraction; options: string[]; answerSet: Set<string> }
+  | { kind: "addSub";        left: Fraction; right: Fraction;   op: "+"|"-"; answer: string }
+  | { kind: "mulDiv";        left: Fraction; right: Fraction;   op: "×"|"÷"; answer: string }
+  | { kind: "mixedImproper"; given: string;                     answer: string };
+
+export function generateFractionsPuzzle(
+  skill: typeof R.skills[number],
+  idx: number                // 0-based index within the 20-question run
+): FPQuestion {
+  /* pick level: floor(idx / 4) gives 0-4 */
+  const level = R.levels[Math.min(4, Math.floor(idx / 4))];
+  /* …random generation logic per skill, respecting level.maxDen
+        – never use den > 50
+        – avoid zeros & negatives
+        – Level 5 may return / generate mixed numbers
+  */
+}
+Note: We don’t hit Postgres—everything is generated on the fly.
+
+──────────────────────────────────────────────────────────────────────
+3 ▸ Types & module catalog
+
+shared/types.ts – extend GameType with FRACTIONS_PUZZLE.
+
+client/src/pages/modules-page.tsx – append:
+
+ts
+Copy
+Edit
+{
+  id: "fractions_puzzle",
+  name: "Fractions Puzzle",
+  description: "Master fractions through 20 progressively harder questions.",
+  gameType: GameType.FRACTIONS_PUZZLE
+}
+──────────────────────────────────────────────────────────────────────
+4 ▸ Express adapter
+Create server/routes/fractionsPuzzle.ts:
+
+ts
+Copy
+Edit
+import { Router } from "express";
+import { generateFractionsPuzzle } from "../fractionsPuzzle";
+import { FRACTIONS_PUZZLE_RULES as R } from "../../shared/fractionsPuzzleRules";
+
+const router = Router();
+
+router.get("/api/fractions/questions", (req, res) => {
+  const { skill = "define" } = req.query;
+  const questions = Array.from({ length: R.questionCount }, (_, i) =>
+    generateFractionsPuzzle(skill as any, i)
+  );
+  res.json({ questions });
+});
+
+router.post("/api/fractions/complete", (req, res) => {
+  const { correct, total } = req.body;
+  const tokens =
+    Math.floor(correct / 5) * R.tokensPer5 +
+    (correct === total ? R.bonusPerfect : 0);
+  // TODO: persist token credit …
+  res.json({ tokens });
+});
+
+export default router;
+Mount it in server/routes/index.ts:
+
+ts
+Copy
+Edit
+import fractionsRouter from "./fractionsPuzzle";
+app.use(fractionsRouter);
+──────────────────────────────────────────────────────────────────────
+5 ▸ Client flow
+Routes:
+
+bash
+Copy
+Edit
+/fractions/setup      – choose “Skill” (radio of R.skills)
+/fractions/play       – 20-Q run (auto-level-up), uses useQuestionWithHistory
+/fractions/complete   – show tokens, correct/total, buttons
+Implementation notes
+
+Setup page saves { skill } to localStorage then routes to /fractions/play.
+
+Play page
+
+GET /api/fractions/questions?skill=…
+
+Renders each prompt type:
+
+Define – show dynamic SVG fraction bar (70 % width, centered, blue #3B82F6).
+Learner types a/b. Validation: exact match.
+
+GCD-then-Simplify – Step 1: dropdown of divisors > 1; Step 2: input simplified a/b.
+Both must be correct.
+
+Simplify – input lowest-terms fraction.
+
+Equivalent – show 4 checkbox options; any 1–4 may be correct. Must select all correct; otherwise question is wrong.
+
+Add/Sub, Mul/Div – show left op right = ?; answer in lowest terms.
+
+MixedImproper – if given is mixed, they must type improper; if given is improper, they must type mixed (A B/C format). No cross-format leniency.
+
+After 20 questions, POST to /api/fractions/complete.
+
+Complete page – tokens earned + navigation.
+
+Reuse existing components where possible (QuestionCard, etc.).
+Create FractionBar.tsx component that renders an <svg> bar (width min(70vw, 460px)).
+
+──────────────────────────────────────────────────────────────────────
+6 ▸ Token scoring unit tests (Jest)
+server/_tests_/fractionsToken.test.ts
+
+ts
+Copy
+Edit
+import { FRACTIONS_PUZZLE_RULES as R } from "../../shared/fractionsPuzzleRules";
+function calc(correct: number, total: number) {
+  return Math.floor(correct / 5) * R.tokensPer5 +
+         (correct === total ? R.bonusPerfect : 0);
+}
+test("token examples", () => {
+  expect(calc(17, 20)).toBe(9);    // floor(17/5)=3 *3 = 9
+  expect(calc(20, 20)).toBe(12+20);// 12+20 = 32
+  expect(calc(5, 20)).toBe(3);     // 1*3
+});
+──────────────────────────────────────────────────────────────────────
+7 ▸ E2E happy path (Playwright)
+Scenario:
+
+Click Fractions Puzzle on modules page → /fractions/setup.
+
+Choose simplify skill and press Start.
+
+App fetches questions, shows fraction bar, user answers first two questions correctly with scripted inputs, then clicks Skip to fast-forward remaining.
+
+Completion screen shows token count that matches formula for correct=2.
+
+──────────────────────────────────────────────────────────────────────
+8 ▸ Clarification protocol
+Before coding, print a numbered list of clarifying questions if anything is ambiguous (e.g., fraction-input parsing quirks, styling tweaks). Wait for answers, then proceed.
+
+Hand-off to yourself
+Create a plan.md with the todo items above in order.
+Use conventional commits (feat(fractions)…, test(fractions)…, etc.).
+
+pgsql
+Copy
+Edit
+
+---
+
+### Notes & optional niceties
+
+* The internal difficulty ramp is defined by `idx → level` (`level = floor(idx/4)`).  Adjust if you later want a performance-based ramp instead.
+* I omitted extra Jest suites (GCD, simplifier) per your “leave this alone” instruction.  Add them later if you need stricter regression coverage.
+* The SVG bar generator keeps slice count ≤ 50 and auto-falls back to orange `#F97316` if blue would clash with theme.
+
+Let me know if anything above still needs tweaking!
+
+
+
+
+
+
+You said:
+Let's clarify a couple more things:  For the equivalent fractions skill, questions in lower levels of the questions should be of the form: a/b = x/d, where x may replace a, b, or d in an scenario as long as missing letter is replaced for x. Ensure that this still results in a valid fraction in any case.
+
+
+ChatGPT said:
+
+Thought for 14 seconds
+Got it! I’ll fold that “solve-for-x” pattern into the equivalent skill’s lower tiers, but I need a couple specifics to nail the generator and UI. Please number answers:
+
+Which tiers count as “lower”?
+Level 1–2 only, or Level 1–3?
+
+Answer format & UI switch
+In those lower tiers, do we drop the multi-select and instead show
+a / b = x / d (or the other two permutations) with a single numeric input for x?
+
+For higher tiers (Levels beyond the “lower” cut-off) do we revert to the 4-checkbox multi-select pattern we outlined earlier?
+
+Simplification requirement
+Must the resulting x / d be in lowest terms before we accept the answer, or is any valid value OK as long as the proportion holds?
+
+Integer range for x
+Should we constrain x to 1 ≤ x ≤ 50 (same denominator cap) and forbid improper (> denominator) in these low tiers?
+
+Once I have those four details, I’ll patch the prompt and we’re ready to roll.
+
+
+
+
+
+
+
+You said:
+lets do levels 1 and 2 and make the range for level 1 1 <= x <= 10, and for level two x 10 <= x <= 35
+
+
+ChatGPT said:
+
+Thought for 5 seconds
+Almost there—thanks!
+
+Two last toggles so I can finish the generator & UI:
+
+Answer UI for Levels 1–2
+Swap out the 4-checkbox multi-select and instead show a single-input “solve for x” prompt (e.g., 3 / 5 = x / 20 → learner types 12)?
+
+Yes → I’ll implement the numeric-input version for Levels 1–2 and keep the 4-option multi-select starting Level 3.
+
+No → keep multi-select in all tiers, and I’ll generate three distractors plus the one correct - fill-in-the-blank is dropped.
+
+Lowest-terms rule
+When validating the learner’s x, do we:
+
+A) accept any positive integer that produces a true proportion, even if the resulting fraction isn’t simplified, or
+
+B) require that x / d (or equivalent) is already in lowest terms?
+
+Let me know (1) Yes/No and (2) A/B and I can lock this in.
+
+
+
+
+
+
+
+You said:
+Yes, drop the multi select for the lower levels, keep for the higher ones. And in level one lets do it so that in level 1 its just the numerator or the denominator that the player has to input in any case, but for level 2 its the entire fraction, so they can choose any fraction, simplified or not as long as it is equivalent
+
+
+ChatGPT said:
+
+Thought for 18 seconds
+Perfect—everything is clear now.
+Here’s how I’ll embed the last-mile rules into the Replit-agent prompt (only the equivalent skill section changes; everything else stays as drafted).
+
+Equivalent-fractions logic by level
+Level	UI pattern	Generation constraints	Validation
+1	a / b = x / d (or x / b = c / d, etc.) → single numeric input for the missing numerator or denominator.	x drawn 1 – 10, all terms ≤ 50, proportion must simplify to lowest ≤ 50.	Accept the exact integer that makes the proportion true (no simplification notion needed).
+2	a / b = ? / ? → two numeric inputs (numerator & denominator). Learner may enter any equivalent fraction, simplified or not.	Random base fraction uses nums/ dens ≤ 35.	Accept if numₑ / denₑ reduces to the same simplest form as a / b.
+3–5	4-option multi-select (at least one correct).	One to four correct equivalents generated; distractors are non-equivalent fractions close in value.	Learner must tick all correct options to get credit.
+
+Implementation notes
+
+useEquivalentLevel(levelIdx) helper in fractionsPuzzle.ts will switch between these three UI modes.
+
+Client components:
+
+EquivalentSolveOne.tsx (Level 1) – single <input type="number">.
+
+EquivalentSolveFull.tsx (Level 2) – two inputs side-by-side.
+
+EquivalentMultiSelect.tsx (Level 3-5) – the checkbox grid we discussed.
+
+Validation utils live in shared/fractionUtils.ts (gcd, simplify, isEquivalent).
