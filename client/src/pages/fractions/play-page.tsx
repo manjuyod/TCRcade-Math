@@ -386,8 +386,22 @@ export default function FractionsPlayPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Solve for x:</h3>
-                <div className="text-xl font-bold mb-4">
-                  {currentQuestion.options[0]}
+                <div className="flex justify-center mb-4">
+                  {/* Parse and display as stacked fractions */}
+                  {currentQuestion.options[0].split(' = ').map((part: string, index: number) => (
+                    <div key={index} className="flex items-center">
+                      {index > 0 && <span className="mx-4 text-xl font-bold">=</span>}
+                      {part.includes('/') ? (
+                        <StackedFraction 
+                          numerator={part.split('/')[0]} 
+                          denominator={part.split('/')[1]}
+                          className="text-xl"
+                        />
+                      ) : (
+                        <span className="text-xl font-bold">{part}</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="flex justify-center">
@@ -535,8 +549,30 @@ export default function FractionsPlayPage() {
           <div className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-4">Convert:</h3>
-              <div className="text-2xl font-bold mb-4">
-                {currentQuestion.given}
+              <div className="flex justify-center mb-4">
+                {currentQuestion.given.includes('/') ? (
+                  currentQuestion.given.includes(' ') ? (
+                    // Mixed number like "2 3/4"
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold">{currentQuestion.given.split(' ')[0]}</span>
+                      <StackedFraction 
+                        numerator={currentQuestion.given.split(' ')[1].split('/')[0]} 
+                        denominator={currentQuestion.given.split(' ')[1].split('/')[1]}
+                        className="text-xl"
+                      />
+                    </div>
+                  ) : (
+                    // Improper fraction like "11/4"
+                    <StackedFraction 
+                      numerator={currentQuestion.given.split('/')[0]} 
+                      denominator={currentQuestion.given.split('/')[1]}
+                      className="text-2xl"
+                    />
+                  )
+                ) : (
+                  // Whole number
+                  <span className="text-2xl font-bold">{currentQuestion.given}</span>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 {currentQuestion.given.includes(' ') 
