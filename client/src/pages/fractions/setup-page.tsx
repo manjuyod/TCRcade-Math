@@ -96,7 +96,7 @@ export default function FractionsSetupPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold text-primary">
-                🧩 Fractions Puzzle
+                Fractions Puzzle
               </CardTitle>
               <CardDescription className="text-lg">
                 Choose a fraction skill to master through 20 progressively challenging questions!
@@ -106,7 +106,7 @@ export default function FractionsSetupPage() {
               <div className="grid gap-4 mb-6">
                 <div className="text-center space-y-2">
                   <div className="text-sm text-muted-foreground">
-                    📊 <strong>20 Questions</strong> • 🎯 <strong>5 Difficulty Levels</strong> • 🏆 <strong>Skill Mastery</strong>
+                    <strong>20 Questions</strong> • <strong>5 Difficulty Levels</strong> • <strong>Skill Mastery</strong>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Earn 3 tokens per 5 correct answers + 20 bonus tokens for perfect score!
