@@ -552,10 +552,19 @@ export default function FractionsPlayPage() {
                   <Button
                     onClick={handleSubmit}
                     disabled={
-                      (!currentAnswer && currentQuestion.kind !== 'equivalent') ||
+                      // Check for fraction inputs first
+                      (currentQuestion.kind === 'define' && (!numeratorInput || !denominatorInput)) ||
+                      (currentQuestion.kind === 'simplify' && (!numeratorInput || !denominatorInput)) ||
+                      (currentQuestion.kind === 'addSub' && (!numeratorInput || !denominatorInput)) ||
+                      (currentQuestion.kind === 'mulDiv' && (!numeratorInput || !denominatorInput)) ||
+                      // Check for text inputs
+                      (currentQuestion.kind === 'equivalent' && currentQuestion.level <= 1 && !currentAnswer) ||
+                      (currentQuestion.kind === 'mixedImproper' && !currentAnswer) ||
+                      // Check for multi-select
                       (currentQuestion.kind === 'equivalent' && currentQuestion.level > 1 && selectedOptions.size === 0) ||
+                      // Check for GCD step
                       (currentQuestion.kind === 'gcdSimplify' && gcdStep === 1) ||
-                      (currentQuestion.kind === 'gcdSimplify' && gcdStep === 2 && !gcdAnswer)
+                      (currentQuestion.kind === 'gcdSimplify' && gcdStep === 2 && (!gcdAnswer || !numeratorInput || !denominatorInput))
                     }
                     size="lg"
                   >
