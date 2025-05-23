@@ -452,8 +452,8 @@ export default function FractionsPlayPage() {
         );
       
       case 'equivalent':
-        if (currentQuestion.level <= 1) {
-          // Single input for levels 1-2
+        if (currentQuestion.level === 0) {
+          // Single input for level 1 only
           return (
             <div className="space-y-6">
               <div className="text-center">
