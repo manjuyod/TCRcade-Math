@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, X, Calculator, Star, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, X, Calculator, Star, Sparkles, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,7 @@ export default function FractionsPlayPage() {
   const [gcdAnswer, setGcdAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -457,106 +458,91 @@ export default function FractionsPlayPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Complete the equation:</h3>
-                <div className="flex justify-center items-center space-x-4">
-                  {/* Parse and display with integrated input */}
+                <div className="flex justify-center items-center space-x-6">
+                  {/* Parse and display with proper alignment */}
                   {currentQuestion.options[0].split(' = ').map((part: string, index: number) => (
-                    <div key={index} className="flex items-center">
-                      {index > 0 && <span className="mx-4 text-2xl font-bold">=</span>}
-                      {part.includes('?') ? (
-                        // Handle any part containing ?
-                        part.includes('/') ? (
-                          // Fraction with ? - replace with integrated input box
-                          <div className="flex flex-col items-center">
-                            {part.split('/')[0] === '?' ? (
-                              <>
-                                <Input
-                                  value={currentAnswer}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9]/g, '');
-                                    setCurrentAnswer(value);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
-                                      handleSubmit();
-                                    }
-                                  }}
-                                  className="w-14 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
-                                  disabled={showFeedback}
-                                  autoFocus={!showFeedback}
-                                  placeholder="?"
-                                />
-                                <div className="h-0.5 bg-gray-800 w-14 my-2"></div>
-                                <span className="text-xl font-bold">{part.split('/')[1]}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-xl font-bold">{part.split('/')[0]}</span>
-                                <div className="h-0.5 bg-gray-800 w-14 my-2"></div>
-                                <Input
-                                  value={currentAnswer}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9]/g, '');
-                                    setCurrentAnswer(value);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
-                                      handleSubmit();
-                                    }
-                                  }}
-                                  className="w-14 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
-                                  disabled={showFeedback}
-                                  autoFocus={!showFeedback}
-                                  placeholder="?"
-                                />
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          // Standalone ? - just an input box
-                          <Input
-                            value={currentAnswer}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9]/g, '');
-                              setCurrentAnswer(value);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
-                                handleSubmit();
-                              }
-                            }}
-                            className="w-16 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
-                            disabled={showFeedback}
-                            autoFocus={!showFeedback}
-                            placeholder="?"
+                    <React.Fragment key={index}>
+                      {index > 0 && <span className="text-3xl font-bold text-gray-700">=</span>}
+                      <div className="flex items-center">
+                        {part.includes('?') ? (
+                          // Handle any part containing ?
+                          part.includes('/') ? (
+                            // Fraction with ? - replace with integrated input box
+                            <div className="flex flex-col items-center justify-center">
+                              {part.split('/')[0] === '?' ? (
+                                <>
+                                  <Input
+                                    value={currentAnswer}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/[^0-9]/g, '');
+                                      setCurrentAnswer(value);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                                        handleSubmit();
+                                      }
+                                    }}
+                                    className="w-16 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                    disabled={showFeedback}
+                                    autoFocus={!showFeedback}
+                                    placeholder="?"
+                                  />
+                                  <div className="h-0.5 bg-gray-800 w-16 my-1"></div>
+                                  <span className="text-xl font-bold h-12 flex items-center">{part.split('/')[1]}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text-xl font-bold h-12 flex items-center">{part.split('/')[0]}</span>
+                                  <div className="h-0.5 bg-gray-800 w-16 my-1"></div>
+                                  <Input
+                                    value={currentAnswer}
+                                    onChange={(e) => {
+                                      const value = e.target.value.replace(/[^0-9]/g, '');
+                                      setCurrentAnswer(value);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                                        handleSubmit();
+                                      }
+                                    }}
+                                    className="w-16 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                                    disabled={showFeedback}
+                                    autoFocus={!showFeedback}
+                                    placeholder="?"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            // Standalone ? - just an input box
+                            <Input
+                              value={currentAnswer}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, '');
+                                setCurrentAnswer(value);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
+                                  handleSubmit();
+                                }
+                              }}
+                              className="w-20 h-12 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
+                              disabled={showFeedback}
+                              autoFocus={!showFeedback}
+                              placeholder="?"
+                            />
+                          )
+                        ) : part.includes('/') ? (
+                          <StackedFraction 
+                            numerator={part.split('/')[0]} 
+                            denominator={part.split('/')[1]}
+                            className="text-2xl"
                           />
-                        )
-                      ) : part.includes('/') ? (
-                        <StackedFraction 
-                          numerator={part.split('/')[0]} 
-                          denominator={part.split('/')[1]}
-                          className="text-xl"
-                        />
-                      ) : part === 'x' ? (
-                        <Input
-                          value={currentAnswer}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            setCurrentAnswer(value);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !showFeedback && currentAnswer.trim()) {
-                              handleSubmit();
-                            }
-                          }}
-                          className="w-16 h-10 text-center text-xl font-bold border-2 border-primary bg-blue-50 rounded-md"
-                          disabled={showFeedback}
-                          autoFocus={!showFeedback}
-                          placeholder="?"
-                        />
-                      ) : (
-                        <span className="text-xl font-bold">{part}</span>
-                      )}
-                    </div>
+                        ) : (
+                          <span className="text-2xl font-bold">{part}</span>
+                        )}
+                      </div>
+                    </React.Fragment>
                   ))}
                 </div>
               </div>
@@ -791,10 +777,7 @@ export default function FractionsPlayPage() {
             variant="ghost"
             onClick={() => {
               if (currentQuestionIndex > 0) {
-                // Show confirmation dialog if progress exists
-                if (confirm('Are you sure you want to exit? You will lose your progress in this skill.')) {
-                  navigate('/fractions/setup');
-                }
+                setShowExitDialog(true);
               } else {
                 navigate('/fractions/setup');
               }
@@ -995,6 +978,9 @@ export default function FractionsPlayPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Exit confirmation dialog */}
+        <ExitConfirmationDialog />
       </main>
     </div>
   );
