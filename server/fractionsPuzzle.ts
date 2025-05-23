@@ -71,8 +71,9 @@ export function generateFractionsPuzzle(
   
   switch (skill) {
     case "define": {
-      const den = randInt(2, Math.min(level.maxDen, 12)); // Keep bars readable
-      const num = randInt(1, den - 1); // Proper fractions only
+      const den = randInt(level.minDen, level.maxDen);
+      const maxNum = ('properOnly' in level) ? Math.min(level.maxNum, den - 1) : level.maxNum;
+      const num = randInt(1, maxNum);
       const colorIndex = randInt(0, R.colors.length - 1);
       return {
         kind: "define",
@@ -84,8 +85,9 @@ export function generateFractionsPuzzle(
 
     case "gcdSimplify": {
       // Generate a non-simplified fraction
-      let baseDen = randInt(2, level.maxDen);
-      let baseNum = randInt(1, baseDen - 1);
+      let baseDen = randInt(level.minDen, level.maxDen);
+      let maxNum = ('properOnly' in level) ? Math.min(level.maxNum, baseDen - 1) : level.maxNum;
+      let baseNum = randInt(1, maxNum);
       const multiplier = randInt(2, Math.min(4, Math.floor(level.maxDen / baseDen)));
       const frac = { num: baseNum * multiplier, den: baseDen * multiplier };
       const gcdValue = gcd(frac.num, frac.den);

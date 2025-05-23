@@ -11,11 +11,11 @@ export const FRACTIONS_PUZZLE_RULES = {
 
   /** five internal difficulty tiers (auto-advance every 4 Qs) */
   levels: [
-    { maxDen: 10  },   // Level 1   (denominator ≤ 10)
-    { maxDen: 20  },   // Level 2   (≤ 20)
-    { maxDen: 30  },   // Level 3   (≤ 30)
-    { maxDen: 40  },   // Level 4   (≤ 40)
-    { maxDen: 25, mixedAllowed: true } // Level 5, focus on mixed/"non-nice" fractions
+    { maxDen: 6, maxNum: 3, minDen: 2, properOnly: true },   // Level 1: easier start
+    { maxDen: 8, maxNum: 5, minDen: 2, properOnly: true },   // Level 2: gradual increase
+    { maxDen: 10, maxNum: 8, minDen: 2, properOnly: true },  // Level 3: building complexity
+    { maxDen: 12, maxNum: 10, minDen: 2, properOnly: true }, // Level 4: more challenging
+    { maxDen: 12, maxNum: 15, minDen: 2, improperAllowed: true } // Level 5: full complexity
   ] as const,
 
   questionCount: 20,

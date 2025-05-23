@@ -84,7 +84,7 @@ export function MixedNumberInput({
         onChange={(e) => handleNumeratorChange(e.target.value)}
         onKeyDown={handleNumeratorKeyDown}
         placeholder="num"
-        className="w-12 text-center text-sm"
+        className="w-16 text-center text-sm"
         disabled={disabled}
       />
       <span className="text-lg font-bold text-gray-600">/</span>
@@ -94,7 +94,7 @@ export function MixedNumberInput({
         onChange={(e) => handleDenominatorChange(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder="den"
-        className="w-12 text-center text-sm"
+        className="w-16 text-center text-sm"
         disabled={disabled}
       />
     </div>
