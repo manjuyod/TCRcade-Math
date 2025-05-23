@@ -415,8 +415,8 @@ export default function FractionsPlayPage() {
                 <Input
                   value={currentAnswer}
                   onChange={(e) => {
-                    // Only allow numbers and spaces for mixed numbers
-                    const value = e.target.value.replace(/[^0-9\s\/]/g, '');
+                    // Only allow numbers for equivalent fractions
+                    const value = e.target.value.replace(/[^0-9]/g, '');
                     setCurrentAnswer(value);
                   }}
                   onKeyDown={(e) => {
