@@ -180,12 +180,12 @@ export default function FractionsPlayPage() {
                parts[1].trim() === question.answer;
       
       case 'equivalent':
-        if (question.level <= 1) {
-          // Single answer for levels 1
+        if (question.level === 0) {
+          // Level 1: Single input where ? appears
           const answerArray = Array.isArray(question.answerSet) ? question.answerSet : Array.from(question.answerSet);
           return answerArray.includes(answer.trim());
-        } else if (question.level === 2) {
-          // Level 2: Check if fractions are equivalent
+        } else if (question.level === 1) {
+          // Level 2: Check if two-part fraction is equivalent
           const parts = answer.split('/');
           if (parts.length !== 2) return false;
           const inputNum = parseInt(parts[0]);
@@ -991,7 +991,22 @@ export default function FractionsPlayPage() {
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.3 }}
                     >
-                      The correct answer is: {currentQuestion.answer}
+                      {currentQuestion.kind === 'equivalent' ? (
+                        <div className="space-y-2">
+                          <div className="font-medium">
+                            {currentQuestion.frac.num}/{currentQuestion.frac.den} is equivalent to:
+                          </div>
+                          <div className="space-y-1">
+                            <div>• {currentQuestion.frac.num * 2}/{currentQuestion.frac.den * 2} (multiply by 2)</div>
+                            <div>• {currentQuestion.frac.num * 3}/{currentQuestion.frac.den * 3} (multiply by 3)</div>
+                          </div>
+                          <div className="text-xs italic mt-1">
+                            Tip: Multiply or divide both parts by the same number!
+                          </div>
+                        </div>
+                      ) : (
+                        <div>The correct answer is: {currentQuestion.answer}</div>
+                      )}
                     </motion.div>
                   )}
                 </motion.div>
