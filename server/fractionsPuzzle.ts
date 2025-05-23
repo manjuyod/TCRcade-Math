@@ -154,14 +154,13 @@ export function generateFractionsPuzzle(
             };
           }
         } else {
-          // Level 2: full fraction input
-          const multiplier = randInt(2, 4);
+          // Level 2: full fraction input - find any equivalent fraction
           return {
             kind: "equivalent",
             frac: baseFrac,
-            options: [`${baseNum}/${baseDen} = x`],
-            answerSet: [fractionToString({ num: baseNum * multiplier, den: baseDen * multiplier })],
-            answer: fractionToString({ num: baseNum * multiplier, den: baseDen * multiplier }),
+            options: [`${baseNum}/${baseDen} = ?/?`],
+            answerSet: [],
+            answer: "Any equivalent fraction",
             level: levelIndex
           };
         }

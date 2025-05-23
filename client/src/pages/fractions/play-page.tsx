@@ -180,9 +180,16 @@ export default function FractionsPlayPage() {
       
       case 'equivalent':
         if (question.level <= 1) {
-          // Single answer for levels 1-2
+          // Single answer for levels 1
           const answerArray = Array.isArray(question.answerSet) ? question.answerSet : Array.from(question.answerSet);
           return answerArray.includes(answer.trim());
+        } else if (question.level === 2) {
+          // Level 2: Check if fractions are equivalent
+          const inputFrac = parseToImproper(answer);
+          const baseFrac = question.frac;
+          if (!inputFrac) return false;
+          // Check if fractions are equivalent by cross multiplication
+          return inputFrac.num * baseFrac.den === baseFrac.num * inputFrac.den;
         } else {
           // Multi-select for levels 3+
           const selected = Array.from(selectedOptions);
@@ -207,7 +214,9 @@ export default function FractionsPlayPage() {
     // Handle special cases
     if (currentQuestion.kind === 'gcdSimplify') {
       finalAnswer = `${gcdAnswer},${finalAnswer || currentAnswer}`;
-    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 1) {
+    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level === 2) {
+      finalAnswer = `${numeratorInput}/${denominatorInput}`;
+    } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 2) {
       finalAnswer = Array.from(selectedOptions).join(',');
     }
     
