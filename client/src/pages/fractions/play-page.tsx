@@ -172,12 +172,17 @@ export default function FractionsPlayPage() {
         // Allow both improper fractions and mixed numbers for arithmetic
         return areFractionsEquivalent(answer, question.answer);
       
-      case 'gcdSimplify':
-        // For GCD simplify, answer should be "gcd,simplified" format
-        const parts = answer.split(',');
-        return parts.length === 2 && 
-               parts[0].trim() === question.gcd.toString() && 
-               parts[1].trim() === question.answer;
+      case 'simplify':
+        // For levels 1-2 with GCD step: we expect "gcd,simplifiedFraction" format
+        // For levels 3+: just the simplified fraction
+        if (question.gcd !== undefined && question.level <= 1) {
+          const parts = answer.split(',');
+          return parts.length === 2 && 
+                 parts[0].trim() === question.gcd.toString() && 
+                 parts[1].trim() === question.answer;
+        } else {
+          return answer === question.answer;
+        }
       
       case 'equivalent':
         if (question.level === 0) {
@@ -217,7 +222,7 @@ export default function FractionsPlayPage() {
     }
     
     // Handle special cases
-    if (currentQuestion.kind === 'gcdSimplify') {
+    if (currentQuestion.kind === 'simplify' && currentQuestion.gcd !== undefined && currentQuestion.level <= 1) {
       finalAnswer = `${gcdAnswer},${finalAnswer || currentAnswer}`;
     } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level === 2) {
       finalAnswer = `${numeratorInput}/${denominatorInput}`;
@@ -454,37 +459,7 @@ export default function FractionsPlayPage() {
           );
         }
       
-      case 'simplify':
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">
-                Simplify this fraction to lowest terms:
-              </h3>
-              <div className="flex justify-center mb-4">
-                <StackedFraction 
-                  numerator={currentQuestion.frac.num} 
-                  denominator={currentQuestion.frac.den}
-                  className="text-2xl"
-                />
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <FractionInput
-                numerator={numeratorInput}
-                denominator={denominatorInput}
-                onNumeratorChange={setNumeratorInput}
-                onDenominatorChange={setDenominatorInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
-                    handleSubmit();
-                  }
-                }}
-                disabled={showFeedback}
-              />
-            </div>
-          </div>
-        );
+
       
       case 'equivalent':
         if (currentQuestion.level === 0) {
@@ -1062,9 +1037,9 @@ export default function FractionsPlayPage() {
                       (currentQuestion.kind === 'mixedImproper' && !currentAnswer) ||
                       // Check for multi-select
                       (currentQuestion.kind === 'equivalent' && currentQuestion.level > 1 && selectedOptions.size === 0) ||
-                      // Check for GCD step
-                      (currentQuestion.kind === 'gcdSimplify' && gcdStep === 1) ||
-                      (currentQuestion.kind === 'gcdSimplify' && gcdStep === 2 && (!gcdAnswer || !numeratorInput || !denominatorInput))
+                      // Check for GCD step (levels 1-2 of simplify)
+                      (currentQuestion.kind === 'simplify' && currentQuestion.gcd !== undefined && currentQuestion.level <= 1 && gcdStep === 1) ||
+                      (currentQuestion.kind === 'simplify' && currentQuestion.gcd !== undefined && currentQuestion.level <= 1 && gcdStep === 2 && (!gcdAnswer || !numeratorInput || !denominatorInput))
                     }
                     size="lg"
                   >
