@@ -156,6 +156,12 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
                     placeholder="Enter your answer here"
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !loading) {
+                        e.preventDefault();
+                        handleCheckAnswer();
+                      }
+                    }}
                   />
                   <Button onClick={handleCheckAnswer} disabled={loading === "feedback"}>
                     {loading === "feedback" ? (
