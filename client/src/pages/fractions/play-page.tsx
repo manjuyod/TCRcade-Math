@@ -21,7 +21,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 interface FPQuestion {
-  kind: "define" | "gcdSimplify" | "simplify" | "equivalent" | "addSub" | "mulDiv" | "mixedImproper";
+  kind: "define" | "simplify" | "equivalent" | "addSub" | "mulDiv" | "mixedImproper";
   [key: string]: any;
 }
 
@@ -336,88 +336,123 @@ export default function FractionsPlayPage() {
           </div>
         );
       
-      case 'gcdSimplify':
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">Simplify this fraction:</h3>
-              <div className="flex justify-center mb-4">
-                <StackedFraction 
-                  numerator={currentQuestion.frac.num} 
-                  denominator={currentQuestion.frac.den}
-                  className="text-2xl"
-                />
+      case 'simplify':
+        // Levels 1-2: Step-by-step with GCD finding (old gcdSimplify behavior)
+        // Levels 3+: Direct simplification only
+        if (currentQuestion.gcd !== undefined && currentQuestion.level <= 1) {
+          return (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-4">Simplify this fraction:</h3>
+                <div className="flex justify-center mb-4">
+                  <StackedFraction 
+                    numerator={currentQuestion.frac.num} 
+                    denominator={currentQuestion.frac.den}
+                    className="text-2xl"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Step 1: Find the GCD, then Step 2: Write the simplified form
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Step 1: Find the GCD, then Step 2: Write the simplified form
-              </p>
-            </div>
-            
-            {gcdStep === 1 ? (
-              <div className="space-y-4">
-                <p className="text-center">What is the GCD of {currentQuestion.frac.num} and {currentQuestion.frac.den}?</p>
-                <div className="flex justify-center">
-                  <Input
-                    value={gcdAnswer}
-                    onChange={(e) => {
-                      // Only allow numbers
-                      const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                      setGcdAnswer(numericValue);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
+              
+              {gcdStep === 1 ? (
+                <div className="space-y-4">
+                  <p className="text-center">What is the GCD of {currentQuestion.frac.num} and {currentQuestion.frac.den}?</p>
+                  <div className="flex justify-center">
+                    <Input
+                      value={gcdAnswer}
+                      onChange={(e) => {
+                        // Only allow numbers
+                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                        setGcdAnswer(numericValue);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
+                          setGcdStep(2);
+                          // Auto-focus the first fraction input after step transition
+                          setTimeout(() => {
+                            const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
+                            if (firstInput) firstInput.focus();
+                          }, 100);
+                        }
+                      }}
+                      placeholder="GCD"
+                      className="w-24 text-center"
+                      disabled={showFeedback}
+                      autoFocus={!showFeedback}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <Button 
+                      onClick={() => {
                         setGcdStep(2);
                         // Auto-focus the first fraction input after step transition
                         setTimeout(() => {
                           const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
                           if (firstInput) firstInput.focus();
                         }, 100);
-                      }
-                    }}
-                    placeholder="GCD"
-                    className="w-24 text-center"
-                    disabled={showFeedback}
-                    autoFocus={!showFeedback}
+                      }}
+                      disabled={!gcdAnswer || showFeedback}
+                    >
+                      Next Step
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-center">Now simplify the fraction:</p>
+                  <div className="flex justify-center">
+                    <FractionInput
+                      numerator={numeratorInput}
+                      denominator={denominatorInput}
+                      onNumeratorChange={setNumeratorInput}
+                      onDenominatorChange={setDenominatorInput}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim() && gcdAnswer.trim()) {
+                          handleSubmit();
+                        }
+                      }}
+                      disabled={showFeedback}
+                      autoFocus={!showFeedback}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        } else {
+          // Direct simplification (levels 3+)
+          return (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-4">Simplify this fraction to lowest terms:</h3>
+                <div className="flex justify-center mb-4">
+                  <StackedFraction 
+                    numerator={currentQuestion.frac.num} 
+                    denominator={currentQuestion.frac.den}
+                    className="text-2xl"
                   />
                 </div>
-                <div className="flex justify-center">
-                  <Button 
-                    onClick={() => {
-                      setGcdStep(2);
-                      // Auto-focus the first fraction input after step transition
-                      setTimeout(() => {
-                        const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
-                        if (firstInput) firstInput.focus();
-                      }, 100);
-                    }}
-                    disabled={!gcdAnswer || showFeedback}
-                  >
-                    Next Step
-                  </Button>
-                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-center">Now simplify the fraction:</p>
-                <div className="flex justify-center">
-                  <FractionInput
-                    numerator={numeratorInput}
-                    denominator={denominatorInput}
-                    onNumeratorChange={setNumeratorInput}
-                    onDenominatorChange={setDenominatorInput}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim() && gcdAnswer.trim()) {
-                        handleSubmit();
-                      }
-                    }}
-                    disabled={showFeedback}
-                    autoFocus={!showFeedback}
-                  />
-                </div>
+              <div className="flex justify-center">
+                <FractionInput
+                  numerator={numeratorInput}
+                  denominator={denominatorInput}
+                  onNumeratorChange={setNumeratorInput}
+                  onDenominatorChange={setDenominatorInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !showFeedback && numeratorInput.trim() && denominatorInput.trim()) {
+                      handleSubmit();
+                    }
+                  }}
+                  disabled={showFeedback}
+                  autoFocus={!showFeedback}
+                />
               </div>
-            )}
-          </div>
-        );
+            </div>
+          );
+        }
       
       case 'simplify':
         return (

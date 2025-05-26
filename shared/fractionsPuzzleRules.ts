@@ -1,8 +1,7 @@
 export const FRACTIONS_PUZZLE_RULES = {
   skills: [
     "define",          // identify fraction from bar
-    "gcdSimplify",     // step 1: pick GCD, step 2: type simplified form
-    "simplify",        // just type lowest terms
+    "simplify",        // levels 1-2: find GCD then simplify, levels 3+: just type lowest terms
     "equivalent",      // multi-select all equivalents
     "addSub",          // add OR subtract fractions (different dens)
     "mulDiv",          // multiply OR divide fractions

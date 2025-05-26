@@ -4,8 +4,7 @@ export type Fraction = { num: number; den: number };           // always den>0
 
 export type FPQuestion =
   | { kind: "define";        bar: Fraction; colorIndex: number; answer: string }
-  | { kind: "gcdSimplify";   frac: Fraction; gcd: number; answer: string }
-  | { kind: "simplify";      frac: Fraction; answer: string }
+  | { kind: "simplify";      frac: Fraction; gcd?: number; answer: string; level: number }
   | { kind: "equivalent";    frac: Fraction; options: string[]; answerSet: string[]; answer: string; level: number }
   | { kind: "addSub";        left: Fraction; right: Fraction; op: "+"|"-"; answer: string }
   | { kind: "mulDiv";        left: Fraction; right: Fraction; op: "×"|"÷"; answer: string }
@@ -83,37 +82,34 @@ export function generateFractionsPuzzle(
       };
     }
 
-    case "gcdSimplify": {
+    case "simplify": {
       // Generate a non-simplified fraction
       let baseDen = randInt(level.minDen, level.maxDen);
       let maxNum = ('properOnly' in level) ? Math.min(level.maxNum, baseDen - 1) : level.maxNum;
       let baseNum = randInt(1, maxNum);
       const multiplier = randInt(2, Math.min(4, Math.floor(level.maxDen / baseDen)));
       const frac = { num: baseNum * multiplier, den: baseDen * multiplier };
-      const gcdValue = gcd(frac.num, frac.den);
       const simplified = simplify(frac);
       
-      return {
-        kind: "gcdSimplify",
-        frac,
-        gcd: gcdValue,
-        answer: fractionToString(simplified)
-      };
-    }
-
-    case "simplify": {
-      // Generate a non-simplified fraction
-      let baseDen = randInt(2, level.maxDen);
-      let baseNum = randInt(1, baseDen - 1);
-      const multiplier = randInt(2, Math.min(4, Math.floor(level.maxDen / baseDen)));
-      const frac = { num: baseNum * multiplier, den: baseDen * multiplier };
-      const simplified = simplify(frac);
-      
-      return {
-        kind: "simplify",
-        frac,
-        answer: fractionToString(simplified)
-      };
+      // Levels 1-2: Include GCD for step-by-step simplification
+      // Levels 3+: Direct simplification only
+      if (levelIndex <= 1) {
+        const gcdValue = gcd(frac.num, frac.den);
+        return {
+          kind: "simplify",
+          frac,
+          gcd: gcdValue,
+          answer: fractionToString(simplified),
+          level: levelIndex
+        };
+      } else {
+        return {
+          kind: "simplify",
+          frac,
+          answer: fractionToString(simplified),
+          level: levelIndex
+        };
+      }
     }
 
     case "equivalent": {
