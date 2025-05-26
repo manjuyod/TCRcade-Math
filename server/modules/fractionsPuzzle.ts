@@ -1,4 +1,4 @@
-import { FRACTIONS_PUZZLE_RULES as R } from "../shared/fractionsPuzzleRules";
+import { FRACTIONS_PUZZLE_RULES as R } from "../../shared/fractionsPuzzleRules";
 
 export type Fraction = { num: number; den: number };           // always den>0
 

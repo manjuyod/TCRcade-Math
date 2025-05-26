@@ -20,7 +20,7 @@ import {
 /**
  * Import the fractions puzzle module
  */
-import { generateFractionsPuzzle } from "./fractionsPuzzle";
+import { generateFractionsPuzzle } from "./modules/fractionsPuzzle";
 import { FRACTIONS_PUZZLE_RULES as R } from "../shared/fractionsPuzzleRules";
 
 import {
