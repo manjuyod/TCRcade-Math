@@ -164,7 +164,6 @@ export default function FractionsSetupPage() {
                 >
                   Start {selectedSkill ? 
                     (selectedSkill === 'define' ? 'Fraction Definition' :
-                     selectedSkill === 'gcdSimplify' ? 'GCD & Simplify' :
                      selectedSkill === 'simplify' ? 'Simplify Fractions' :
                      selectedSkill === 'equivalent' ? 'Equivalent Fractions' :
                      selectedSkill === 'addSub' ? 'Add & Subtract' :
