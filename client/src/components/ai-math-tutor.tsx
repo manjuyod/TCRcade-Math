@@ -43,6 +43,16 @@ export function AIMathTutorComponent({ question, correctAnswer, grade, concept }
       return;
     }
 
+    // Don't submit if there's no question or correct answer
+    if (!question || !correctAnswer || question === "" || correctAnswer === "") {
+      toast({
+        title: "No question loaded",
+        description: "Please load a math problem first before checking your answer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading("feedback");
     try {
       const response = await apiRequest("POST", "/api/tutor/feedback", {
