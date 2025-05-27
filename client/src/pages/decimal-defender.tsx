@@ -14,13 +14,40 @@ export default function DecimalDefenderPage() {
     console.log('🔢 CLIENT: *** STARTING FETCH ***');
     console.log('🔢 CLIENT: Target URL:', url);
     console.log('🔢 CLIENT: Full URL will be:', window.location.origin + url);
+    console.log('🔢 CLIENT: Current location:', window.location.href);
     console.log('🔢 CLIENT: About to call fetch...');
     
-    fetch(url)
+    // First test if our route exists by making a direct test call
+    console.log('🔢 CLIENT: Testing if decimal defender route exists...');
+    fetch('/api/test/decimal-defender')
+      .then(res => {
+        console.log('🔢 CLIENT: Test route response:', res.status);
+        return res.json();
+      })
+      .then(data => {
+        console.log('🔢 CLIENT: Test route data:', data);
+      })
+      .catch(err => {
+        console.error('🔢 CLIENT: Test route failed:', err);
+      });
+    
+    // Also try with full URL construction to bypass any client-side routing
+    const fullUrl = `${window.location.origin}/api/modules/decimal-defender/questions`;
+    console.log('🔢 CLIENT: Also trying full URL:', fullUrl);
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'same-origin'
+    })
       .then(res => {
         console.log('🔢 CLIENT: ✅ Response received');
         console.log('🔢 CLIENT: Response status:', res.status);
         console.log('🔢 CLIENT: Response ok:', res.ok);
+        console.log('🔢 CLIENT: Response URL:', res.url);
         console.log('🔢 CLIENT: Response headers:', Object.fromEntries(res.headers.entries()));
         
         if (!res.ok) {
@@ -96,9 +123,35 @@ export default function DecimalDefenderPage() {
     }
   };
 
+  const testDecimalRoute = () => {
+    console.log('🔢 MANUAL TEST: Testing decimal defender route manually');
+    fetch('/api/modules/decimal-defender/questions', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => {
+      console.log('🔢 MANUAL TEST: Status:', res.status);
+      console.log('🔢 MANUAL TEST: URL:', res.url);
+      return res.json();
+    })
+    .then(data => {
+      console.log('🔢 MANUAL TEST: Success:', data);
+    })
+    .catch(err => {
+      console.error('🔢 MANUAL TEST: Error:', err);
+    });
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Decimal Defender</h1>
+      
+      <button 
+        onClick={testDecimalRoute}
+        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Test Decimal Route Manually
+      </button>
 
       {sessionComplete ? (
         <div className="text-center">
