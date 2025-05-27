@@ -1216,6 +1216,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Decimal Defender routes
+  app.get("/api/modules/decimal-defender/questions", async (req, res) => {
+    try {
+      const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
+      const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
+      
+      const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error generating decimal defender questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
   // Fractions Puzzle routes
   app.get("/api/fractions/questions", async (req, res) => {
     try {
