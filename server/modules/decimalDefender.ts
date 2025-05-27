@@ -49,9 +49,9 @@ function generateRoundingQuestion(id: number): DecimalQuestion {
     (Math.round(parseFloat(decimal)) + 1).toString(),
     (Math.round(parseFloat(decimal)) - 1).toString(),
     parseFloat(decimal).toFixed(1)
-  ];
+  ].filter(option => option !== rounded);
   
-  const options = [rounded, ...wrongOptions].sort(() => Math.random() - 0.5);
+  const options = [rounded, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
     id,
@@ -59,81 +59,85 @@ function generateRoundingQuestion(id: number): DecimalQuestion {
     answer: rounded,
     options,
     skill: 'rounding',
-    difficulty: 2
+    difficulty: 3
   };
 }
 
 function generateComparingQuestion(id: number): DecimalQuestion {
-  const decimal1 = (Math.random() * 9 + 1).toFixed(2);
-  const decimal2 = (Math.random() * 9 + 1).toFixed(2);
+  let decimal1 = (Math.random() * 9 + 1).toFixed(2);
+  let decimal2 = (Math.random() * 9 + 1).toFixed(2);
   
-  const comparison = parseFloat(decimal1) > parseFloat(decimal2) ? '>' : 
-                    parseFloat(decimal1) < parseFloat(decimal2) ? '<' : '=';
+  // Ensure they're not equal for clearer comparison
+  while (decimal1 === decimal2) {
+    decimal2 = (Math.random() * 9 + 1).toFixed(2);
+  }
   
-  const options = ['>', '<', '=', '≥'];
+  const comparison = parseFloat(decimal1) > parseFloat(decimal2) ? '>' : '<';
+  
+  const options = ['>', '<', '='];
   
   return {
     id,
-    question: `Compare: ${decimal1} ___ ${decimal2}`,
+    question: `Which symbol correctly compares these decimals: ${decimal1} ___ ${decimal2}?`,
     answer: comparison,
     options,
     skill: 'comparing',
-    difficulty: 2
+    difficulty: 3
   };
 }
 
 function generateAdditionQuestion(id: number): DecimalQuestion {
-  const decimal1 = (Math.random() * 5 + 1).toFixed(1);
-  const decimal2 = (Math.random() * 5 + 1).toFixed(1);
-  const sum = (parseFloat(decimal1) + parseFloat(decimal2)).toFixed(1);
+  const decimal1 = (Math.random() * 5 + 1).toFixed(2);
+  const decimal2 = (Math.random() * 5 + 1).toFixed(2);
+  const sum = (parseFloat(decimal1) + parseFloat(decimal2)).toFixed(2);
   
   const wrongOptions = [
-    (parseFloat(sum) + 0.1).toFixed(1),
-    (parseFloat(sum) - 0.1).toFixed(1),
-    (parseFloat(sum) + 1).toFixed(1)
-  ];
+    (parseFloat(sum) + 0.01).toFixed(2),
+    (parseFloat(sum) - 0.01).toFixed(2),
+    (parseFloat(sum) + 0.1).toFixed(2)
+  ].filter(option => option !== sum);
   
-  const options = [sum, ...wrongOptions].sort(() => Math.random() - 0.5);
+  const options = [sum, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
     id,
-    question: `What is ${decimal1} + ${decimal2}?`,
+    question: `Add these decimals: ${decimal1} + ${decimal2} = ?`,
     answer: sum,
     options,
     skill: 'addition',
-    difficulty: 3
+    difficulty: 4
   };
 }
 
 function generateSubtractionQuestion(id: number): DecimalQuestion {
-  const decimal1 = (Math.random() * 5 + 5).toFixed(1);
-  const decimal2 = (Math.random() * 3 + 1).toFixed(1);
-  const difference = (parseFloat(decimal1) - parseFloat(decimal2)).toFixed(1);
+  const decimal1 = (Math.random() * 5 + 5).toFixed(2);
+  const decimal2 = (Math.random() * 3 + 1).toFixed(2);
+  const difference = (parseFloat(decimal1) - parseFloat(decimal2)).toFixed(2);
   
   const wrongOptions = [
-    (parseFloat(difference) + 0.1).toFixed(1),
-    (parseFloat(difference) - 0.1).toFixed(1),
-    (parseFloat(difference) + 1).toFixed(1)
-  ];
+    (parseFloat(difference) + 0.01).toFixed(2),
+    (parseFloat(difference) - 0.01).toFixed(2),
+    (parseFloat(difference) + 0.1).toFixed(2)
+  ].filter(option => option !== difference && parseFloat(option) >= 0);
   
-  const options = [difference, ...wrongOptions].sort(() => Math.random() - 0.5);
+  const options = [difference, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
     id,
-    question: `What is ${decimal1} - ${decimal2}?`,
+    question: `Subtract these decimals: ${decimal1} - ${decimal2} = ?`,
     answer: difference,
     options,
     skill: 'subtraction',
-    difficulty: 3
+    difficulty: 4
   };
 }
 
 function generatePlaceValueQuestion(id: number): DecimalQuestion {
-  const decimal = (Math.random() * 90 + 10).toFixed(2);
+  const decimal = (Math.random() * 90 + 10).toFixed(3);
   const digits = decimal.split('');
   const decimalIndex = digits.indexOf('.');
   
-  const positions = ['tens', 'ones', 'tenths', 'hundredths'];
+  const positions = ['tens', 'ones', 'tenths', 'hundredths', 'thousandths'];
   const randomPos = positions[Math.floor(Math.random() * positions.length)];
   
   let correctDigit: string;
@@ -150,11 +154,14 @@ function generatePlaceValueQuestion(id: number): DecimalQuestion {
     case 'hundredths':
       correctDigit = digits[decimalIndex + 2] || '0';
       break;
+    case 'thousandths':
+      correctDigit = digits[decimalIndex + 3] || '0';
+      break;
     default:
       correctDigit = digits[0];
   }
   
-  const wrongOptions = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+  const wrongOptions = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     .filter(d => d !== correctDigit)
     .slice(0, 3);
   
@@ -162,11 +169,11 @@ function generatePlaceValueQuestion(id: number): DecimalQuestion {
   
   return {
     id,
-    question: `In the number ${decimal}, what digit is in the ${randomPos} place?`,
+    question: `In the decimal ${decimal}, which digit is in the ${randomPos} place?`,
     answer: correctDigit,
     options,
     skill: 'place_value',
-    difficulty: 2
+    difficulty: 3
   };
 }
 
