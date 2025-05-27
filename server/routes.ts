@@ -34,6 +34,9 @@ import {
   generateAchievements,
 } from "./openai";
 
+// Import decimal defender module
+import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -126,7 +129,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Decimal Defender route - placed early to take priority
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
-      const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
       console.log("DECIMAL DEFENDER: Generating", 10, "decimal-only questions");
       const questions = await generateDecimalDefenderQuestions(10);
       console.log("Decimal Defender: returning", questions.length, "questions");
