@@ -3,11 +3,10 @@ import { DECIMAL_DEFENDER_RULES } from "../../shared/decimalDefenderRules";
 
 interface DecimalQuestion {
   id: number;
-  type: "multiple-choice" | "written" | "match" | "multi-select";
+  type: "multiple-choice" | "written" | "multi-select";
   question: string;
   answer: string | string[];
   options?: string[];
-  matchPairs?: { left: string; right: string }[];
   skill: string;
   difficulty: number;
   category: string;
@@ -17,8 +16,8 @@ interface DecimalQuestion {
 
 export async function generateDecimalDefenderQuestions(skill: string, count: number = 5): Promise<DecimalQuestion[]> {
   const questions: DecimalQuestion[] = [];
-  const questionTypes: ("multiple-choice" | "written" | "match" | "multi-select")[] = [
-    "multiple-choice", "written", "match", "multi-select"
+  const questionTypes: ("multiple-choice" | "written" | "multi-select")[] = [
+    "multiple-choice", "written", "multi-select"
   ];
   
   for (let i = 0; i < count; i++) {
@@ -32,7 +31,7 @@ export async function generateDecimalDefenderQuestions(skill: string, count: num
   return questions;
 }
 
-function generateQuestionBySkill(skill: string, id: number, type: "multiple-choice" | "written" | "match" | "multi-select"): DecimalQuestion {
+function generateQuestionBySkill(skill: string, id: number, type: "multiple-choice" | "written" | "multi-select"): DecimalQuestion {
   const baseQuestion: Partial<DecimalQuestion> = {
     id,
     type,
@@ -67,7 +66,7 @@ function generateQuestionBySkill(skill: string, id: number, type: "multiple-choi
   } as DecimalQuestion;
 }
 
-function generateRoundingQuestion(type: "multiple-choice" | "written" | "match" | "multi-select") {
+function generateRoundingQuestion(type: "multiple-choice" | "written" | "multi-select") {
   const scenarios = [
     { type: 'nearest_whole', places: 0, description: "nearest whole number" },
     { type: 'nearest_tenth', places: 1, description: "nearest tenth" },
@@ -120,23 +119,7 @@ function generateRoundingQuestion(type: "multiple-choice" | "written" | "match" 
         answer: rounded
       };
 
-    case 'match':
-      const decimals = [decimal];
-      const roundedValues = [rounded];
-      
-      // Generate additional pairs
-      for (let i = 0; i < 2; i++) {
-        const newDecimal = ((Math.random() * 99 + 1) + Math.random() * 0.999).toFixed(3);
-        const newRounded = parseFloat(newDecimal).toFixed(scenario.places);
-        decimals.push(newDecimal);
-        roundedValues.push(newRounded);
-      }
-      
-      return {
-        question: `Match each decimal to its value rounded to the ${scenario.description}`,
-        answer: rounded,
-        matchPairs: decimals.map((dec, i) => ({ left: dec, right: roundedValues[i] }))
-      };
+    
 
     case 'multi-select':
       const statements = [
@@ -157,7 +140,7 @@ function generateRoundingQuestion(type: "multiple-choice" | "written" | "match" 
   }
 }
 
-function generateComparingQuestion(type: "multiple-choice" | "written" | "match" | "multi-select") {
+function generateComparingQuestion(type: "multiple-choice" | "written" | "multi-select") {
   const decimal1 = (Math.random() * 9 + 1).toFixed(2);
   let decimal2 = (Math.random() * 9 + 1).toFixed(2);
   
@@ -183,18 +166,7 @@ function generateComparingQuestion(type: "multiple-choice" | "written" | "match"
         answer: comparison
       };
 
-    case 'match':
-      const pairs = [
-        { left: `${decimal1} vs ${decimal2}`, right: comparison },
-        { left: `${decimal2} vs ${decimal1}`, right: comparison === '>' ? '<' : '>' },
-        { left: `${decimal1} vs ${decimal1}`, right: '=' }
-      ];
-      
-      return {
-        question: `Match each comparison to its correct symbol`,
-        answer: comparison,
-        matchPairs: pairs
-      };
+    
 
     case 'multi-select':
       const statements = [
@@ -215,7 +187,7 @@ function generateComparingQuestion(type: "multiple-choice" | "written" | "match"
   }
 }
 
-function generateAddSubtractQuestion(type: "multiple-choice" | "written" | "match" | "multi-select") {
+function generateAddSubtractQuestion(type: "multiple-choice" | "written" | "multi-select") {
   const decimal1 = (Math.random() * 9 + 1).toFixed(2);
   const decimal2 = (Math.random() * 5 + 1).toFixed(2);
   
@@ -263,25 +235,7 @@ function generateAddSubtractQuestion(type: "multiple-choice" | "written" | "matc
         answer
       };
 
-    case 'match':
-      const expressions = [questionText];
-      const results = [answer];
-      
-      // Generate additional pairs
-      for (let i = 0; i < 2; i++) {
-        const newDec1 = (Math.random() * 9 + 1).toFixed(2);
-        const newDec2 = (Math.random() * 5 + 1).toFixed(2);
-        const newExpr = isAddition ? `${newDec1} + ${newDec2}` : `${Math.max(parseFloat(newDec1), parseFloat(newDec2)).toFixed(2)} - ${Math.min(parseFloat(newDec1), parseFloat(newDec2)).toFixed(2)}`;
-        const newResult = isAddition ? (parseFloat(newDec1) + parseFloat(newDec2)).toFixed(2) : (Math.max(parseFloat(newDec1), parseFloat(newDec2)) - Math.min(parseFloat(newDec1), parseFloat(newDec2))).toFixed(2);
-        expressions.push(newExpr);
-        results.push(newResult);
-      }
-      
-      return {
-        question: `Match each expression to its result`,
-        answer,
-        matchPairs: expressions.map((expr, i) => ({ left: expr, right: results[i] }))
-      };
+    
 
     case 'multi-select':
       const statements = [
@@ -302,7 +256,7 @@ function generateAddSubtractQuestion(type: "multiple-choice" | "written" | "matc
   }
 }
 
-function generatePlaceValueQuestion(type: "multiple-choice" | "written" | "match" | "multi-select") {
+function generatePlaceValueQuestion(type: "multiple-choice" | "written" | "multi-select") {
   // Generate a decimal with known structure
   const wholeNumber = Math.floor(Math.random() * 90) + 10; // 10-99
   const tenths = Math.floor(Math.random() * 10);
@@ -351,21 +305,7 @@ function generatePlaceValueQuestion(type: "multiple-choice" | "written" | "match
         answer: correctDigit
       };
 
-    case 'match':
-      const placeNames = ['tens', 'ones', 'tenths', 'hundredths', 'thousandths'];
-      const digits = [
-        Math.floor(wholeNumber / 10).toString(),
-        (wholeNumber % 10).toString(),
-        tenths.toString(),
-        hundredths.toString(),
-        thousandths.toString()
-      ];
-      
-      return {
-        question: `Match each place value to its digit in ${decimal}`,
-        answer: correctDigit,
-        matchPairs: placeNames.map((place, i) => ({ left: place, right: digits[i] }))
-      };
+    
 
     case 'multi-select':
       const statements = [

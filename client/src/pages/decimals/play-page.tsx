@@ -15,11 +15,10 @@ import confetti from 'canvas-confetti';
 
 interface DecimalQuestion {
   id: number;
-  type: "multiple-choice" | "written" | "match" | "multi-select";
+  type: "multiple-choice" | "written" | "multi-select";
   question: string;
   answer: string | string[];
   options?: string[];
-  matchPairs?: { left: string; right: string }[];
   skill: string;
   category: string;
 }
@@ -33,7 +32,7 @@ export default function DecimalDefenderPlayPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [writtenAnswer, setWrittenAnswer] = useState<string>('');
-  const [matchSelections, setMatchSelections] = useState<Record<string, string>>({});
+  
   const [userAnswers, setUserAnswers] = useState<(string | string[])[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,16 +115,12 @@ export default function DecimalDefenderPlayPage() {
     );
   };
 
-  const handleMatchSelect = (left: string, right: string) => {
-    if (showFeedback) return;
-    setMatchSelections(prev => ({ ...prev, [left]: right }));
-  };
+  
 
   const resetAnswerStates = () => {
     setSelectedAnswer(null);
     setSelectedAnswers([]);
     setWrittenAnswer('');
-    setMatchSelections({});
   };
 
   const handleSubmitAnswer = () => {
@@ -148,13 +143,7 @@ export default function DecimalDefenderPlayPage() {
         correct = writtenAnswer.trim().toLowerCase() === (currentQuestion.answer as string).toLowerCase();
         break;
       
-      case 'match':
-        if (!currentQuestion.matchPairs || Object.keys(matchSelections).length === 0) return;
-        userAnswer = Object.values(matchSelections);
-        // For match questions, we'll check if the first pair is correct for simplicity
-        const firstPair = currentQuestion.matchPairs[0];
-        correct = matchSelections[firstPair.left] === firstPair.right;
-        break;
+      
       
       case 'multi-select':
         if (selectedAnswers.length === 0) return;
@@ -229,8 +218,6 @@ export default function DecimalDefenderPlayPage() {
         return selectedAnswer || '';
       case 'written':
         return writtenAnswer;
-      case 'match':
-        return Object.values(matchSelections);
       case 'multi-select':
         return selectedAnswers;
       default:
@@ -305,8 +292,6 @@ export default function DecimalDefenderPlayPage() {
         return !!selectedAnswer;
       case 'written':
         return writtenAnswer.trim().length > 0;
-      case 'match':
-        return currentQuestion.matchPairs ? Object.keys(matchSelections).length > 0 : false;
       case 'multi-select':
         return selectedAnswers.length > 0;
       default:
@@ -365,36 +350,7 @@ export default function DecimalDefenderPlayPage() {
           </div>
         );
 
-      case 'match':
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Click to match items on the left with items on the right:</p>
-            {question.matchPairs?.map((pair, index) => (
-              <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
-                <div className="flex-1 font-medium">{pair.left}</div>
-                <div className="text-2xl">↔</div>
-                <button
-                  onClick={() => handleMatchSelect(pair.left, pair.right)}
-                  disabled={showFeedback}
-                  className={`flex-1 p-2 border rounded text-center transition-all ${
-                    matchSelections[pair.left] === pair.right
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background hover:bg-gray-50'
-                  }`}
-                >
-                  {matchSelections[pair.left] || pair.right}
-                </button>
-              </div>
-            ))}
-            {showFeedback && (
-              <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                <p className="font-medium">
-                  {isCorrect ? 'Correct match!' : 'Some matches were incorrect.'}
-                </p>
-              </div>
-            )}
-          </div>
-        );
+      
 
       case 'multi-select':
         return (
