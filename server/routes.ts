@@ -1215,20 +1215,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Decimal Defender routes
+  // Decimal Defender routes - MUST be before general question routes
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
-      console.log("🔢 Decimal Defender endpoint called - generating decimal questions");
+      console.log("🔢 DECIMAL DEFENDER: Generating decimal-specific questions");
       const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
       const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
 
       const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
-      console.log("🔢 Generated decimal questions:", questions.length, "questions");
-      console.log("🔢 First question:", questions[0]?.question);
-      res.json(questions);
+      console.log("🔢 DECIMAL DEFENDER: Generated", questions.length, "decimal questions");
+      console.log("🔢 DECIMAL DEFENDER: Sample question:", questions[0]?.question);
+      console.log("🔢 DECIMAL DEFENDER: Question skills:", questions.map(q => q.skill));
+      
+      // Ensure we're returning decimal questions only
+      const decimalQuestions = questions.filter(q => 
+        q.skill && ['rounding', 'comparing', 'addition', 'subtraction', 'place_value'].includes(q.skill)
+      );
+      
+      console.log("🔢 DECIMAL DEFENDER: Returning", decimalQuestions.length, "verified decimal questions");
+      res.json(decimalQuestions);
     } catch (error) {
-      console.error("Error generating decimal defender questions:", error);
-      res.status(500).json({ error: "Failed to generate questions" });
+      console.error("🔢 DECIMAL DEFENDER ERROR:", error);
+      res.status(500).json({ error: "Failed to generate decimal questions" });
     }
   });
 
