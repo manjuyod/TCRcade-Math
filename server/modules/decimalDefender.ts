@@ -23,16 +23,17 @@ export async function generateDecimalDefenderQuestions(count: number): Promise<D
   for (let i = 0; i < count; i++) {
     const skill = skills[i % skills.length];
     const question = generateQuestionBySkill(skill, Date.now() + i);
-    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill})`);
+    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill}, category: ${question.category})`);
     questions.push(question);
   }
   
   console.log(`🔢 DECIMAL DEFENDER: Successfully generated ${questions.length} decimal questions`);
+  console.log(`🔢 DECIMAL DEFENDER: Sample question:`, JSON.stringify(questions[0], null, 2));
   return questions;
 }
 
 function generateQuestionBySkill(skill: string, id: number): DecimalQuestion {
-  const baseQuestion = {
+  const baseQuestion: Partial<DecimalQuestion> = {
     id,
     difficulty: 3,
     category: "decimal_defender",
@@ -41,20 +42,31 @@ function generateQuestionBySkill(skill: string, id: number): DecimalQuestion {
     skill
   };
 
+  let skillQuestion;
   switch (skill) {
     case 'rounding':
-      return { ...baseQuestion, ...generateRoundingQuestion() };
+      skillQuestion = generateRoundingQuestion();
+      break;
     case 'comparing':
-      return { ...baseQuestion, ...generateComparingQuestion() };
+      skillQuestion = generateComparingQuestion();
+      break;
     case 'addition':
-      return { ...baseQuestion, ...generateAdditionQuestion() };
+      skillQuestion = generateAdditionQuestion();
+      break;
     case 'subtraction':
-      return { ...baseQuestion, ...generateSubtractionQuestion() };
+      skillQuestion = generateSubtractionQuestion();
+      break;
     case 'place_value':
-      return { ...baseQuestion, ...generatePlaceValueQuestion() };
+      skillQuestion = generatePlaceValueQuestion();
+      break;
     default:
-      return { ...baseQuestion, ...generateRoundingQuestion() };
+      skillQuestion = generateRoundingQuestion();
   }
+
+  return {
+    ...baseQuestion,
+    ...skillQuestion
+  } as DecimalQuestion;
 }
 
 function generateRoundingQuestion() {
