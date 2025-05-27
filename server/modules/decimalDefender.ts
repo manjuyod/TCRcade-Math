@@ -15,12 +15,16 @@ export async function generateDecimalDefenderQuestions(count: number): Promise<D
   const questions: DecimalQuestion[] = [];
   const skills = DECIMAL_DEFENDER_RULES.skills; // Use skills from rules
   
+  console.log(`🔢 Generating ${count} decimal defender questions using skills:`, skills);
+  
   for (let i = 0; i < count; i++) {
     const skill = skills[i % skills.length];
     const question = generateQuestionBySkill(skill, i + 1);
+    console.log(`Generated decimal question ${i + 1}: ${question.question} (skill: ${skill})`);
     questions.push(question);
   }
   
+  console.log(`✅ Generated ${questions.length} decimal defender questions`);
   return questions;
 }
 
@@ -37,6 +41,7 @@ function generateQuestionBySkill(skill: string, id: number): DecimalQuestion {
     case 'place_value':
       return generatePlaceValueQuestion(id);
     default:
+      // Always default to a decimal question, never fall back to non-decimal
       return generateRoundingQuestion(id);
   }
 }

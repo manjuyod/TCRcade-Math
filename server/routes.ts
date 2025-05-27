@@ -568,9 +568,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? new Date((a as any).date).getTime()
               : 0;
           const dateB = (b as any).updatedAt
-            ? new Date((b as any).updatedAt).getTime()
+            ? new Date((a as any).updatedAt).getTime()
             : (b as any).date
-              ? new Date((b as any).date).getTime()
+              ? new Date((a as any).date).getTime()
               : 0;
           return dateB - dateA;
         })
@@ -689,13 +689,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isCorrect = clientIsCorrect;
         // Calculate tokens using shared utility for consistency
         tokensEarned = isCorrect ? calcTokensFacts(1, 1) : 0;
-        
+
         // Validate token amount
         if (!validateTokenAmount(tokensEarned)) {
           console.error("Invalid token amount calculated for math facts:", tokensEarned);
           tokensEarned = 0;
         }
-        
+
         console.log(
           `Math Facts: Using client-validated answer (${answer}), correct: ${isCorrect}, tokens: ${tokensEarned}`,
         );
@@ -916,10 +916,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : (a as any).date
               ? new Date((a as any).date).getTime()
               : 0;
-          const dateB = (b as any).updatedAt
-            ? new Date((b as any).updatedAt).getTime()
-            : (b as any).date
-              ? new Date((b as any).date).getTime()
+          const dateB = (a as any).updatedAt
+            ? new Date((a as any).updatedAt).getTime()
+            : (a as any).date
+              ? new Date((a as any).date).getTime()
               : 0;
           return dateB - dateA;
         })
@@ -980,8 +980,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/concept-map/:grade/:concept",
     ensureAuthenticated,
     async (req, res) => {
-      try {
-        const { grade, concept } = req.params;
+      try {        const { grade, concept } = req.params;
 
         const conceptMap = await generateConceptMap(grade, concept);
         res.json(conceptMap);
@@ -1181,7 +1180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           const newBalance = (user.tokens || 0) + tokens;
-          
+
           console.log(
             `DATABASE: Updating user ${userId} with data: { tokens: ${newBalance} }`,
           );
@@ -1221,7 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
       const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
-      
+
       const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
       res.json(questions);
     } catch (error) {
@@ -1230,11 +1229,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/decimal-defender/complete', async (req, res) => {
+    try {
+      const { correct, total } = req.body;
+      const user = req.session?.user;
+
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const tokensEarned = (correct * DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer) + 
+                          (correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0);
+
+      const { updateUserStatsAfterModule } = await import('./utils/moduleCompletion');
+      await updateUserStatsAfterModule(user.id, correct, total, tokensEarned);
+
+      res.json({ 
+        success: true, 
+        tokens: tokensEarned,
+        correct,
+        total 
+      });
+    } catch (error) {
+      console.error('Error completing decimal defender session:', error);
+      res.status(500).json({ error: 'Failed to complete session' });
+    }
+  });
+
   // Fractions Puzzle routes
   app.get("/api/fractions/questions", async (req, res) => {
     try {
       const { skill = "define" } = req.query;
-      
+
       const questions = Array.from({ length: R.questionCount }, (_, i) =>
         generateFractionsPuzzle(skill as any, i)
       );
@@ -1249,10 +1275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { correct, total, skill } = req.body;
       const userId = getUserId(req);
-      
+
       // Calculate tokens
       const tokens = Math.floor(correct / 5) * R.tokensPer5 + (correct === total ? R.bonusPerfect : 0);
-      
+
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
@@ -1266,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser?.tokens || 0);
         }
       }
-      
+
       // Update concept mastery for fractions
       await storage.updateConceptMastery(
         userId, 
@@ -1274,7 +1300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "3", // Grade 3+ for fractions
         correct === total // Perfect score means mastery
       );
-      
+
       res.json({ tokens, totalTokens: (user?.tokens || 0) + tokens });
     } catch (error) {
       console.error("Error completing fractions puzzle:", error);
@@ -1371,7 +1397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
+
   // Set up Socket.IO with dedicated namespace for token updates
   const io = new SocketIOServer(httpServer, {
     cors: {
@@ -1382,10 +1408,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create dedicated namespace for token updates
   const tokenNamespace = io.of('/tokens');
-  
+
   tokenNamespace.on('connection', (socket) => {
     console.log('Client connected to token namespace:', socket.id);
-    
+
     socket.on('disconnect', () => {
       console.log('Client disconnected from token namespace:', socket.id);
     });
@@ -1393,6 +1419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Make io available globally for token updates
   (global as any).tokenNamespace = tokenNamespace;
-  
+
   return httpServer;
 }

@@ -13,9 +13,13 @@ export default function DecimalDefenderPage() {
     fetch('/api/modules/decimal-defender/questions')
       .then(res => res.json())
       .then(data => {
+        console.log('Decimal Defender questions loaded:', data);
         // Randomly choose 5 from the 10 returned
         const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 5);
         setQuestions(shuffled);
+      })
+      .catch(error => {
+        console.error('Error loading decimal defender questions:', error);
       });
   }, []);
 
