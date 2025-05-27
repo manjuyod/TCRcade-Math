@@ -37,6 +37,9 @@ import {
 // Import decimal defender module
 import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
 
+// Log to verify the import
+console.log("🔢 ROUTES: Decimal defender function imported:", typeof generateDecimalDefenderQuestions);
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -126,11 +129,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Test endpoint for decimal defender
+  app.get("/api/test/decimal-defender", async (req, res) => {
+    try {
+      console.log("🔢 TEST: Testing decimal defender module directly");
+      const questions = await generateDecimalDefenderQuestions(3);
+      console.log("🔢 TEST: Generated questions:", questions);
+      res.json({ success: true, questions });
+    } catch (error) {
+      console.error("🔢 TEST ERROR:", error);
+      res.status(500).json({ error: "Test failed" });
+    }
+  });
+
   // Decimal Defender route - placed early to take priority
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Request received");
-      console.log("🔢 DECIMAL DEFENDER ROUTE: About to call generateDecimalDefenderQuestions");
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Request received for", req.url);
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Function type:", typeof generateDecimalDefenderQuestions);
+      console.log("🔢 DECIMAL DEFENDER ROUTE: About to call generateDecimalDefenderQuestions with count 10");
       
       const questions = await generateDecimalDefenderQuestions(10);
       
@@ -139,10 +156,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🔢 DECIMAL DEFENDER ROUTE: Categories:", questions.map(q => q.category));
       console.log("🔢 DECIMAL DEFENDER ROUTE: Sample question:", questions[0]?.question);
       console.log("🔢 DECIMAL DEFENDER ROUTE: Sample skill:", questions[0]?.skill);
+      console.log("🔢 DECIMAL DEFENDER ROUTE: All questions:", JSON.stringify(questions, null, 2));
       
       res.json(questions);
     } catch (error) {
       console.error("🔢 DECIMAL DEFENDER ERROR:", error);
+      console.error("🔢 DECIMAL DEFENDER ERROR STACK:", error.stack);
       res.status(500).json({ error: "Failed to generate decimal questions" });
     }
   });
