@@ -1,0 +1,66 @@
+> rest-express@1.0.0 dev
+✓ OpenAI API key found in environment
+Key prefix: sk-...
+🔢 ROUTES: Decimal defender function imported: function
+4:53:59 AM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+4:54:03 AM [vite] warning: This case clause will never be evaluated because it duplicates an earlier case clause
+173|          return areFractionsEquivalent(answer, question.answer);
+174|  
+175|        case 'simplify':
+   |             ^
+176|          // For levels 1-2 with GCD step: we expect "gcd,simplifiedFraction" format
+177|          // For levels 3+: just the simplified fraction
+
+  Plugin: vite:esbuild
+  File: /home/runner/workspace/client/src/pages/fractions/play-page.tsx
+4:54:10 AM [express] GET /api/user 304 in 229ms :: {"id":16,"username":"math_kid","password":"bd50b0…
+Getting adaptive question: grade=4, category=undefined, excludeIds=0
+Getting adaptive question: grade=undefined, category=decimals, excludeIds=0
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+Getting adaptive question: grade=4, category=decimals, excludeIds=0
+Adding strict category filter: decimals
+Found 3 questions matching primary criteria
+Selected question 13 for category all
+Adding strict category filter: decimals
+Found 0 questions matching primary criteria
+4:54:10 AM [express] GET /api/questions/next 200 in 292ms :: {"id":13,"category":"multiplication","g…
+Found 0 questions matching primary criteria
+No questions found with category decimals, looking for basic questions...
+Falling back to grade-only filter, found 3 questions
+Selected fallback question 15, original category: fractions
+Found 3 questions matching primary criteria
+Selected question 13 for category all
+4:54:10 AM [express] GET /api/questions/next 200 in 367ms :: {"id":15,"category":"fractions","grade"…
+4:54:10 AM [express] GET /api/questions/next 304 in 386ms :: {"id":13,"category":"multiplication","g…
+Found basic question 13 with pattern match
+Warning: Selected question 13 has category multiplication but requested decimals
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+4:54:11 AM [express] GET /api/questions/next 304 in 675ms :: {"id":13,"category":"multiplication","g…
+Client connected to token namespace: 16IrHa4N_nlycH0iAAAB
+Found 3 questions matching primary criteria
+Selected question 15 for category all
+4:54:11 AM [express] GET /api/questions/next 200 in 371ms :: {"id":15,"category":"fractions","grade"…
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+Getting adaptive question: grade=undefined, category=decimals, excludeIds=0
+Adding strict category filter: decimals
+Found 3 questions matching primary criteria
+Selected question 14 for category all
+Found 0 questions matching primary criteria
+No questions found with category decimals, looking for basic questions...
+4:54:19 AM [express] GET /api/questions/next 200 in 373ms :: {"id":14,"category":"division","grade":…
+Found basic question 13 with pattern match
+Warning: Selected question 13 has category multiplication but requested decimals
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+4:54:19 AM [express] GET /api/questions/next 304 in 657ms :: {"id":13,"category":"multiplication","g…
+Found 3 questions matching primary criteria
+Selected question 15 for category all
+4:54:20 AM [express] GET /api/questions/next 200 in 376ms :: {"id":15,"category":"fractions","grade"…
+4:54:41 AM [express] GET /api/user 304 in 657ms :: {"id":16,"username":"math_kid","password":"bd50b0…
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+Found 3 questions matching primary criteria
+Selected question 13 for category all
+4:55:00 AM [express] GET /api/questions/next 200 in 894ms :: {"id":13,"category":"multiplication","g…
+4:55:1
