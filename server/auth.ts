@@ -64,7 +64,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const { username, password, displayName, grade, initials, isAdmin } =
+    const { username, password, email, displayName, grade, initials, isAdmin } =
       req.body;
 
     if (!username || !password) {
@@ -87,6 +87,14 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Username already exists");
     }
 
+    // Check for existing email if email is provided
+    if (email) {
+      const existingEmailUser = await storage.getUserByEmail(email);
+      if (existingEmailUser) {
+        return res.status(400).send("Email already exists");
+      }
+    }
+
     // Determine the user's grade or default to Kindergarten
     const gradeLevel = grade || "K";
 
@@ -96,6 +104,7 @@ export function setupAuth(app: Express) {
     const user = await storage.createUser({
       username,
       password: await hashPassword(password),
+      email: email || null,
       displayName: displayName || username,
       grade: gradeLevel,
       initials: initials || defaultInitials,
