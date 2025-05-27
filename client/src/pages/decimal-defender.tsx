@@ -10,9 +10,13 @@ export default function DecimalDefenderPage() {
   const [sessionComplete, setSessionComplete] = useState(false);
 
   useEffect(() => {
-    console.log('🔢 CLIENT: *** STARTING FETCH *** Fetching decimal defender questions from /api/modules/decimal-defender/questions');
+    const url = '/api/modules/decimal-defender/questions';
+    console.log('🔢 CLIENT: *** STARTING FETCH ***');
+    console.log('🔢 CLIENT: Target URL:', url);
+    console.log('🔢 CLIENT: Full URL will be:', window.location.origin + url);
+    console.log('🔢 CLIENT: About to call fetch...');
     
-    fetch('/api/modules/decimal-defender/questions')
+    fetch(url)
       .then(res => {
         console.log('🔢 CLIENT: ✅ Response received');
         console.log('🔢 CLIENT: Response status:', res.status);

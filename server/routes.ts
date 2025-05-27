@@ -136,6 +136,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Add catch-all API debugging to see what requests we're getting
+  app.use('/api/*', (req, res, next) => {
+    console.log(`🌐 API CATCH-ALL: ${req.method} ${req.originalUrl}`);
+    console.log(`🌐 API CATCH-ALL: Path: ${req.path}`);
+    if (req.originalUrl.includes('decimal-defender')) {
+      console.log(`🔢 API CATCH-ALL: *** DECIMAL DEFENDER REQUEST DETECTED ***`);
+      console.log(`🔢 API CATCH-ALL: URL: ${req.originalUrl}`);
+      console.log(`🔢 API CATCH-ALL: Method: ${req.method}`);
+    }
+    next();
+  });
+
   // Test endpoint for decimal defender
   app.get("/api/test/decimal-defender", async (req, res) => {
     try {
@@ -152,6 +164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Decimal Defender route - placed early to take priority
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     console.log("🔢 DECIMAL DEFENDER ROUTE: *** ROUTE HIT *** Request received for", req.url);
+    console.log("🔢 DECIMAL DEFENDER ROUTE: Original URL:", req.originalUrl);
+    console.log("🔢 DECIMAL DEFENDER ROUTE: Path:", req.path);
     console.log("🔢 DECIMAL DEFENDER ROUTE: Headers:", req.headers);
     console.log("🔢 DECIMAL DEFENDER ROUTE: Method:", req.method);
     
