@@ -101,6 +101,18 @@ export default function AuthPage() {
     registerMutation.mutate(data);
   };
 
+  // Check if the register mutation has a specific email already exists error
+  const hasEmailExistsError = registerMutation.error?.message === "Email already exists";
+
+  const handleGoToLogin = () => {
+    setActiveTab("login");
+    // Pre-fill the username in login form if available
+    const username = registerForm.getValues("username");
+    if (username) {
+      loginForm.setValue("username", username);
+    }
+  };
+
   const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -462,6 +474,25 @@ export default function AuthPage() {
                         )}
                       />
                     </div>
+
+                    {hasEmailExistsError && (
+                      <Alert className="border-orange-500">
+                        <AlertTitle className="text-orange-600">
+                          Email Already Registered
+                        </AlertTitle>
+                        <AlertDescription className="space-y-3">
+                          <p>This email is already registered. Would you like to login instead?</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={handleGoToLogin}
+                          >
+                            Go to Login
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
                     <Button
                       type="submit"
