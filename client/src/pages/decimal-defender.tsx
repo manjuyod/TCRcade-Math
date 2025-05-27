@@ -10,37 +10,31 @@ export default function DecimalDefenderPage() {
   const [sessionComplete, setSessionComplete] = useState(false);
 
   useEffect(() => {
-    console.log('🔢 CLIENT: Fetching decimal defender questions...');
+    console.log('🔢 CLIENT: Fetching decimal defender questions from /api/modules/decimal-defender/questions');
     fetch('/api/modules/decimal-defender/questions')
       .then(res => {
         console.log('🔢 CLIENT: Response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         return res.json();
       })
       .then(data => {
-        console.log('🔢 CLIENT: Raw response data:', data);
+        console.log('🔢 CLIENT: Received data:', data);
+        console.log('🔢 CLIENT: Data type:', Array.isArray(data) ? 'array' : typeof data);
         
-        // The API returns an array of questions directly
-        const questions = Array.isArray(data) ? data : [];
-        console.log('🔢 CLIENT: Parsed questions array:', questions.length, 'questions');
-        
-        // Verify these are actually decimal questions
-        const decimalQuestions = questions.filter(q => 
-          q.question && (
-            q.question.includes('decimal') ||
-            q.question.includes('Round') ||
-            q.question.includes('Compare') ||
-            q.question.includes('Add') ||
-            q.question.includes('Subtract') ||
-            q.question.includes('digit is in the')
-          )
-        );
-        
-        console.log('🔢 CLIENT: Verified decimal questions:', decimalQuestions.length);
-        console.log('🔢 CLIENT: First question:', decimalQuestions[0]?.question);
-        
-        // Randomly choose 5 from the verified decimal questions
-        const shuffled = decimalQuestions.sort(() => 0.5 - Math.random()).slice(0, 5);
-        setQuestions(shuffled);
+        // The API should return an array of decimal questions directly
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('🔢 CLIENT: First question content:', data[0]);
+          console.log('🔢 CLIENT: All question skills:', data.map(q => q.skill));
+          
+          // Use first 5 questions for the session
+          const sessionQuestions = data.slice(0, 5);
+          setQuestions(sessionQuestions);
+          console.log('🔢 CLIENT: Set', sessionQuestions.length, 'questions for session');
+        } else {
+          console.error('🔢 CLIENT: No questions received or invalid format');
+        }
       })
       .catch(error => {
         console.error('🔢 CLIENT ERROR: Failed to load decimal defender questions:', error);

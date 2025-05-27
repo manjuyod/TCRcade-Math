@@ -1215,35 +1215,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Decimal Defender routes - MUST be before general question routes
+  // Decimal Defender routes - MUST be placed early to avoid conflicts
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
-      console.log("🔢 DECIMAL DEFENDER: Starting decimal question generation");
+      console.log("🔢 DECIMAL DEFENDER ENDPOINT HIT: Starting decimal question generation");
       const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
       const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
 
       const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
       
-      console.log("🔢 DECIMAL DEFENDER: Generated questions:", questions.length);
-      console.log("🔢 DECIMAL DEFENDER: First question:", questions[0]?.question);
-      console.log("🔢 DECIMAL DEFENDER: All categories:", questions.map(q => q.category));
+      console.log("🔢 DECIMAL DEFENDER: Generated", questions.length, "questions");
+      console.log("🔢 DECIMAL DEFENDER: Sample question:", questions[0]?.question);
       console.log("🔢 DECIMAL DEFENDER: All skills:", questions.map(q => q.skill));
       
-      // Verify all questions are decimal-related
-      const verifiedQuestions = questions.filter(q => 
-        q.category === 'decimal_defender' && 
-        q.skill && 
-        ['rounding', 'comparing', 'addition', 'subtraction', 'place_value'].includes(q.skill)
-      );
+      // Return questions directly with proper headers
+      res.setHeader('Content-Type', 'application/json');
+      res.status(200).json(questions);
       
-      console.log("🔢 DECIMAL DEFENDER: Verified decimal questions:", verifiedQuestions.length);
-      
-      if (verifiedQuestions.length === 0) {
-        console.error("🔢 DECIMAL DEFENDER: No valid decimal questions generated!");
-        return res.status(500).json({ error: "Failed to generate valid decimal questions" });
-      }
-      
-      res.json(verifiedQuestions);
+      console.log("🔢 DECIMAL DEFENDER: Successfully sent", questions.length, "decimal questions to client");
     } catch (error) {
       console.error("🔢 DECIMAL DEFENDER ERROR:", error);
       res.status(500).json({ error: "Failed to generate decimal questions" });
