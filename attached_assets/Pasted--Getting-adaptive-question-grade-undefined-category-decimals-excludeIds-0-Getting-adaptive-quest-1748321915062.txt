@@ -1,0 +1,43 @@
+}
+Getting adaptive question: grade=undefined, category=decimals, excludeIds=0
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+Adding strict category filter: decimals
+Found 0 questions matching primary criteria
+No questions found with category decimals, looking for basic questions...
+Found 3 questions matching primary criteria
+Selected question 14 for category all
+4:58:17 AM [express] GET /api/questions/next 200 in 812ms :: {"id":14,"category":"division","grade":…
+🌐 ROUTE DEBUG: GET /api/questions/next?forceDynamic=true
+🌐 ROUTE DEBUG: Headers: {
+  host: '1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev',
+  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+  accept: '*/*',
+  'accept-encoding': 'gzip, deflate, br, zstd',
+  'accept-language': 'en-US,en;q=0.9',
+  cookie: 'connect.sid=s%3A4KUzOiOfVjqIfoTdhC9TvgL4U69PlRvD.jgy6C6Rj70BnsidkPNGAhtjSNN3hCOcyyRaIExs%2BuAg',
+  'if-none-match': 'W/"f9-qXVTVhRIpVHgZyE7xW8mRWJGCjM"',
+  referer: 'https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/',
+  'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"macOS"',
+  'sec-fetch-dest': 'empty',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-site': 'same-origin',
+  'sec-fetch-storage-access': 'active',
+  'x-forwarded-for': '73.252.169.98, 10.83.9.4',
+  'x-forwarded-proto': 'https',
+  'x-replit-user-bio': '',
+  'x-replit-user-id': '',
+  'x-replit-user-name': '',
+  'x-replit-user-profile-image': '',
+  'x-replit-user-roles': '',
+  'x-replit-user-teams': '',
+  'x-replit-user-url': ''
+}
+Found basic question 13 with pattern match
+Warning: Selected question 13 has category multiplication but requested decimals
+Getting adaptive question: grade=undefined, category=undefined, excludeIds=0
+4:58:17 AM [express] GET /api/questions/next 304 in 1092ms :: {"id":13,"category":"multiplication","…
+Found 3 questions matching primary criteria
+Selected question 14 for category all
+4:58:18 AM [express] GET /api/questions/next 304 in 367ms :: {"id":14,"category":"division","grade":…
