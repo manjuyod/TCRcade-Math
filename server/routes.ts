@@ -1218,10 +1218,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Decimal Defender routes
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
+      console.log("🔢 Decimal Defender endpoint called - generating decimal questions");
       const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
       const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
 
       const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
+      console.log("🔢 Generated decimal questions:", questions.length, "questions");
+      console.log("🔢 First question:", questions[0]?.question);
       res.json(questions);
     } catch (error) {
       console.error("Error generating decimal defender questions:", error);

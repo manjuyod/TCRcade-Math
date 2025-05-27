@@ -14,8 +14,10 @@ export default function DecimalDefenderPage() {
       .then(res => res.json())
       .then(data => {
         console.log('Decimal Defender questions loaded:', data);
+        // The API returns an array of questions directly
+        const questions = Array.isArray(data) ? data : [];
         // Randomly choose 5 from the 10 returned
-        const shuffled = data.sort(() => 0.5 - Math.random()).slice(0, 5);
+        const shuffled = questions.sort(() => 0.5 - Math.random()).slice(0, 5);
         setQuestions(shuffled);
       })
       .catch(error => {
