@@ -1287,24 +1287,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   
 
-  app.post('/api/decimal-defender/complete', async (req, res) => {
+  // Decimal Defender API routes
+  app.get("/api/decimals/questions", async (req, res) => {
     try {
-      const { correct, total } = req.body;
-      const user = req.session?.user;
+      const { skill = "rounding" } = req.query;
+      console.log("🔢 API: Generating decimal questions for skill:", skill);
+      
+      const questions = await generateDecimalDefenderQuestions(skill as string, DECIMAL_DEFENDER_RULES.questionsPerSession);
+      
+      console.log("🔢 API: Generated", questions.length, "decimal questions");
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating decimal questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
 
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+  app.post('/api/decimal-defender/complete', ensureAuthenticated, async (req, res) => {
+    try {
+      const { correct, total, skill } = req.body;
+      const userId = getUserId(req);
+
+      if (typeof correct !== 'number' || typeof total !== 'number') {
+        return res.status(400).json({ error: 'Invalid request data' });
       }
 
-      const tokensEarned = (correct * DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer) + 
-                          (correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0);
+      // Calculate tokens
+      const baseTokens = correct * DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer;
+      const bonusTokens = correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0;
+      const tokensEarned = baseTokens + bonusTokens;
 
-      const { updateUserStatsAfterModule } = await import('./utils/moduleCompletion');
-      await updateUserStatsAfterModule(user.id, correct, total, tokensEarned);
+      // Update user tokens
+      const user = await storage.getUser(userId);
+      if (user) {
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: (user.tokens || 0) + tokensEarned,
+          questionsAnswered: (user.questionsAnswered || 0) + total,
+          correctAnswers: (user.correctAnswers || 0) + correct,
+        });
+
+        // Emit real-time token update to client
+        const tokenNamespace = (global as any).tokenNamespace;
+        if (tokenNamespace) {
+          tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser?.tokens || 0);
+        }
+
+        console.log(`User ${userId} completed Decimal Defender with ${correct}/${total} correct. Earned ${tokensEarned} tokens.`);
+      }
 
       res.json({ 
         success: true, 
         tokens: tokensEarned,
+        totalTokens: (user?.tokens || 0) + tokensEarned,
         correct,
         total 
       });

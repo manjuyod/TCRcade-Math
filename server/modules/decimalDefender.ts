@@ -13,22 +13,18 @@ interface DecimalQuestion {
   concepts: string[];
 }
 
-export async function generateDecimalDefenderQuestions(count: number): Promise<DecimalQuestion[]> {
+export async function generateDecimalDefenderQuestions(skill: string, count: number = 5): Promise<DecimalQuestion[]> {
   const questions: DecimalQuestion[] = [];
-  const skills = DECIMAL_DEFENDER_RULES.skills;
   
-  console.log("DECIMAL DEFENDER: Generating", count, "decimal-only questions");
-  console.log(`🔢 DECIMAL DEFENDER: Generating ${count} decimal-only questions using skills:`, skills);
+  console.log("🔢 DECIMAL DEFENDER: Generating", count, "questions for skill:", skill);
   
   for (let i = 0; i < count; i++) {
-    const skill = skills[i % skills.length];
     const question = generateQuestionBySkill(skill, Date.now() + i);
-    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill}, category: ${question.category})`);
+    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill})`);
     questions.push(question);
   }
   
-  console.log(`🔢 DECIMAL DEFENDER: Successfully generated ${questions.length} decimal questions`);
-  console.log(`🔢 DECIMAL DEFENDER: Sample question:`, JSON.stringify(questions[0], null, 2));
+  console.log(`🔢 DECIMAL DEFENDER: Successfully generated ${questions.length} questions for ${skill}`);
   return questions;
 }
 
@@ -50,11 +46,8 @@ function generateQuestionBySkill(skill: string, id: number): DecimalQuestion {
     case 'comparing':
       skillQuestion = generateComparingQuestion();
       break;
-    case 'addition':
-      skillQuestion = generateAdditionQuestion();
-      break;
-    case 'subtraction':
-      skillQuestion = generateSubtractionQuestion();
+    case 'add_subtract':
+      skillQuestion = generateAddSubtractQuestion();
       break;
     case 'place_value':
       skillQuestion = generatePlaceValueQuestion();
@@ -135,45 +128,44 @@ function generateComparingQuestion() {
   };
 }
 
-function generateAdditionQuestion() {
+function generateAddSubtractQuestion() {
   const decimal1 = (Math.random() * 9 + 1).toFixed(2);
-  const decimal2 = (Math.random() * 9 + 1).toFixed(2);
-  const sum = (parseFloat(decimal1) + parseFloat(decimal2)).toFixed(2);
+  const decimal2 = (Math.random() * 5 + 1).toFixed(2);
+  
+  // Randomly choose addition or subtraction
+  const isAddition = Math.random() > 0.5;
+  
+  let result: number;
+  let operation: string;
+  let question: string;
+  
+  if (isAddition) {
+    result = parseFloat(decimal1) + parseFloat(decimal2);
+    operation = '+';
+    question = `Add these decimals: ${decimal1} + ${decimal2}`;
+  } else {
+    // Ensure positive result for subtraction
+    const larger = Math.max(parseFloat(decimal1), parseFloat(decimal2));
+    const smaller = Math.min(parseFloat(decimal1), parseFloat(decimal2));
+    result = larger - smaller;
+    operation = '-';
+    question = `Subtract these decimals: ${larger.toFixed(2)} - ${smaller.toFixed(2)}`;
+  }
+  
+  const answer = result.toFixed(2);
   
   // Generate realistic wrong options
-  const baseSum = parseFloat(sum);
   const wrongOptions = [
-    (baseSum + 0.1).toFixed(2),
-    (baseSum - 0.1).toFixed(2),
-    (baseSum + 1).toFixed(2)
-  ].filter(option => option !== sum && parseFloat(option) >= 0);
+    (result + 0.1).toFixed(2),
+    (result - 0.1).toFixed(2),
+    (result + 1).toFixed(2)
+  ].filter(option => option !== answer && parseFloat(option) >= 0);
   
-  const options = [sum, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
+  const options = [answer, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
-    question: `Add these decimals: ${decimal1} + ${decimal2}`,
-    answer: sum,
-    options
-  };
-}
-
-function generateSubtractionQuestion() {
-  const decimal1 = (Math.random() * 8 + 5).toFixed(2); // Ensure positive result
-  const decimal2 = (Math.random() * 3 + 1).toFixed(2);
-  const difference = (parseFloat(decimal1) - parseFloat(decimal2)).toFixed(2);
-  
-  const baseDiff = parseFloat(difference);
-  const wrongOptions = [
-    (baseDiff + 0.1).toFixed(2),
-    (baseDiff - 0.1).toFixed(2),
-    (baseDiff + 1).toFixed(2)
-  ].filter(option => option !== difference && parseFloat(option) >= 0);
-  
-  const options = [difference, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
-  
-  return {
-    question: `Subtract these decimals: ${decimal1} - ${decimal2}`,
-    answer: difference,
+    question,
+    answer,
     options
   };
 }
@@ -199,9 +191,18 @@ function generatePlaceValueQuestion() {
   const correctDigit = randomPos.digit;
   
   // Generate wrong options - other digits from the number
-  const wrongOptions = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+  const allDigits = decimal.replace('.', '').split('');
+  const wrongOptions = Array.from(new Set(allDigits))
     .filter(d => d !== correctDigit)
     .slice(0, 3);
+  
+  // Fill with random digits if not enough wrong options
+  while (wrongOptions.length < 3) {
+    const randomDigit = Math.floor(Math.random() * 10).toString();
+    if (!wrongOptions.includes(randomDigit) && randomDigit !== correctDigit) {
+      wrongOptions.push(randomDigit);
+    }
+  }
   
   const options = [correctDigit, ...wrongOptions].sort(() => Math.random() - 0.5);
   

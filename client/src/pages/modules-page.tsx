@@ -203,11 +203,11 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'decimals',
+      id: 'decimal-defender',
       name: 'Decimal Defender',
-      description: 'Learn to add, subtract, and compare decimal numbers',
+      description: 'Master decimal skills through rounding, comparing, and operations',
       gameType: GameType.STANDARD,
-      icon: <UserRoundCheck className="h-12 w-12 text-cyan-500" />,
+      icon: <Shield className="h-12 w-12 text-cyan-500" />,
       difficulty: 4,
       category: 'decimals',
       locked: false,
@@ -328,6 +328,13 @@ export default function ModulesPage() {
       // For Fractions Puzzle, navigate to the setup page
       console.log('Loading fractions puzzle module, navigating to setup page');
       setLocation('/fractions/setup');
+      return;
+    }
+
+    if (module.id === 'decimal-defender') {
+      // For Decimal Defender, navigate to the setup page
+      console.log('Loading decimal defender module, navigating to setup page');
+      setLocation('/decimals/setup');
       return;
     }
     

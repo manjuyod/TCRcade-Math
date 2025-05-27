@@ -16,6 +16,9 @@ import MathRushCompletePage from "@/pages/rush/complete-page";
 import FractionsSetupPage from "@/pages/fractions/setup-page";
 import FractionsPlayPage from "@/pages/fractions/play-page";
 import FractionsCompletePage from "@/pages/fractions/complete-page";
+import DecimalDefenderSetupPage from "@/pages/decimals/setup-page";
+import DecimalDefenderPlayPage from "@/pages/decimals/play-page";
+import DecimalDefenderCompletePage from "@/pages/decimals/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -75,6 +78,9 @@ function Router() {
       <ProtectedRoute path="/fractions/setup" component={FractionsSetupPage} />
       <ProtectedRoute path="/fractions/play" component={FractionsPlayPage} />
       <ProtectedRoute path="/fractions/complete" component={FractionsCompletePage} />
+      <ProtectedRoute path="/decimals/setup" component={DecimalDefenderSetupPage} />
+      <ProtectedRoute path="/decimals/play" component={DecimalDefenderPlayPage} />
+      <ProtectedRoute path="/decimals/complete" component={DecimalDefenderCompletePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />

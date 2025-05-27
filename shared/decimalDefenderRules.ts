@@ -14,17 +14,15 @@ export const DECIMAL_DEFENDER_RULES = {
   skills: [
     "rounding", 
     "comparing", 
-    "addition", 
-    "subtraction", 
+    "add_subtract", 
     "place_value"
   ],
   skillDescriptions: {
     rounding: "Round decimals to specified places (whole, tenth, hundredth)",
     comparing: "Compare decimal values using <, >, or =",
-    addition: "Add two decimal numbers with proper alignment",
-    subtraction: "Subtract decimal numbers with proper alignment", 
+    add_subtract: "Add and subtract decimal numbers with proper alignment",
     place_value: "Identify digits in specific decimal places"
   },
-  tokensPerCorrectAnswer: 5,
+  tokensPerCorrectAnswer: 4,
   bonusTokensOnPerfect: 15
 };
