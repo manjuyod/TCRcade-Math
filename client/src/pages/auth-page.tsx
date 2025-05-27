@@ -103,8 +103,9 @@ export default function AuthPage() {
 
   // Check if the register mutation has a specific email already exists error
   console.log("Register error:", registerMutation.error?.message);
-  const hasEmailExistsError = registerMutation.error?.message === "Email already exists" || 
-    registerMutation.error?.message === "Email is already registered";
+  console.log("Register error includes 'Email already exists':", registerMutation.error?.message?.includes("Email already exists"));
+  const hasEmailExistsError = registerMutation.error?.message?.includes("Email already exists");
+  console.log("hasEmailExistsError:", hasEmailExistsError);
 
   const handleGoToLogin = () => {
     setActiveTab("login");
