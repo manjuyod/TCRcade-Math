@@ -126,6 +126,13 @@ const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add comprehensive route debugging
+  app.use((req, res, next) => {
+    console.log(`🌐 ROUTE DEBUG: ${req.method} ${req.url}`);
+    console.log(`🌐 ROUTE DEBUG: Headers:`, req.headers);
+    next();
+  });
+
   // Set up authentication routes
   setupAuth(app);
 
