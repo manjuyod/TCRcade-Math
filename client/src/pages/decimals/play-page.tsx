@@ -415,6 +415,7 @@ export default function DecimalDefenderPlayPage() {
               <Shield className="h-6 w-6 text-cyan-500" />
               <h1 className="text-2xl font-bold">Decimal Defender</h1>
             </div>
+           
             <Button variant="outline" size="sm" onClick={handleExit}>
               Exit
             </Button>
@@ -449,12 +450,6 @@ export default function DecimalDefenderPlayPage() {
             </CardContent>
           </Card>
 
-          {/* Progress Tracker */}
-          {questions.length > 0 && (
-            <p className="text-sm text-gray-600 text-center mt-4">
-              Question {currentIndex + 1} of {questions.length}
-            </p>
-          )}
 
           {/* Feedback */}
           <AnimatePresence>

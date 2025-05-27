@@ -48,10 +48,10 @@ export default function DecimalDefenderSetupPage() {
   };
 
   const skillDescriptions = {
-    rounding: "Round decimals to specified places (whole, tenth, hundredth)",
-    comparing: "Compare decimal values using <, >, or =",
-    add_subtract: "Add and subtract decimal numbers with proper alignment",
-    place_value: "Identify digits in specific decimal places",
+    rounding: "Adjust decimals to the nearest checkpoint — whole, tenth, or hundredth!",
+    comparing: "Scan and detect which decimal is greater, smaller, or the same",
+    add_subtract: "Add or subtract decimal numbers to boost your team’s energy!",
+    place_value: "Find the right digit in the decimal to keep your system stable"
   };
 
   return (
@@ -73,16 +73,31 @@ export default function DecimalDefenderSetupPage() {
             </p>
           </div>
 
+          <div className="bg-cyan-50 border border-cyan-300 rounded-xl p-4 mb-8 shadow-sm text-center">
+            <h3 className="text-md font-semibold text-cyan-800 mb-2">Mission</h3>
+            <p className="text-sm text-gray-700 mb-3">
+              Answer 5 decimal questions to shield your squad and secure your base.
+              Victory depends on your math skills!
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-sm text-white max-w-xl mx-auto">
+              <div className="bg-blue-500 px-3 py-2 rounded-lg text-center">
+                Reward: 4 tokens per correct answer
+              </div>
+              <div className="bg-yellow-500 px-3 py-2 rounded-lg text-center">
+                Bonus: 15 tokens for a perfect score
+              </div>
+            </div>
+          </div>
+          
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calculator className="h-5 w-5" />
-                Choose Your Decimal Skill
+                Pick a Decimal Mission
               </CardTitle>
               <CardDescription>
-                Select the decimal concept you want to practice. Earn{" "}
-                {DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer} tokens per
-                correct answer!
+                Choose a decimal skill to get mission-ready. Each correct answer earns you tokens! 
               </CardDescription>
             </CardHeader>
 
@@ -95,7 +110,8 @@ export default function DecimalDefenderSetupPage() {
                   <motion.div
                     key={skill}
                     whileHover={{ scale: 1.02 }}
-                    className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer 
+                    hover:bg-cyan-50 hover:text-cyan-800 transition-colors duration-150 ease-in-out`}
                     onClick={() => setSelectedSkill(skill)}
                   >
                     <RadioGroupItem value={skill} id={skill} />
@@ -114,24 +130,7 @@ export default function DecimalDefenderSetupPage() {
                   </motion.div>
                 ))}
               </RadioGroup>
-
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h3 className="font-medium mb-2">Session Details</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>
-                    • {DECIMAL_DEFENDER_RULES.questionsPerSession} decimal
-                    questions
-                  </li>
-                  <li>
-                    • {DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer} tokens per
-                    correct answer
-                  </li>
-                  <li>
-                    • {DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect} bonus tokens
-                    for perfect score
-                  </li>
-                </ul>
-              </div>
+              
 
               <Button
                 className="w-full"
@@ -139,7 +138,7 @@ export default function DecimalDefenderSetupPage() {
                 onClick={handleStart}
                 disabled={!selectedSkill}
               >
-                Start Decimal Challenge
+                Start Decimal Mission
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
