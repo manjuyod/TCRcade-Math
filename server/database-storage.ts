@@ -31,14 +31,39 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  
+
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      return result[0];
+    } catch (error) {
+      console.error("Error fetching user by username:", error);
+      return undefined;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      return result[0];
+    } catch (error) {
+      console.error("Error fetching user by email:", error);
+      return undefined;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -64,13 +89,13 @@ export class DatabaseStorage implements IStorage {
         dailyEngagementMinutes: 0
       })
       .returning();
-    
+
     return user;
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
     console.log(`DATABASE: Updating user ${id} with data:`, data);
-    
+
     try {
       // Start a transaction to ensure all updates are atomic
       const [updatedUser] = await db.transaction(async (tx) => {
@@ -79,21 +104,21 @@ export class DatabaseStorage implements IStorage {
           .select()
           .from(users)
           .where(eq(users.id, id));
-          
+
         if (!currentUser) {
           throw new Error(`User with ID ${id} not found`);
         }
-        
+
         // Perform the update with transactions to ensure ACID compliance
         const result = await tx
           .update(users)
           .set(data)
           .where(eq(users.id, id))
           .returning();
-          
+
         return result;
       });
-      
+
       console.log(`DATABASE: User ${id} update successful:`, updatedUser?.tokens);
       return updatedUser;
     } catch (error) {
@@ -109,7 +134,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(users)
         .where(eq(users.id, id));
-      
+
       if (!user) {
         return false;
       }
@@ -119,7 +144,7 @@ export class DatabaseStorage implements IStorage {
         .delete(users)
         .where(eq(users.id, id))
         .returning({ id: users.id });
-      
+
       return !!deletedUser;
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
@@ -134,10 +159,10 @@ export class DatabaseStorage implements IStorage {
         .from(users)
         .orderBy(desc(users.tokens))
         .limit(20);
-      
+
       // Log for debugging
       console.log(`Leaderboard users found: ${leaderboardUsers.length}`);
-      
+
       return leaderboardUsers.map(user => ({
         ...user,
         score: user.tokens || 0
@@ -154,14 +179,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(questions)
       .where(eq(questions.id, id));
-    
+
     return question;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
     // Build filters first to make sure they're all applied correctly
     const filters = [eq(questions.grade, grade)];
-    
+
     // CRITICAL FIX: Properly handle category filtering with improved logic
     // This fixes incorrect category filtering that caused wrong question types to appear
     if (category && category !== 'all') {
@@ -169,16 +194,16 @@ export class DatabaseStorage implements IStorage {
       // Previous implementation had a bug that caused weird SQL query generation
       console.log(`Applying exact category match for '${category}'`);
       filters.push(eq(questions.category, category));
-      
+
       // Additional post-query filtering will handle any other exclusions
     }
-    
+
     // Apply all filters at once
     const result = await db
       .select()
       .from(questions)
       .where(and(...filters));
-    
+
     // Additional post-filter for image-based questions
     // We want to remove any question with image references, per user requirements
     const filteredResults = result.filter(q => {
@@ -195,13 +220,13 @@ export class DatabaseStorage implements IStorage {
           q.question.toLowerCase().includes('visual') || 
           q.question.toLowerCase().includes('represent') ||
           q.question.toLowerCase().includes('shaded')));
-        
+
       // If it has any image reference, log and exclude
       if (hasImageReference) {
         console.log(`REMOVING image-based question: ${q.id} - ${q.question.substring(0, 30)}...`);
         return false;
       }
-      
+
       // Special handling for multiplication category to prevent division/fractions
       if (q.category === 'multiplication' && 
          (q.question.toLowerCase().includes('÷') || 
@@ -211,10 +236,10 @@ export class DatabaseStorage implements IStorage {
         console.log(`REMOVING incorrectly categorized question from multiplication: ${q.id} - ${q.question.substring(0, 30)}...`);
         return false;
       }
-      
+
       return true;
     });
-    
+
     console.log(`getQuestionsByGrade: Found ${result.length} questions with grade=${grade}, category=${category || 'all'}`);
     console.log(`After filtering out image questions: ${filteredResults.length} questions remain`);
     return filteredResults;
@@ -229,7 +254,7 @@ export class DatabaseStorage implements IStorage {
         eq(questions.grade, grade),
         inArray(concept, questions.concepts)
       ));
-    
+
     return questionsWithConcept;
   }
 
@@ -240,7 +265,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(userProgress)
       .where(eq(userProgress.userId, userId));
-    
+
     return progress;
   }
 
@@ -253,7 +278,7 @@ export class DatabaseStorage implements IStorage {
         eq(userProgress.userId, userId),
         eq(userProgress.category, category)
       ));
-    
+
     if (existingProgress) {
       // Update existing progress
       const [updatedProgress] = await db
@@ -261,7 +286,7 @@ export class DatabaseStorage implements IStorage {
         .set(data)
         .where(eq(userProgress.id, existingProgress.id))
         .returning();
-      
+
       return updatedProgress;
     } else {
       // Create new progress
@@ -275,7 +300,7 @@ export class DatabaseStorage implements IStorage {
           completedQuestions: data.completedQuestions || 0
         })
         .returning();
-      
+
       return newProgress;
     }
   }
@@ -286,7 +311,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(conceptMastery)
       .where(eq(conceptMastery.userId, userId));
-    
+
     return masteries;
   }
 
@@ -298,7 +323,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(questions)
       .where(eq(questions.grade, grade));
-    
+
     // Extract unique concepts
     const conceptSet = new Set<string>();
     allQuestions.forEach(q => {
@@ -306,7 +331,7 @@ export class DatabaseStorage implements IStorage {
         q.concepts.forEach(c => conceptSet.add(c));
       }
     });
-    
+
     return Array.from(conceptSet);
   }
 
@@ -320,13 +345,13 @@ export class DatabaseStorage implements IStorage {
         eq(conceptMastery.concept, concept),
         eq(conceptMastery.grade, grade)
       ));
-    
+
     if (existingMastery) {
       // Update existing mastery
       const totalAttempts = existingMastery.totalAttempts + 1;
       const correctAttempts = existingMastery.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-      
+
       const [updatedMastery] = await db
         .update(conceptMastery)
         .set({
@@ -338,7 +363,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(conceptMastery.id, existingMastery.id))
         .returning();
-      
+
       return updatedMastery;
     } else {
       // Create new mastery entry
@@ -355,7 +380,7 @@ export class DatabaseStorage implements IStorage {
           needsReview: !isCorrect
         })
         .returning();
-      
+
       return newMastery;
     }
   }
@@ -379,7 +404,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) return null;
     return user.avatarItems;
   }
@@ -392,7 +417,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-    
+
     return updatedUser;
   }
 
@@ -402,40 +427,40 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       return { success: false, message: "User not found" };
     }
-    
+
     // Get the avatar item
     const [item] = await db
       .select()
       .from(avatarItems)
       .where(eq(avatarItems.id, itemId));
-    
+
     if (!item) {
       return { success: false, message: "Item not found" };
     }
-    
+
     // Check if user already owns the item
     // Need to check in the unlocks array in the avatarItems JSON field
     const avatarItemsData = user.avatarItems as any;
     if (avatarItemsData.unlocks && avatarItemsData.unlocks.includes(item.id.toString())) {
       return { success: false, message: "You already own this item" };
     }
-    
+
     // Check if user has enough tokens
     if (user.tokens < item.price) {
       return { success: false, message: `Not enough tokens. You need ${item.price} tokens.` };
     }
-    
+
     // Update user tokens and add item to unlocks
     const unlocks = [...(avatarItemsData.unlocks || []), item.id.toString()];
     const newAvatarItems = {
       ...avatarItemsData,
       unlocks
     };
-    
+
     const [updatedUser] = await db
       .update(users)
       .set({
@@ -444,7 +469,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-    
+
     return {
       success: true,
       message: `Successfully purchased ${item.name}!`,
@@ -456,32 +481,32 @@ export class DatabaseStorage implements IStorage {
   async getCurrentDailyChallenge(): Promise<DailyChallenge | undefined> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // First, try to find an existing challenge for today
     const [challenge] = await db
       .select()
       .from(dailyChallenges)
       .where(eq(dailyChallenges.date, today));
-    
+
     // If we found a challenge, return it
     if (challenge) {
       console.log(`Found existing daily challenge for ${today.toLocaleDateString()}`, challenge);
       return challenge;
     }
-    
+
     // No challenge found, create a new one
     console.log(`Creating new daily challenge for ${today.toLocaleDateString()}`);
-    
+
     // Generate 5 random questions for the daily challenge
     const questionIds: number[] = [];
     const questions: any[] = [];
-    
+
     // Get 5 random questions from the database (one for each K-4 grade)
     const randomQuestions = await db
       .select()
       .from(questions)
       .limit(5);
-    
+
     if (randomQuestions.length > 0) {
       randomQuestions.forEach(q => {
         questionIds.push(q.id);
@@ -537,13 +562,13 @@ export class DatabaseStorage implements IStorage {
           grade: "4"
         }
       ];
-      
+
       fallbackQuestions.forEach(q => {
         questionIds.push(q.id);
         questions.push(q);
       });
     }
-    
+
     // Create the new challenge
     const newChallenge = {
       // Don't need to set ID as it's auto-incremented
@@ -557,19 +582,19 @@ export class DatabaseStorage implements IStorage {
       tokenReward: 25,
       questionCount: 5
     };
-    
+
     try {
       // Insert the new challenge into the database
       const [insertedChallenge] = await db
         .insert(dailyChallenges)
         .values(newChallenge)
         .returning();
-      
+
       console.log(`Successfully created daily challenge with ID: ${insertedChallenge.id}`);
       return insertedChallenge;
     } catch (error) {
       console.error("Error creating daily challenge:", error);
-      
+
       // Create a fallback in-memory challenge that matches the schema
       const fallbackChallenge = {
         id: Math.floor(Date.now() / 1000), // Use timestamp as ID
@@ -586,7 +611,7 @@ export class DatabaseStorage implements IStorage {
         requiredGrade: null,
         specialReward: null
       };
-      
+
       return fallbackChallenge as DailyChallenge;
     }
   }
@@ -599,11 +624,11 @@ export class DatabaseStorage implements IStorage {
       })
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       return { completed: false, currentStreak: 0 };
     }
-    
+
     const today = new Date().toISOString().split('T')[0];
     return {
       completed: user.lastDailyChallenge === today,
@@ -617,32 +642,32 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     const [challenge] = await db
       .select()
       .from(dailyChallenges)
       .where(eq(dailyChallenges.id, challengeId));
-    
+
     if (!challenge) {
       throw new Error("Challenge not found");
     }
-    
+
     // Calculate streak
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
-    
+
     let newStreak = user.dailyChallengeStreak;
     // If already completed today, don't update
     if (user.lastDailyChallenge === today) {
       return user;
     }
-    
+
     // If completed yesterday, increase streak
     if (user.lastDailyChallenge === yesterdayStr) {
       newStreak += 1;
@@ -650,9 +675,9 @@ export class DatabaseStorage implements IStorage {
       // Otherwise reset streak
       newStreak = 1;
     }
-    
+
     const tokensEarned = challenge.tokenReward * (challenge.difficultyBonus || 1);
-    
+
     // Update user data
     const [updatedUser] = await db
       .update(users)
@@ -664,18 +689,18 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-    
+
     return updatedUser;
   }
 
   // Math storytelling methods
   async getMathStories(grade?: string): Promise<MathStory[]> {
     let query = db.select().from(mathStories);
-    
+
     if (grade) {
       query = query.where(eq(mathStories.grade, grade));
     }
-    
+
     return query;
   }
 
@@ -684,7 +709,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(mathStories)
       .where(eq(mathStories.id, storyId));
-    
+
     return story;
   }
 
@@ -693,11 +718,11 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(questions)
       .where(eq(questions.storyId, storyId));
-    
+
     if (nodeId !== undefined) {
       query = query.where(eq(questions.storyNode, nodeId));
     }
-    
+
     return query;
   }
 
@@ -707,37 +732,37 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     // Update story progress in user's storyProgress JSON field
     const storyProgress = user.storyProgress as any || {};
     if (!storyProgress[storyId]) {
       storyProgress[storyId] = { completedNodes: [], currentNode: 1, complete: false };
     }
-    
+
     if (complete) {
       // Mark the node as completed if not already
       if (!storyProgress[storyId].completedNodes.includes(nodeId)) {
         storyProgress[storyId].completedNodes.push(nodeId);
       }
-      
+
       // Update current node if higher
       if (nodeId >= storyProgress[storyId].currentNode) {
         storyProgress[storyId].currentNode = nodeId + 1;
       }
-      
+
       // Check if story is complete
       const [story] = await db
         .select()
         .from(mathStories)
         .where(eq(mathStories.id, storyId));
-      
+
       if (story && storyProgress[storyId].currentNode > story.nodeCount) {
         storyProgress[storyId].complete = true;
-        
+
         // Award completion tokens
         const [updatedUser] = await db
           .update(users)
@@ -747,18 +772,18 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(users.id, userId))
           .returning();
-        
+
         return storyProgress;
       }
     }
-    
+
     // Update user with new story progress
     const [updatedUser] = await db
       .update(users)
       .set({ storyProgress })
       .where(eq(users.id, userId))
       .returning();
-    
+
     return storyProgress;
   }
 
@@ -773,9 +798,9 @@ export class DatabaseStorage implements IStorage {
       }
       return code;
     };
-    
+
     const roomCode = generateRoomCode();
-    
+
     // Create the room
     const [room] = await db
       .insert(multiplayerRooms)
@@ -788,7 +813,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date()
       })
       .returning();
-    
+
     return room;
   }
 
@@ -797,7 +822,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(multiplayerRooms)
       .where(eq(multiplayerRooms.id, roomId));
-    
+
     return room;
   }
 
@@ -806,7 +831,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(multiplayerRooms)
       .where(eq(multiplayerRooms.roomCode, roomCode));
-    
+
     return room;
   }
 
@@ -815,14 +840,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(multiplayerRooms)
       .where(eq(multiplayerRooms.isActive, true));
-    
+
     if (grade) {
       query = query.where(or(
         eq(multiplayerRooms.grade, grade),
         isNull(multiplayerRooms.grade)
       ));
     }
-    
+
     // Make sure we don't include games that are full
     const rooms = await query;
     return rooms.filter(room => {
@@ -836,29 +861,29 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(multiplayerRooms)
       .where(eq(multiplayerRooms.id, roomId));
-    
+
     if (!room) {
       throw new Error("Room not found");
     }
-    
+
     // Check if room is full
     if (room.participants && room.maxParticipants && 
         room.participants.length >= room.maxParticipants) {
       return false;
     }
-    
+
     // Check if user is already in room
     if (room.participants && room.participants.includes(userId)) {
       return true;
     }
-    
+
     // Add user to room
     const newParticipants = [...(room.participants || []), userId];
     await db
       .update(multiplayerRooms)
       .set({ participants: newParticipants })
       .where(eq(multiplayerRooms.id, roomId));
-    
+
     return true;
   }
 
@@ -867,32 +892,32 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(multiplayerRooms)
       .where(eq(multiplayerRooms.id, roomId));
-    
+
     if (!room || !room.participants) {
       return false;
     }
-    
+
     // Remove user from participants
     const newParticipants = room.participants.filter(id => id !== userId);
-    
+
     // If host leaves and others remain, assign new host
     let updates: Partial<MultiplayerRoom> = { participants: newParticipants };
-    
+
     if (room.hostId === userId && newParticipants.length > 0) {
       updates.hostId = newParticipants[0];
     }
-    
+
     // If room is empty, mark as inactive
     if (newParticipants.length === 0) {
       updates.isActive = false;
       updates.endedAt = new Date();
     }
-    
+
     await db
       .update(multiplayerRooms)
       .set(updates)
       .where(eq(multiplayerRooms.id, roomId));
-    
+
     return true;
   }
 
@@ -902,7 +927,7 @@ export class DatabaseStorage implements IStorage {
       .set(data)
       .where(eq(multiplayerRooms.id, roomId))
       .returning();
-    
+
     return updatedRoom;
   }
 
@@ -913,21 +938,21 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     // Get user's concept masteries
     const conceptMasteries = await db
       .select()
       .from(conceptMastery)
       .where(eq(conceptMastery.userId, userId));
-    
+
     // Identify strengths and weaknesses
     const strengths: string[] = [];
     const weaknesses: string[] = [];
-    
+
     conceptMasteries.forEach(cm => {
       if (cm.masteryLevel >= 80) {
         strengths.push(cm.concept);
@@ -935,13 +960,13 @@ export class DatabaseStorage implements IStorage {
         weaknesses.push(cm.concept);
       }
     });
-    
+
     // Add default concepts for practice if user doesn't have enough weakness data
     // This ensures the "Concepts that need more practice" section is always populated
     if (weaknesses.length < 3) {
       // Get the user's grade to provide grade-appropriate concepts
       const grade = user.grade || '3';
-      
+
       // Generate default concepts based on grade level
       const defaultConcepts: {[key: string]: string[]} = {
         'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
@@ -952,7 +977,7 @@ export class DatabaseStorage implements IStorage {
         '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
         '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
       };
-      
+
       // Add grade-appropriate default concepts that aren't already in weaknesses
       const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['3'];
       for (const concept of gradeSpecificConcepts) {
@@ -961,18 +986,18 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
-    
+
     // Get progress data
     const progress = await db
       .select()
       .from(userProgress)
       .where(eq(userProgress.userId, userId));
-    
+
     // Create a simple analysis based on available data
     const strongCategories = progress
       .filter(p => p.score > 100)
       .map(p => p.category);
-    
+
     // Map weaknesses to practice activities but also add common learning activities
     // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
     const recommendedActivities = [
@@ -982,7 +1007,7 @@ export class DatabaseStorage implements IStorage {
       'conceptMapping',
       'realWorldApplications'
     ];
-    
+
     // Create a new analytics entry
     const [analytic] = await db
       .insert(aiAnalytics)
@@ -993,8 +1018,7 @@ export class DatabaseStorage implements IStorage {
           correctAnswerRate: user.questionsAnswered > 0 
             ? user.correctAnswers / user.questionsAnswered 
             : 0,
-          averageTimePerQuestion: 0, // This would need to be calculated from actual data
-          preferredCategories: strongCategories
+          averageTimePerQuestion: 0, //This commit adds the getUserByEmail method to the DatabaseStorage class to facilitate email-based user lookups.          preferredCategories: strongCategories
         },
         strengths: strengths.slice(0, 5),
         areasForImprovement: weaknesses.slice(0, 5),
@@ -1008,7 +1032,7 @@ export class DatabaseStorage implements IStorage {
         weaknessConcepts: weaknesses
       })
       .returning();
-    
+
     return analytic;
   }
 
@@ -1020,7 +1044,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(aiAnalytics.userId, userId))
       .orderBy(desc(aiAnalytics.analysisDate))
       .limit(1);
-    
+
     return analytic;
   }
 
@@ -1034,7 +1058,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-    
+
     return updatedUser;
   }
 
@@ -1046,7 +1070,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(recommendations.userId, userId))
       .orderBy(desc(recommendations.generatedAt))
       .limit(1);
-    
+
     return recommendation;
   }
 
@@ -1056,53 +1080,53 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       throw new Error("User not found");
     }
-    
+
     // Get concept masteries
     const masteries = await db
       .select()
       .from(conceptMastery)
       .where(eq(conceptMastery.userId, userId));
-    
+
     // Identify concepts that need review
     const conceptsToReview = masteries
       .filter(m => m.masteryLevel < 70)
       .map(m => m.concept);
-    
+
     // Get all concepts for the user's grade
     const allConcepts = await this.getConceptsForGrade(user.grade || 'K');
-    
+
     // Identify concepts the user hasn't seen yet
     const seenConcepts = masteries.map(m => m.concept);
     const conceptsToLearn = allConcepts.filter(c => !seenConcepts.includes(c));
-    
+
     // Recommend categories based on user's progress
     const progress = await db
       .select()
       .from(userProgress)
       .where(eq(userProgress.userId, userId));
-    
+
     const categoryCounts = progress.reduce((acc, p) => {
       acc[p.category] = (acc[p.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     // Categories with less activity should be recommended
     const allCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "time"];
     const suggestedCategories = allCategories
       .filter(c => !categoryCounts[c] || categoryCounts[c] < 3)
       .slice(0, 3);
-    
+
     // Calculate appropriate difficulty level
     const avgMasteryLevel = masteries.length > 0
       ? masteries.reduce((sum, m) => sum + m.masteryLevel, 0) / masteries.length
       : 50;
-    
+
     const difficultyLevel = Math.min(5, Math.max(1, Math.ceil(avgMasteryLevel / 20)));
-    
+
     // Create recommendation
     const [recommendation] = await db
       .insert(recommendations)
@@ -1126,7 +1150,7 @@ export class DatabaseStorage implements IStorage {
         }
       })
       .returning();
-    
+
     return recommendation;
   }
 
@@ -1134,7 +1158,7 @@ export class DatabaseStorage implements IStorage {
   async getAdaptiveQuestion(userId: number, grade: string, forceDynamic: boolean = false, category?: string, excludeIds: number[] = []): Promise<Question | undefined> {
     try {
       console.log(`Getting adaptive question: grade=${grade}, category=${category}, excludeIds=${excludeIds.length}`);
-      
+
       // Enhanced approach: More strict handling of category & ensure returning enough questions
       // First check if we have a valid grade parameter, fallback to user's grade or "K"
       if (!grade) {
@@ -1143,16 +1167,16 @@ export class DatabaseStorage implements IStorage {
       }
 
       let query = db.select().from(questions);
-      
+
       // Build a filter for grade
       const filters = [eq(questions.grade, grade)];
-      
+
       // Add category filter if specified - STRONGLY enforce this to prevent category mismatch
       if (category && category !== 'all') {
         console.log(`Adding strict category filter: ${category}`);
         filters.push(eq(questions.category, category));
       }
-      
+
       // Add exclusion filter if there are IDs to exclude
       if (excludeIds.length > 0) {
         // To avoid issues with possibly empty excludeIds array
@@ -1163,24 +1187,24 @@ export class DatabaseStorage implements IStorage {
           filters.push(not(inArray(questions.id, filteredIds)));
         }
       }
-      
+
       // Apply all filters with AND
       const allQuestions = await query.where(and(...filters));
-      
+
       console.log(`Found ${allQuestions.length} questions matching primary criteria`);
-      
+
       // If we have questions that match the criteria, return a random one
       if (allQuestions.length > 0) {
         const selectedQuestion = allQuestions[Math.floor(Math.random() * allQuestions.length)];
         console.log(`Selected question ${selectedQuestion.id} for category ${category || 'all'}`);
         return selectedQuestion;
       }
-      
+
       // DISABLE dynamic category modification completely - this caused the issues
       // with mixed categories and improper questions 
       if (category && category !== 'all' && forceDynamic) {
         console.log(`No questions found with category ${category}, looking for basic questions...`);
-        
+
         // Instead of modifying categories, let's look for basic questions in the category
         // This involves querying for very common questions and operators
         const basicQuestionPatterns = [
@@ -1189,7 +1213,7 @@ export class DatabaseStorage implements IStorage {
           '%times%',       // Look for "times" keyword
           '% × %',         // Look for the multiplication symbol
         ];
-        
+
         // We'll make specific queries to find truly matching questions
         let basicQuestions = [];
         for (const pattern of basicQuestionPatterns) {
@@ -1204,45 +1228,45 @@ export class DatabaseStorage implements IStorage {
               )
             ))
             .limit(5);
-          
+
           basicQuestions.push(...matchingQuestions);
         }
-        
+
         // If we found any basic questions, return one at random
         if (basicQuestions.length > 0) {
           const selectedQuestion = basicQuestions[Math.floor(Math.random() * basicQuestions.length)];
           console.log(`Found basic question ${selectedQuestion.id} with pattern match`);
-          
+
           // Make sure it has the right category but DON'T modify the actual content
           // This preserves the integrity of the question itself
           if (selectedQuestion.category !== category) {
             console.log(`Warning: Selected question ${selectedQuestion.id} has category ${selectedQuestion.category} but requested ${category}`);
           }
-          
+
           return selectedQuestion;
         }
-        
+
         console.log(`No basic questions found for ${category}, will fall back to grade only`);
       }
-      
+
       // If still no questions, fall back to grade only as last resort
       const fallbackQuestions = await db.select().from(questions).where(eq(questions.grade, grade));
       console.log(`Falling back to grade-only filter, found ${fallbackQuestions.length} questions`);
-      
+
       if (fallbackQuestions.length > 0) {
         const selectedQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
         console.log(`Selected fallback question ${selectedQuestion.id}, original category: ${selectedQuestion.category}`);
         return selectedQuestion;
       }
-      
+
       // Absolute last resort: return any question
       const anyQuestions = await db.select().from(questions).limit(10);
       console.log(`Last resort: found ${anyQuestions.length} questions with no filters`);
-      
+
       if (anyQuestions.length > 0) {
         return anyQuestions[Math.floor(Math.random() * anyQuestions.length)];
       }
-      
+
       console.log('No questions found at all, returning undefined');
       return undefined;
     } catch (error) {
@@ -1259,27 +1283,27 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(users)
         .where(eq(users.id, userId));
-      
+
       if (!user || !user.grade) {
         return undefined;
       }
-      
+
       // Get user's concept masteries to find concepts that need practice
       const masteries = await db
         .select()
         .from(conceptMastery)
         .where(eq(conceptMastery.userId, userId))
         .orderBy(asc(conceptMastery.masteryLevel));
-      
+
       let conceptsToFocus: string[] = [];
-      
+
       if (masteries.length > 0) {
         // Focus on concepts with lower mastery levels
         conceptsToFocus = masteries
           .filter(m => m.masteryLevel < 70)
           .map(m => m.concept);
       }
-      
+
       if (conceptsToFocus.length > 0) {
         // Get questions for these concepts
         for (const concept of conceptsToFocus) {
@@ -1289,20 +1313,20 @@ export class DatabaseStorage implements IStorage {
           }
         }
       }
-      
+
       // If no specific concepts to focus on, get a random question for the user's grade
       const gradeQuestions = await this.getQuestionsByGrade(user.grade);
       if (gradeQuestions.length > 0) {
         return gradeQuestions[Math.floor(Math.random() * gradeQuestions.length)];
       }
-      
+
       return undefined;
     } catch (error) {
       console.error('Error getting recommended question:', error);
       return undefined;
     }
   }
-  
+
   // Subject mastery methods for adaptive grade progression
   async getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]> {
     return db
@@ -1310,7 +1334,7 @@ export class DatabaseStorage implements IStorage {
       .from(subjectMastery)
       .where(eq(subjectMastery.userId, userId));
   }
-  
+
   async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]> {
     return db
       .select()
@@ -1320,7 +1344,7 @@ export class DatabaseStorage implements IStorage {
         eq(subjectMastery.grade, grade)
       ));
   }
-  
+
   async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined> {
     const [mastery] = await db
       .select()
@@ -1330,10 +1354,10 @@ export class DatabaseStorage implements IStorage {
         eq(subjectMastery.subject, subject),
         eq(subjectMastery.grade, grade)
       ));
-    
+
     return mastery;
   }
-  
+
   async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery> {
     // Check if entry exists
     const [existingMastery] = await db
@@ -1344,19 +1368,19 @@ export class DatabaseStorage implements IStorage {
         eq(subjectMastery.subject, subject),
         eq(subjectMastery.grade, grade)
       ));
-    
+
     if (existingMastery) {
       // Update existing mastery
       const totalAttempts = existingMastery.totalAttempts + 1;
       const correctAttempts = existingMastery.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-      
+
       // Check for grade progression criteria (80% mastery with at least 30 attempts)
       const canProgressToNextGrade = masteryLevel >= 80 && totalAttempts >= 30;
-      
+
       // Check for downgrade criteria (less than 50% mastery)
       const shouldDowngrade = masteryLevel < 50 && totalAttempts >= 10;
-      
+
       const [updatedMastery] = await db
         .update(subjectMastery)
         .set({
@@ -1369,7 +1393,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(subjectMastery.id, existingMastery.id))
         .returning();
-      
+
       return updatedMastery;
     } else {
       // Create new mastery entry
@@ -1388,11 +1412,11 @@ export class DatabaseStorage implements IStorage {
           downgraded: false
         })
         .returning();
-      
+
       return newMastery;
     }
   }
-  
+
   async checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
     shouldUpgrade: boolean,
     shouldDowngrade: boolean,
@@ -1401,22 +1425,22 @@ export class DatabaseStorage implements IStorage {
   }> {
     // Get subject mastery for current grade
     const mastery = await this.getUserSubjectMastery(userId, subject, grade);
-    
+
     if (!mastery) {
       return { shouldUpgrade: false, shouldDowngrade: false };
     }
-    
+
     // Determine next and previous grade levels
     const gradeNum = parseInt(grade, 10);
     const nextGrade = (gradeNum + 1).toString();
     const previousGrade = (gradeNum - 1).toString();
-    
+
     // Check if user should upgrade to next grade (80% mastery with at least 30 attempts)
     const shouldUpgrade = mastery.masteryLevel >= 80 && mastery.totalAttempts >= 30;
-    
+
     // Check if user should downgrade to previous grade (less than 50% mastery)
     const shouldDowngrade = mastery.masteryLevel < 50 && mastery.totalAttempts >= 10 && gradeNum > 1;
-    
+
     return {
       shouldUpgrade,
       shouldDowngrade,
@@ -1424,11 +1448,11 @@ export class DatabaseStorage implements IStorage {
       previousGrade: shouldDowngrade ? previousGrade : undefined
     };
   }
-  
+
   async unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery> {
     // Check if the subject mastery already exists
     const existingMastery = await this.getUserSubjectMastery(userId, subject, grade);
-    
+
     if (existingMastery) {
       // Update existing mastery to unlock it
       const [updatedMastery] = await db
@@ -1438,7 +1462,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(subjectMastery.id, existingMastery.id))
         .returning();
-      
+
       return updatedMastery;
     } else {
       // Create new mastery entry with unlocked status
@@ -1457,11 +1481,11 @@ export class DatabaseStorage implements IStorage {
           downgraded: false
         })
         .returning();
-      
+
       return newMastery;
     }
   }
-  
+
   async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
     // Get all subject masteries for this user and grade that are unlocked
     const userMasteries = await db
@@ -1472,11 +1496,11 @@ export class DatabaseStorage implements IStorage {
         eq(subjectMastery.grade, grade),
         eq(subjectMastery.isUnlocked, true)
       ));
-    
+
     // Return the list of unlocked subjects
     return userMasteries.map(mastery => mastery.subject);
   }
-  
+
   async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {
     // First, get all subject masteries for this user that are unlocked
     const userMasteries = await db
@@ -1487,32 +1511,32 @@ export class DatabaseStorage implements IStorage {
         eq(subjectMastery.subject, subject),
         eq(subjectMastery.isUnlocked, true)
       ));
-    
+
     if (userMasteries.length === 0) {
       // If no masteries found, get the user's default grade
       const user = await this.getUser(userId);
       if (!user || !user.grade) return [];
-      
+
       // Create a default mastery for this subject and grade
       await this.unlockGradeForSubject(userId, subject, user.grade);
-      
+
       // Return questions for the user's default grade and this subject
       return this.getQuestionsByGrade(user.grade, subject);
     }
-    
+
     // Sort masteries by grade, descending order (to prioritize higher grades)
     const sortedMasteries = userMasteries.sort((a, b) => {
       const gradeA = parseInt(a.grade, 10);
       const gradeB = parseInt(b.grade, 10);
       return gradeB - gradeA; // Sort descending
     });
-    
+
     // Check if any mastery has been downgraded - if so, use that grade instead
     const downgradedMastery = sortedMasteries.find(mastery => mastery.downgraded);
     if (downgradedMastery) {
       return this.getQuestionsByGrade(downgradedMastery.grade, subject);
     }
-    
+
     // Otherwise, use the highest unlocked grade
     const highestMastery = sortedMasteries[0];
     return this.getQuestionsByGrade(highestMastery.grade, subject);
@@ -1549,7 +1573,7 @@ export class DatabaseStorage implements IStorage {
 
       // 2. Get or create subject mastery record
       let masterEntry = await this.getUserSubjectMastery(userId, subject, grade);
-      
+
       if (!masterEntry) {
         // Create a new mastery entry
         masterEntry = await this.unlockGradeForSubject(userId, subject, grade);
@@ -1558,13 +1582,13 @@ export class DatabaseStorage implements IStorage {
       // 3. Update the mastery record with new attempt information
       const totalAttempts = masterEntry.totalAttempts + 1;
       const correctAttempts = masterEntry.correctAttempts + (isCorrect ? 1 : 0);
-      
+
       // Update recent attempt tracking for adaptive difficulty
       const recent30Attempts = Math.min(masterEntry.recent30Attempts + 1, 30);
       const recent30Correct = isCorrect 
         ? Math.min(masterEntry.recent30Correct + 1, 30) 
         : masterEntry.recent30Correct;
-      
+
       const recent20Attempts = Math.min(masterEntry.recent20Attempts + 1, 20);
       const recent20Correct = isCorrect 
         ? Math.min(masterEntry.recent20Correct + 1, 20) 
@@ -1573,19 +1597,19 @@ export class DatabaseStorage implements IStorage {
       // 4. Calculate accuracy for adaptive difficulty thresholds
       const accuracy30 = recent30Attempts > 0 ? recent30Correct / recent30Attempts : 0;
       const accuracy20 = recent20Attempts > 0 ? recent20Correct / recent20Attempts : 0;
-      
+
       // 5. Determine if difficulty should change
       const upgradeEligible = accuracy30 >= 0.8 && recent30Attempts >= 30;
       const downgradeEligible = accuracy20 <= 0.5 && recent20Attempts >= 20;
-      
+
       // Get current difficulty level
       let difficultyLevel = masterEntry.difficultyLevel;
-      
+
       // 6. Adjust difficulty level if thresholds are met
       if (upgradeEligible && difficultyLevel < 5) {
         difficultyLevel += 1;
         console.log(`Upgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to good performance (${Math.round(accuracy30 * 100)}% over ${recent30Attempts} attempts)`);
-        
+
         // Reset counters after upgrade
         await db.update(subjectMastery)
           .set({
@@ -1605,7 +1629,7 @@ export class DatabaseStorage implements IStorage {
       else if (downgradeEligible && difficultyLevel > 1) {
         difficultyLevel -= 1;
         console.log(`Downgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to struggles (${Math.round(accuracy20 * 100)}% over ${recent20Attempts} attempts)`);
-        
+
         // Reset counters after downgrade
         await db.update(subjectMastery)
           .set({
@@ -1659,12 +1683,12 @@ export class DatabaseStorage implements IStorage {
    */
   async getSubjectDifficulty(userId: number, subject: string, grade: string): Promise<number> {
     const mastery = await this.getUserSubjectMastery(userId, subject, grade);
-    
+
     // Default to difficulty level 1 if no mastery record exists
     if (!mastery) {
       return 1;
     }
-    
+
     return mastery.difficultyLevel;
   }
 
@@ -1674,7 +1698,7 @@ export class DatabaseStorage implements IStorage {
   async getQuestionsWithAdaptiveDifficulty(userId: number, subject: string, grade: string): Promise<Question[]> {
     // Get user's current difficulty level for this subject
     const difficultyLevel = await this.getSubjectDifficulty(userId, subject, grade);
-    
+
     // Map the 1-5 difficulty level to a range for the question difficulty field
     // Level 1: difficulty 1-2
     // Level 2: difficulty 2-3
@@ -1683,7 +1707,7 @@ export class DatabaseStorage implements IStorage {
     // Level 5: difficulty 5
     const minDifficulty = difficultyLevel;
     const maxDifficulty = Math.min(difficultyLevel + 1, 5);
-    
+
     // Get questions matching both subject and difficulty range
     const matchingQuestions = await db.select()
       .from(questions)
@@ -1693,12 +1717,12 @@ export class DatabaseStorage implements IStorage {
         gte(questions.difficulty, minDifficulty),
         lte(questions.difficulty, maxDifficulty)
       ));
-    
+
     // If no questions found in this difficulty range, fall back to all questions for this subject
     if (matchingQuestions.length === 0) {
       return this.getQuestionsByGrade(grade, subject);
     }
-    
+
     return matchingQuestions;
   }
 }
