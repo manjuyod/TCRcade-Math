@@ -1,5 +1,4 @@
 
-import { storage } from "../storage";
 import { DECIMAL_DEFENDER_RULES } from "../../shared/decimalDefenderRules";
 
 interface DecimalQuestion {
@@ -9,76 +8,82 @@ interface DecimalQuestion {
   options: string[];
   skill: string;
   difficulty: number;
+  category: string;
+  grade: string;
+  concepts: string[];
 }
 
 export async function generateDecimalDefenderQuestions(count: number): Promise<DecimalQuestion[]> {
   const questions: DecimalQuestion[] = [];
-  const skills = DECIMAL_DEFENDER_RULES.skills; // Use skills from rules
+  const skills = DECIMAL_DEFENDER_RULES.skills;
   
-  console.log(`🔢 Generating ${count} decimal defender questions using skills:`, skills);
+  console.log(`🔢 DECIMAL DEFENDER: Generating ${count} decimal-only questions using skills:`, skills);
   
   for (let i = 0; i < count; i++) {
     const skill = skills[i % skills.length];
-    const question = generateQuestionBySkill(skill, i + 1);
-    console.log(`Generated decimal question ${i + 1}: ${question.question} (skill: ${skill})`);
+    const question = generateQuestionBySkill(skill, Date.now() + i);
+    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill})`);
     questions.push(question);
   }
   
-  console.log(`✅ Generated ${questions.length} decimal defender questions`);
+  console.log(`🔢 DECIMAL DEFENDER: Successfully generated ${questions.length} decimal questions`);
   return questions;
 }
 
 function generateQuestionBySkill(skill: string, id: number): DecimalQuestion {
+  const baseQuestion = {
+    id,
+    difficulty: 3,
+    category: "decimal_defender",
+    grade: "4",
+    concepts: ["decimals", `decimal_${skill}`],
+    skill
+  };
+
   switch (skill) {
     case 'rounding':
-      return generateRoundingQuestion(id);
+      return { ...baseQuestion, ...generateRoundingQuestion() };
     case 'comparing':
-      return generateComparingQuestion(id);
+      return { ...baseQuestion, ...generateComparingQuestion() };
     case 'addition':
-      return generateAdditionQuestion(id);
+      return { ...baseQuestion, ...generateAdditionQuestion() };
     case 'subtraction':
-      return generateSubtractionQuestion(id);
+      return { ...baseQuestion, ...generateSubtractionQuestion() };
     case 'place_value':
-      return generatePlaceValueQuestion(id);
+      return { ...baseQuestion, ...generatePlaceValueQuestion() };
     default:
-      // Always default to a decimal question, never fall back to non-decimal
-      return generateRoundingQuestion(id);
+      return { ...baseQuestion, ...generateRoundingQuestion() };
   }
 }
 
-function generateRoundingQuestion(id: number): DecimalQuestion {
+function generateRoundingQuestion() {
   const scenarios = [
-    { type: 'nearest_whole', places: 0 },
-    { type: 'nearest_tenth', places: 1 },
-    { type: 'nearest_hundredth', places: 2 }
+    { type: 'nearest_whole', places: 0, description: "nearest whole number" },
+    { type: 'nearest_tenth', places: 1, description: "nearest tenth" },
+    { type: 'nearest_hundredth', places: 2, description: "nearest hundredth" }
   ];
   
   const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
   
   // Generate a decimal with more precision than we're rounding to
   const baseValue = Math.random() * 99 + 1; // 1-100
-  const extraDigits = (Math.random() * 0.999).toFixed(3);
-  const decimal = (baseValue + parseFloat(extraDigits)).toFixed(3);
+  const extraDigits = Math.random() * 0.999;
+  const decimal = (baseValue + extraDigits).toFixed(3);
   
   let rounded: string;
-  let description: string;
   
   switch (scenario.type) {
     case 'nearest_whole':
       rounded = Math.round(parseFloat(decimal)).toString();
-      description = "nearest whole number";
       break;
     case 'nearest_tenth':
       rounded = parseFloat(decimal).toFixed(1);
-      description = "nearest tenth";
       break;
     case 'nearest_hundredth':
       rounded = parseFloat(decimal).toFixed(2);
-      description = "nearest hundredth";
       break;
     default:
       rounded = Math.round(parseFloat(decimal)).toString();
-      description = "nearest whole number";
   }
   
   // Generate wrong options
@@ -92,16 +97,13 @@ function generateRoundingQuestion(id: number): DecimalQuestion {
   const options = [rounded, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
-    id,
-    question: `Round ${decimal} to the ${description}`,
+    question: `Round ${decimal} to the ${scenario.description}`,
     answer: rounded,
-    options,
-    skill: 'rounding',
-    difficulty: 3
+    options
   };
 }
 
-function generateComparingQuestion(id: number): DecimalQuestion {
+function generateComparingQuestion() {
   const decimal1 = (Math.random() * 9 + 1).toFixed(2);
   let decimal2 = (Math.random() * 9 + 1).toFixed(2);
   
@@ -111,20 +113,16 @@ function generateComparingQuestion(id: number): DecimalQuestion {
   }
   
   const comparison = parseFloat(decimal1) > parseFloat(decimal2) ? '>' : '<';
-  
   const options = ['>', '<', '=', 'Cannot determine'];
   
   return {
-    id,
     question: `Compare these decimals: ${decimal1} _____ ${decimal2}`,
     answer: comparison,
-    options,
-    skill: 'comparing',
-    difficulty: 3
+    options
   };
 }
 
-function generateAdditionQuestion(id: number): DecimalQuestion {
+function generateAdditionQuestion() {
   const decimal1 = (Math.random() * 9 + 1).toFixed(2);
   const decimal2 = (Math.random() * 9 + 1).toFixed(2);
   const sum = (parseFloat(decimal1) + parseFloat(decimal2)).toFixed(2);
@@ -134,23 +132,19 @@ function generateAdditionQuestion(id: number): DecimalQuestion {
   const wrongOptions = [
     (baseSum + 0.1).toFixed(2),
     (baseSum - 0.1).toFixed(2),
-    (baseSum + 1).toFixed(2),
-    (parseInt(decimal1) + parseInt(decimal2)).toString() // Common mistake: adding whole parts only
+    (baseSum + 1).toFixed(2)
   ].filter(option => option !== sum && parseFloat(option) >= 0);
   
   const options = [sum, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
-    id,
     question: `Add these decimals: ${decimal1} + ${decimal2}`,
     answer: sum,
-    options,
-    skill: 'addition',
-    difficulty: 4
+    options
   };
 }
 
-function generateSubtractionQuestion(id: number): DecimalQuestion {
+function generateSubtractionQuestion() {
   const decimal1 = (Math.random() * 8 + 5).toFixed(2); // Ensure positive result
   const decimal2 = (Math.random() * 3 + 1).toFixed(2);
   const difference = (parseFloat(decimal1) - parseFloat(decimal2)).toFixed(2);
@@ -159,23 +153,19 @@ function generateSubtractionQuestion(id: number): DecimalQuestion {
   const wrongOptions = [
     (baseDiff + 0.1).toFixed(2),
     (baseDiff - 0.1).toFixed(2),
-    (baseDiff + 1).toFixed(2),
-    (parseInt(decimal1) - parseInt(decimal2)).toString() // Common mistake
+    (baseDiff + 1).toFixed(2)
   ].filter(option => option !== difference && parseFloat(option) >= 0);
   
   const options = [difference, ...wrongOptions.slice(0, 3)].sort(() => Math.random() - 0.5);
   
   return {
-    id,
     question: `Subtract these decimals: ${decimal1} - ${decimal2}`,
     answer: difference,
-    options,
-    skill: 'subtraction',
-    difficulty: 4
+    options
   };
 }
 
-function generatePlaceValueQuestion(id: number): DecimalQuestion {
+function generatePlaceValueQuestion() {
   // Generate a decimal with known structure
   const wholeNumber = Math.floor(Math.random() * 90) + 10; // 10-99
   const tenths = Math.floor(Math.random() * 10);
@@ -196,7 +186,6 @@ function generatePlaceValueQuestion(id: number): DecimalQuestion {
   const correctDigit = randomPos.digit;
   
   // Generate wrong options - other digits from the number
-  const allDigits = decimal.replace('.', '').split('');
   const wrongOptions = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     .filter(d => d !== correctDigit)
     .slice(0, 3);
@@ -204,12 +193,9 @@ function generatePlaceValueQuestion(id: number): DecimalQuestion {
   const options = [correctDigit, ...wrongOptions].sort(() => Math.random() - 0.5);
   
   return {
-    id,
     question: `In the decimal ${decimal}, what digit is in the ${randomPos.name} place?`,
     answer: correctDigit,
-    options,
-    skill: 'place_value',
-    difficulty: 3
+    options
   };
 }
 
@@ -219,6 +205,7 @@ export async function updateUserStatsAfterModule(
   total: number,
   tokensEarned: number,
 ) {
+  const { storage } = await import("../storage");
   const user = await storage.getUser(userId);
   if (!user) throw new Error("User not found");
 
