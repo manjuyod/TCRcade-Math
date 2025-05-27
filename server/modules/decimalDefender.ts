@@ -17,6 +17,7 @@ export async function generateDecimalDefenderQuestions(count: number): Promise<D
   const questions: DecimalQuestion[] = [];
   const skills = DECIMAL_DEFENDER_RULES.skills;
   
+  console.log("DECIMAL DEFENDER: Generating", count, "decimal-only questions");
   console.log(`🔢 DECIMAL DEFENDER: Generating ${count} decimal-only questions using skills:`, skills);
   
   for (let i = 0; i < count; i++) {

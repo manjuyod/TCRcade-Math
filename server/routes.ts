@@ -124,11 +124,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Decimal Defender route - placed early to take priority
-  app.get("/api/modules/decimal-defender/questions", (req, res) => {
-    const { generateDecimalDefenderQuestions } = require("./modules/decimalDefender");
-    const questions = generateDecimalDefenderQuestions();
-    console.log("Decimal Defender: returning", questions.length, "questions");
-    res.json(questions);
+  app.get("/api/modules/decimal-defender/questions", async (req, res) => {
+    try {
+      const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
+      console.log("DECIMAL DEFENDER: Generating", 10, "decimal-only questions");
+      const questions = await generateDecimalDefenderQuestions(10);
+      console.log("Decimal Defender: returning", questions.length, "questions");
+      res.json(questions);
+    } catch (error) {
+      console.error("Error generating decimal defender questions:", error);
+      res.status(500).json({ error: "Failed to generate decimal questions" });
+    }
   });
 
   // Get available subjects for a grade
