@@ -10,21 +10,29 @@ export default function DecimalDefenderPage() {
   const [sessionComplete, setSessionComplete] = useState(false);
 
   useEffect(() => {
-    console.log('🔢 CLIENT: Fetching decimal defender questions from /api/modules/decimal-defender/questions');
+    console.log('🔢 CLIENT: *** STARTING FETCH *** Fetching decimal defender questions from /api/modules/decimal-defender/questions');
+    
     fetch('/api/modules/decimal-defender/questions')
       .then(res => {
+        console.log('🔢 CLIENT: ✅ Response received');
         console.log('🔢 CLIENT: Response status:', res.status);
+        console.log('🔢 CLIENT: Response ok:', res.ok);
+        console.log('🔢 CLIENT: Response headers:', Object.fromEntries(res.headers.entries()));
+        
         if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+          throw new Error(`HTTP error! status: ${res.status}, statusText: ${res.statusText}`);
         }
         return res.json();
       })
       .then(data => {
+        console.log('🔢 CLIENT: ✅ JSON parsed successfully');
         console.log('🔢 CLIENT: Received data:', data);
         console.log('🔢 CLIENT: Data type:', Array.isArray(data) ? 'array' : typeof data);
+        console.log('🔢 CLIENT: Data length:', Array.isArray(data) ? data.length : 'N/A');
         
         // Verify we received an array of decimal questions
         if (Array.isArray(data) && data.length > 0) {
+          console.log('🔢 CLIENT: ✅ Valid array received with', data.length, 'questions');
           console.log('🔢 CLIENT: First question content:', data[0]);
           console.log('🔢 CLIENT: All question categories:', data.map(q => q.category));
           console.log('🔢 CLIENT: All question skills:', data.map(q => q.skill));
@@ -32,7 +40,7 @@ export default function DecimalDefenderPage() {
           // Validate that all questions are decimal-related
           const nonDecimalQuestions = data.filter(q => q.category !== "decimal_defender");
           if (nonDecimalQuestions.length > 0) {
-            console.error('🔢 CLIENT ERROR: Received non-decimal questions:', nonDecimalQuestions);
+            console.error('🔢 CLIENT ERROR: ❌ Received non-decimal questions:', nonDecimalQuestions);
             console.error('🔢 CLIENT ERROR: This should not happen - all questions should be decimal_defender category');
             return;
           }
@@ -40,7 +48,7 @@ export default function DecimalDefenderPage() {
           // Validate that all questions have decimal skills
           const invalidSkills = data.filter(q => !['rounding', 'comparing', 'addition', 'subtraction', 'place_value'].includes(q.skill));
           if (invalidSkills.length > 0) {
-            console.error('🔢 CLIENT ERROR: Received questions with invalid skills:', invalidSkills);
+            console.error('🔢 CLIENT ERROR: ❌ Received questions with invalid skills:', invalidSkills);
             return;
           }
           
@@ -49,14 +57,20 @@ export default function DecimalDefenderPage() {
           // Use first 5 questions for the session
           const sessionQuestions = data.slice(0, 5);
           setQuestions(sessionQuestions);
-          console.log('🔢 CLIENT: Set', sessionQuestions.length, 'decimal questions for session');
+          console.log('🔢 CLIENT: ✅ Set', sessionQuestions.length, 'decimal questions for session');
           console.log('🔢 CLIENT: Session questions:', sessionQuestions.map(q => `"${q.question}" (${q.skill})`));
+        } else if (Array.isArray(data) && data.length === 0) {
+          console.error('🔢 CLIENT ERROR: ❌ Received empty array');
         } else {
-          console.error('🔢 CLIENT: No questions received or invalid format');
+          console.error('🔢 CLIENT ERROR: ❌ Invalid data format - not an array or null');
+          console.error('🔢 CLIENT ERROR: Data received:', data);
         }
       })
       .catch(error => {
-        console.error('🔢 CLIENT ERROR: Failed to load decimal defender questions:', error);
+        console.error('🔢 CLIENT ERROR: ❌ Failed to load decimal defender questions:', error);
+        console.error('🔢 CLIENT ERROR: Error name:', error.name);
+        console.error('🔢 CLIENT ERROR: Error message:', error.message);
+        console.error('🔢 CLIENT ERROR: Error stack:', error.stack);
       });
   }, []);
 
