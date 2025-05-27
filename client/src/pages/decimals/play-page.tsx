@@ -15,9 +15,11 @@ import confetti from 'canvas-confetti';
 
 interface DecimalQuestion {
   id: number;
+  type: "multiple-choice" | "written" | "match" | "multi-select";
   question: string;
-  answer: string;
-  options: string[];
+  answer: string | string[];
+  options?: string[];
+  matchPairs?: { left: string; right: string }[];
   skill: string;
   category: string;
 }
@@ -29,7 +31,10 @@ export default function DecimalDefenderPlayPage() {
   const [questions, setQuestions] = useState<DecimalQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [writtenAnswer, setWrittenAnswer] = useState<string>('');
+  const [matchSelections, setMatchSelections] = useState<Record<string, string>>({});
+  const [userAnswers, setUserAnswers] = useState<(string | string[])[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -102,11 +107,67 @@ export default function DecimalDefenderPlayPage() {
     setSelectedAnswer(answer);
   };
 
+  const handleMultiSelectToggle = (option: string) => {
+    if (showFeedback) return;
+    setSelectedAnswers(prev => 
+      prev.includes(option) 
+        ? prev.filter(a => a !== option)
+        : [...prev, option]
+    );
+  };
+
+  const handleMatchSelect = (left: string, right: string) => {
+    if (showFeedback) return;
+    setMatchSelections(prev => ({ ...prev, [left]: right }));
+  };
+
+  const resetAnswerStates = () => {
+    setSelectedAnswer(null);
+    setSelectedAnswers([]);
+    setWrittenAnswer('');
+    setMatchSelections({});
+  };
+
   const handleSubmitAnswer = () => {
-    if (!selectedAnswer || showFeedback) return;
+    if (showFeedback) return;
 
     const currentQuestion = questions[currentIndex];
-    const correct = selectedAnswer === currentQuestion.answer;
+    let userAnswer: string | string[];
+    let correct = false;
+
+    switch (currentQuestion.type) {
+      case 'multiple-choice':
+        if (!selectedAnswer) return;
+        userAnswer = selectedAnswer;
+        correct = selectedAnswer === currentQuestion.answer;
+        break;
+      
+      case 'written':
+        if (!writtenAnswer.trim()) return;
+        userAnswer = writtenAnswer.trim();
+        correct = writtenAnswer.trim().toLowerCase() === (currentQuestion.answer as string).toLowerCase();
+        break;
+      
+      case 'match':
+        if (!currentQuestion.matchPairs || Object.keys(matchSelections).length === 0) return;
+        userAnswer = Object.values(matchSelections);
+        // For match questions, we'll check if the first pair is correct for simplicity
+        const firstPair = currentQuestion.matchPairs[0];
+        correct = matchSelections[firstPair.left] === firstPair.right;
+        break;
+      
+      case 'multi-select':
+        if (selectedAnswers.length === 0) return;
+        userAnswer = selectedAnswers;
+        const correctAnswers = Array.isArray(currentQuestion.answer) ? currentQuestion.answer : [currentQuestion.answer];
+        correct = selectedAnswers.length === correctAnswers.length && 
+                 selectedAnswers.every(ans => correctAnswers.includes(ans));
+        break;
+      
+      default:
+        return;
+    }
+
     setIsCorrect(correct);
     setShowFeedback(true);
 
@@ -124,7 +185,7 @@ export default function DecimalDefenderPlayPage() {
 
     // Store the user's answer
     const newAnswers = [...userAnswers];
-    newAnswers[currentIndex] = selectedAnswer;
+    newAnswers[currentIndex] = userAnswer;
     setUserAnswers(newAnswers);
   };
 
@@ -132,14 +193,21 @@ export default function DecimalDefenderPlayPage() {
     if (currentIndex + 1 >= questions.length) {
       // Session complete - calculate score and navigate to complete page
       const correctCount = userAnswers.reduce((count, answer, index) => {
-        return count + (answer === questions[index].answer ? 1 : 0);
+        const question = questions[index];
+        if (question.type === 'multi-select') {
+          const correctAnswers = Array.isArray(question.answer) ? question.answer : [question.answer];
+          const userAnswerArray = Array.isArray(answer) ? answer : [answer];
+          return count + (userAnswerArray.length === correctAnswers.length && 
+                         userAnswerArray.every(ans => correctAnswers.includes(ans)) ? 1 : 0);
+        }
+        return count + (answer === question.answer ? 1 : 0);
       }, 0) + (isCorrect ? 1 : 0);
 
       const sessionResult = {
         correct: correctCount,
         total: questions.length,
         skill,
-        answers: [...userAnswers, selectedAnswer]
+        answers: [...userAnswers, getCurrentAnswer()]
       };
 
       // Store result and navigate to complete page
@@ -149,8 +217,24 @@ export default function DecimalDefenderPlayPage() {
     } else {
       // Move to next question
       setCurrentIndex(prev => prev + 1);
-      setSelectedAnswer(null);
+      resetAnswerStates();
       setShowFeedback(false);
+    }
+  };
+
+  const getCurrentAnswer = () => {
+    const currentQuestion = questions[currentIndex];
+    switch (currentQuestion.type) {
+      case 'multiple-choice':
+        return selectedAnswer || '';
+      case 'written':
+        return writtenAnswer;
+      case 'match':
+        return Object.values(matchSelections);
+      case 'multi-select':
+        return selectedAnswers;
+      default:
+        return '';
     }
   };
 
@@ -214,6 +298,148 @@ export default function DecimalDefenderPlayPage() {
     );
   }
 
+  const isAnswerReady = () => {
+    const currentQuestion = questions[currentIndex];
+    switch (currentQuestion.type) {
+      case 'multiple-choice':
+        return !!selectedAnswer;
+      case 'written':
+        return writtenAnswer.trim().length > 0;
+      case 'match':
+        return currentQuestion.matchPairs ? Object.keys(matchSelections).length > 0 : false;
+      case 'multi-select':
+        return selectedAnswers.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  const renderQuestionContent = (question: DecimalQuestion) => {
+    switch (question.type) {
+      case 'multiple-choice':
+        return (
+          <div className="grid grid-cols-1 gap-3">
+            {question.options?.map((option, index) => (
+              <motion.button
+                key={index}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleAnswerSelect(option)}
+                disabled={showFeedback}
+                className={`p-4 text-left border-2 rounded-lg transition-all ${
+                  selectedAnswer === option
+                    ? showFeedback
+                      ? isCorrect
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-red-500 bg-red-50 text-red-700'
+                      : 'border-primary bg-primary/10'
+                    : showFeedback && option === question.answer
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <span className="font-medium">{String.fromCharCode(65 + index)}.</span> {option}
+              </motion.button>
+            ))}
+          </div>
+        );
+
+      case 'written':
+        return (
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={writtenAnswer}
+              onChange={(e) => setWrittenAnswer(e.target.value)}
+              disabled={showFeedback}
+              placeholder="Type your answer here..."
+              className="w-full p-4 border-2 border-border rounded-lg text-center text-lg font-medium focus:border-primary focus:outline-none disabled:bg-gray-50"
+            />
+            {showFeedback && (
+              <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <p className="font-medium">
+                  {isCorrect ? 'Correct!' : `Incorrect. The answer is: ${question.answer}`}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'match':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Click to match items on the left with items on the right:</p>
+            {question.matchPairs?.map((pair, index) => (
+              <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                <div className="flex-1 font-medium">{pair.left}</div>
+                <div className="text-2xl">↔</div>
+                <button
+                  onClick={() => handleMatchSelect(pair.left, pair.right)}
+                  disabled={showFeedback}
+                  className={`flex-1 p-2 border rounded text-center transition-all ${
+                    matchSelections[pair.left] === pair.right
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-gray-50'
+                  }`}
+                >
+                  {matchSelections[pair.left] || pair.right}
+                </button>
+              </div>
+            ))}
+            {showFeedback && (
+              <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <p className="font-medium">
+                  {isCorrect ? 'Correct match!' : 'Some matches were incorrect.'}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'multi-select':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Select all that apply:</p>
+            <div className="grid grid-cols-1 gap-3">
+              {question.options?.map((option, index) => (
+                <motion.label
+                  key={index}
+                  whileHover={{ scale: 1.02 }}
+                  className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    selectedAnswers.includes(option)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  } ${showFeedback ? 'pointer-events-none' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedAnswers.includes(option)}
+                    onChange={() => handleMultiSelectToggle(option)}
+                    disabled={showFeedback}
+                    className="w-4 h-4"
+                  />
+                  <span>{option}</span>
+                  {showFeedback && Array.isArray(question.answer) && question.answer.includes(option) && (
+                    <span className="ml-auto text-green-600">✓</span>
+                  )}
+                </motion.label>
+              ))}
+            </div>
+            {showFeedback && (
+              <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <p className="font-medium">
+                  {isCorrect ? 'All correct!' : 'Some selections were incorrect.'}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return <div>Unsupported question type</div>;
+    }
+  };
+
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -257,33 +483,13 @@ export default function DecimalDefenderPlayPage() {
               <CardTitle className="text-xl">
                 {currentQuestion.question}
               </CardTitle>
+              <div className="text-sm text-muted-foreground capitalize">
+                Type: {currentQuestion.type.replace('-', ' ')}
+              </div>
             </CardHeader>
             
             <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                {currentQuestion.options.map((option, index) => (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleAnswerSelect(option)}
-                    disabled={showFeedback}
-                    className={`p-4 text-left border-2 rounded-lg transition-all ${
-                      selectedAnswer === option
-                        ? showFeedback
-                          ? isCorrect
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-red-500 bg-red-50 text-red-700'
-                          : 'border-primary bg-primary/10'
-                        : showFeedback && option === currentQuestion.answer
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <span className="font-medium">{String.fromCharCode(65 + index)}.</span> {option}
-                  </motion.button>
-                ))}
-              </div>
+              {renderQuestionContent(currentQuestion)}
             </CardContent>
           </Card>
 
@@ -328,7 +534,7 @@ export default function DecimalDefenderPlayPage() {
             ) : (
               <Button 
                 onClick={handleSubmitAnswer} 
-                disabled={!selectedAnswer}
+                disabled={!isAnswerReady()}
                 size="lg" 
                 className="min-w-40"
               >
