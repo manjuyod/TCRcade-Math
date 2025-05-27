@@ -36,8 +36,6 @@ export default function DecimalDefenderPlayPage() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [skill, setSkill] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState(10);
-  const [questionTimer, setQuestionTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -55,22 +53,6 @@ export default function DecimalDefenderPlayPage() {
     incorrectAudio.src = "data:audio/wav;base64,UklGRhQFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YfAEAAC4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4";
     incorrectSoundRef.current = incorrectAudio;
   }, []);
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      handleTimeout();
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    setQuestionTimer(timer);
-
-    return () => clearTimeout(timer);
-  }, [timeLeft]);
 
   // Fetch questions on mount
   useEffect(() => {
@@ -118,36 +100,6 @@ export default function DecimalDefenderPlayPage() {
     fetchQuestions();
   }, [navigate]);
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (questionTimer) {
-        clearTimeout(questionTimer);
-      }
-    };
-  }, [questionTimer]);
-
-  const handleTimeout = () => {
-    console.log("Time's up!");
-    // Clear any existing timer
-    if (questionTimer) {
-      clearTimeout(questionTimer);
-      setQuestionTimer(null);
-    }
-    // Record incorrect answer and show feedback
-    setIsCorrect(false);
-    setShowFeedback(true);
-    setSelectedAnswer(''); // No answer selected
-    
-    // Play incorrect sound
-    incorrectSoundRef.current?.play();
-    
-    // Store the timeout as an incorrect answer
-    const newAnswers = [...userAnswers];
-    newAnswers[currentIndex] = ''; // Empty string indicates timeout
-    setUserAnswers(newAnswers);
-  };
-
   const handleAnswerSelect = (answer: string) => {
     if (showFeedback) return;
     setSelectedAnswer(answer);
@@ -155,12 +107,6 @@ export default function DecimalDefenderPlayPage() {
 
   const handleSubmitAnswer = () => {
     if (!selectedAnswer || showFeedback) return;
-
-    // Clear the timer when answer is submitted
-    if (questionTimer) {
-      clearTimeout(questionTimer);
-      setQuestionTimer(null);
-    }
 
     const currentQuestion = questions[currentIndex];
     const correct = selectedAnswer === currentQuestion.answer;
@@ -196,7 +142,7 @@ export default function DecimalDefenderPlayPage() {
         correct: correctCount,
         total: questions.length,
         skill,
-        answers: [...userAnswers, selectedAnswer || '']
+        answers: [...userAnswers, selectedAnswer]
       };
 
       // Store result and navigate to complete page
@@ -208,8 +154,6 @@ export default function DecimalDefenderPlayPage() {
       setCurrentIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowFeedback(false);
-      // Reset timer for next question
-      setTimeLeft(10);
     }
   };
 
@@ -308,13 +252,6 @@ export default function DecimalDefenderPlayPage() {
               </span>
             </div>
             <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Timer Display */}
-          <div className="text-center mb-4">
-            <div className={`text-2xl font-bold ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : timeLeft <= 5 ? 'text-orange-500' : 'text-blue-500'}`}>
-              Time Left: {timeLeft}s
-            </div>
           </div>
 
           {/* Question Card */}
