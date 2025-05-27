@@ -130,13 +130,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
       console.log("🔢 DECIMAL DEFENDER ROUTE: Request received");
-      console.log("DECIMAL DEFENDER: Generating", 10, "decimal-only questions");
+      console.log("🔢 DECIMAL DEFENDER ROUTE: About to call generateDecimalDefenderQuestions");
+      
       const questions = await generateDecimalDefenderQuestions(10);
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Generated questions with categories:", questions.map(q => q.category));
-      console.log("Decimal Defender: returning", questions.length, "questions");
+      
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Received questions from generator:");
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Question count:", questions.length);
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Categories:", questions.map(q => q.category));
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Sample question:", questions[0]?.question);
+      console.log("🔢 DECIMAL DEFENDER ROUTE: Sample skill:", questions[0]?.skill);
+      
       res.json(questions);
     } catch (error) {
-      console.error("Error generating decimal defender questions:", error);
+      console.error("🔢 DECIMAL DEFENDER ERROR:", error);
       res.status(500).json({ error: "Failed to generate decimal questions" });
     }
   });
