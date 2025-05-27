@@ -16,15 +16,11 @@ interface DecimalQuestion {
 export async function generateDecimalDefenderQuestions(skill: string, count: number = 5): Promise<DecimalQuestion[]> {
   const questions: DecimalQuestion[] = [];
   
-  console.log("🔢 DECIMAL DEFENDER: Generating", count, "questions for skill:", skill);
-  
   for (let i = 0; i < count; i++) {
     const question = generateQuestionBySkill(skill, Date.now() + i);
-    console.log(`🔢 DECIMAL DEFENDER: Generated question ${i + 1}: "${question.question}" (skill: ${skill})`);
     questions.push(question);
   }
   
-  console.log(`🔢 DECIMAL DEFENDER: Successfully generated ${questions.length} questions for ${skill}`);
   return questions;
 }
 

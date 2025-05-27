@@ -65,8 +65,6 @@ export default function DecimalDefenderPlayPage() {
         }
         
         setSkill(savedSkill);
-        console.log('🔢 Fetching Decimal Defender questions for skill:', savedSkill);
-        
         const response = await fetch(`/api/decimals/questions?skill=${savedSkill}`, {
           method: 'GET',
           headers: {
@@ -81,7 +79,6 @@ export default function DecimalDefenderPlayPage() {
         }
 
         const data = await response.json();
-        console.log('🔢 Received decimal questions:', data);
         
         if (data.questions && Array.isArray(data.questions)) {
           setQuestions(data.questions.slice(0, DECIMAL_DEFENDER_RULES.questionsPerSession));

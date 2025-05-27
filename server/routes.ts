@@ -38,9 +38,6 @@ import {
 import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
 import { DECIMAL_DEFENDER_RULES } from "../shared/decimalDefenderRules";
 
-// Log to verify the import
-console.log("🔢 ROUTES: Decimal defender function imported:", typeof generateDecimalDefenderQuestions);
-
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -127,24 +124,23 @@ const ensureAuthenticated = (req: Request, res: Response, next: Function) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add comprehensive route debugging
+  // Basic route logging for debugging
   app.use((req, res, next) => {
-    console.log(`🌐 ROUTE DEBUG: ${req.method} ${req.url}`);
-    console.log(`🌐 ROUTE DEBUG: Headers:`, req.headers);
+    // Only log API routes, skip static assets
+    if (req.url.startsWith('/api/')) {
+      console.log(`${req.method} ${req.url}`);
+    }
     next();
   });
 
   // Set up authentication routes
   setupAuth(app);
 
-  // Add catch-all API debugging to see what requests we're getting
+  // Add basic API logging
   app.use('/api/*', (req, res, next) => {
-    console.log(`🌐 API CATCH-ALL: ${req.method} ${req.originalUrl}`);
-    console.log(`🌐 API CATCH-ALL: Path: ${req.path}`);
-    if (req.originalUrl.includes('decimal-defender')) {
-      console.log(`🔢 API CATCH-ALL: *** DECIMAL DEFENDER REQUEST DETECTED ***`);
-      console.log(`🔢 API CATCH-ALL: URL: ${req.originalUrl}`);
-      console.log(`🔢 API CATCH-ALL: Method: ${req.method}`);
+    // Only log non-routine API calls for debugging
+    if (!req.originalUrl.includes('/questions/next') && !req.originalUrl.includes('/assets/')) {
+      console.log(`API: ${req.method} ${req.originalUrl}`);
     }
     next();
   });
@@ -152,44 +148,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test endpoint for decimal defender
   app.get("/api/test/decimal-defender", async (req, res) => {
     try {
-      console.log("🔢 TEST: Testing decimal defender module directly");
       const questions = await generateDecimalDefenderQuestions(3);
-      console.log("🔢 TEST: Generated questions:", questions);
       res.json({ success: true, questions });
     } catch (error) {
-      console.error("🔢 TEST ERROR:", error);
+      console.error("Decimal defender test failed:", error);
       res.status(500).json({ error: "Test failed" });
     }
   });
 
   // Decimal Defender route - placed early to take priority
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
-    console.log("🔢 DECIMAL DEFENDER ROUTE: *** ROUTE HIT *** Request received for", req.url);
-    console.log("🔢 DECIMAL DEFENDER ROUTE: Original URL:", req.originalUrl);
-    console.log("🔢 DECIMAL DEFENDER ROUTE: Path:", req.path);
-    console.log("🔢 DECIMAL DEFENDER ROUTE: Headers:", req.headers);
-    console.log("🔢 DECIMAL DEFENDER ROUTE: Method:", req.method);
-    
     try {
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Function type:", typeof generateDecimalDefenderQuestions);
-      console.log("🔢 DECIMAL DEFENDER ROUTE: About to call generateDecimalDefenderQuestions with count 10");
-      
       const questions = await generateDecimalDefenderQuestions(10);
-      
-      console.log("🔢 DECIMAL DEFENDER ROUTE: ✅ Successfully generated questions");
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Question count:", questions.length);
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Categories:", questions.map(q => q.category));
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Sample question:", questions[0]?.question);
-      console.log("🔢 DECIMAL DEFENDER ROUTE: Sample skill:", questions[0]?.skill);
       
       // Set proper headers
       res.setHeader('Content-Type', 'application/json');
-      console.log("🔢 DECIMAL DEFENDER ROUTE: ✅ Sending response with", questions.length, "questions");
       res.json(questions);
       
     } catch (error) {
-      console.error("🔢 DECIMAL DEFENDER ERROR: ❌ Route error:", error);
-      console.error("🔢 DECIMAL DEFENDER ERROR STACK:", error.stack);
+      console.error("Error generating decimal questions:", error);
       res.status(500).json({ error: "Failed to generate decimal questions" });
     }
   });
@@ -1292,11 +1269,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/decimals/questions", async (req, res) => {
     try {
       const { skill = "rounding" } = req.query;
-      console.log("🔢 API: Generating decimal questions for skill:", skill);
       
       const questions = await generateDecimalDefenderQuestions(skill as string, DECIMAL_DEFENDER_RULES.questionsPerSession);
       
-      console.log("🔢 API: Generated", questions.length, "decimal questions");
       res.json({ questions });
     } catch (error) {
       console.error("Error generating decimal questions:", error);
