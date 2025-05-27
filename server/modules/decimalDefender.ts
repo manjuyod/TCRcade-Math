@@ -14,13 +14,11 @@ interface DecimalQuestion {
 }
 
 export async function generateDecimalDefenderQuestions(count: number): Promise<DecimalQuestion[]> {
-  console.log("🔢 DECIMAL DEFENDER MODULE: Function called with count:", count);
-  
   const questions: DecimalQuestion[] = [];
   const skills = DECIMAL_DEFENDER_RULES.skills;
   
-  console.log("🔢 DECIMAL DEFENDER MODULE: Available skills:", skills);
-  console.log("🔢 DECIMAL DEFENDER MODULE: Starting question generation...");
+  console.log("DECIMAL DEFENDER: Generating", count, "decimal-only questions");
+  console.log(`🔢 DECIMAL DEFENDER: Generating ${count} decimal-only questions using skills:`, skills);
   
   for (let i = 0; i < count; i++) {
     const skill = skills[i % skills.length];
