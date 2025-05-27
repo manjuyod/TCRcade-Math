@@ -25,6 +25,7 @@ import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
 import Navigation from "@/components/navigation";
 import ScrollToTop from "@/components/scroll-to-top";
+import DecimalDefenderPlayPage from "@/pages/decimal-defender/play-page";
 
 
 // Avatar functionality has been removed
@@ -75,6 +76,7 @@ function Router() {
       <ProtectedRoute path="/fractions/setup" component={FractionsSetupPage} />
       <ProtectedRoute path="/fractions/play" component={FractionsPlayPage} />
       <ProtectedRoute path="/fractions/complete" component={FractionsCompletePage} />
+      <Route path="/decimals/play" component={DecimalDefenderPlayPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
@@ -85,7 +87,7 @@ function Router() {
 // Navigation wrapper to ensure footer navigation appears on all pages
 const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
-  
+
   // Determine active nav section based on current path
   const getActiveNav = () => {
     if (location === '/') return 'play';
@@ -96,13 +98,13 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location.includes('/analytics')) return 'analytics';
     if (location.includes('/practice')) return 'create-a-quiz';
     if (location.includes('/tutor')) return 'tutor';
-    
+
     return 'home';
   };
-  
+
   // Don't show navigation on auth page or admin page
   const shouldShowNav = !location.includes('/auth') && !location.includes('/admin');
-  
+
   return (
     <>
       {children}

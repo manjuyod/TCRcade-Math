@@ -311,7 +311,7 @@ export default function ModulesPage() {
 
     // Check if this is a Math Facts module
     const isMathFactsModule = module.id.startsWith('math-facts-');
-    
+
     // Store the module ID and its game type
     localStorage.setItem('currentModuleId', module.id);
     localStorage.setItem('currentModuleType', module.gameType);
@@ -330,7 +330,7 @@ export default function ModulesPage() {
       setLocation('/fractions/setup');
       return;
     }
-    
+
     // For Math Facts modules, we need to set additional information
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')
