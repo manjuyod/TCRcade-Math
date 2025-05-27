@@ -23,15 +23,34 @@ export default function DecimalDefenderPage() {
         console.log('🔢 CLIENT: Received data:', data);
         console.log('🔢 CLIENT: Data type:', Array.isArray(data) ? 'array' : typeof data);
         
-        // The API should return an array of decimal questions directly
+        // Verify we received an array of decimal questions
         if (Array.isArray(data) && data.length > 0) {
           console.log('🔢 CLIENT: First question content:', data[0]);
+          console.log('🔢 CLIENT: All question categories:', data.map(q => q.category));
           console.log('🔢 CLIENT: All question skills:', data.map(q => q.skill));
+          
+          // Validate that all questions are decimal-related
+          const nonDecimalQuestions = data.filter(q => q.category !== "decimal_defender");
+          if (nonDecimalQuestions.length > 0) {
+            console.error('🔢 CLIENT ERROR: Received non-decimal questions:', nonDecimalQuestions);
+            console.error('🔢 CLIENT ERROR: This should not happen - all questions should be decimal_defender category');
+            return;
+          }
+          
+          // Validate that all questions have decimal skills
+          const invalidSkills = data.filter(q => !['rounding', 'comparing', 'addition', 'subtraction', 'place_value'].includes(q.skill));
+          if (invalidSkills.length > 0) {
+            console.error('🔢 CLIENT ERROR: Received questions with invalid skills:', invalidSkills);
+            return;
+          }
+          
+          console.log('🔢 CLIENT: ✅ All questions verified as decimal-related');
           
           // Use first 5 questions for the session
           const sessionQuestions = data.slice(0, 5);
           setQuestions(sessionQuestions);
-          console.log('🔢 CLIENT: Set', sessionQuestions.length, 'questions for session');
+          console.log('🔢 CLIENT: Set', sessionQuestions.length, 'decimal questions for session');
+          console.log('🔢 CLIENT: Session questions:', sessionQuestions.map(q => `"${q.question}" (${q.skill})`));
         } else {
           console.error('🔢 CLIENT: No questions received or invalid format');
         }
