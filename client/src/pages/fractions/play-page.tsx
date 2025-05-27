@@ -374,12 +374,22 @@ export default function FractionsPlayPage() {
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && gcdAnswer.trim() && !showFeedback) {
-                          setGcdStep(2);
-                          // Auto-focus the first fraction input after step transition
-                          setTimeout(() => {
-                            const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
-                            if (firstInput) firstInput.focus();
-                          }, 100);
+                          // Validate GCD before proceeding
+                          if (gcdAnswer.trim() === currentQuestion.gcd.toString()) {
+                            setGcdStep(2);
+                            // Auto-focus the first fraction input after step transition
+                            setTimeout(() => {
+                              const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
+                              if (firstInput) firstInput.focus();
+                            }, 100);
+                          } else {
+                            // Show error feedback for incorrect GCD
+                            toast({
+                              title: "Incorrect GCD",
+                              description: `The GCD of ${currentQuestion.frac.num} and ${currentQuestion.frac.den} is not ${gcdAnswer}. Try again!`,
+                              variant: "destructive"
+                            });
+                          }
                         }
                       }}
                       placeholder="GCD"
@@ -391,12 +401,22 @@ export default function FractionsPlayPage() {
                   <div className="flex justify-center">
                     <Button 
                       onClick={() => {
-                        setGcdStep(2);
-                        // Auto-focus the first fraction input after step transition
-                        setTimeout(() => {
-                          const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
-                          if (firstInput) firstInput.focus();
-                        }, 100);
+                        // Validate GCD before proceeding
+                        if (gcdAnswer.trim() === currentQuestion.gcd.toString()) {
+                          setGcdStep(2);
+                          // Auto-focus the first fraction input after step transition
+                          setTimeout(() => {
+                            const firstInput = document.querySelector('input[placeholder="num"]') as HTMLInputElement;
+                            if (firstInput) firstInput.focus();
+                          }, 100);
+                        } else {
+                          // Show error feedback for incorrect GCD
+                          toast({
+                            title: "Incorrect GCD",
+                            description: `The GCD of ${currentQuestion.frac.num} and ${currentQuestion.frac.den} is not ${gcdAnswer}. Try again!`,
+                            variant: "destructive"
+                          });
+                        }
                       }}
                       disabled={!gcdAnswer || showFeedback}
                     >
