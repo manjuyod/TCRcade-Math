@@ -43,17 +43,6 @@ export default function FeedbackMessage({
     }
   }, [batchComplete]);
   
-  // Check if this is the Decimal Defender module
-  const isDecimalDefender = localStorage.getItem("currentModuleId") === "decimal-defender";
-  
-  // Get custom title based on module and correctness
-  const getTitle = () => {
-    if (isDecimalDefender) {
-      return correct ? "Correct — Direct Decimal Hit!" : "Decimal Misfire — Try Again!";
-    }
-    return correct ? "Correct!" : "Not quite!";
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -86,7 +75,7 @@ export default function FeedbackMessage({
       </div>
       
       <h3 className={`text-xl font-bold mb-2 ${correct ? 'text-secondary' : 'text-danger'}`}>
-        <strong>{getTitle()}</strong>
+        {correct ? <strong>Correct!</strong> : 'Not quite!'}
       </h3>
       
       {/* Display additional message based on correct/incorrect */}
