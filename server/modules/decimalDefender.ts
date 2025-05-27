@@ -7,6 +7,7 @@ interface DecimalQuestion {
   question: string;
   answer: string | string[];
   options?: string[];
+  instructions?: string;
   skill: string;
   difficulty: number;
   category: string;
@@ -115,8 +116,9 @@ function generateRoundingQuestion(type: "multiple-choice" | "written" | "multi-s
 
     case 'written':
       return {
-        question: `Round ${decimal} to the ${scenario.description}. Type your answer.`,
-        answer: rounded
+        question: `Round ${decimal} to the ${scenario.description}`,
+        answer: rounded,
+        instructions: "Type your answer using numbers only"
       };
 
     
@@ -162,8 +164,9 @@ function generateComparingQuestion(type: "multiple-choice" | "written" | "multi-
 
     case 'written':
       return {
-        question: `Compare ${decimal1} and ${decimal2}. Type >, <, or =`,
-        answer: comparison
+        question: `Compare ${decimal1} and ${decimal2}`,
+        answer: comparison,
+        instructions: "Type >, <, or ="
       };
 
     
@@ -231,8 +234,9 @@ function generateAddSubtractQuestion(type: "multiple-choice" | "written" | "mult
 
     case 'written':
       return {
-        question: `Calculate ${questionText}. Type your answer.`,
-        answer
+        question: `Calculate ${questionText}`,
+        answer,
+        instructions: "Type your answer using numbers only"
       };
 
     
@@ -301,8 +305,9 @@ function generatePlaceValueQuestion(type: "multiple-choice" | "written" | "multi
 
     case 'written':
       return {
-        question: `In the decimal ${decimal}, what digit is in the ${randomPos.name} place? Type the digit.`,
-        answer: correctDigit
+        question: `In the decimal ${decimal}, what digit is in the ${randomPos.name} place?`,
+        answer: correctDigit,
+        instructions: "Type the digit only"
       };
 
     

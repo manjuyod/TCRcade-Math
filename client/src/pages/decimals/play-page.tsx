@@ -19,6 +19,7 @@ interface DecimalQuestion {
   question: string;
   answer: string | string[];
   options?: string[];
+  instructions?: string;
   skill: string;
   category: string;
 }
@@ -440,9 +441,11 @@ export default function DecimalDefenderPlayPage() {
               <CardTitle className="text-xl">
                 {currentQuestion.question}
               </CardTitle>
-              <div className="text-sm text-muted-foreground capitalize">
-                Type: {currentQuestion.type.replace('-', ' ')}
-              </div>
+              {currentQuestion.instructions && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {currentQuestion.instructions}
+                </p>
+              )}
             </CardHeader>
             
             <CardContent>
