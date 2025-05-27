@@ -330,8 +330,13 @@ export default function HomePage() {
               console.error("Error fetching Math Facts question:", error);
             });
         } else {
-          // Regular module - use the standard endpoint
-          fetch(`/api/questions/next?category=${category}&forceDynamic=true`, {
+          // Regular module - use the standard endpoint, except for decimals which uses dedicated endpoint
+          const url =
+            category === "decimals"
+              ? "/api/modules/decimal-defender/questions"
+              : `/api/questions/next?category=${category}&forceDynamic=true`;
+
+          fetch(url, {
             credentials: "include",
           })
             .then((response) => response.json())
