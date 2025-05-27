@@ -205,17 +205,17 @@ export function setupAuth(app: Express) {
           if (updatedUser) {
             res.json(updatedUser);
           } else {
-            
+
             res.json(req.user);
           }
         })
         .catch((error) => {
           console.error("Error updating user:", error);
-          
+
           res.json(req.user);
         });
     } else {
-      
+
       res.json(req.user);
     }
   });
@@ -250,7 +250,7 @@ export function setupAuth(app: Express) {
           if (!updatedUser) {
             return res.status(404).json({ error: "User not found" });
           }
-          
+
           res.json(updatedUser);
         })
         .catch((error) => {
