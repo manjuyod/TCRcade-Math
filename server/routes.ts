@@ -36,6 +36,7 @@ import {
 
 // Import decimal defender module
 import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
+import { DECIMAL_DEFENDER_RULES } from "../shared/decimalDefenderRules";
 
 // Log to verify the import
 console.log("🔢 ROUTES: Decimal defender function imported:", typeof generateDecimalDefenderQuestions);
