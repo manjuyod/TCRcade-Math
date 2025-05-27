@@ -344,7 +344,9 @@ export default function DecimalDefenderPlayPage() {
             {showFeedback && (
               <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 <p className="font-medium">
-                  {isCorrect ? 'Correct!' : `Incorrect. The answer is: ${question.answer}`}
+                  {isCorrect 
+                    ? 'Correct!' 
+                    : `Incorrect.`}
                 </p>
               </div>
             )}
@@ -385,7 +387,7 @@ export default function DecimalDefenderPlayPage() {
             {showFeedback && (
               <div className={`p-3 rounded-lg ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 <p className="font-medium">
-                  {isCorrect ? 'All correct!' : 'Some selections were incorrect.'}
+                  {isCorrect ? 'Excellent execution!' : 'Not quite right.'}
                 </p>
               </div>
             )}
@@ -472,13 +474,24 @@ export default function DecimalDefenderPlayPage() {
                         <AlertTriangle className="h-5 w-5 text-red-500" />
                       )}
                       <span className={`font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                        {isCorrect ? 'Correct!' : 'Incorrect'}
+                        {isCorrect ? 'Direct Decimal Hit!' : 'Decimal Misfire — Recalibrate!'}
                       </span>
                     </div>
                     {!isCorrect && (
-                      <p className="text-sm text-muted-foreground">
-                        The correct answer is: {currentQuestion.answer}
-                      </p>
+                <p className="text-sm text-muted-foreground">
+                  The correct answer is:<br />
+                  {Array.isArray(currentQuestion.answer)
+                    ? currentQuestion.answer.map((ans, i) => (
+                        <span key={i} className="font-mono text-black">
+                          “{ans}”{i < currentQuestion.answer.length - 1
+                            ? i === currentQuestion.answer.length - 2
+                              ? ' and '
+                              : ', '
+                            : ''}
+                        </span>
+                      ))
+                    : <span className="font-mono text-black">“{currentQuestion.answer}”</span>}
+                </p>
                     )}
                   </CardContent>
                 </Card>

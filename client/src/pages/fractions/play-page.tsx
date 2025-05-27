@@ -164,13 +164,8 @@ export default function FractionsPlayPage() {
     
     switch (question.kind) {
       case 'define':
-      case 'simplify':
       case 'mixedImproper':
         return answer.trim().toLowerCase() === question.answer.toLowerCase();
-      case 'addSub':
-      case 'mulDiv':
-        // Allow both improper fractions and mixed numbers for arithmetic
-        return areFractionsEquivalent(answer, question.answer);
       
       case 'simplify':
         // For levels 1-2 with GCD step: we expect "gcd,simplifiedFraction" format
@@ -181,8 +176,13 @@ export default function FractionsPlayPage() {
                  parts[0].trim() === question.gcd.toString() && 
                  parts[1].trim() === question.answer;
         } else {
-          return answer === question.answer;
+          return answer.trim().toLowerCase() === question.answer.toLowerCase();
         }
+      
+      case 'addSub':
+      case 'mulDiv':
+        // Allow both improper fractions and mixed numbers for arithmetic
+        return areFractionsEquivalent(answer, question.answer);
       
       case 'equivalent':
         if (question.level === 0) {
