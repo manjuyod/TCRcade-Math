@@ -449,6 +449,13 @@ export default function DecimalDefenderPlayPage() {
             </CardContent>
           </Card>
 
+          {/* Progress Tracker */}
+          {questions.length > 0 && (
+            <p className="text-sm text-gray-600 text-center mt-4">
+              Question {currentIndex + 1} of {questions.length}
+            </p>
+          )}
+
           {/* Feedback */}
           <AnimatePresence>
             {showFeedback && (
