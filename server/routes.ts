@@ -123,6 +123,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
 
+  // Decimal Defender route - placed early to take priority
+  app.get("/api/modules/decimal-defender/questions", (req, res) => {
+    const { generateDecimalDefenderQuestions } = require("./modules/decimalDefender");
+    const questions = generateDecimalDefenderQuestions();
+    console.log("Decimal Defender: returning", questions.length, "questions");
+    res.json(questions);
+  });
+
   // Get available subjects for a grade
   app.get(
     "/api/subjects/available/:grade",
@@ -1215,46 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Decimal Defender routes - MUST be placed early to avoid conflicts
-  app.get("/api/modules/decimal-defender/questions", async (req, res) => {
-    try {
-      console.log("🔢 DECIMAL DEFENDER ENDPOINT HIT: Starting decimal question generation");
-      
-      // Import the modules fresh to avoid any caching issues
-      const { generateDecimalDefenderQuestions } = await import("./modules/decimalDefender");
-      const { DECIMAL_DEFENDER_RULES } = await import("../shared/decimalDefenderRules");
-
-      console.log("🔢 DECIMAL DEFENDER: Using rules:", DECIMAL_DEFENDER_RULES);
-      console.log("🔢 DECIMAL DEFENDER: Skills available:", DECIMAL_DEFENDER_RULES.skills);
-
-      // Generate decimal-only questions using our dedicated module
-      const questions = await generateDecimalDefenderQuestions(DECIMAL_DEFENDER_RULES.totalQuestions);
-      
-      console.log("🔢 DECIMAL DEFENDER: Generated", questions.length, "questions");
-      console.log("🔢 DECIMAL DEFENDER: Sample questions:");
-      questions.slice(0, 3).forEach((q, i) => {
-        console.log(`  ${i + 1}. "${q.question}" (skill: ${q.skill}, category: ${q.category})`);
-      });
-      
-      // Verify all questions are decimal-related
-      const nonDecimalQuestions = questions.filter(q => q.category !== "decimal_defender");
-      if (nonDecimalQuestions.length > 0) {
-        console.error("🔢 DECIMAL DEFENDER ERROR: Found non-decimal questions:", nonDecimalQuestions);
-        return res.status(500).json({ error: "Generated non-decimal questions" });
-      }
-      
-      // Return ONLY our generated decimal questions
-      res.setHeader('Content-Type', 'application/json');
-      res.status(200).json(questions);
-      
-      console.log("🔢 DECIMAL DEFENDER: Successfully sent", questions.length, "decimal-only questions to client");
-      return; // Explicit return to prevent any further processing
-      
-    } catch (error) {
-      console.error("🔢 DECIMAL DEFENDER ERROR:", error);
-      res.status(500).json({ error: "Failed to generate decimal questions" });
-    }
-  });
+  
 
   app.post('/api/decimal-defender/complete', async (req, res) => {
     try {
