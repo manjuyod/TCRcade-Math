@@ -943,61 +943,47 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User not found");
     }
 
-    // Get user's concept masteries - get ALL masteries for this user, not just grade-specific
+    // Get user's concept masteries - filter by user's grade level
     const conceptMasteries = await db
       .select()
       .from(conceptMastery)
-      .where(eq(conceptMastery.userId, userId));
+      .where(and(
+        eq(conceptMastery.userId, userId),
+        eq(conceptMastery.grade, user.grade || 'K')
+      ));
 
-    console.log(`Found ${conceptMasteries.length} concept masteries for user ${userId}`);
-
-    // Identify user's strengths (concepts with high mastery) - lower threshold to ensure we find strengths
+    // Identify user's strengths (concepts with high mastery)
     const strengthConcepts = [...new Set(conceptMasteries
-      .filter(m => m.masteryLevel >= 70) // Lowered from 90 to 70
+      .filter(m => m.masteryLevel >= 90)
       .sort((a, b) => b.masteryLevel - a.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept))];
 
-    console.log(`Identified ${strengthConcepts.length} strength concepts:`, strengthConcepts);
-
     // Identify user's weaknesses (concepts with low mastery, excluding strengths)
     const weaknessConcepts = conceptMasteries
-      .filter(m => m.masteryLevel < 60 && !strengthConcepts.includes(m.concept)) // Lowered from 75 to 60
+      .filter(m => m.masteryLevel < 75 && !strengthConcepts.includes(m.concept))
       .sort((a, b) => a.masteryLevel - b.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept);
 
-    console.log(`Identified ${weaknessConcepts.length} weakness concepts:`, weaknessConcepts);
-
-    // Add default concepts when user has insufficient data
-    const grade = user.grade || 'K';
-    
-    // Generate grade-appropriate default concepts
-    const defaultConcepts: {[key: string]: string[]} = {
-      'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
-      '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
-      '2': ['skip counting', 'mental math', 'money', 'basic fractions', 'place value'],
-      '3': ['multiplication', 'division', 'fractions', 'area', 'perimeter'],
-      '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors'],
-      '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
-      '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
-    };
-
-    const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['K'];
-
-    // Add fallback strengths if none were found
-    if (strengthConcepts.length === 0) {
-      console.log('No strengths found, adding fallback strengths');
-      for (const concept of gradeSpecificConcepts.slice(0, 2)) {
-        if (!strengthConcepts.includes(concept)) {
-          strengthConcepts.push(concept);
-        }
-      }
-    }
-
-    // Add default weaknesses if not enough were found
+    // Add grade-appropriate defaults ONLY when user has insufficient practice data
+    // This ensures accuracy while providing helpful defaults for new users
     if (weaknessConcepts.length < 3) {
-      console.log('Adding default weakness concepts');
+      const grade = user.grade || 'K';
+
+      // Generate grade-appropriate default concepts
+      const defaultConcepts: {[key: string]: string[]} = {
+        'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
+        '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
+        '2': ['skip counting', 'mental math', 'money', 'basic fractions', 'place value'],
+        '3': ['multiplication', 'division', 'fractions', 'area', 'perimeter'],
+        '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors'],
+        '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
+        '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
+      };
+
+      // Only add defaults that aren't already identified as strengths or weaknesses
+      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['K'];
       for (const concept of gradeSpecificConcepts) {
         if (!weaknessConcepts.includes(concept) && 
             !strengthConcepts.includes(concept) && 
