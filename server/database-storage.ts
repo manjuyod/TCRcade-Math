@@ -949,79 +949,44 @@ export class DatabaseStorage implements IStorage {
       .from(conceptMastery)
       .where(eq(conceptMastery.userId, userId));
 
-    // Get user's grade for grade-specific analytics
-    const userGrade = user.grade || 'K';
-    
-    // Grade-specific concept pools
-    const gradeConceptPools: {[key: string]: string[]} = {
-      'K': ['counting', 'number recognition', 'shapes', 'patterns', 'sorting', 'size comparison', 'basic addition', 'basic subtraction'],
-      '1': ['place value', 'addition facts', 'subtraction facts', 'time telling', 'measurement', 'skip counting', 'number bonds'],
-      '2': ['two-digit addition', 'two-digit subtraction', 'mental math', 'money', 'basic fractions', 'arrays', 'even and odd'],
-      '3': ['multiplication facts', 'division facts', 'fractions', 'area', 'perimeter', 'word problems', 'data interpretation'],
-      '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors', 'mixed numbers', 'coordinate plane'],
-      '5': ['fraction operations', 'decimal operations', 'percentages', 'volume', 'algebraic thinking', 'ratio concepts'],
-      '6': ['ratios', 'rates', 'integers', 'expressions', 'equations', 'statistics', 'probability']
-    };
-
-    const gradeAppropriateConcepts = gradeConceptPools[userGrade] || gradeConceptPools['K'];
-    
-    // Filter masteries to only include grade-appropriate concepts
-    const gradeRelevantMasteries = conceptMasteries.filter(m => 
-      gradeAppropriateConcepts.includes(m.concept) ||
-      m.concept.toLowerCase().includes('addition') ||
-      m.concept.toLowerCase().includes('subtraction') ||
-      m.concept.toLowerCase().includes('multiplication') ||
-      m.concept.toLowerCase().includes('division') ||
-      (userGrade >= '3' && m.concept.toLowerCase().includes('fraction')) ||
-      (userGrade >= '4' && m.concept.toLowerCase().includes('decimal'))
-    );
-
-    // Identify user's strengths (concepts with high mastery, grade-appropriate)
-    const strengthConcepts = [...new Set(gradeRelevantMasteries
+    // Identify user's strengths (concepts with high mastery)
+    const strengthConcepts = [...new Set(conceptMasteries
       .filter(m => m.masteryLevel >= 90)
       .sort((a, b) => b.masteryLevel - a.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept))];
 
-    // Identify user's weaknesses (concepts with low mastery, grade-appropriate, excluding strengths)
-    let weaknessConcepts = gradeRelevantMasteries
+    // Identify user's weaknesses (concepts with low mastery, excluding strengths)
+    const weaknessConcepts = conceptMasteries
       .filter(m => m.masteryLevel < 75 && !strengthConcepts.includes(m.concept))
       .sort((a, b) => a.masteryLevel - b.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept);
 
-    // Get user's grade for grade-specific analytics
-    const userGrade = user.grade || 'K';
-    
-    // Grade-specific concept pools for meaningful analytics
-    const gradeConceptPools: {[key: string]: string[]} = {
-      'K': ['counting', 'number recognition', 'shapes', 'patterns', 'sorting', 'size comparison', 'basic addition', 'basic subtraction'],
-      '1': ['place value', 'addition facts', 'subtraction facts', 'time telling', 'measurement', 'skip counting', 'number bonds'],
-      '2': ['two-digit addition', 'two-digit subtraction', 'mental math', 'money', 'basic fractions', 'arrays', 'even and odd'],
-      '3': ['multiplication facts', 'division facts', 'fractions', 'area', 'perimeter', 'word problems', 'data interpretation'],
-      '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors', 'mixed numbers', 'coordinate plane'],
-      '5': ['fraction operations', 'decimal operations', 'percentages', 'volume', 'algebraic thinking', 'ratio concepts'],
-      '6': ['ratios', 'rates', 'integers', 'expressions', 'equations', 'statistics', 'probability']
-    };
-
-    // Get grade-appropriate concepts
-    const gradeAppropriateC Concepts = gradeConceptPools[userGrade] || gradeConceptPools['K'];
-    
-    // Filter concept masteries to only include grade-appropriate concepts
-    const gradeRelevantMasteries = conceptMasteries.filter(m => 
-      gradeAppropriateConcepts.includes(m.concept) || 
-      m.concept.toLowerCase().includes(userGrade.toLowerCase())
-    );
-
-    // If user has no grade-relevant masteries, add default concepts for their grade
+    // Add default concepts for practice if user doesn't have enough weakness data
+    // This ensures the "Concepts that need more practice" section is always populated
     if (weaknessConcepts.length < 3) {
-      // Add concepts that are challenging for this grade level
-      const conceptsToAdd = gradeAppropriateConcepts.filter(concept => 
-        !weaknessConcepts.includes(concept) && 
-        !strengthConcepts.includes(concept)
-      ).slice(0, 5 - weaknessConcepts.length);
-      
-      weaknessConcepts.push(...conceptsToAdd);
+      // Get the user's grade to provide grade-appropriate concepts
+      const grade = user.grade || '3';
+
+      // Generate default concepts based on grade level
+      const defaultConcepts: {[key: string]: string[]} = {
+        'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
+        '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
+        '2': ['skip counting', 'mental math', 'money', 'basic fractions', 'place value'],
+        '3': ['multiplication', 'division', 'fractions', 'area', 'perimeter'],
+        '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors'],
+        '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
+        '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
+      };
+
+      // Add grade-appropriate default concepts that aren't already in weaknesses
+      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['3'];
+      for (const concept of gradeSpecificConcepts) {
+        if (!weaknessConcepts.includes(concept) && weaknessConcepts.length < 5) {
+          weaknessConcepts.push(concept);
+        }
+      }
     }
 
     // Get progress data
@@ -1035,21 +1000,14 @@ export class DatabaseStorage implements IStorage {
       .filter(p => p.score > 100)
       .map(p => p.category);
 
-    // Generate grade-specific recommended activities
-    const gradeSpecificActivities: {[key: string]: string[]} = {
-      'K': ['counting games', 'shape sorting', 'number matching', 'pattern practice'],
-      '1': ['fact family practice', 'place value games', 'time practice', 'measurement activities'],
-      '2': ['mental math drills', 'money counting', 'fraction introduction', 'skip counting'],
-      '3': ['multiplication tables', 'division practice', 'fraction basics', 'word problem solving'],
-      '4': ['long division practice', 'decimal place value', 'angle measurement', 'factor finding'],
-      '5': ['fraction operations', 'decimal calculations', 'percentage problems', 'algebraic thinking'],
-      '6': ['ratio practice', 'equation solving', 'statistics projects', 'probability experiments']
-    };
-
-    const baseActivities = gradeSpecificActivities[userGrade] || gradeSpecificActivities['K'];
+    // Map weaknesses to practice activities but also add common learning activities
+    // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
     const recommendedActivities = [
       ...weaknessConcepts.map(w => `Practice ${w}`),
-      ...baseActivities.slice(0, 3)
+      'flashcards',
+      'wordProblems',
+      'conceptMapping',
+      'realWorldApplications'
     ];
     // Create a new analytics entry
     const [analytic] = await db
