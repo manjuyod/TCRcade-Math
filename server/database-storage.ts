@@ -1023,7 +1023,8 @@ export class DatabaseStorage implements IStorage {
           correctAnswerRate: user.questionsAnswered > 0 
             ? user.correctAnswers / user.questionsAnswered 
             : 0,
-          averageTimePerQuestion: 0, //This commit adds the getUserByEmail method to the DatabaseStorage class to facilitate email-based user lookups.          preferredCategories: strongCategories
+          averageTimePerQuestion: 0,
+          preferredCategories: strongCategories
         },
         strengths: strengthConcepts.slice(0, 5),
         areasForImprovement: weaknessConcepts.slice(0, 5),
