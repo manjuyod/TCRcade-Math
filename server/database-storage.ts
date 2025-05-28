@@ -1025,7 +1025,7 @@ export class DatabaseStorage implements IStorage {
             : 0,
           averageTimePerQuestion: 0, //This commit adds the getUserByEmail method to the DatabaseStorage class to facilitate email-based user lookups.          preferredCategories: strongCategories
         },
-        strengths: strengths.slice(0, 5),
+        strengths: strengthConcepts.slice(0, 5),
         areasForImprovement: weaknessConcepts.slice(0, 5),
         engagementAnalysis: {
           totalSessionTime: user.dailyEngagementMinutes,
@@ -1033,7 +1033,7 @@ export class DatabaseStorage implements IStorage {
         },
         suggestedActivities: recommendedActivities,
         recommendedActivities,
-        strengthConcepts: strengths,
+        strengthConcepts: strengthConcepts,
         weaknessConcepts: weaknessConcepts
       })
       .returning();
@@ -1242,7 +1242,7 @@ export class DatabaseStorage implements IStorage {
           const selectedQuestion = basicQuestions[Math.floor(Math.random() * basicQuestions.length)];
           console.log(`Found basic question ${selectedQuestion.id} with pattern match`);
 
-          // Make sure it has the right category but DON'T modify the actual content
+          // Make sure it has the right category but DON't modify the actual content
           // This preserves the integrity of the question itself
           if (selectedQuestion.category !== category) {
             console.log(`Warning: Selected question ${selectedQuestion.id} has category ${selectedQuestion.category} but requested ${category}`);
