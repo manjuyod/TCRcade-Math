@@ -49,7 +49,7 @@ export default function AiAnalytics() {
     queryFn: async () => {
       const res = await fetch('/api/analytics');
       if (!res.ok) throw new Error('Failed to fetch analytics');
-      return res.json() as Promise<{
+      const data = await res.json() as {
         analytics: {
           analytics: AiAnalytic;
           conceptMasteries: ConceptMastery[];
@@ -60,7 +60,24 @@ export default function AiAnalytics() {
             timeSpent: number;
           }[];
         }
-      }>;
+      };
+
+      // If no analytics exist but user has enough data, automatically generate them
+      if (!data.analytics?.analytics && user?.questionsAnswered && user.questionsAnswered >= 10) {
+        console.log('Auto-generating analytics for user with sufficient data');
+        try {
+          await apiRequest('POST', '/api/analytics/generate', {});
+          // Refetch after generation
+          const newRes = await fetch('/api/analytics');
+          if (newRes.ok) {
+            return await newRes.json();
+          }
+        } catch (error) {
+          console.error('Failed to auto-generate analytics:', error);
+        }
+      }
+
+      return data;
     }
   });
   

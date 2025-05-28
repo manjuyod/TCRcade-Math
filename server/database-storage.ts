@@ -305,7 +305,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Concept mastery methods
   async getUserConceptMasteries(userId: number): Promise<ConceptMastery[]> {
     const masteries = await db
       .select()
@@ -335,14 +334,43 @@ export class DatabaseStorage implements IStorage {
     return Array.from(conceptSet);
   }
 
-  async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery> {
+  async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean, questionDifficulty?: number): Promise<ConceptMastery> {
+    // Enhance concept specificity based on grade and difficulty
+    let enhancedConcept = concept;
+
+    if (concept === 'addition') {
+      if (grade === 'K' || grade === '1' || (questionDifficulty && questionDifficulty <= 2)) {
+        enhancedConcept = 'single-digit addition';
+      } else {
+        enhancedConcept = 'multi-digit addition';
+      }
+    } else if (concept === 'subtraction') {
+      if (grade === 'K' || grade === '1' || (questionDifficulty && questionDifficulty <= 2)) {
+        enhancedConcept = 'single-digit subtraction';
+      } else {
+        enhancedConcept = 'multi-digit subtraction';
+      }
+    } else if (concept === 'multiplication') {
+      if (grade === '2' || grade === '3' || (questionDifficulty && questionDifficulty <= 3)) {
+        enhancedConcept = 'basic multiplication facts';
+      } else {
+        enhancedConcept = 'multi-digit multiplication';
+      }
+    } else if (concept === 'division') {
+      if (grade === '3' || grade === '4' || (questionDifficulty && questionDifficulty <= 3)) {
+        enhancedConcept = 'basic division facts';
+      } else {
+        enhancedConcept = 'long division';
+      }
+    }
+
     // Check if entry exists
     const [existingMastery] = await db
       .select()
       .from(conceptMastery)
       .where(and(
         eq(conceptMastery.userId, userId),
-        eq(conceptMastery.concept, concept),
+        eq(conceptMastery.concept, enhancedConcept),
         eq(conceptMastery.grade, grade)
       ));
 
@@ -364,6 +392,9 @@ export class DatabaseStorage implements IStorage {
         .where(eq(conceptMastery.id, existingMastery.id))
         .returning();
 
+      // Check if we should automatically update analytics
+      await this.autoUpdateAnalytics(userId);
+
       return updatedMastery;
     } else {
       // Create new mastery entry
@@ -371,7 +402,7 @@ export class DatabaseStorage implements IStorage {
         .insert(conceptMastery)
         .values({
           userId,
-          concept,
+          concept: enhancedConcept,
           grade,
           totalAttempts: 1,
           correctAttempts: isCorrect ? 1 : 0,
@@ -381,7 +412,31 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
+      // Check if we should automatically update analytics
+      await this.autoUpdateAnalytics(userId);
+
       return newMastery;
+    }
+  }
+
+  // Automatically generate user analytics if needed
+  async autoUpdateAnalytics(userId: number): Promise<void> {
+    // Check if analytics have been generated in the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [existingAnalytics] = await db
+      .select()
+      .from(aiAnalytics)
+      .where(and(
+        eq(aiAnalytics.userId, userId),
+        gte(aiAnalytics.analysisDate, twentyFourHoursAgo)
+      ))
+      .limit(1);
+
+    if (!existingAnalytics) {
+      console.log(`No recent analytics found for user ${userId}, generating new analytics...`);
+      await this.generateUserAnalytics(userId);
+    } else {
+      console.log(`Recent analytics found for user ${userId}, skipping analytics generation.`);
     }
   }
 
@@ -1186,7 +1241,7 @@ export class DatabaseStorage implements IStorage {
         if (filteredIds.length > 0) {
           console.log(`Excluding ${filteredIds.length} previously used questions`);
           // Use not(inArray()) instead of notInArray which doesn't exist
-          filters.push(not(inArray(questions.id, filteredIds)));
+          filters.push(not(inArray(questions.id, excludeIds)));
         }
       }
 
