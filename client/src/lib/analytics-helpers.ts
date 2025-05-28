@@ -22,17 +22,24 @@ export function generateCustomStudyPlanFromAnalytics(
     dismissTimeout: 3000,
   });
   
-  // Get concepts that need work and ensure none are "General"
+  // Get strengths to build on and ensure none are "General"
+  const strengthConcepts = (analytics.conceptMasteries || [])
+    .filter((concept: any) => concept.masteryLevel >= 90 && concept.concept.toLowerCase() !== 'general')
+    .slice(0, 3)
+    .map((concept: any) => concept.concept);
+  
+  // Get concepts that need work and ensure none are "General" or already in strengths
   const needsWorkConcepts = (analytics.conceptMasteries || [])
-    .filter((concept: any) => concept.masteryLevel < 75 && concept.concept.toLowerCase() !== 'general')
+    .filter((concept: any) => 
+      concept.masteryLevel < 75 && 
+      concept.concept.toLowerCase() !== 'general' &&
+      !strengthConcepts.includes(concept.concept)
+    )
     .slice(0, 5)
     .map((concept: any) => concept.concept);
   
-  // Get strengths to build on and ensure none are "General"
-  const strengths = (analytics.conceptMasteries || [])
-    .filter((concept: any) => concept.masteryLevel >= 75 && concept.concept.toLowerCase() !== 'general')
-    .slice(0, 3)
-    .map((concept: any) => concept.concept);
+  // Use strengthConcepts instead of strengths for consistency
+  const strengths = strengthConcepts;
   
   // Default to grade K if not specified
   const grade = 'K';

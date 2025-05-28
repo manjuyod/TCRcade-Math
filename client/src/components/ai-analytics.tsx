@@ -315,17 +315,23 @@ export default function AiAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {(analytics.weaknessConcepts || []).length > 0 ? (
-                    (analytics.weaknessConcepts || []).map((weakness, index) => (
-                      <Badge key={index} variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">
-                        {weakness}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Complete more questions to identify areas for improvement.
-                    </p>
-                  )}
+                  {(() => {
+                    const strengthConcepts = analytics.strengthConcepts || [];
+                    const filteredWeaknesses = (analytics.weaknessConcepts || []).filter(
+                      concept => !strengthConcepts.includes(concept)
+                    );
+                    return filteredWeaknesses.length > 0 ? (
+                      filteredWeaknesses.map((weakness, index) => (
+                        <Badge key={index} variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">
+                          {weakness}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm">
+                        Complete more questions to identify areas for improvement.
+                      </p>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

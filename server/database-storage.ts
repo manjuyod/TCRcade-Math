@@ -949,21 +949,23 @@ export class DatabaseStorage implements IStorage {
       .from(conceptMastery)
       .where(eq(conceptMastery.userId, userId));
 
-    // Identify strengths and weaknesses
-    const strengths: string[] = [];
-    const weaknesses: string[] = [];
+    // Identify user's strengths (concepts with high mastery)
+    const strengthConcepts = conceptMasteries
+      .filter(m => m.masteryLevel >= 90)
+      .sort((a, b) => b.masteryLevel - a.masteryLevel)
+      .slice(0, 5)
+      .map(m => m.concept);
 
-    conceptMasteries.forEach(cm => {
-      if (cm.masteryLevel >= 80) {
-        strengths.push(cm.concept);
-      } else if (cm.masteryLevel <= 50) {
-        weaknesses.push(cm.concept);
-      }
-    });
+    // Identify user's weaknesses (concepts with low mastery, excluding strengths)
+    const weaknessConcepts = conceptMasteries
+      .filter(m => m.masteryLevel < 75 && !strengthConcepts.includes(m.concept))
+      .sort((a, b) => a.masteryLevel - b.masteryLevel)
+      .slice(0, 5)
+      .map(m => m.concept);
 
     // Add default concepts for practice if user doesn't have enough weakness data
     // This ensures the "Concepts that need more practice" section is always populated
-    if (weaknesses.length < 3) {
+    if (weaknessConcepts.length < 3) {
       // Get the user's grade to provide grade-appropriate concepts
       const grade = user.grade || '3';
 
@@ -981,8 +983,8 @@ export class DatabaseStorage implements IStorage {
       // Add grade-appropriate default concepts that aren't already in weaknesses
       const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['3'];
       for (const concept of gradeSpecificConcepts) {
-        if (!weaknesses.includes(concept) && weaknesses.length < 5) {
-          weaknesses.push(concept);
+        if (!weaknessConcepts.includes(concept) && weaknessConcepts.length < 5) {
+          weaknessConcepts.push(concept);
         }
       }
     }
@@ -1001,13 +1003,12 @@ export class DatabaseStorage implements IStorage {
     // Map weaknesses to practice activities but also add common learning activities
     // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
     const recommendedActivities = [
-      ...weaknesses.map(w => `Practice ${w}`),
+      ...weaknessConcepts.map(w => `Practice ${w}`),
       'flashcards',
       'wordProblems',
       'conceptMapping',
       'realWorldApplications'
     ];
-
     // Create a new analytics entry
     const [analytic] = await db
       .insert(aiAnalytics)
@@ -1021,7 +1022,7 @@ export class DatabaseStorage implements IStorage {
           averageTimePerQuestion: 0, //This commit adds the getUserByEmail method to the DatabaseStorage class to facilitate email-based user lookups.          preferredCategories: strongCategories
         },
         strengths: strengths.slice(0, 5),
-        areasForImprovement: weaknesses.slice(0, 5),
+        areasForImprovement: weaknessConcepts.slice(0, 5),
         engagementAnalysis: {
           totalSessionTime: user.dailyEngagementMinutes,
           activityBreakdown: {}
@@ -1029,7 +1030,7 @@ export class DatabaseStorage implements IStorage {
         suggestedActivities: recommendedActivities,
         recommendedActivities,
         strengthConcepts: strengths,
-        weaknessConcepts: weaknesses
+        weaknessConcepts: weaknessConcepts
       })
       .returning();
 
