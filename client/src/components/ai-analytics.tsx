@@ -291,7 +291,7 @@ export default function AiAnalytics() {
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {(analytics.strengthConcepts || []).length > 0 ? (
-                    (analytics.strengthConcepts || []).map((strength, index) => (
+                    [...new Set(analytics.strengthConcepts || [])].map((strength, index) => (
                       <Badge key={index} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
                         {strength}
                       </Badge>

@@ -23,10 +23,11 @@ export function generateCustomStudyPlanFromAnalytics(
   });
   
   // Get strengths to build on and ensure none are "General"
-  const strengthConcepts = (analytics.conceptMasteries || [])
+  const strengthConcepts = [...new Set((analytics.conceptMasteries || [])
     .filter((concept: any) => concept.masteryLevel >= 90 && concept.concept.toLowerCase() !== 'general')
-    .slice(0, 3)
-    .map((concept: any) => concept.concept);
+    .slice(0, 5)
+    .map((concept: any) => concept.concept))]
+    .slice(0, 3);
   
   // Get concepts that need work and ensure none are "General" or already in strengths
   const needsWorkConcepts = (analytics.conceptMasteries || [])

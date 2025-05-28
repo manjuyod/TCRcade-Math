@@ -950,11 +950,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conceptMastery.userId, userId));
 
     // Identify user's strengths (concepts with high mastery)
-    const strengthConcepts = conceptMasteries
+    const strengthConcepts = [...new Set(conceptMasteries
       .filter(m => m.masteryLevel >= 90)
       .sort((a, b) => b.masteryLevel - a.masteryLevel)
       .slice(0, 5)
-      .map(m => m.concept);
+      .map(m => m.concept))];
 
     // Identify user's weaknesses (concepts with low mastery, excluding strengths)
     const weaknessConcepts = conceptMasteries
