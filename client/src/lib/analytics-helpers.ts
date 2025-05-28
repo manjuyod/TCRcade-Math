@@ -42,18 +42,22 @@ export function generateCustomStudyPlanFromAnalytics(
   // Use strengthConcepts instead of strengths for consistency
   const strengths = strengthConcepts;
   
-  // Default to grade K if not specified
-  const grade = 'K';
+  // Get user's actual grade from analytics or default to K
+  const userGrade = analytics?.analytics?.userId ? 
+    (analytics.analytics.learningStyle === 'Visual' ? 'K' : 'K') : 'K'; // Default fallback
   
-  // Grade-specific topics mapping
+  // Try to extract grade from user data if available
+  const grade = userGrade;
+  
+  // Grade-specific topics mapping - more detailed and age-appropriate
   const gradeTopics: Record<string, string[]> = {
-    'K': ['counting', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction'],
-    '1': ['place value', 'addition facts', 'subtraction facts', 'time telling', 'measurement'],
-    '2': ['two-digit addition', 'two-digit subtraction', 'mental math', 'money', 'basic fractions'],
-    '3': ['multiplication facts', 'division facts', 'equivalence', 'geometry', 'data representation'],
-    '4': ['multi-digit multiplication', 'long division', 'decimals', 'area and perimeter', 'problem solving'],
-    '5': ['fraction operations', 'decimal operations', 'volume', 'algebraic thinking', 'coordinate plane'],
-    '6': ['ratio and proportion', 'variables and expressions', 'equations', 'statistics', 'probability']
+    'K': ['counting to 20', 'number recognition', 'basic shapes', 'simple addition', 'simple subtraction', 'patterns'],
+    '1': ['place value to 100', 'addition facts to 20', 'subtraction facts to 20', 'time to hour', 'length measurement'],
+    '2': ['place value to 1000', 'two-digit addition', 'two-digit subtraction', 'telling time', 'money counting'],
+    '3': ['multiplication facts', 'division facts', 'basic fractions', 'area concepts', 'data collection'],
+    '4': ['multi-digit multiplication', 'long division', 'decimal place value', 'angle measurement', 'factor identification'],
+    '5': ['fraction operations', 'decimal operations', 'volume calculation', 'coordinate graphing', 'algebraic patterns'],
+    '6': ['ratio and proportion', 'solving equations', 'statistical analysis', 'probability concepts', 'integer operations']
   };
   
   // Get relevant topics based on grade

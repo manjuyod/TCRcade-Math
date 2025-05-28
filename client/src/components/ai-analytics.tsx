@@ -236,15 +236,18 @@ export default function AiAnalytics() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center">
                     <Brain className="h-4 w-4 mr-2 text-primary" />
-                    Learning Style
+                    Grade Level Analytics
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold mb-2">
-                    {analytics.learningStyle || "Visual"}
+                    Grade {user?.grade || 'K'}
                   </div>
                   <p className="text-muted-foreground text-sm">
-                    Your preferred way of processing information
+                    {analytics.learningStyle || "Visual"} learning style
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Analytics tailored for {user?.grade || 'K'}-level concepts
                   </p>
                 </CardContent>
               </Card>
