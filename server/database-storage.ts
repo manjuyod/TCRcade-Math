@@ -952,16 +952,18 @@ export class DatabaseStorage implements IStorage {
         eq(conceptMastery.grade, user.grade || 'K')
       ));
 
-    // Identify user's strengths (concepts with high mastery)
+    // Identify user's strengths (concepts with high mastery, excluding 'general')
     const strengthConcepts = [...new Set(conceptMasteries
-      .filter(m => m.masteryLevel >= 90)
+      .filter(m => m.masteryLevel >= 90 && !m.concept.toLowerCase().includes('general'))
       .sort((a, b) => b.masteryLevel - a.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept))];
 
-    // Identify user's weaknesses (concepts with low mastery, excluding strengths)
+    // Identify user's weaknesses (concepts with low mastery, excluding strengths and 'general')
     const weaknessConcepts = conceptMasteries
-      .filter(m => m.masteryLevel < 75 && !strengthConcepts.includes(m.concept))
+      .filter(m => m.masteryLevel < 75 && 
+               !strengthConcepts.includes(m.concept) && 
+               !m.concept.toLowerCase().includes('general'))
       .sort((a, b) => a.masteryLevel - b.masteryLevel)
       .slice(0, 5)
       .map(m => m.concept);
