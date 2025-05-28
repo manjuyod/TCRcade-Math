@@ -984,13 +984,7 @@ export class DatabaseStorage implements IStorage {
 
       // Only add defaults that aren't already identified as strengths or weaknesses
       const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['K'];
-      for (const concept of gradeSpecificConcepts) {
-        if (!weaknessConcepts.includes(concept) && 
-            !strengthConcepts.includes(concept) && 
-            weaknessConcepts.length < 5) {
-          weaknessConcepts.push(concept);
-        }
-      }
+      // Do not add fallback strengths - let users earn them through actual performance
     }
 
     // Get progress data
