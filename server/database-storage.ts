@@ -943,11 +943,14 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User not found");
     }
 
-    // Get user's concept masteries
+    // Get user's concept masteries - filter by user's grade level
     const conceptMasteries = await db
       .select()
       .from(conceptMastery)
-      .where(eq(conceptMastery.userId, userId));
+      .where(and(
+        eq(conceptMastery.userId, userId),
+        eq(conceptMastery.grade, user.grade || 'K')
+      ));
 
     // Identify user's strengths (concepts with high mastery)
     const strengthConcepts = [...new Set(conceptMasteries
@@ -963,13 +966,12 @@ export class DatabaseStorage implements IStorage {
       .slice(0, 5)
       .map(m => m.concept);
 
-    // Add default concepts for practice if user doesn't have enough weakness data
-    // This ensures the "Concepts that need more practice" section is always populated
+    // Add grade-appropriate defaults ONLY when user has insufficient practice data
+    // This ensures accuracy while providing helpful defaults for new users
     if (weaknessConcepts.length < 3) {
-      // Get the user's grade to provide grade-appropriate concepts
-      const grade = user.grade || '3';
+      const grade = user.grade || 'K';
 
-      // Generate default concepts based on grade level
+      // Generate grade-appropriate default concepts
       const defaultConcepts: {[key: string]: string[]} = {
         'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
         '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
@@ -980,10 +982,12 @@ export class DatabaseStorage implements IStorage {
         '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
       };
 
-      // Add grade-appropriate default concepts that aren't already in weaknesses
-      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['3'];
+      // Only add defaults that aren't already identified as strengths or weaknesses
+      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['K'];
       for (const concept of gradeSpecificConcepts) {
-        if (!weaknessConcepts.includes(concept) && weaknessConcepts.length < 5) {
+        if (!weaknessConcepts.includes(concept) && 
+            !strengthConcepts.includes(concept) && 
+            weaknessConcepts.length < 5) {
           weaknessConcepts.push(concept);
         }
       }
