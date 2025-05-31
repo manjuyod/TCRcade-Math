@@ -19,6 +19,26 @@ import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
 
+// Helper function to shuffle answer options
+function shuffleAnswerOptions(question: Question): Question {
+  if (!question.options || question.options.length <= 1) {
+    return question;
+  }
+  
+  // Create a copy of the question to avoid mutating the original
+  const shuffledQuestion = { ...question };
+  
+  // Shuffle the options array using Fisher-Yates algorithm
+  const shuffledOptions = [...question.options];
+  for (let i = shuffledOptions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+  }
+  
+  shuffledQuestion.options = shuffledOptions;
+  return shuffledQuestion;
+}
+
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
 
@@ -242,7 +262,11 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`getQuestionsByGrade: Found ${result.length} questions with grade=${grade}, category=${category || 'all'}`);
     console.log(`After filtering out image questions: ${filteredResults.length} questions remain`);
-    return filteredResults;
+    
+    // Shuffle answer options for each question to prevent predictable correct answer positions
+    const shuffledResults = filteredResults.map(question => shuffleAnswerOptions(question));
+    
+    return shuffledResults;
   }
 
   async getQuestionsByConcept(grade: string, concept: string): Promise<Question[]> {
@@ -252,10 +276,13 @@ export class DatabaseStorage implements IStorage {
       .from(questions)
       .where(and(
         eq(questions.grade, grade),
-        inArray(concept, questions.concepts)
+        sql`${concept} = ANY(${questions.concepts})`
       ));
 
-    return questionsWithConcept;
+    // Shuffle answer options for each question to prevent predictable correct answer positions
+    const shuffledResults = questionsWithConcept.map(question => shuffleAnswerOptions(question));
+    
+    return shuffledResults;
   }
 
   // We'll implement some basic utility methods first, and add the more complex ones later
@@ -1300,7 +1327,7 @@ export class DatabaseStorage implements IStorage {
             console.log(`Warning: Selected question ${selectedQuestion.id} has category ${selectedQuestion.category} but requested ${category}`);
           }
 
-          return selectedQuestion;
+          return shuffleAnswerOptions(selectedQuestion);
         }
 
         console.log(`No basic questions found for ${category}, will fall back to grade only`);
