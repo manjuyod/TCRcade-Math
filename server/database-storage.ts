@@ -50,10 +50,6 @@ function shuffleAnswerOptions(question: Question): Question {
   }
   
   shuffledQuestion.options = shuffledOptions;
-  
-  // Log the shuffling for debugging
-  console.log(`Shuffled question ${question.id}: original [${question.options.join(', ')}] -> shuffled [${shuffledOptions.join(', ')}]`);
-  
   return shuffledQuestion;
 }
 
@@ -1299,7 +1295,7 @@ export class DatabaseStorage implements IStorage {
       if (allQuestions.length > 0) {
         const selectedQuestion = allQuestions[Math.floor(Math.random() * allQuestions.length)];
         console.log(`Selected question ${selectedQuestion.id} for category ${category || 'all'}`);
-        return selectedQuestion;
+        return shuffleAnswerOptions(selectedQuestion);
       }
 
       // DISABLE dynamic category modification completely - this caused the issues
