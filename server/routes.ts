@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test endpoint for decimal defender
   app.get("/api/test/decimal-defender", async (req, res) => {
     try {
-      const questions = await generateDecimalDefenderQuestions(3);
+      const questions = await generateDecimalDefenderQuestions("rounding", 3);
       res.json({ success: true, questions });
     } catch (error) {
       console.error("Decimal defender test failed:", error);
@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Decimal Defender route - placed early to take priority
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
-      const questions = await generateDecimalDefenderQuestions(10);
+      const questions = await generateDecimalDefenderQuestions("rounding", 10);
       
       // Set proper headers
       res.setHeader('Content-Type', 'application/json');
@@ -246,6 +246,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     },
   );
+
+  // Clear session data for fresh question generation
+  app.post("/api/session/clear", ensureAuthenticated, async (req, res) => {
+    try {
+      // Clear session question tracking
+      if (req.session) {
+        (req.session as any).seenQuestions = [];
+        (req.session as any).currentBatch = undefined;
+      }
+      
+      console.log("Session data cleared for fresh question generation");
+      res.json({ success: true, message: "Session cleared" });
+    } catch (error) {
+      console.error("Error clearing session:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to clear session",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
