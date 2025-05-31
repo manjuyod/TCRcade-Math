@@ -50,6 +50,10 @@ function shuffleAnswerOptions(question: Question): Question {
   }
   
   shuffledQuestion.options = shuffledOptions;
+  
+  // Log the shuffling for debugging
+  console.log(`Shuffled question ${question.id}: original [${question.options.join(', ')}] -> shuffled [${shuffledOptions.join(', ')}]`);
+  
   return shuffledQuestion;
 }
 
@@ -214,7 +218,7 @@ export class DatabaseStorage implements IStorage {
       .from(questions)
       .where(eq(questions.id, id));
 
-    return question;
+    return question ? shuffleAnswerOptions(question) : question;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
