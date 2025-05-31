@@ -14,7 +14,7 @@ import {
   subjectDifficultyHistory, type SubjectDifficultyHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not } from "drizzle-orm";
+import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
 import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
@@ -1340,7 +1340,7 @@ export class DatabaseStorage implements IStorage {
       if (fallbackQuestions.length > 0) {
         const selectedQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
         console.log(`Selected fallback question ${selectedQuestion.id}, original category: ${selectedQuestion.category}`);
-        return selectedQuestion;
+        return shuffleAnswerOptions(selectedQuestion);
       }
 
       // Absolute last resort: return any question
@@ -1348,7 +1348,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`Last resort: found ${anyQuestions.length} questions with no filters`);
 
       if (anyQuestions.length > 0) {
-        return anyQuestions[Math.floor(Math.random() * anyQuestions.length)];
+        return shuffleAnswerOptions(anyQuestions[Math.floor(Math.random() * anyQuestions.length)]);
       }
 
       console.log('No questions found at all, returning undefined');
