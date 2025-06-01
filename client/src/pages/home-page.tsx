@@ -133,19 +133,10 @@ export default function HomePage() {
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const sessionSize = 5; // Size of a question session (changed from 20 to 5)
 
-  // Monitor session state to ensure completion detection
+  // Monitor session state to ensure completion detection - only after all questions are actually answered
   useEffect(() => {
     if (!sessionCompleted && sessionStats.questionsAnswered >= sessionSize) {
       console.log(`Safety check: Session should be completed (${sessionStats.questionsAnswered}/${sessionSize} questions answered)`);
-      setSessionCompleted(true);
-    }
-  }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
-
-  // Backup session completion watcher based on currentIndex (more reliable)
-  useEffect(() => {
-    if (sessionStats.questionsAnswered + 1 >= sessionSize && !sessionCompleted) {
-      console.log("✅ Auto-triggering session complete from questionsAnswered watcher");
-      console.log("✅ Session complete triggered");
       setSessionCompleted(true);
     }
   }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
