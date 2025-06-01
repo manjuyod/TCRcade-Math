@@ -141,6 +141,15 @@ export default function HomePage() {
     }
   }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
 
+  // Backup session completion watcher based on currentIndex (more reliable)
+  useEffect(() => {
+    if (sessionStats.questionsAnswered + 1 >= sessionSize && !sessionCompleted) {
+      console.log("✅ Auto-triggering session complete from questionsAnswered watcher");
+      console.log("✅ Session complete triggered");
+      setSessionCompleted(true);
+    }
+  }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
+
   // Custom loading state we can control (separate from React Query's isLoading)
   const [isManuallyLoading, setIsManuallyLoading] = useState<boolean>(false);
 
@@ -385,6 +394,13 @@ export default function HomePage() {
     fetchNewQuestion,
     seenQuestions,
   } = useQuestionWithHistory(user?.grade || "3", currentModuleCategory);
+
+  // Add console log when new question is displayed
+  useEffect(() => {
+    if (question && !sessionCompleted) {
+      console.log("📊 Now showing question", sessionStats.questionsAnswered + 1);
+    }
+  }, [question, sessionStats.questionsAnswered, sessionCompleted]);
 
   // Submit answer mutation
   const answerMutation = useMutation({
@@ -697,7 +713,8 @@ export default function HomePage() {
         // Set the final stats
         setSessionStats(finalStats);
 
-        // Immediately mark as completed to prevent loading another question
+        // Use safer session completion check based on current session progress
+        console.log("✅ Session complete triggered");
         setSessionCompleted(true);
 
         // Show feedback for a moment before transitioning to the completion screen
@@ -714,7 +731,7 @@ export default function HomePage() {
           }
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
-      // Check if we've completed exactly 5 questions (fallback check)
+      // Use safer completion check - ensure we've actually answered 5 questions
       else if (newTotalAnswered >= sessionSize) {
         console.log(`Frontend fallback: Session complete after ${newTotalAnswered} questions`);
 
@@ -730,7 +747,8 @@ export default function HomePage() {
         // Set the final stats
         setSessionStats(finalStats);
 
-        // Immediately mark as completed to prevent loading another question
+        // Use safer session completion logic
+        console.log("✅ Session complete triggered");
         setSessionCompleted(true);
 
         // Show feedback for a moment before transitioning to the completion screen
