@@ -132,6 +132,14 @@ export default function HomePage() {
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const sessionSize = 5; // Size of a question session (changed from 20 to 5)
+  
+  // Monitor session state to ensure completion detection
+  useEffect(() => {
+    if (!sessionCompleted && sessionStats.questionsAnswered >= sessionSize) {
+      console.log(`Safety check: Session should be completed (${sessionStats.questionsAnswered}/${sessionSize} questions answered)`);
+      setSessionCompleted(true);
+    }
+  }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
 
   // Custom loading state we can control (separate from React Query's isLoading)
   const [isManuallyLoading, setIsManuallyLoading] = useState<boolean>(false);
@@ -649,9 +657,13 @@ export default function HomePage() {
       // Calculate the new total questions answered after this answer
       const newTotalAnswered = sessionStats.questionsAnswered + 1;
       
+      console.log(`Answer submitted. New total answered: ${newTotalAnswered}/${sessionSize}`);
+      
       // Check if batch is complete from server response
       // The server tracks batches of 5 questions and sets batchComplete flag
       if (data.batchComplete) {
+        console.log("Server reports batch complete");
+        
         // Update final session stats before showing session complete
         // Include any bonus tokens from perfect score
         const finalStats = {
@@ -693,9 +705,9 @@ export default function HomePage() {
           }
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
-      // Check if we've completed exactly 5 questions
+      // Check if we've completed exactly 5 questions (fallback check)
       else if (newTotalAnswered >= sessionSize) {
-        console.log(`Session complete after ${newTotalAnswered} questions`);
+        console.log(`Frontend fallback: Session complete after ${newTotalAnswered} questions`);
 
         // Update final session stats before showing session complete
         const finalStats = {
@@ -703,6 +715,8 @@ export default function HomePage() {
           correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned,
         };
+
+        console.log(`Final stats: ${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ${finalStats.tokensEarned} tokens`);
 
         // Set the final stats
         setSessionStats(finalStats);
@@ -739,8 +753,13 @@ export default function HomePage() {
   // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
     // Skip loading next question if session is completed OR if we've answered 5 questions
-    if (sessionCompleted || sessionStats.questionsAnswered >= sessionSize) {
-      console.log(`Session completed or reached limit (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`);
+    if (sessionCompleted) {
+      console.log(`Session already completed - skipping next question fetch`);
+      return;
+    }
+    
+    if (sessionStats.questionsAnswered >= sessionSize) {
+      console.log(`Session limit reached (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`);
       return;
     }
 
