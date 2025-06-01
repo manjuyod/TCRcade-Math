@@ -132,7 +132,7 @@ export default function HomePage() {
   // Track answered questions to prevent repetition
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const sessionSize = 5; // Size of a question session (changed from 20 to 5)
-  
+
   // Monitor session state to ensure completion detection
   useEffect(() => {
     if (!sessionCompleted && sessionStats.questionsAnswered >= sessionSize) {
@@ -210,6 +210,9 @@ export default function HomePage() {
             ["/api/questions/next", currentModuleCategory],
             newQuestion,
           );
+
+          // Add console log to check how many questions are loaded
+          console.log("Total questions loaded:", newQuestion ? 1 : 0);
         })
         .catch((error) => {
           console.error("Error fetching initial question:", error);
@@ -333,6 +336,9 @@ export default function HomePage() {
                 ["/api/questions/next", category],
                 newQuestion,
               );
+
+              // Add console log to check how many questions are loaded
+              console.log("Total questions loaded:", newQuestion ? 1 : 0);
             })
             .catch((error) => {
               console.error("Error fetching Math Facts question:", error);
@@ -355,6 +361,9 @@ export default function HomePage() {
                 ["/api/questions/next", category],
                 newQuestion,
               );
+
+              // Add console log to check how many questions are loaded
+              console.log("Total questions loaded:", newQuestion ? 1 : 0);
             })
             .catch((error) => {
               console.error("Error fetching question for new module:", error);
@@ -656,14 +665,14 @@ export default function HomePage() {
 
       // Calculate the new total questions answered after this answer
       const newTotalAnswered = sessionStats.questionsAnswered + 1;
-      
+
       console.log(`Answer submitted. New total answered: ${newTotalAnswered}/${sessionSize}`);
-      
+
       // Check if batch is complete from server response
       // The server tracks batches of 5 questions and sets batchComplete flag
       if (data.batchComplete) {
         console.log("Server reports batch complete");
-        
+
         // Update final session stats before showing session complete
         // Include any bonus tokens from perfect score
         const finalStats = {
@@ -757,7 +766,7 @@ export default function HomePage() {
       console.log(`Session already completed - skipping next question fetch`);
       return;
     }
-    
+
     if (sessionStats.questionsAnswered >= sessionSize) {
       console.log(`Session limit reached (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`);
       return;
