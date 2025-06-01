@@ -177,6 +177,11 @@ export default function DecimalDefenderPlayPage() {
     const newAnswers = [...userAnswers];
     newAnswers[currentIndex] = userAnswer;
     setUserAnswers(newAnswers);
+
+    // Auto-advance after 2 seconds
+    setTimeout(() => {
+      handleNextQuestion();
+    }, 2000);
   };
 
   const handleNextQuestion = () => {
@@ -501,11 +506,7 @@ export default function DecimalDefenderPlayPage() {
 
           {/* Action Button */}
           <div className="flex justify-center">
-            {showFeedback ? (
-              <Button onClick={handleNextQuestion} size="lg" className="min-w-40">
-                {currentIndex + 1 >= questions.length ? 'View Results' : 'Next Question'}
-              </Button>
-            ) : (
+            {!showFeedback && (
               <Button 
                 onClick={handleSubmitAnswer} 
                 disabled={!isAnswerReady()}

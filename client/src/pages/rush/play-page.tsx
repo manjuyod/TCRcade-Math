@@ -232,7 +232,7 @@ export default function MathRushPlayPage() {
           inputRef.current.focus();
         }
       }
-    }, 800);
+    }, 2000);
   };
   
   // Handle game over

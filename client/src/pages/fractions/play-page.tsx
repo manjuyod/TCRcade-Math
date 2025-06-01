@@ -270,10 +270,10 @@ export default function FractionsPlayPage() {
     newAnswers[currentQuestionIndex] = finalAnswer;
     setUserAnswers(newAnswers);
     
-    // Auto-advance to next question after 1.5 seconds
+    // Auto-advance to next question after 2 seconds
     setTimeout(() => {
       handleNext();
-    }, 1500);
+    }, 2000);
   };
 
   const handleNext = () => {
@@ -1043,7 +1043,7 @@ export default function FractionsPlayPage() {
               )}
 
               <div className="mt-8 flex justify-center">
-                {!showFeedback ? (
+                {!showFeedback && (
                   <Button
                     onClick={handleSubmit}
                     disabled={
@@ -1064,15 +1064,6 @@ export default function FractionsPlayPage() {
                     size="lg"
                   >
                     Submit Answer
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleNext}
-                    size="lg"
-                    disabled={completeMutation.isPending}
-                  >
-                    {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Complete Puzzle'}
-                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>

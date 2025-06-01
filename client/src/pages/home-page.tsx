@@ -939,6 +939,7 @@ export default function HomePage() {
               correctAnswer={feedbackData.correctAnswer}
               onNextQuestion={handleNextQuestion}
               batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
+              autoAdvance={true}
             />
           ) : question ? (
             currentModuleType === "word_race" ? (

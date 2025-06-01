@@ -4,45 +4,34 @@ import confetti from 'canvas-confetti';
 import { stopAllSounds } from '@/lib/sounds';
 import { useEffect } from 'react';
 
-type FeedbackMessageProps = {
+interface FeedbackMessageProps {
   correct: boolean;
   tokensEarned: number;
   correctAnswer: string;
   onNextQuestion: () => void;
-  batchComplete?: boolean; // New prop to indicate session is complete
-};
+  batchComplete?: boolean;
+  autoAdvance?: boolean;
+}
 
-export default function FeedbackMessage({ 
-  correct, 
-  tokensEarned, 
-  correctAnswer, 
+export default function FeedbackMessage({
+  correct,
+  tokensEarned,
+  correctAnswer,
   onNextQuestion,
-  batchComplete = false // Default to false for backward compatibility 
+  batchComplete = false,
+  autoAdvance = false,
 }: FeedbackMessageProps) {
-  // Function to handle clicking Next Question
-  const handleNextClick = () => {
-    // Clear any remaining confetti
-    confetti.reset();
-    // Stop any playing sounds to prevent overlap
-    stopAllSounds();
-    // Call the passed onNextQuestion function
-    onNextQuestion();
-  };
 
-  // Auto-advance to next question after 1 second
-  // Skip auto-advance if batch is complete to prevent showing another question
   useEffect(() => {
-    // Only auto-advance if not at the end of a batch
-    if (!batchComplete) {
+    if (autoAdvance && !batchComplete) {
       const timer = setTimeout(() => {
-        handleNextClick();
-      }, 1000);
-      
-      // Clean up timer if component unmounts
+        onNextQuestion();
+      }, 2000);
+
       return () => clearTimeout(timer);
     }
-  }, [batchComplete]);
-  
+  }, [autoAdvance, batchComplete, onNextQuestion]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -73,28 +62,30 @@ export default function FeedbackMessage({
           <i className={`ri-${correct ? 'check' : 'close'}-line text-white text-3xl`}></i>
         </motion.div>
       </div>
-      
+
       <h3 className={`text-xl font-bold mb-2 ${correct ? 'text-secondary' : 'text-danger'}`}>
         {correct ? <strong>Correct!</strong> : 'Not quite!'}
       </h3>
-      
+
       {/* Display additional message based on correct/incorrect */}
       {correct ? (
         <p className="text-gray-600 font-medium">Good Job!</p>
       ) : (
         <p className="text-gray-600">The correct answer is {correctAnswer}</p>
       )}
-      
+
       {/* Next button is still here but will rarely be used due to auto-advance */}
-      <Button
-        onClick={handleNextClick}
-        className="animate-pulse-button arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
+      {!autoAdvance && (
+        <Button
+          onClick={onNextQuestion}
+          className="animate-pulse-button arcade-btn font-bold py-3 px-6 rounded-xl mt-4 text-white
                   shadow-lg transform transition-all duration-300
                   bg-primary hover:bg-primary/80 hover:scale-105 hover:shadow-xl"
-        style={{ minWidth: "180px" }}
-      >
-        Next Question →
-      </Button>
+          style={{ minWidth: "180px" }}
+        >
+          Next Question →
+        </Button>
+      )}
     </motion.div>
   );
 }
