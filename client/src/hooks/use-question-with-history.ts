@@ -219,7 +219,7 @@ export function useQuestionWithHistory(
   };
   
   // Enhanced question fetching with extensive exclusion list
-  const { data, isLoading, error, refetch } = useQuery<Question>({
+  const { data, isLoading, error } = useQuery<Question>({
     queryKey: [...queryKey, queryParams.fetchTrigger, queryParams.forceDynamic],
     queryFn: async () => {
       // Check if this is a Math Facts module
@@ -230,16 +230,12 @@ export function useQuestionWithHistory(
         const operation = category!.split('-').pop();
         
         // Use the non-authenticated endpoint for Math Facts
-        const mathFactsUrl = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}&trigger=${queryParams.fetchTrigger}`;
+        const mathFactsUrl = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
         console.log(`HOOK: Using direct Math Facts endpoint: ${mathFactsUrl}`);
         
         try {
           const response = await fetch(mathFactsUrl, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
+            cache: 'no-store'
           });
           
           if (!response.ok) {
@@ -247,7 +243,7 @@ export function useQuestionWithHistory(
           }
           
           const data = await response.json();
-          console.log(`Math Facts question loaded: ${data?.question?.text || 'Unknown'} (ID: ${data?.id})`);
+          console.log(`Math Facts question loaded: ${data?.question?.text || 'Unknown'}`);
           
           // Record that we've seen this question
           if (data && data.id) {
@@ -304,32 +300,12 @@ export function useQuestionWithHistory(
     refetchOnWindowFocus: false
   });
   
-  // Function to fetch a new question with retry logic
+  // Function to fetch a new question
   const fetchNewQuestion = async (forceDynamic = false) => {
-    console.log('fetchNewQuestion called with forceDynamic:', forceDynamic);
-    
-    // Update query params to trigger refetch
     setQueryParams(prev => ({
       fetchTrigger: prev.fetchTrigger + 1,
       forceDynamic: forceDynamic
     }));
-    
-    // For Math Facts, we need to ensure the query actually refetches
-    try {
-      if (category && category.startsWith('math-facts-')) {
-        await refetch();
-      }
-    } catch (error) {
-      console.error('Error in fetchNewQuestion:', error);
-      // Retry once after a short delay
-      setTimeout(async () => {
-        try {
-          await refetch();
-        } catch (retryError) {
-          console.error('Retry failed:', retryError);
-        }
-      }, 500);
-    }
     
     return Promise.resolve();
   };

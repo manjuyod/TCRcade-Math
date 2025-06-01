@@ -141,10 +141,6 @@ export default function HomePage() {
   // Reference for user activity
   const lastActivityTimeRef = useRef<Date>(new Date());
 
-  // Add state for error handling and session monitoring
-  const [error, setError] = useState<string | null>(null);
-  const [lastQuestionId, setLastQuestionId] = useState<number | null>(null);
-
   // Preload sounds and fetch initial question when component mounts
   useEffect(() => {
     preloadSounds();
@@ -166,10 +162,6 @@ export default function HomePage() {
         `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
         {
           cache: "no-store",
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
         },
       )
         .then((response) => {
@@ -183,9 +175,8 @@ export default function HomePage() {
         .then((data) => {
           // Update the query client directly with the fetched data
           console.log(
-            "Successfully loaded initial Math Facts question:",
+            "Successfully loaded Math Facts question:",
             data?.question?.text || "Unknown",
-            "ID:", data?.id
           );
           const newQuestion = data;
 
@@ -196,8 +187,7 @@ export default function HomePage() {
           );
         })
         .catch((error) => {
-          console.error("Error fetching initial Math Facts question:", error);
-          setError("Failed to load initial question. Please refresh the page.");
+          console.error("Error fetching Math Facts question:", error);
         });
     } else {
       // Regular module - use the standard endpoint
@@ -215,7 +205,6 @@ export default function HomePage() {
         })
         .catch((error) => {
           console.error("Error fetching initial question:", error);
-          setError("Failed to load initial question. Please refresh the page.");
         });
     }
 
@@ -315,10 +304,6 @@ export default function HomePage() {
             `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
             {
               cache: "no-store",
-              headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-              }
             },
           )
             .then((response) => {
@@ -343,7 +328,6 @@ export default function HomePage() {
             })
             .catch((error) => {
               console.error("Error fetching Math Facts question:", error);
-              setError("Failed to load question. Please refresh the page.");
             });
         } else {
           // Regular module - use the standard endpoint, except for decimals which uses dedicated endpoint
@@ -366,17 +350,15 @@ export default function HomePage() {
             })
             .catch((error) => {
               console.error("Error fetching question for new module:", error);
-              setError("Failed to load question. Please refresh the page.");
             });
         }
       } catch (e) {
         console.error("Error getting module details:", e);
-        setError("Failed to load module details. Please refresh the page.");
       }
     } else {
       setCurrentModuleCategory(undefined);
     }
-  }, [currentModuleId, user?.grade]);
+  }, [currentModuleId]);
 
   // Use our enhanced question hook with duplicate prevention
   // This is more reliable than the previous code
@@ -387,218 +369,367 @@ export default function HomePage() {
     seenQuestions,
   } = useQuestionWithHistory(user?.grade || "3", currentModuleCategory);
 
-  // Monitor question changes and add fallback logic
-  const currentQuestion = question;
+  // Submit answer mutation
+  const answerMutation = useMutation({
+    mutationFn: async ({
+      questionId,
+      answer,
+    }: {
+      questionId: number;
+      answer: string;
+    }) => {
+      console.log(
+        `Submitting answer for question ID: ${questionId}, answer: ${answer}`,
+      );
 
-  // Monitor question changes and detect stuck sessions
-  useEffect(() => {
-    if (currentQuestion?.id && currentQuestion.id !== lastQuestionId) {
-      console.log('Question changed from', lastQuestionId, 'to', currentQuestion.id);
-      setLastQuestionId(currentQuestion.id);
-      setError(null); // Clear any previous errors
-    }
-  }, [currentQuestion?.id, lastQuestionId]);
+      try {
+        // Check if this is a Math Facts module
+        const isMathFactsModule = currentModuleId?.startsWith("math-facts-");
 
-  // Add fallback for stuck sessions
-  useEffect(() => {
-    if (currentModuleCategory?.startsWith('math-facts-') && questionsAnswered > 0 && isAnswering) {
-      const timeout = setTimeout(() => {
-        console.warn('Session appears stuck, attempting recovery...');
-        setIsAnswering(false);
-        setShowFeedback(false);
-        fetchNewQuestion(true).catch(error => {
-          console.error('Recovery failed:', error);
-          setError('Session recovery failed. Please refresh the page.');
-        });
-      }, 10000); // 10 second timeout
+        // Extract the operation from module ID
+        const operation = isMathFactsModule
+          ? currentModuleId?.split("-").pop()
+          : "";
 
-      return () => clearTimeout(timeout);
-    }
-  }, [questionsAnswered, isAnswering, currentModuleCategory, fetchNewQuestion]);
+        // For Math Facts modules, we still need to track stats and tokens in the database,
+        // but we'll handle the answer validation locally first for better UX
+        if (isMathFactsModule && question) {
+          console.log(`Math Facts answer processing (${currentModuleId})`);
 
-  // State variable to track if the user is currently answering a question
-  const [isAnswering, setIsAnswering] = useState(false);
+          // Check if the answer is correct for Math Facts
+          const isCorrect = answer === question.answer;
+          const tokensEarned = isCorrect ? 3 : 0;
 
-  // State variables for tracking the user's performance
-  const [questionsAnswered, setQuestionsAnswered] = useState(0);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
+          try {
+            // Make API call to server to update tokens and stats
+            const response = await fetch("/api/answer", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                questionId: questionId,
+                answer: answer,
+                originalAnswer: question.answer,
+                category: `math-facts-${operation}`,
+                grade: user?.grade || "3",
+                isCorrect: isCorrect,
+                tokensEarned: tokensEarned,
+              }),
+            });
 
-  // State variables for the display
-  const [selectedGrade, setSelectedGrade] = useState(user?.grade || "3");
-  const [tokens, setTokens] = useState(user?.tokens || 0);
+            if (response.ok) {
+              const apiResult = await response.json();
+              return apiResult;
+            } else {
+              console.warn(
+                "Math Facts API call failed, falling back to local handling",
+              );
+            }
+          } catch (error) {
+            console.warn("Error making Math Facts API call:", error);
+          }
 
-  // Handle answer submission
-  const handleAnswer = async (selectedAnswer: string) => {
-    if (!currentQuestion || isAnswering) return;
-
-    setIsAnswering(true);
-    setShowFeedback(false);
-
-    // Calculate if answer is correct
-    const isCorrect = selectedAnswer === currentQuestion.answer;
-    setLastAnswerCorrect(isCorrect);
-
-    // Update session stats
-    const newQuestionsAnswered = questionsAnswered + 1;
-    setQuestionsAnswered(newQuestionsAnswered);
-    if (isCorrect) {
-      setCorrectAnswers(prev => prev + 1);
-    }
-
-    console.log(`Question ${newQuestionsAnswered} answered. Correct: ${isCorrect}`);
-
-    try {
-      // Submit answer to server
-      const response = await fetch('/api/answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          questionId: currentQuestion.id,
-          answer: selectedAnswer,
-          correct: isCorrect,
-          timeSpent: 0,
-          category: currentModuleCategory,
-          grade: selectedGrade
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setTokens(result.userTokens || tokens);
-
-        // Show feedback
-        setShowFeedback(true);
-
-        // Play appropriate sound
-        if (isCorrect) {
-          playSound('correct');
-        } else {
-          playSound('incorrect');
+          // Fallback to simulated response if API call fails
+          return {
+            correct: isCorrect,
+            tokensEarned: tokensEarned,
+            totalTokens: user?.tokens || 0,
+            correctAnswer: question.answer,
+          };
         }
 
-        // Wait for feedback, then fetch new question (unless session is complete)
-        setTimeout(async () => {
+        // For regular authenticated questions, proceed with normal API call
+        if (question && questionId === question.id) {
+          const result = await submitAnswer(
+            questionId,
+            answer,
+            question.answer, // Pass the original correct answer
+            question.question, // Pass the original question text
+          );
+          return result;
+        } else {
+          // Fallback if we don't have the current question context
+          const result = await submitAnswer(questionId, answer);
+          return result;
+        }
+      } catch (error) {
+        console.error(`Error submitting answer: ${error}`);
+
+        // If error is authentication related and we're in a Math Facts module,
+        // continue with local answer handling
+        if (
+          String(error).includes("401") &&
+          currentModuleId?.startsWith("math-facts-") &&
+          question
+        ) {
+          console.log("401 error, handling Math Facts answer locally");
+
+          // Check if the answer is correct
+          const isCorrect = answer === question.answer;
+          const tokensEarned = isCorrect ? 3 : 0;
+
+          // DON'T update session stats here - it will be handled in onSuccess
+          // to prevent double-counting when the component re-renders
+
+          // Return a simulated API response
+          return {
+            correct: isCorrect,
+            tokensEarned: tokensEarned,
+            totalTokens: 0,
+            correctAnswer: question.answer,
+          };
+        }
+
+        // For other errors, force a new dynamic question
+        fetchNewQuestion(true);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      // Play sound based on result
+      playSound(data.correct ? "correct" : "incorrect");
+
+      // Invalidate user data to refresh token count and question stats in the header and profile
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+
+      // Also invalidate progress data to ensure analytics are updated
+      queryClient.invalidateQueries({ queryKey: ["/api/progress"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+
+      // Show feedback
+      setFeedbackData({
+        correct: data.correct,
+        tokensEarned: data.tokensEarned,
+        correctAnswer: data.correctAnswer,
+      });
+      setShowFeedback(true);
+
+      // Add question to answered questions
+      if (question) {
+        setAnsweredQuestionIds((prev) => [...prev, question.id]);
+      }
+
+      // Always update session stats for any module type (including Math Facts modules)
+      // This ensures we always track correct answers consistently
+      setSessionStats((prev) => ({
+        questionsAnswered: prev.questionsAnswered + 1,
+        correctAnswers: prev.correctAnswers + (data.correct ? 1 : 0),
+        tokensEarned: prev.tokensEarned + data.tokensEarned,
+      }));
+
+      // Log for debugging purposes
+      console.log("Updated session stats after answer");
+
+      // Update streak counter
+      if (data.correct) {
+        // Calculate the new streak count
+        const newStreakCount = currentStreak + 1;
+
+        // Increment the streak counter for correct answers
+        setCurrentStreak(newStreakCount);
+
+        // Check if we've hit a milestone - EVEN MORE SIMPLIFIED VERSION
+        // This won't create any new objects or cause React update issues
+        let milestone = 0;
+        for (let i = 0; i < STREAK_MILESTONES.length; i++) {
+          if (STREAK_MILESTONES[i] === newStreakCount) {
+            milestone = STREAK_MILESTONES[i];
+            break;
+          }
+        }
+
+        if (milestone) {
+          try {
+            // Add bonus tokens for streak milestones
+            if (user) {
+              const bonusTokens = milestone * 2; // 2x tokens for each milestone
+
+              // First update local user data
+              queryClient.setQueryData(["/api/user"], {
+                ...user,
+                tokens: user.tokens + bonusTokens,
+              });
+
+              // Streak animation completely removed - all state updates removed
+
+              // STREAK ANIMATION REMOVED - Don't show any streak animations
+              // They were causing React maximum update depth errors
+              console.log(
+                `Reached ${newStreakCount} streak milestone, awarding bonus tokens only`,
+              );
+
+              // NO ANIMATIONS, just silently award the bonus tokens
+            }
+          } catch (e) {
+            console.error("Error handling streak bonus:", e);
+          }
+        }
+      } else {
+        // Reset streak counter for incorrect answers
+        setCurrentStreak(0);
+      }
+
+      // Update user data
+      if (user) {
+        // Check if user has enough tokens to advance to the next grade
+        let updatedGrade = user.grade;
+        let shouldShowLevelUp = false;
+
+        // Only check if user is not at the highest grade (6th)
+        if (
+          user.grade &&
+          user.grade !== "6" &&
+          GRADE_ADVANCEMENT_TOKENS[
+            user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS
+          ]
+        ) {
+          const requiredTokens =
+            GRADE_ADVANCEMENT_TOKENS[
+              user.grade as keyof typeof GRADE_ADVANCEMENT_TOKENS
+            ];
+
+          // If user will have enough tokens after this answer
+          if (data.totalTokens >= requiredTokens) {
+            // Get the next grade level
+            const currentGradeIdx = Object.keys(
+              GRADE_ADVANCEMENT_TOKENS,
+            ).indexOf(user.grade);
+            updatedGrade = Object.keys(GRADE_ADVANCEMENT_TOKENS)[
+              currentGradeIdx + 1
+            ];
+            shouldShowLevelUp = true;
+
+            // Set level up details to trigger animation
+            setNewLevel(updatedGrade);
+
+            // Queue level up animation after a short delay
+            setTimeout(() => {
+              setShowLevelUpAnimation(true);
+
+              // Force dismissal after 2 seconds to prevent app crash
+              setTimeout(() => {
+                setShowLevelUpAnimation(false);
+              }, 2000);
+            }, 1500);
+          }
+        }
+
+        // Store current token count to avoid infinite loop when updating user data
+        const finalTokens = data.totalTokens;
+        const updatedQuestionsAnswered = user.questionsAnswered + 1;
+        const updatedCorrectAnswers =
+          user.correctAnswers + (data.correct ? 1 : 0);
+
+        // Update user data including grade if advanced - but don't trigger a re-render cascade
+        // by avoiding multiple updates to the same data
+        queryClient.setQueryData(["/api/user"], (prevUser) => {
+          if (!prevUser) return null;
+
+          // If the data is the same as what we just set, don't update to avoid infinite loop
+          if (
+            (prevUser as any).tokens === finalTokens &&
+            (prevUser as any).grade === updatedGrade &&
+            (prevUser as any).questionsAnswered === updatedQuestionsAnswered
+          ) {
+            return prevUser;
+          }
+
+          return {
+            ...prevUser,
+            tokens: finalTokens,
+            grade: updatedGrade,
+            questionsAnswered: updatedQuestionsAnswered,
+            correctAnswers: updatedCorrectAnswers,
+          };
+        });
+      }
+
+      // Check if batch is complete from server response
+      // The server tracks batches of 5 questions and sets batchComplete flag
+      if (data.batchComplete) {
+        // Update final session stats before showing session complete
+        // Include any bonus tokens from perfect score
+        const finalStats = {
+          questionsAnswered: sessionSize, // Always exactly 5 questions
+          correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
+          tokensEarned:
+            sessionStats.tokensEarned +
+            data.tokensEarned +
+            (data.bonusTokens || 0),
+        };
+
+        // Log session completion for debugging
+        console.log(
+          "Batch complete! Stats:",
+          `${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ` +
+            `${finalStats.tokensEarned} tokens earned` +
+            (data.bonusAwarded
+              ? ` (includes ${data.bonusTokens} bonus tokens)`
+              : ""),
+        );
+
+        // Set the final stats
+        setSessionStats(finalStats);
+
+        // Immediately mark as completed to prevent loading another question
+        setSessionCompleted(true);
+
+        // Show feedback for a moment before transitioning to the completion screen
+        setTimeout(() => {
           setShowFeedback(false);
 
-          // Check if session should continue (Math Facts typically runs indefinitely until user stops)
-          const shouldContinue = currentModuleCategory?.startsWith('math-facts-') || newQuestionsAnswered < 10;
-
-          if (shouldContinue) {
-            // Fetch new question using the hook
-            try {
-              console.log('Fetching new question after answer submission...');
-              await fetchNewQuestion(true);
-            } catch (error) {
-              console.error('Error fetching new question:', error);
-              // Retry once
-              setTimeout(async () => {
-                try {
-                  await fetchNewQuestion(true);
-                } catch (retryError) {
-                  console.error('Retry failed:', retryError);
-                  setError('Failed to load next question. Please refresh the page.');
-                }
-              }, 1000);
-            }
+          // Play session complete sound based on whether bonus was awarded
+          if (data.bonusAwarded) {
+            // Play perfect score sound if bonus was awarded (all 5 correct)
+            playSound("perfectScore");
+          } else {
+            // Play regular completion sound
+            playSound("sessionComplete");
           }
-
-          setIsAnswering(false);
-        }, 2000);
+        }, 2000); // Show feedback for 2 seconds before showing session complete
       }
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      setError('Failed to submit answer');
-      setIsAnswering(false);
-    }
-  };
+      // Legacy fallback check in case server doesn't send batchComplete flag
+      else if (sessionStats.questionsAnswered + 1 >= sessionSize) {
+        console.log("Using legacy batch completion check (5 questions)");
 
-  // Effect to start initial session
-  useEffect(() => {
-    if (!user) return;
+        // Update final session stats before showing session complete
+        const finalStats = {
+          questionsAnswered: sessionSize, // Always exactly 5 questions
+          correctAnswers: sessionStats.correctAnswers + (data.correct ? 1 : 0),
+          tokensEarned: sessionStats.tokensEarned + data.tokensEarned,
+        };
 
-    const moduleId = user.currentModule;
-    if (!moduleId) return;
+        // Set the final stats
+        setSessionStats(finalStats);
 
-    // Set current module category for consistent state
-    setCurrentModuleCategory(moduleId);
+        // Immediately mark as completed to prevent loading another question
+        setSessionCompleted(true);
 
-    // Extract grade and category for Math Facts modules
-    const isMathFactsModule = moduleId.startsWith("math-facts-");
-    if (isMathFactsModule) {
-      // Math Facts modules: grade stored in user profile, category is the module ID
-      const grade = user.grade || "3";
-      const category = moduleId; // e.g., "math-facts-addition"
-      const operation = moduleId.split("-").pop(); // Extract operation
+        // Show feedback for a moment before transitioning to the completion screen
+        setTimeout(() => {
+          setShowFeedback(false);
 
-      setSelectedGrade(grade);
-
-      // Use our non-authenticated endpoint for Math Facts
-      fetch(
-        `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
-        {
-          cache: "no-store",
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+          // Play session complete sound based on performance
+          if (finalStats.correctAnswers === sessionSize) {
+            // Play perfect score sound if all questions are correct
+            playSound("perfectScore");
+          } else {
+            // Play regular completion sound
+            playSound("sessionComplete");
           }
-        },
-      )
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch Math Facts question: ${response.status}`,
-            );
-          }
-          return response.json();
-        })
-        .then((data) => {
-          // Update the query client directly with the fetched data
-          console.log(
-            "Successfully loaded initial Math Facts question:",
-            data?.question?.text || "Unknown",
-            "ID:", data?.id
-          );
-          const newQuestion = data;
-          queryClient.setQueryData(
-            ["/api/questions/next", category],
-            newQuestion,
-          );
-        })
-        .catch((error) => {
-          console.error("Error fetching initial Math Facts question:", error);
-          setError("Failed to load initial question. Please refresh the page.");
-        });
-    } else {
-      // Regular module - use the standard endpoint, except for decimals which uses dedicated endpoint
-      const url =
-        category === "decimals"
-          ? "/api/modules/decimal-defender/questions"
-          : `/api/questions/next?category=${category}&forceDynamic=true`;
-
-      fetch(url, { credentials: "include" })
-        .then((response) => response.json())
-        .then((data) => {
-          const newQuestion = data.question || data;
-          queryClient.setQueryData(
-            ["/api/questions/next", currentModuleCategory],
-            newQuestion,
-          );
-        })
-        .catch((error) => {
-          console.error("Error fetching initial question:", error);
-          setError("Failed to load initial question. Please refresh the page.");
-        });
-    }
-  }, [user, currentModuleCategory]);
+        }, 2000); // Show feedback for 2 seconds before showing session complete
+      }
+    },
+  });
 
   const handleAnswerSubmit = (answer: string) => {
     // Update last activity time to track user engagement
     lastActivityTimeRef.current = new Date();
 
     if (question) {
-      handleAnswer(answer);
+      answerMutation.mutate({ questionId: question.id, answer });
     }
   };
 
@@ -639,11 +770,6 @@ export default function HomePage() {
       correctAnswers: 0,
       tokensEarned: 0,
     });
-
-    // Reset all session stats
-    setQuestionsAnswered(0);
-    setCorrectAnswers(0);
-    setLastAnswerCorrect(false);
 
     // Clear tracking for a new session
     setAnsweredQuestionIds([]);
@@ -894,7 +1020,6 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold mb-2">
                 No Questions Available
               </h3>
-              {error && <p className="text-red-500">{error}</p>}
               <p className="text-gray-600 mb-4">
                 We couldn't find any questions for grade {user?.grade || "K"}
                 {currentModuleCategory
@@ -912,7 +1037,7 @@ export default function HomePage() {
                   variant="outline"
                   onClick={() => {
                     // Set a different grade
-                    const availableGrades = ["K","1", "2", "3", "4", "5", "6"];
+                    const availableGrades = ["K", "1", "2", "3", "4", "5", "6"];
                     const currentIndex = availableGrades.indexOf(
                       user?.grade || "K",
                     );
@@ -946,7 +1071,7 @@ export default function HomePage() {
           {!sessionCompleted && (
             <div className="mt-4 text-center">
               <span className="text-gray-600 text-sm">
-                Session Progress: {questionsAnswered}/{sessionSize}{" "}
+                Session Progress: {sessionStats.questionsAnswered}/{sessionSize}{" "}
                 questions
               </span>
             </div>
