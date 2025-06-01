@@ -1050,6 +1050,7 @@ export default function HomePage() {
                       setSessionStats(finalStats);
 
                       setTimeout(() => {
+                        console.log("✅ Session complete triggered");
                         setSessionCompleted(true);
                         setShowFeedback(false);
 
