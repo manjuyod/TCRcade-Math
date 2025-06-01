@@ -646,6 +646,9 @@ export default function HomePage() {
         });
       }
 
+      // Calculate the new total questions answered after this answer
+      const newTotalAnswered = sessionStats.questionsAnswered + 1;
+      
       // Check if batch is complete from server response
       // The server tracks batches of 5 questions and sets batchComplete flag
       if (data.batchComplete) {
@@ -690,9 +693,9 @@ export default function HomePage() {
           }
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
-      // Legacy fallback check in case server doesn't send batchComplete flag
-      else if (sessionStats.questionsAnswered + 1 >= sessionSize) {
-        console.log("Using legacy batch completion check (5 questions)");
+      // Check if we've completed exactly 5 questions
+      else if (newTotalAnswered >= sessionSize) {
+        console.log(`Session complete after ${newTotalAnswered} questions`);
 
         // Update final session stats before showing session complete
         const finalStats = {
@@ -735,9 +738,9 @@ export default function HomePage() {
 
   // Much simpler next question handler using our improved hook
   const handleNextQuestion = () => {
-    // Skip loading next question if session is completed
-    if (sessionCompleted) {
-      console.log("Session completed - skipping next question fetch");
+    // Skip loading next question if session is completed OR if we've answered 5 questions
+    if (sessionCompleted || sessionStats.questionsAnswered >= sessionSize) {
+      console.log(`Session completed or reached limit (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`);
       return;
     }
 
@@ -1071,7 +1074,7 @@ export default function HomePage() {
           {!sessionCompleted && (
             <div className="mt-4 text-center">
               <span className="text-gray-600 text-sm">
-                Session Progress: {sessionStats.questionsAnswered}/{sessionSize}{" "}
+                Session Progress: {Math.min(sessionStats.questionsAnswered, sessionSize)}/{sessionSize}{" "}
                 questions
               </span>
             </div>
