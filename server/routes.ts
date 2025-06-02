@@ -6,7 +6,11 @@ import { setupAuth } from "./auth";
 import { questions, User, UserProgress } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { calcTokensRush, calcTokensFacts, validateTokenAmount } from "./utils/token";
+import {
+  calcTokensRush,
+  calcTokensFacts,
+  validateTokenAmount,
+} from "./utils/token";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -127,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Basic route logging for debugging
   app.use((req, res, next) => {
     // Only log API routes, skip static assets
-    if (req.url.startsWith('/api/')) {
+    if (req.url.startsWith("/api/")) {
       console.log(`${req.method} ${req.url}`);
     }
     next();
@@ -137,9 +141,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Add basic API logging
-  app.use('/api/*', (req, res, next) => {
+  app.use("/api/*", (req, res, next) => {
     // Only log non-routine API calls for debugging
-    if (!req.originalUrl.includes('/questions/next') && !req.originalUrl.includes('/assets/')) {
+    if (
+      !req.originalUrl.includes("/questions/next") &&
+      !req.originalUrl.includes("/assets/")
+    ) {
       console.log(`API: ${req.method} ${req.originalUrl}`);
     }
     next();
@@ -160,11 +167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/modules/decimal-defender/questions", async (req, res) => {
     try {
       const questions = await generateDecimalDefenderQuestions("rounding", 10);
-      
+
       // Set proper headers
-      res.setHeader('Content-Type', 'application/json');
+      res.setHeader("Content-Type", "application/json");
       res.json(questions);
-      
     } catch (error) {
       console.error("Error generating decimal questions:", error);
       res.status(500).json({ error: "Failed to generate decimal questions" });
@@ -255,15 +261,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (req.session as any).seenQuestions = [];
         (req.session as any).currentBatch = undefined;
       }
-      
+
       console.log("Session data cleared for fresh question generation");
       res.json({ success: true, message: "Session cleared" });
     } catch (error) {
       console.error("Error clearing session:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "Failed to clear session",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -702,6 +708,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Safely access the user ID
       const userId = getUserId(req);
 
+      const sessionData = req.session as any;
+
+      // DEBUG: Log current session state
+      console.log("=== ANSWER SUBMISSION DEBUG ===");
+      console.log("Question ID:", req.body.questionId);
+      console.log("Current session batch state:", sessionData.currentBatch);
+
+      // SAFETY: Reset batch if it's somehow already complete or invalid
+      if (sessionData.currentBatch) {
+        if (sessionData.currentBatch.count >= 5) {
+          console.log("WARNING: Found completed batch in session, resetting");
+          sessionData.currentBatch = undefined;
+        } else if (!Array.isArray(sessionData.currentBatch.questions)) {
+          console.log("WARNING: Invalid batch structure, resetting");
+          sessionData.currentBatch = undefined;
+        }
+      }
+      // END DEBUG CODE
+
       // Extract question ID and answer from request body with validation
       const {
         questionId,
@@ -761,7 +786,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Validate token amount
         if (!validateTokenAmount(tokensEarned)) {
-          console.error("Invalid token amount calculated for math facts:", tokensEarned);
+          console.error(
+            "Invalid token amount calculated for math facts:",
+            tokensEarned,
+          );
           tokensEarned = 0;
         }
 
@@ -776,9 +804,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tokensEarned = isCorrect ? calculateTokenReward(question) : 0;
       }
 
-      // Cast session to 'any' to avoid TypeScript errors
-      const sessionData = req.session as any;
-
       // Initialize or update session batch tracking
       if (!sessionData.currentBatch) {
         // Start a new batch
@@ -788,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           start: new Date(),
           count: 1,
         };
-        console.log("Started new question batch:", sessionData.currentBatch);
+        console.log("✅ Started new question batch:", sessionData.currentBatch);
       } else {
         // Update existing batch
         sessionData.currentBatch.questions.push(questionId);
@@ -796,18 +821,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sessionData.currentBatch.correctAnswers.push(questionId);
         }
         sessionData.currentBatch.count += 1;
-        console.log("Updated batch progress:", sessionData.currentBatch);
+        console.log("📊 Updated batch progress:", sessionData.currentBatch);
       }
+
+      // 🔧 MORE DETAILED LOGGING
+      console.log(
+        `Batch status: ${sessionData.currentBatch.count}/5 questions`,
+      );
+      console.log(
+        `Correct answers in batch: ${sessionData.currentBatch.correctAnswers.length}`,
+      );
 
       // Check if this completes a batch of 5 questions
       const batchComplete = sessionData.currentBatch.count >= 5;
+      console.log(
+        `Batch complete check: ${sessionData.currentBatch.count} >= 5 = ${batchComplete}`,
+      );
 
       // Check if all 5 answers in the batch were correct for the perfect score bonus
       const allCorrect =
         batchComplete && sessionData.currentBatch.correctAnswers.length === 5;
+      console.log(
+        `All correct check: batchComplete(${batchComplete}) && correctAnswers(${sessionData.currentBatch.correctAnswers.length}) === 5 = ${allCorrect}`,
+      );
 
       // Calculate bonus tokens (20 tokens for perfect score in a batch of 5)
       const bonusTokens = allCorrect ? 20 : 0;
+      console.log(`Bonus tokens awarded: ${bonusTokens}`);
+      // END OF INSERTED BATCH LOGIC
 
       // Reset batch if complete
       if (batchComplete) {
@@ -870,8 +911,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (totalTokensToAdd > 0 && updatedUser) {
               const tokenNamespace = (global as any).tokenNamespace;
               if (tokenNamespace) {
-                tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser.tokens);
-                console.log(`Emitted token update for user ${userId}: ${updatedUser.tokens} tokens`);
+                tokenNamespace
+                  .to(`user_${userId}`)
+                  .emit("token_updated", updatedUser.tokens);
+                console.log(
+                  `Emitted token update for user ${userId}: ${updatedUser.tokens} tokens`,
+                );
               }
             }
 
@@ -1049,7 +1094,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/concept-map/:grade/:concept",
     ensureAuthenticated,
     async (req, res) => {
-      try {        const { grade, concept } = req.params;
+      try {
+        const { grade, concept } = req.params;
 
         const conceptMap = await generateConceptMap(grade, concept);
         res.json(conceptMap);
@@ -1260,7 +1306,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Emit real-time token update to client
           const tokenNamespace = (global as any).tokenNamespace;
           if (tokenNamespace) {
-            tokenNamespace.to(`user_${userId}`).emit("token_updated", newBalance);
+            tokenNamespace
+              .to(`user_${userId}`)
+              .emit("token_updated", newBalance);
           }
 
           // Log the completion
@@ -1284,15 +1332,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
-
   // Decimal Defender API routes
   app.get("/api/decimals/questions", async (req, res) => {
     try {
       const { skill = "rounding" } = req.query;
-      
-      const questions = await generateDecimalDefenderQuestions(skill as string, DECIMAL_DEFENDER_RULES.questionsPerSession);
-      
+
+      const questions = await generateDecimalDefenderQuestions(
+        skill as string,
+        DECIMAL_DEFENDER_RULES.questionsPerSession,
+      );
+
       res.json({ questions });
     } catch (error) {
       console.error("Error generating decimal questions:", error);
@@ -1300,50 +1349,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/decimal-defender/complete', ensureAuthenticated, async (req, res) => {
-    try {
-      const { correct, total, skill } = req.body;
-      const userId = getUserId(req);
+  app.post(
+    "/api/decimal-defender/complete",
+    ensureAuthenticated,
+    async (req, res) => {
+      try {
+        const { correct, total, skill } = req.body;
+        const userId = getUserId(req);
 
-      if (typeof correct !== 'number' || typeof total !== 'number') {
-        return res.status(400).json({ error: 'Invalid request data' });
-      }
-
-      // Calculate tokens
-      const baseTokens = correct * DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer;
-      const bonusTokens = correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0;
-      const tokensEarned = baseTokens + bonusTokens;
-
-      // Update user tokens
-      const user = await storage.getUser(userId);
-      if (user) {
-        const updatedUser = await storage.updateUser(userId, {
-          tokens: (user.tokens || 0) + tokensEarned,
-          questionsAnswered: (user.questionsAnswered || 0) + total,
-          correctAnswers: (user.correctAnswers || 0) + correct,
-        });
-
-        // Emit real-time token update to client
-        const tokenNamespace = (global as any).tokenNamespace;
-        if (tokenNamespace) {
-          tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser?.tokens || 0);
+        if (typeof correct !== "number" || typeof total !== "number") {
+          return res.status(400).json({ error: "Invalid request data" });
         }
 
-        console.log(`User ${userId} completed Decimal Defender with ${correct}/${total} correct. Earned ${tokensEarned} tokens.`);
-      }
+        // Calculate tokens
+        const baseTokens =
+          correct * DECIMAL_DEFENDER_RULES.tokensPerCorrectAnswer;
+        const bonusTokens =
+          correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0;
+        const tokensEarned = baseTokens + bonusTokens;
 
-      res.json({ 
-        success: true, 
-        tokens: tokensEarned,
-        totalTokens: (user?.tokens || 0) + tokensEarned,
-        correct,
-        total 
-      });
-    } catch (error) {
-      console.error('Error completing decimal defender session:', error);
-      res.status(500).json({ error: 'Failed to complete session' });
-    }
-  });
+        // Update user tokens
+        const user = await storage.getUser(userId);
+        if (user) {
+          const updatedUser = await storage.updateUser(userId, {
+            tokens: (user.tokens || 0) + tokensEarned,
+            questionsAnswered: (user.questionsAnswered || 0) + total,
+            correctAnswers: (user.correctAnswers || 0) + correct,
+          });
+
+          // Emit real-time token update to client
+          const tokenNamespace = (global as any).tokenNamespace;
+          if (tokenNamespace) {
+            tokenNamespace
+              .to(`user_${userId}`)
+              .emit("token_updated", updatedUser?.tokens || 0);
+          }
+
+          console.log(
+            `User ${userId} completed Decimal Defender with ${correct}/${total} correct. Earned ${tokensEarned} tokens.`,
+          );
+        }
+
+        res.json({
+          success: true,
+          tokens: tokensEarned,
+          totalTokens: (user?.tokens || 0) + tokensEarned,
+          correct,
+          total,
+        });
+      } catch (error) {
+        console.error("Error completing decimal defender session:", error);
+        res.status(500).json({ error: "Failed to complete session" });
+      }
+    },
+  );
 
   // Fractions Puzzle routes
   app.get("/api/fractions/questions", async (req, res) => {
@@ -1351,7 +1410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { skill = "define" } = req.query;
 
       const questions = Array.from({ length: R.questionCount }, (_, i) =>
-        generateFractionsPuzzle(skill as any, i)
+        generateFractionsPuzzle(skill as any, i),
       );
       res.json({ questions });
     } catch (error) {
@@ -1366,28 +1425,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
 
       // Calculate tokens
-      const tokens = Math.floor(correct / 5) * R.tokensPer5 + (correct === total ? R.bonusPerfect : 0);
+      const tokens =
+        Math.floor(correct / 5) * R.tokensPer5 +
+        (correct === total ? R.bonusPerfect : 0);
 
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
-        const updatedUser = await storage.updateUser(userId, { 
-          tokens: (user.tokens || 0) + tokens 
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: (user.tokens || 0) + tokens,
         });
 
         // Emit real-time token update to client
         const tokenNamespace = (global as any).tokenNamespace;
         if (tokenNamespace) {
-          tokenNamespace.to(`user_${userId}`).emit("token_updated", updatedUser?.tokens || 0);
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", updatedUser?.tokens || 0);
         }
       }
 
       // Update concept mastery for fractions
       await storage.updateConceptMastery(
-        userId, 
-        `fractions-${skill}`, 
+        userId,
+        `fractions-${skill}`,
         "3", // Grade 3+ for fractions
-        correct === total // Perfect score means mastery
+        correct === total, // Perfect score means mastery
       );
 
       res.json({ tokens, totalTokens: (user?.tokens || 0) + tokens });
@@ -1491,18 +1554,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+    },
   });
 
   // Create dedicated namespace for token updates
-  const tokenNamespace = io.of('/tokens');
+  const tokenNamespace = io.of("/tokens");
 
-  tokenNamespace.on('connection', (socket) => {
-    console.log('Client connected to token namespace:', socket.id);
+  tokenNamespace.on("connection", (socket) => {
+    console.log("Client connected to token namespace:", socket.id);
 
-    socket.on('disconnect', () => {
-      console.log('Client disconnected from token namespace:', socket.id);
+    socket.on("disconnect", () => {
+      console.log("Client disconnected from token namespace:", socket.id);
     });
   });
 

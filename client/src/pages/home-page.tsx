@@ -135,9 +135,15 @@ export default function HomePage() {
 
   // Monitor session state to ensure completion detection - only after all questions are actually answered
   useEffect(() => {
-    if (!sessionCompleted && sessionStats.questionsAnswered >= sessionSize) {
-      console.log(`Safety check: Session should be completed (${sessionStats.questionsAnswered}/${sessionSize} questions answered)`);
-      setSessionCompleted(true);
+    if (
+      false &&
+      !sessionCompleted &&
+      sessionStats.questionsAnswered >= sessionSize
+    ) {
+      console.log(
+        `Safety check: Session should be completed (${sessionStats.questionsAnswered}/${sessionSize} questions answered)`,
+      );
+      // DISABLED: setSessionCompleted(true);
     }
   }, [sessionStats.questionsAnswered, sessionCompleted, sessionSize]);
 
@@ -389,7 +395,10 @@ export default function HomePage() {
   // Add console log when new question is displayed
   useEffect(() => {
     if (question && !sessionCompleted) {
-      console.log("📊 Now showing question", sessionStats.questionsAnswered + 1);
+      console.log(
+        "📊 Now showing question",
+        sessionStats.questionsAnswered + 1,
+      );
     }
   }, [question, sessionStats.questionsAnswered, sessionCompleted]);
 
@@ -673,7 +682,9 @@ export default function HomePage() {
       // Calculate the new total questions answered after this answer
       const newTotalAnswered = sessionStats.questionsAnswered + 1;
 
-      console.log(`Answer submitted. New total answered: ${newTotalAnswered}/${sessionSize}`);
+      console.log(
+        `Answer submitted. New total answered: ${newTotalAnswered}/${sessionSize}`,
+      );
 
       // Check if batch is complete from server response
       // The server tracks batches of 5 questions and sets batchComplete flag
@@ -723,8 +734,10 @@ export default function HomePage() {
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
       // Use safer completion check - ensure we've actually answered 5 questions
-      else if (newTotalAnswered >= sessionSize) {
-        console.log(`Frontend fallback: Session complete after ${newTotalAnswered} questions`);
+      else if (false && newTotalAnswered >= sessionSize) {
+        console.log(
+          `Frontend fallback: Session complete after ${newTotalAnswered} questions`,
+        );
 
         // Update final session stats before showing session complete
         const finalStats = {
@@ -733,14 +746,16 @@ export default function HomePage() {
           tokensEarned: sessionStats.tokensEarned + data.tokensEarned,
         };
 
-        console.log(`Final stats: ${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ${finalStats.tokensEarned} tokens`);
+        console.log(
+          `Final stats: ${finalStats.correctAnswers}/${finalStats.questionsAnswered} correct, ${finalStats.tokensEarned} tokens`,
+        );
 
         // Set the final stats
         setSessionStats(finalStats);
 
         // Use safer session completion logic
         console.log("✅ Session complete triggered");
-        setSessionCompleted(true);
+        // setSessionCompleted(true);
 
         // Show feedback for a moment before transitioning to the completion screen
         setTimeout(() => {
@@ -777,7 +792,9 @@ export default function HomePage() {
     }
 
     if (sessionStats.questionsAnswered >= sessionSize) {
-      console.log(`Session limit reached (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`);
+      console.log(
+        `Session limit reached (${sessionStats.questionsAnswered}/${sessionSize}) - skipping next question fetch`,
+      );
       return;
     }
 
@@ -802,7 +819,7 @@ export default function HomePage() {
   };
 
   // Simpler version with our improved hook
-  const handleStartNewSession = () => {
+  const handleStartNewSession = async () => {
     // Reset session
     setSessionCompleted(false);
     setSessionStats({
@@ -813,6 +830,17 @@ export default function HomePage() {
 
     // Clear tracking for a new session
     setAnsweredQuestionIds([]);
+
+    // 🔧 NEW: Clear server-side session batch tracking
+    try {
+      await fetch("/api/session/clear", {
+        method: "POST",
+        credentials: "include",
+      });
+      console.log("✅ Server session cleared for new batch");
+    } catch (error) {
+      console.error("Failed to clear server session:", error);
+    }
 
     // Set loading to show spinner during fetch
     setIsManuallyLoading(true);
@@ -978,7 +1006,7 @@ export default function HomePage() {
               tokensEarned={feedbackData.tokensEarned}
               correctAnswer={feedbackData.correctAnswer}
               onNextQuestion={handleNextQuestion}
-              batchComplete={sessionStats.questionsAnswered >= sessionSize - 1}
+              batchComplete={sessionCompleted}
               autoAdvance={true}
             />
           ) : question ? (
@@ -1042,7 +1070,7 @@ export default function HomePage() {
 
                       setTimeout(() => {
                         console.log("✅ Session complete triggered");
-                        setSessionCompleted(true);
+                        // setSessionCompleted(true);
                         setShowFeedback(false);
 
                         // Play session complete sound - always regular since we timed out the last question
@@ -1112,8 +1140,9 @@ export default function HomePage() {
           {!sessionCompleted && (
             <div className="mt-4 text-center">
               <span className="text-gray-600 text-sm">
-                Session Progress: {Math.min(sessionStats.questionsAnswered, sessionSize)}/{sessionSize}{" "}
-                questions
+                Session Progress:{" "}
+                {Math.min(sessionStats.questionsAnswered, sessionSize)}/
+                {sessionSize} questions
               </span>
             </div>
           )}
