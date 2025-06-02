@@ -1,36 +1,26 @@
 <svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
-  <!-- Sky background -->
-  <rect width="100%" height="100%" fill="#4A4A4A"/>
-
-  <!-- Clouds -->
-  <ellipse cx="80" cy="80" rx="30" ry="15" fill="#666666" opacity="0.6"/>
-  <ellipse cx="320" cy="60" rx="25" ry="12" fill="#666666" opacity="0.6"/>
-  <ellipse cx="350" cy="120" rx="20" ry="10" fill="#666666" opacity="0.6"/>
-
-  <!-- Ground -->
-  <rect x="0" y="550" width="400" height="50" fill="#2F4F2F"/>
 
   <!-- Building base (wider) -->
-  <rect x="120" y="400" width="160" height="150" fill="#808080" stroke="#606060" stroke-width="2"/>
+  <rect x="120" y="400" width="160" height="150" fill="#505050" stroke="#404040" stroke-width="2"/>
 
   <!-- Middle section -->
-  <rect x="140" y="300" width="120" height="100" fill="#909090" stroke="#606060" stroke-width="2"/>
+  <rect x="140" y="300" width="120" height="100" fill="#606060" stroke="#404040" stroke-width="2"/>
 
   <!-- Upper section -->
-  <rect x="160" y="200" width="80" height="100" fill="#A0A0A0" stroke="#606060" stroke-width="2"/>
+  <rect x="160" y="200" width="80" height="100" fill="#707070" stroke="#404040" stroke-width="2"/>
 
   <!-- Top section -->
-  <rect x="180" y="120" width="40" height="80" fill="#B0B0B0" stroke="#606060" stroke-width="2"/>
+  <rect x="180" y="120" width="40" height="80" fill="#808080" stroke="#404040" stroke-width="2"/>
 
   <!-- Spire -->
-  <rect x="195" y="50" width="10" height="70" fill="#696969"/>
+  <rect x="195" y="50" width="10" height="70" fill="#909090"/>
 
   <!-- Antenna -->
-  <line x1="200" y1="50" x2="200" y2="20" stroke="#8B0000" stroke-width="3"/>
-  <circle cx="200" cy="20" r="3" fill="#8B0000"/>
+  <line x1="200" y1="50" x2="200" y2="20" stroke="#303030" stroke-width="3"/>
+  <circle cx="200" cy="20" r="3" fill="#303030"/>
 
   <!-- Windows on base -->
-  <g fill="#FFD700">
+  <g fill="#CCCCCC">
     <rect x="130" y="420" width="8" height="12" rx="1"/>
     <rect x="145" y="420" width="8" height="12" rx="1"/>
     <rect x="160" y="420" width="8" height="12" rx="1"/>
@@ -66,7 +56,7 @@
   </g>
 
   <!-- Windows on middle section -->
-  <g fill="#FFD700">
+  <g fill="#CCCCCC">
     <rect x="150" y="320" width="8" height="12" rx="1"/>
     <rect x="165" y="320" width="8" height="12" rx="1"/>
     <rect x="180" y="320" width="8" height="12" rx="1"/>
@@ -93,7 +83,7 @@
   </g>
 
   <!-- Windows on upper section -->
-  <g fill="#FFD700">
+  <g fill="#CCCCCC">
     <rect x="170" y="220" width="6" height="10" rx="1"/>
     <rect x="185" y="220" width="6" height="10" rx="1"/>
     <rect x="200" y="220" width="6" height="10" rx="1"/>
@@ -114,7 +104,7 @@
   </g>
 
   <!-- Windows on top section -->
-  <g fill="#FFD700">
+  <g fill="#CCCCCC">
     <rect x="190" y="140" width="4" height="8" rx="1"/>
     <rect x="200" y="140" width="4" height="8" rx="1"/>
     <rect x="210" y="140" width="4" height="8" rx="1"/>
@@ -129,10 +119,10 @@
   </g>
 
   <!-- Building shadows for depth -->
-  <polygon points="280,400 280,550 290,550 290,410" fill="#A0A0A0"/>
-  <polygon points="260,300 260,400 270,400 270,310" fill="#B0B0B0"/>
-  <polygon points="240,200 240,300 250,300 250,210" fill="#C0C0C0"/>
-  <polygon points="220,120 220,200 230,200 230,130" fill="#D0D0D0"/>
+  <polygon points="280,400 280,550 290,550 290,410" fill="#404040"/>
+  <polygon points="260,300 260,400 270,400 270,310" fill="#505050"/>
+  <polygon points="240,200 240,300 250,300 250,210" fill="#606060"/>
+  <polygon points="220,120 220,200 230,200 230,130" fill="#707070"/>
 
   <!-- Title -->
   
