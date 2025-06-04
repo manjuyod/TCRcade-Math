@@ -62,7 +62,7 @@ const CreateQuizPage = () => (
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={ModulesPage} />
+      <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/modules" component={ModulesPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
@@ -94,7 +94,7 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
   
   // Determine active nav section based on current path
   const getActiveNav = () => {
-    if (location === '/') return 'home';
+    if (location === '/') return 'play';
     if (location === '/modules') return 'home';
     if (location === '/profile') return 'profile';
     if (location === '/leaderboard') return 'leaderboard';
