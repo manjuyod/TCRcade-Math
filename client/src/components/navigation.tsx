@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 type NavigationProps = {
-  active: 'home' | 'play' | 'leaderboard' | 'profile' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice' | 'tutor';
+  active: 'home' | 'leaderboard' | 'profile' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice' | 'tutor';
 };
 
 export default function Navigation({ active }: NavigationProps) {
@@ -23,12 +23,7 @@ export default function Navigation({ active }: NavigationProps) {
             </Link>
             <span className={`text-[8px] ${active === 'home' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Home</span>
           </li>
-          <li className="flex flex-col items-center">
-            <Link href="/" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'play' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
-              <GamepadIcon className={`${active === 'play' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
-            <span className={`text-[8px] ${active === 'play' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Play</span>
-          </li>
+          
           
           {/* Feature Menu Button */}
           <li className="flex flex-col items-center">

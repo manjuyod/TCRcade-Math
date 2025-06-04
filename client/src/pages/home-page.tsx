@@ -1151,7 +1151,7 @@ export default function HomePage() {
         {/* Daily Challenge completely removed as per user request */}
       </main>
 
-      <Navigation active="play" />
+      <Navigation active="home" />
 
       {/* Streak animation completely removed to prevent React infinite loops */}
 
