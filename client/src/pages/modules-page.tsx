@@ -112,7 +112,9 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-    // Original modules
+    // Original modules - COMMENTED OUT FOR REMOVAL FROM HOME PAGE
+    // Can be uncommented later to restore these modules
+    /*
     {
       id: 'addition',
       name: 'Addition Basics',
@@ -157,6 +159,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
+    */
     {
       id: 'fractions_puzzle',
       name: 'Fractions Puzzle',
@@ -179,6 +182,9 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
+    // COMMENTED OUT FOR REMOVAL FROM HOME PAGE
+    // Can be uncommented later to restore these modules
+    /*
     {
       id: 'addition-advanced',
       name: 'Addition Challenge',
@@ -202,6 +208,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
+    */
     {
       id: 'decimal-defender',
       name: 'Decimal Defender',
