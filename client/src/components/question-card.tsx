@@ -185,7 +185,7 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       transition={{ duration: 0.3 }}
       className="question-card bg-white p-6 rounded-3xl shadow-md mb-6"
     >
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-center items-center mb-4">
         <span className="bg-primary bg-opacity-10 text-primary font-bold py-1 px-3 rounded-full text-sm">
           {question?.category ? getCategoryLabel(question.category) : 'Math'}
         </span>
