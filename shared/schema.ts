@@ -278,6 +278,17 @@ export const questionsMultiplication = pgTable("questions_multiplication", {
   int3: integer("int3").notNull(),
 });
 
+export const questionsMeasurementAndData = pgTable("questions_measurementAndData", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  category: text("category").notNull(),
+  grade: text("grade").notNull(),
+  difficulty: integer("difficulty").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  options: text("options").array().notNull(),
+  concepts: text("concepts").array(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -302,6 +313,7 @@ export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
 export const insertSubjectMasterySchema = createInsertSchema(subjectMastery);
 export const insertSubjectDifficultyHistorySchema = createInsertSchema(subjectDifficultyHistory);
+export const insertQuestionsMeasurementAndDataSchema = createInsertSchema(questionsMeasurementAndData);
 // Session schema excluded to avoid conflicts with the existing table
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -318,4 +330,5 @@ export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type SubjectMastery = typeof subjectMastery.$inferSelect;
 export type SubjectDifficultyHistory = typeof subjectDifficultyHistory.$inferSelect;
+export type QuestionMeasurementAndData = typeof questionsMeasurementAndData.$inferSelect;
 // Session type removed
