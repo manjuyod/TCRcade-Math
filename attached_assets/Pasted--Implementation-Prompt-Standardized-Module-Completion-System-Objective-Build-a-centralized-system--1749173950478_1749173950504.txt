@@ -1,0 +1,138 @@
+✅ Implementation Prompt: Standardized Module Completion System
+Objective
+Build a centralized system to handle session completion across all learning modules (Math Facts, Math Rush, Fractions Puzzle, Decimal Defender, etc.). This system must evaluate skill mastery, update persistent storage, and return standardized responses. It must fully replace per-module logic and ensure all outcomes are deterministic, explicit, and reproducible.
+
+Key Design Principles
+✅ Unified Processing: All modules must use the same session completion handler.
+
+✅ Explicit Skill Logic: No assumptions — all behavior must be codified.
+
+✅ Immutable Rules: Promotion/demotion rules must not be subject to interpretation.
+
+✅ No Updates on Partial Sessions: Any incomplete session (e.g. user exits early) must be discarded without modifying any user data.
+
+✅ Skill Notification via API: All skill level changes must be reflected in the session completion response; no need for WebSocket messaging.
+
+✅ Token/Bonus Validity: Bonus and token systems must be verified and updated according to the unified result data.
+
+Requirements
+1. Centralized Handler
+Create a single utility:
+
+ts
+Copy
+Edit
+// utils/sessionManager.ts
+async function processSessionCompletion(result: SessionResult): Promise<SessionOutcome>
+Input (SessionResult) must include:
+
+userId: string
+
+module: 'mathFacts' | 'mathRush' | 'fractionsPuzzle' | 'decimalDefender'
+
+skillId: string — used to identify the specific skill, e.g. "fractions-equivalent"
+
+questionsAttempted: number
+
+correctAnswers: number
+
+timestamps: { start: ISOString, end: ISOString }
+
+tokensEarned?: number (optional if unchanged)
+
+bonusesEarned?: BonusEvent[] (optional; revalidate before storing)
+
+If the module only includes one skill, skillId should still be explicitly set. No inference logic is allowed.
+
+Output (SessionOutcome) must include:
+
+newSkillLevel: number
+
+skillLevelChanged: boolean
+
+totalCorrect: number
+
+totalAttempted: number
+
+tokensAwarded: number
+
+bonusesAwarded: BonusEvent[]
+
+feedbackMessage?: string (optional but encouraged)
+
+2. Skill Mastery Logic
+If questionsAttempted < 10: no level change.
+
+Level increases when:
+
+10 correct in a row
+
+OR ≥85% accuracy over last 30 attempts
+
+Level decreases when:
+
+7 incorrect in a row
+
+OR ≤65% accuracy over last 20 attempts
+
+Level is always clamped between 1 and 5.
+
+Maintain full attempt history:
+
+Last 20 and last 30 results (1 = correct, 0 = wrong)
+
+Total lifetime attempts and correct answers
+
+3. Persistent Storage
+Update the data model (likely subjectMastery or equivalent) with the following:
+
+Field	Description
+userId	ID of the user
+skillId	Globally unique skill identifier
+module	Module name (e.g., 'fractionsPuzzle')
+level	Current level (1–5)
+totalAttempts	Cumulative attempts
+totalCorrect	Cumulative correct answers
+last20	Binary array or encoded string
+last30	Same as above
+lastPracticed	ISO 8601 timestamp of this session
+
+4. Token and Bonus Logic
+Re-validate all token/bonus logic based on:
+
+Completion results
+
+New skill level
+
+Module-specific rules (if any)
+
+You must not assume existing bonus systems are correct. Cross-check bonus requirements against the newly structured result object.
+
+File Modifications
+routes.ts
+→ Replace module-specific */complete handlers with a wrapper that calls processSessionCompletion.
+
+storage.ts
+→ Add or update:
+
+getSkillHistory(userId, skillId)
+
+updateSkillPerformance(userId, skillId, updates)
+
+computeSkillLevelChange(performance: PerformanceHistory): number
+
+Module files:
+
+Ensure they produce and send a valid SessionResult
+
+Do not contain any level or token logic of their own
+
+Testing Requirements
+Scenario	Expected Outcome
+10 correct in a row	skillLevelChanged = true, level +1
+7 incorrect in a row	skillLevelChanged = true, level -1
+≥85% over 30 attempts	Promote level
+≤65% over 20 attempts	Demote level
+<10 questions attempted	No level change
+Partial session (not submitted)	No data written
+Token/bonus match	Return accurate awards in bonusesAwarded[]
