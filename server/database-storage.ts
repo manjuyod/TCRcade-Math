@@ -1272,7 +1272,7 @@ export class DatabaseStorage implements IStorage {
           // Import the schema for questions_measurementAndData
           const { questionsMeasurementAndData } = await import("@shared/schema");
           
-          // Query the measurement table with grade filter
+          // Query the measurement table with grade filter only (no category column exists)
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
@@ -1292,16 +1292,16 @@ export class DatabaseStorage implements IStorage {
               // Select a random question
               const selectedMeasurement = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
               
-              // Transform to match Question interface
+              // Transform to match Question interface - note the correct field mappings
               const transformedQuestion: Question = {
                 id: selectedMeasurement.id,
                 category: 'measurement',
                 grade: selectedMeasurement.grade,
-                difficulty: 3, // Default difficulty for measurement questions
-                question: selectedMeasurement.title,
-                answer: selectedMeasurement.CorrectAnswer,
-                options: selectedMeasurement.AnswerBank ? selectedMeasurement.AnswerBank.split(',').map(opt => opt.trim()) : [],
-                concepts: ['measurement'],
+                difficulty: selectedMeasurement.difficulty || 3, // Use actual difficulty or default to 3
+                question: selectedMeasurement.question, // Use 'question' field, not 'title'
+                answer: selectedMeasurement.answer, // Use 'answer' field, not 'CorrectAnswer'
+                options: selectedMeasurement.options || [], // Use 'options' field directly
+                concepts: selectedMeasurement.concepts || ['measurement'],
                 storyId: null,
                 storyNode: null,
                 storyText: null,
