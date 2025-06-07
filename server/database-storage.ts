@@ -1272,7 +1272,7 @@ export class DatabaseStorage implements IStorage {
           // Import the schema for questions_measurementAndData
           const { questionsMeasurementAndData } = await import("@shared/schema");
           
-          // Query the measurement table with grade filter only (no category column exists)
+          // Build measurement query completely separate from main query logic
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
