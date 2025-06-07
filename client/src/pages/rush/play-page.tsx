@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useModuleSession } from '@/hooks/use-module-session';
+import { useSessionPrevention } from '@/hooks/use-session-prevention';
 import { apiRequest } from '@/lib/queryClient';
 import { ProgressBar } from '@/components/progress-bar';
 
@@ -72,28 +72,17 @@ export default function MathRushPlayPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const startTimeRef = useRef<number>(0);
   
-  // Module session management
-  const {
-    isModuleActive,
-    startModule,
-    endModule,
-    nextQuestion: advanceQuestion,
-    currentQuestion,
-    questionsCompleted,
-    canEndModule
-  } = useModuleSession({
-    maxQuestions: questions.length,
-    onModuleComplete: () => {
-      console.log('Math Rush module completed');
-      setGameOver(true);
-    },
+  // Session prevention - prevent exit during active game
+  const { endSession } = useSessionPrevention({
+    isActive: sessionActive && gameStarted && !gameOver,
     onAttemptExit: () => {
       toast({
         title: "Game in Progress",
         description: "You're in the middle of a Math Rush session. Please complete it before leaving.",
         variant: "destructive"
       });
-    }
+    },
+    allowedPaths: ['/rush/complete']
   });
   
   // Timer setup
@@ -122,9 +111,8 @@ export default function MathRushPlayPage() {
         
         if (data.questions && Array.isArray(data.questions)) {
           setQuestions(data.questions);
+          setSessionActive(true); // Activate session prevention
           setLoading(false);
-          // Start module session after questions are loaded
-          startModule();
         } else {
           toast({
             title: 'Error',
