@@ -51,6 +51,46 @@ export default function Navigation({ active }: NavigationProps) {
     }
     return true;
   };
+
+  // Custom Link component that respects session prevention
+  const SessionAwareLink = ({ href, onClick, className, children }: {
+    href: string;
+    onClick?: (e: React.MouseEvent) => void;
+    className?: string;
+    children: React.ReactNode;
+  }) => {
+    const handleClick = (e: React.MouseEvent) => {
+      if (!handleNavigation(href, e)) {
+        e.preventDefault();
+        return;
+      }
+      onClick?.(e);
+    };
+
+    if (hasActiveSession) {
+      return (
+        <div 
+          onClick={handleClick} 
+          className={`${className} cursor-pointer`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleClick(e as any);
+            }
+          }}
+        >
+          {children}
+        </div>
+      );
+    }
+
+    return (
+      <Link href={href} onClick={handleClick} className={className}>
+        {children}
+      </Link>
+    );
+  };
   
   // Check if any of the advanced features is active
   const isAdvancedFeatureActive = ['multiplayer', 'analytics', 'create-a-quiz', 'tutor'].includes(active);
@@ -60,13 +100,12 @@ export default function Navigation({ active }: NavigationProps) {
       <div className="container mx-auto">
         <ul className="flex justify-around items-center h-full">
           <li className="flex flex-col items-center">
-            <Link 
+            <SessionAwareLink 
               href="/modules" 
-              onClick={(e) => !handleNavigation("/modules", e) && e.preventDefault()}
               className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Home className={`${active === 'home' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'home' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Home</span>
           </li>
           
@@ -92,16 +131,10 @@ export default function Navigation({ active }: NavigationProps) {
                   </button>
                   
                   <div className="flex flex-wrap justify-around py-2 mt-2">
-                    <Link 
+                    <SessionAwareLink 
                       href="/multiplayer" 
                       className={`flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100 ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                      onClick={(e) => {
-                        if (!handleNavigation("/multiplayer", e)) {
-                          e.preventDefault();
-                          return;
-                        }
-                        setIsFeatureMenuOpen(false);
-                      }}
+                      onClick={() => setIsFeatureMenuOpen(false)}
                     >
                       <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <Users className="h-5 w-5" />
@@ -109,26 +142,26 @@ export default function Navigation({ active }: NavigationProps) {
                       <span className="text-xs text-center">Multiplayer</span>
                     </Link>
                     
-                    <Link href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                    <SessionAwareLink href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
                       <div className={`p-2 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <Brain className="h-5 w-5" />
                       </div>
                       <span className="text-xs text-center">AI Analytics</span>
                     </Link>
 
-                    <Link href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                    <SessionAwareLink href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
                       <div className={`p-2 rounded-full ${active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <Pencil className="h-5 w-5" />
                       </div>
                       <span className="text-xs text-center">Create-A-Quiz</span>
-                    </Link>
+                    </SessionAwareLink>
                     
-                    <Link href="/tutor" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                    <SessionAwareLink href="/tutor" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
                       <div className={`p-2 rounded-full ${active === 'tutor' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <GraduationCap className="h-5 w-5" />
                       </div>
                       <span className="text-xs text-center">AI Tutor</span>
-                    </Link>
+                    </SessionAwareLink>
                   </div>
                 </div>
               )}
@@ -137,24 +170,22 @@ export default function Navigation({ active }: NavigationProps) {
           </li>
           
           <li className="flex flex-col items-center">
-            <Link 
+            <SessionAwareLink 
               href="/leaderboard" 
-              onClick={(e) => !handleNavigation("/leaderboard", e) && e.preventDefault()}
               className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Trophy className={`${active === 'leaderboard' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'leaderboard' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Leaderboard</span>
           </li>
           
           <li className="flex flex-col items-center">
-            <Link 
+            <SessionAwareLink 
               href="/profile" 
-              onClick={(e) => !handleNavigation("/profile", e) && e.preventDefault()}
               className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <User className={`${active === 'profile' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'profile' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Profile</span>
           </li>
         </ul>
