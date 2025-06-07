@@ -19,6 +19,7 @@ import { StackedFraction } from '@/components/StackedFraction';
 import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionPrevention } from '@/hooks/use-session-prevention';
 
 interface FPQuestion {
   kind: "define" | "simplify" | "equivalent" | "addSub" | "mulDiv" | "mixedImproper";
@@ -28,7 +29,7 @@ interface FPQuestion {
 export default function FractionsPlayPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -41,28 +42,31 @@ export default function FractionsPlayPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
-  
+  const [sessionActive, setSessionActive] = useState(false); // Track session activity
+
+  useSessionPrevention(sessionActive);
+
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const incorrectSoundRef = useRef<HTMLAudioElement | null>(null);
-  
+
   // Initialize audio elements
   useEffect(() => {
     // Create success sound (high-pitched beep)
     const correctAudio = new Audio();
     correctAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhEAAAFWq79uJbGggAAA==";
     correctSoundRef.current = correctAudio;
-    
+
     // Create error sound (lower tone)
     const incorrectAudio = new Audio();
     incorrectAudio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhEAAAF0q39uFZGAcAAA==";
     incorrectSoundRef.current = incorrectAudio;
   }, []);
   const [isCorrect, setIsCorrect] = useState(false);
-  
+
   // Get selected skill from localStorage
   const skill = localStorage.getItem('fractionsSkill') || 'define';
-  
+
   // Get skill display name
   const getSkillDisplayName = (skill: string) => {
     const skillNames = {
@@ -76,7 +80,7 @@ export default function FractionsPlayPage() {
     };
     return skillNames[skill as keyof typeof skillNames] || 'Fractions Puzzle';
   };
-  
+
   // Fetch all questions once at the start
   const { data: questionsData, isLoading } = useQuery({
     queryKey: ['/api/fractions/questions', skill],
@@ -90,11 +94,11 @@ export default function FractionsPlayPage() {
 
   const questions: FPQuestion[] = questionsData?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
-  
+
   // Calculate progress
   const currentLevel = Math.min(4, Math.floor(currentQuestionIndex / 4)) + 1;
   const progress = ((currentQuestionIndex + 1) / FRACTIONS_PUZZLE_RULES.questionCount) * 100;
-  
+
   // Complete session mutation
   const completeMutation = useMutation({
     mutationFn: async (data: { correct: number; total: number; skill: string }) => {
@@ -112,6 +116,7 @@ export default function FractionsPlayPage() {
         tokens: data.tokens,
         skill
       }));
+      setSessionActive(false); // Deactivate session prevention upon completion
       navigate('/fractions/complete');
     },
     onError: (error) => {
@@ -126,7 +131,7 @@ export default function FractionsPlayPage() {
 
   const isAnswerCorrect = (question: FPQuestion, answer: string): boolean => {
     if (!question || !answer) return false;
-    
+
     // Helper function to check if two fractions are equivalent
     const areFractionsEquivalent = (ans1: string, ans2: string): boolean => {
       const parseToImproper = (frac: string): { num: number, den: number } | null => {
@@ -152,21 +157,21 @@ export default function FractionsPlayPage() {
         }
         return null;
       };
-      
+
       const frac1 = parseToImproper(ans1);
       const frac2 = parseToImproper(ans2);
-      
+
       if (!frac1 || !frac2) return ans1.toLowerCase() === ans2.toLowerCase();
-      
+
       // Check if fractions are equivalent by cross multiplication
       return frac1.num * frac2.den === frac2.num * frac1.den;
     };
-    
+
     switch (question.kind) {
       case 'define':
       case 'mixedImproper':
         return answer.trim().toLowerCase() === question.answer.toLowerCase();
-      
+
       case 'simplify':
         // For levels 1-2 with GCD step: we expect "gcd,simplifiedFraction" format
         // For levels 3+: just the simplified fraction
@@ -178,12 +183,12 @@ export default function FractionsPlayPage() {
         } else {
           return answer.trim().toLowerCase() === question.answer.toLowerCase();
         }
-      
+
       case 'addSub':
       case 'mulDiv':
         // Allow both improper fractions and mixed numbers for arithmetic
         return areFractionsEquivalent(answer, question.answer);
-      
+
       case 'equivalent':
         if (question.level === 0) {
           // Level 1: Single input where ? appears
@@ -196,7 +201,7 @@ export default function FractionsPlayPage() {
           const inputNum = parseInt(parts[0]);
           const inputDen = parseInt(parts[1]);
           if (isNaN(inputNum) || isNaN(inputDen) || inputDen === 0) return false;
-          
+
           const baseFrac = question.frac;
           // Check if fractions are equivalent by cross multiplication
           return inputNum * baseFrac.den === baseFrac.num * inputDen;
@@ -207,7 +212,7 @@ export default function FractionsPlayPage() {
           return selected.length === correct.length && 
                  selected.every(opt => correct.includes(opt));
         }
-      
+
       default:
         return false;
     }
@@ -215,12 +220,12 @@ export default function FractionsPlayPage() {
 
   const handleSubmit = () => {
     let finalAnswer = currentAnswer;
-    
+
     // Handle fraction inputs
     if (numeratorInput && denominatorInput) {
       finalAnswer = `${numeratorInput}/${denominatorInput}`;
     }
-    
+
     // Handle special cases
     if (currentQuestion.kind === 'simplify' && currentQuestion.gcd !== undefined && currentQuestion.level <= 1) {
       finalAnswer = `${gcdAnswer},${finalAnswer || currentAnswer}`;
@@ -229,11 +234,11 @@ export default function FractionsPlayPage() {
     } else if (currentQuestion.kind === 'equivalent' && currentQuestion.level > 2) {
       finalAnswer = Array.from(selectedOptions).join(',');
     }
-    
+
     const correct = isAnswerCorrect(currentQuestion, finalAnswer);
     setIsCorrect(correct);
     setShowFeedback(true);
-    
+
     // Trigger sound effects and animations
     if (correct) {
       // Play success sound
@@ -243,7 +248,7 @@ export default function FractionsPlayPage() {
           // Handle autoplay restrictions gracefully
         });
       }
-      
+
       // Trigger confetti animation
       confetti({
         particleCount: 50,
@@ -251,7 +256,7 @@ export default function FractionsPlayPage() {
         origin: { y: 0.6 },
         colors: ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1']
       });
-      
+
       // Show celebration animation
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 1000);
@@ -264,12 +269,12 @@ export default function FractionsPlayPage() {
         });
       }
     }
-    
+
     // Store answer
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = finalAnswer;
     setUserAnswers(newAnswers);
-    
+
     // Auto-advance to next question after 2 seconds
     setTimeout(() => {
       handleNext();
@@ -288,7 +293,7 @@ export default function FractionsPlayPage() {
       setGcdStep(1);
       setGcdAnswer('');
       setShowFeedback(false);
-      
+
       // Auto-focus the first input after a brief delay
       setTimeout(() => {
         const firstInput = document.querySelector('input') as HTMLInputElement;
@@ -299,7 +304,7 @@ export default function FractionsPlayPage() {
       const correctCount = userAnswers.filter((_, i) => 
         isAnswerCorrect(questions[i], userAnswers[i])
       ).length + (isCorrect ? 1 : 0);
-      
+
       completeMutation.mutate({
         correct: correctCount,
         total: questions.length,
@@ -310,7 +315,7 @@ export default function FractionsPlayPage() {
 
   const renderQuestion = () => {
     if (!currentQuestion) return null;
-    
+
     switch (currentQuestion.kind) {
       case 'define':
         return (
@@ -340,7 +345,7 @@ export default function FractionsPlayPage() {
             </div>
           </div>
         );
-      
+
       case 'simplify':
         // Levels 1-2: Step-by-step with GCD finding (old gcdSimplify behavior)
         // Levels 3+: Direct simplification only
@@ -360,7 +365,7 @@ export default function FractionsPlayPage() {
                   Step 1: Find the GCD, then Step 2: Write the simplified form
                 </p>
               </div>
-              
+
               {gcdStep === 1 ? (
                 <div className="space-y-4">
                   <p className="text-center">What is the GCD of {currentQuestion.frac.num} and {currentQuestion.frac.den}?</p>
@@ -478,9 +483,9 @@ export default function FractionsPlayPage() {
             </div>
           );
         }
-      
 
-      
+
+
       case 'equivalent':
         if (currentQuestion.level === 0) {
           // Single input for level 1 only
@@ -677,7 +682,7 @@ export default function FractionsPlayPage() {
             </div>
           );
         }
-      
+
       case 'addSub':
         return (
           <div className="space-y-6">
@@ -717,7 +722,7 @@ export default function FractionsPlayPage() {
             </div>
           </div>
         );
-      
+
       case 'mulDiv':
         return (
           <div className="space-y-6">
@@ -757,7 +762,7 @@ export default function FractionsPlayPage() {
             </div>
           </div>
         );
-      
+
       case 'mixedImproper':
         return (
           <div className="space-y-6">
@@ -831,11 +836,22 @@ export default function FractionsPlayPage() {
             </div>
           </div>
         );
-      
+
       default:
         return <div>Unknown question type</div>;
     }
   };
+
+  useEffect(() => {
+    if (questionsData?.questions) {
+      // Ensure questionsData and questions are defined
+      const { questions } = questionsData;
+      if (questions && Array.isArray(questions)) {
+        // Ensure questions is an array
+        setSessionActive(true); // Activate session prevention
+      }
+    }
+  }, [questionsData]);
 
   if (isLoading) {
     return (
@@ -856,7 +872,7 @@ export default function FractionsPlayPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <Navigation active="home" />
-      
+
       <main className="flex-1 w-full max-w-4xl mx-auto py-6 px-4">
         <div className="mb-6 flex items-center justify-between">
           <Button
@@ -879,7 +895,7 @@ export default function FractionsPlayPage() {
 
         <div className="space-y-6">
           <ProgressBar progress={progress} />
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
@@ -944,7 +960,7 @@ export default function FractionsPlayPage() {
                           <Star className="h-4 w-4 text-yellow-400 fill-current" />
                         </motion.div>
                       ))}
-                      
+
                       {/* Sparkles effect */}
                       {[...Array(12)].map((_, i) => (
                         <motion.div
@@ -977,7 +993,7 @@ export default function FractionsPlayPage() {
                       ))}
                     </motion.div>
                   )}
-                  
+
                   <div className="flex items-center space-x-2 relative z-10">
                     {isCorrect ? (
                       <motion.div
@@ -1083,7 +1099,7 @@ export default function FractionsPlayPage() {
                 className="fixed inset-0 bg-black/50 z-40"
                 onClick={() => setShowExitDialog(false)}
               />
-              
+
               {/* Dialog */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1124,6 +1140,7 @@ export default function FractionsPlayPage() {
                         variant="destructive"
                         onClick={() => {
                           setShowExitDialog(false);
+                          setSessionActive(false); // Deactivate session prevention
                           navigate('/fractions/setup');
                         }}
                         className="flex-1"

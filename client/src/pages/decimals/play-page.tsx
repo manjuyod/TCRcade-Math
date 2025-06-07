@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionPrevention } from '@/hooks/use-session-prevention';
 import { DECIMAL_DEFENDER_RULES } from '@shared/decimalDefenderRules';
 import confetti from 'canvas-confetti';
 
@@ -41,10 +42,18 @@ export default function DecimalDefenderPlayPage() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [skill, setSkill] = useState<string>('');
+  const [sessionActive, setSessionActive] = useState(false);
 
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const incorrectSoundRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Session prevention
+  const { endSession } = useSessionPrevention({
+    isActive: sessionActive && !loading && questions.length > 0,
+    onAttemptExit: () => setShowExitDialog(true),
+    allowedPaths: ['/decimals/complete']
+  });
 
   // Initialize audio elements
   useEffect(() => {
@@ -87,6 +96,7 @@ export default function DecimalDefenderPlayPage() {
         
         if (data.questions && Array.isArray(data.questions)) {
           setQuestions(data.questions.slice(0, DECIMAL_DEFENDER_RULES.questionsPerSession));
+          setSessionActive(true); // Activate session prevention
         } else {
           throw new Error('Invalid response format');
         }
@@ -208,6 +218,7 @@ export default function DecimalDefenderPlayPage() {
       // Store result and navigate to complete page
       localStorage.setItem('decimalDefenderResult', JSON.stringify(sessionResult));
       localStorage.removeItem('decimalDefenderSkill');
+      endSession(); // End session prevention
       navigate('/decimals/complete');
     } else {
       // Move to next question
@@ -237,6 +248,7 @@ export default function DecimalDefenderPlayPage() {
 
   const confirmExit = () => {
     localStorage.removeItem('decimalDefenderSkill');
+    endSession(); // End session prevention
     navigate('/modules');
   };
 

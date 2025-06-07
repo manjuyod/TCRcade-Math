@@ -1,7 +1,8 @@
 import { Link } from 'wouter';
 import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Users, Brain, Pencil, GraduationCap, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
 
 type NavigationProps = {
   active: 'home' | 'leaderboard' | 'profile' | 'multiplayer' | 'analytics' | 'create-a-quiz' | 'practice' | 'tutor';
@@ -9,6 +10,47 @@ type NavigationProps = {
 
 export default function Navigation({ active }: NavigationProps) {
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+  const { toast } = useToast();
+  
+  // Check for active module session
+  useEffect(() => {
+    const checkActiveSession = () => {
+      const moduleInProgress = sessionStorage.getItem('moduleInProgress');
+      setHasActiveSession(moduleInProgress === 'true');
+    };
+    
+    checkActiveSession();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      checkActiveSession();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Check every second for session state changes
+    const interval = setInterval(checkActiveSession, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+  
+  // Handle navigation with session check
+  const handleNavigation = (href: string, e?: React.MouseEvent) => {
+    if (hasActiveSession) {
+      e?.preventDefault();
+      toast({
+        title: "Module in Progress",
+        description: "Please complete your current module before navigating away.",
+        variant: "destructive"
+      });
+      return false;
+    }
+    return true;
+  };
   
   // Check if any of the advanced features is active
   const isAdvancedFeatureActive = ['multiplayer', 'analytics', 'create-a-quiz', 'tutor'].includes(active);
@@ -18,7 +60,11 @@ export default function Navigation({ active }: NavigationProps) {
       <div className="container mx-auto">
         <ul className="flex justify-around items-center h-full">
           <li className="flex flex-col items-center">
-            <Link href="/modules" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link 
+              href="/modules" 
+              onClick={(e) => !handleNavigation("/modules", e) && e.preventDefault()}
+              className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <Home className={`${active === 'home' ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'home' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Home</span>
@@ -46,7 +92,17 @@ export default function Navigation({ active }: NavigationProps) {
                   </button>
                   
                   <div className="flex flex-wrap justify-around py-2 mt-2">
-                    <Link href="/multiplayer" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
+                    <Link 
+                      href="/multiplayer" 
+                      className={`flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100 ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                      onClick={(e) => {
+                        if (!handleNavigation("/multiplayer", e)) {
+                          e.preventDefault();
+                          return;
+                        }
+                        setIsFeatureMenuOpen(false);
+                      }}
+                    >
                       <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
                         <Users className="h-5 w-5" />
                       </div>
@@ -81,14 +137,22 @@ export default function Navigation({ active }: NavigationProps) {
           </li>
           
           <li className="flex flex-col items-center">
-            <Link href="/leaderboard" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link 
+              href="/leaderboard" 
+              onClick={(e) => !handleNavigation("/leaderboard", e) && e.preventDefault()}
+              className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <Trophy className={`${active === 'leaderboard' ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'leaderboard' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Leaderboard</span>
           </li>
           
           <li className="flex flex-col items-center">
-            <Link href="/profile" className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <Link 
+              href="/profile" 
+              onClick={(e) => !handleNavigation("/profile", e) && e.preventDefault()}
+              className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <User className={`${active === 'profile' ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </Link>
             <span className={`text-[8px] ${active === 'profile' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Profile</span>

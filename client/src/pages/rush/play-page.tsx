@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionPrevention } from '@/hooks/use-session-prevention';
 import { apiRequest } from '@/lib/queryClient';
 import { ProgressBar } from '@/components/progress-bar';
 
@@ -59,6 +60,7 @@ export default function MathRushPlayPage() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
   
   // Get settings from localStorage
   const mode = localStorage.getItem('mathRushMode') || 'addition';
@@ -69,6 +71,19 @@ export default function MathRushPlayPage() {
   // References
   const inputRef = useRef<HTMLInputElement>(null);
   const startTimeRef = useRef<number>(0);
+  
+  // Session prevention - prevent exit during active game
+  const { endSession } = useSessionPrevention({
+    isActive: sessionActive && gameStarted && !gameOver,
+    onAttemptExit: () => {
+      toast({
+        title: "Game in Progress",
+        description: "You're in the middle of a Math Rush session. Please complete it before leaving.",
+        variant: "destructive"
+      });
+    },
+    allowedPaths: ['/rush/complete']
+  });
   
   // Timer setup
   const { 
@@ -96,6 +111,7 @@ export default function MathRushPlayPage() {
         
         if (data.questions && Array.isArray(data.questions)) {
           setQuestions(data.questions);
+          setSessionActive(true); // Activate session prevention
           setLoading(false);
         } else {
           toast({
@@ -292,6 +308,7 @@ export default function MathRushPlayPage() {
       
       // Navigate to completion page after a small delay
       setTimeout(() => {
+        endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
     } catch (error) {
@@ -308,6 +325,7 @@ export default function MathRushPlayPage() {
       }));
       
       setTimeout(() => {
+        endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
       
