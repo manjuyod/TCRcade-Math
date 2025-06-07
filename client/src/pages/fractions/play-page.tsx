@@ -3,7 +3,6 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Check, X, Calculator, Star, Sparkles, AlertTriangle } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +19,7 @@ import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionPrevention } from '@/hooks/use-session-prevention';
+import { useModuleSession } from '@/hooks/use-module-session';
 
 interface FPQuestion {
   kind: "define" | "simplify" | "equivalent" | "addSub" | "mulDiv" | "mixedImproper";
@@ -44,7 +44,22 @@ export default function FractionsPlayPage() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionActive, setSessionActive] = useState(false); // Track session activity
 
-  useSessionPrevention(sessionActive);
+  // Module session management
+  const {
+    isModuleActive,
+    startModule,
+    endModule,
+    nextQuestion,
+    currentQuestion,
+    questionsCompleted,
+    canEndModule
+  } = useModuleSession({
+    maxQuestions: questions.length,
+    onModuleComplete: () => {
+      console.log('Fractions module completed');
+    },
+    onAttemptExit: () => setShowExitDialog(true)
+  });
 
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -81,6 +96,8 @@ export default function FractionsPlayPage() {
     return skillNames[skill as keyof typeof skillNames] || 'Fractions Puzzle';
   };
 
+  const [questions, setQuestions] = useState<FPQuestion[]>([]);
+
   // Fetch all questions once at the start
   const { data: questionsData, isLoading } = useQuery({
     queryKey: ['/api/fractions/questions', skill],
@@ -89,10 +106,20 @@ export default function FractionsPlayPage() {
       return response.json();
     },
     staleTime: Infinity, // Don't refetch once loaded
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    onSuccess: (data) => {
+      if (data.questions && Array.isArray(data.questions)) {
+          setQuestions(data.questions);
+          setLoading(false);
+          // Start module session after questions are loaded
+          startModule();
+      }
+    }
   });
 
-  const questions: FPQuestion[] = questionsData?.questions || [];
+  const [loading, setLoading] = useState(true);
+
+  // const questions: FPQuestion[] = questionsData?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
   // Calculate progress
@@ -116,7 +143,7 @@ export default function FractionsPlayPage() {
         tokens: data.tokens,
         skill
       }));
-      setSessionActive(false); // Deactivate session prevention upon completion
+      endModule();
       navigate('/fractions/complete');
     },
     onError: (error) => {
@@ -782,8 +809,8 @@ export default function FractionsPlayPage() {
                     </div>
                   ) : (
                     // Improper fraction like "11/4"
-                    <StackedFraction 
-                      numerator={currentQuestion.given.split('/')[0]} 
+                    <StackedFraction ```text
+numerator={currentQuestion.given.split('/')[0]} 
                       denominator={currentQuestion.given.split('/')[1]}
                       className="text-2xl"
                     />
@@ -1140,7 +1167,7 @@ export default function FractionsPlayPage() {
                         variant="destructive"
                         onClick={() => {
                           setShowExitDialog(false);
-                          setSessionActive(false); // Deactivate session prevention
+                          endModule();
                           navigate('/fractions/setup');
                         }}
                         className="flex-1"

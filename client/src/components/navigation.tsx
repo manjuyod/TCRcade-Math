@@ -27,13 +27,20 @@ export default function Navigation({ active }: NavigationProps) {
       checkActiveSession();
     };
     
-    window.addEventListener('storage', handleStorageChange);
+    // Listen for immediate module session changes
+    const handleModuleSessionChange = (e: CustomEvent) => {
+      setHasActiveSession(e.detail.isActive);
+    };
     
-    // Check every second for session state changes
-    const interval = setInterval(checkActiveSession, 1000);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('moduleSessionChange', handleModuleSessionChange as EventListener);
+    
+    // Reduced interval checking since we have immediate event detection
+    const interval = setInterval(checkActiveSession, 5000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('moduleSessionChange', handleModuleSessionChange as EventListener);
       clearInterval(interval);
     };
   }, []);

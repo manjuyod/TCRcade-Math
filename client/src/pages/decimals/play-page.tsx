@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useSessionPrevention } from '@/hooks/use-session-prevention';
+import { useModuleSession } from '@/hooks/use-module-session';
 import { DECIMAL_DEFENDER_RULES } from '@shared/decimalDefenderRules';
 import confetti from 'canvas-confetti';
 
@@ -48,11 +48,21 @@ export default function DecimalDefenderPlayPage() {
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const incorrectSoundRef = useRef<HTMLAudioElement | null>(null);
   
-  // Session prevention
-  const { endSession } = useSessionPrevention({
-    isActive: sessionActive && !loading && questions.length > 0,
-    onAttemptExit: () => setShowExitDialog(true),
-    allowedPaths: ['/decimals/complete']
+  // Module session management
+  const {
+    isModuleActive,
+    startModule,
+    endModule,
+    nextQuestion,
+    currentQuestion,
+    questionsCompleted,
+    canEndModule
+  } = useModuleSession({
+    maxQuestions: questions.length,
+    onModuleComplete: () => {
+      console.log('Decimals module completed');
+    },
+    onAttemptExit: () => setShowExitDialog(true)
   });
 
   // Initialize audio elements
