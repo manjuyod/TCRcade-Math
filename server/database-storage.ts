@@ -1264,6 +1264,63 @@ export class DatabaseStorage implements IStorage {
         grade = user?.grade || "K";
       }
 
+      // SPECIAL HANDLING FOR MEASUREMENT CATEGORY
+      if (category === 'measurement') {
+        console.log(`Measurement category detected - querying questions_measurementAndData table`);
+        
+        try {
+          // Import the schema for questions_measurementAndData
+          const { questionsMeasurementAndData } = await import("@shared/schema");
+          
+          // Query the measurement table with grade filter
+          const measurementQuestions = await db
+            .select()
+            .from(questionsMeasurementAndData)
+            .where(eq(questionsMeasurementAndData.grade, grade));
+
+          console.log(`Found ${measurementQuestions.length} measurement questions for grade ${grade}`);
+
+          if (measurementQuestions.length > 0) {
+            // Filter out excluded IDs if any
+            let filteredQuestions = measurementQuestions;
+            if (excludeIds.length > 0) {
+              filteredQuestions = measurementQuestions.filter(q => !excludeIds.includes(q.id));
+              console.log(`After excluding ${excludeIds.length} IDs: ${filteredQuestions.length} questions remain`);
+            }
+
+            if (filteredQuestions.length > 0) {
+              // Select a random question
+              const selectedMeasurement = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
+              
+              // Transform to match Question interface
+              const transformedQuestion: Question = {
+                id: selectedMeasurement.id,
+                category: 'measurement',
+                grade: selectedMeasurement.grade,
+                difficulty: 3, // Default difficulty for measurement questions
+                question: selectedMeasurement.title,
+                answer: selectedMeasurement.CorrectAnswer,
+                options: selectedMeasurement.AnswerBank ? selectedMeasurement.AnswerBank.split(',').map(opt => opt.trim()) : [],
+                concepts: ['measurement'],
+                storyId: null,
+                storyNode: null,
+                storyText: null,
+                storyImage: null
+              };
+
+              console.log(`Found measurement question ${transformedQuestion.id} from dedicated table`);
+              return shuffleAnswerOptions(transformedQuestion);
+            }
+          }
+
+          // If no measurement questions found, log and continue to regular flow
+          console.log(`No measurement questions found in dedicated table for grade ${grade}`);
+        } catch (error) {
+          console.error('Error querying measurement questions:', error);
+          // Continue to regular question flow on error
+        }
+      }
+
       let query = db.select().from(questions);
 
       // Build a filter for grade
