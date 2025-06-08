@@ -1468,6 +1468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ratios/questions", async (req, res) => {
     try {
       const { skill = "write_form" } = req.query;
+      console.log("GET ratios questions for skill:", skill);
 
       const questions = generateRatiosQuestions(skill as any, 1);
       res.json({ questions });
@@ -1480,6 +1481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ratios/questions", async (req, res) => {
     try {
       const { skill = "write_form" } = req.body;
+      console.log("POST ratios questions for skill:", skill);
 
       const questions = generateRatiosQuestions(skill as any, 1);
       res.json({ questions });

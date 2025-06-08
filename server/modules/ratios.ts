@@ -22,27 +22,22 @@ function generateWriteFormQuestion(level: number): RatiosQuestion {
   const a = Math.floor(Math.random() * maxValue) + 1;
   const b = Math.floor(Math.random() * maxValue) + 1;
   
-  // Randomly choose which format to request
-  const formats = ['to', 'colon', 'fraction'];
-  const requestedFormat = formats[Math.floor(Math.random() * formats.length)];
+  // Choose different formats for given vs requested
+  const allFormats = [
+    { name: 'to', display: (a: number, b: number) => `${a} to ${b}`, format: 'a to b' },
+    { name: 'colon', display: (a: number, b: number) => `${a}:${b}`, format: 'a:b' },
+    { name: 'fraction', display: (a: number, b: number) => `${a}/${b}`, format: 'a/b' }
+  ];
   
-  let prompt = '';
-  let correctAnswer = '';
+  // Pick a random format for the given ratio (what we show)
+  const givenFormat = allFormats[Math.floor(Math.random() * allFormats.length)];
   
-  switch (requestedFormat) {
-    case 'to':
-      prompt = `Write the ratio ${a} to ${b} in "a to b" format`;
-      correctAnswer = `${a} to ${b}`;
-      break;
-    case 'colon':
-      prompt = `Write the ratio ${a} to ${b} in "a:b" format`;
-      correctAnswer = `${a}:${b}`;
-      break;
-    case 'fraction':
-      prompt = `Write the ratio ${a} to ${b} in "a/b" format`;
-      correctAnswer = `${a}/${b}`;
-      break;
-  }
+  // Pick a different format for the requested answer
+  const requestedFormats = allFormats.filter(f => f.name !== givenFormat.name);
+  const requestedFormat = requestedFormats[Math.floor(Math.random() * requestedFormats.length)];
+  
+  const prompt = `The ratio ${givenFormat.display(a, b)} written in "${requestedFormat.format}" format is:`;
+  const correctAnswer = requestedFormat.display(a, b);
   
   return {
     skill: 'write_form',
@@ -51,7 +46,8 @@ function generateWriteFormQuestion(level: number): RatiosQuestion {
     correctAnswer,
     a,
     b,
-    requestedFormat
+    givenFormat: givenFormat.name,
+    requestedFormat: requestedFormat.name
   };
 }
 

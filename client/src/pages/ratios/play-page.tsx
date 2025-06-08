@@ -47,6 +47,13 @@ export default function RatiosPlayPage() {
   // Fetch questions
   const { data: questionsData, isLoading, error } = useQuery({
     queryKey: ['/api/ratios/questions', selectedSkill],
+    queryFn: async () => {
+      const response = await fetch(`/api/ratios/questions?skill=${selectedSkill}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      return response.json();
+    },
     enabled: !!selectedSkill
   });
 
@@ -82,10 +89,22 @@ export default function RatiosPlayPage() {
     correctSoundRef.current = new Audio('/sounds/correct.mp3');
     incorrectSoundRef.current = new Audio('/sounds/incorrect.mp3');
     
+    // Add global Enter key handler
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && !showFeedback && !submitAnswerMutation.isPending) {
+        if (currentAnswer.trim() || selectedOptions.size > 0) {
+          handleSubmitAnswer();
+        }
+      }
+    };
+
+    document.addEventListener('keypress', handleKeyPress);
+    
     return () => {
       setSessionActive(false);
+      document.removeEventListener('keypress', handleKeyPress);
     };
-  }, []);
+  }, [currentAnswer, selectedOptions, showFeedback, submitAnswerMutation.isPending]);
 
   const playSound = (isCorrect: boolean) => {
     try {
@@ -217,6 +236,11 @@ export default function RatiosPlayPage() {
           onChange={(e) => setCurrentAnswer(e.target.value)}
           placeholder="Enter ratio (e.g., 3:2)"
           className="text-center text-lg"
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && currentAnswer.trim()) {
+              handleSubmitAnswer();
+            }
+          }}
         />
       </div>
     );
@@ -227,11 +251,8 @@ export default function RatiosPlayPage() {
       <div className="space-y-4">
         <div className="text-center">
           <h3 className="text-lg font-medium mb-4">{question.prompt}</h3>
-          <p className="text-2xl font-bold text-primary mb-4">
-            Ratio: {question.a} to {question.b}
-          </p>
-          <p className="text-sm text-gray-600">
-            Write this ratio in the requested format
+          <p className="text-sm text-gray-600 mb-4">
+            Enter your answer in the requested format
           </p>
         </div>
         
@@ -240,6 +261,11 @@ export default function RatiosPlayPage() {
           onChange={(e) => setCurrentAnswer(e.target.value)}
           placeholder="Enter your answer"
           className="text-center text-lg"
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && currentAnswer.trim()) {
+              handleSubmitAnswer();
+            }
+          }}
         />
       </div>
     );
@@ -306,6 +332,11 @@ export default function RatiosPlayPage() {
             onChange={(e) => setCurrentAnswer(e.target.value)}
             placeholder="Enter missing value(s)"
             className="text-center text-lg"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && currentAnswer.trim()) {
+                handleSubmitAnswer();
+              }
+            }}
           />
         </div>
       );
