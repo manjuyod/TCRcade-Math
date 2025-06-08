@@ -28,7 +28,8 @@ enum GameType {
   STANDARD = 'standard',
   WORD_RACE = 'word_race', // New game type with countdown timer
   MATH_RUSH = 'math_rush', // Timed 20-question sprint
-  FRACTIONS_PUZZLE = 'fractions_puzzle' // 20-question fractions mastery module
+  FRACTIONS_PUZZLE = 'fractions_puzzle', // 20-question fractions mastery module
+  SKILL_SELECTOR = 'skill_selector' // Skill-based game selection
 }
 
 // Module definition with game type and difficulty
@@ -232,10 +233,10 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'ratios',
-      name: 'Ratio Ranger',
-      description: 'Understand and solve problems with ratios and proportions',
-      gameType: GameType.STANDARD,
+      id: 'ratios_proportions',
+      name: 'Ratios & Proportions',
+      description: 'Practice comparing quantities and identifying proportional relationships.',
+      gameType: GameType.SKILL_SELECTOR,
       icon: <BarChart4 className="h-12 w-12 text-amber-600" />,
       difficulty: 5,
       category: 'ratios',
@@ -297,6 +298,8 @@ export default function ModulesPage() {
         return { label: 'Timed Sprint', color: 'bg-orange-500' };
       case GameType.FRACTIONS_PUZZLE:
         return { label: 'Skill Mastery', color: 'bg-blue-500' };
+      case GameType.SKILL_SELECTOR:
+        return { label: 'Skill Selector', color: 'bg-amber-500' };
       default:
         return { label: 'Standard', color: 'bg-gray-500' };
     }
@@ -369,6 +372,13 @@ export default function ModulesPage() {
       // For Decimal Defender, navigate to the setup page
       console.log('Loading decimal defender module, navigating to setup page');
       setLocation('/decimals/setup');
+      return;
+    }
+
+    if (module.id === 'ratios_proportions') {
+      // For Ratios & Proportions, navigate to the setup page
+      console.log('Loading ratios proportions module, navigating to setup page');
+      setLocation('/ratios/setup');
       return;
     }
     
