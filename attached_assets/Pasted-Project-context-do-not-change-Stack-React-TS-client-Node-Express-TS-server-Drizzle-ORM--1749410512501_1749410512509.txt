@@ -1,0 +1,143 @@
+Project context (do not change)
+Stack: React + TS (client), Node/Express + TS (server), Drizzle ORM, Postgres
+
+Core files
+
+client/src/pages/modules-page.tsx: module catalog & UI
+
+client/src/pages/: new pages live here
+
+client/src/hooks/useSessionTimer.ts: (unused in this module)
+
+client/src/hooks/useQuestionWithHistory.ts: question flow
+
+server/routes/: Express routers
+
+shared/types.ts: enums & cross-tier types
+
+shared/ratiosRules.ts: NEW — rules and ranges for each skill
+
+🧠 Goal
+Implement a new “Ratios & Proportions” module with a skill selector for 3 games:
+
+Write ratios in different forms
+
+Equivalent ratios
+
+Identify ratios from visual elements
+
+Each game consists of exactly 5 questions, no timer. Question difficulty depends on skill level, determined from the user's mastery profile in the database.
+
+✅ 1. shared/ratiosRules.ts
+Create a shared config file for this module:
+
+ts
+Copy
+Edit
+export const RATIOS_RULES = {
+  skills: ["write_form", "equivalents", "visual_identification"] as const,
+  levels: {
+    1: { maxValue: 10 },
+    2: { maxValue: 35 },
+    3: { maxValue: 50 },
+    4: { maxValue: 75 },
+    5: { maxValue: 100 }
+  },
+  questionCount: 5
+} as const;
+All layers must import from here instead of hardcoding values.
+
+✅ 2. Add module to catalog
+Append a new object in modules-page.tsx:
+
+ts
+Copy
+Edit
+{
+  id: "ratios_proportions",
+  name: "Ratios & Proportions",
+  description: "Practice comparing quantities and identifying proportional relationships.",
+  gameType: GameType.SKILL_SELECTOR
+}
+✅ 3. Route setup flow
+Clicking the module routes to /ratios/setup
+
+On the setup page:
+
+Show a dropdown to select a skill from RATIOS_RULES.skills
+
+Query backend for user's current mastery level for that skill
+
+Begin session for that skill/level by routing to /ratios/play
+
+✅ 4. Question generation logic (server/ratios.ts)
+Each skill has a different generator:
+
+a) write_form:
+Generate two integers a and b ≤ level’s maxValue
+
+Randomly prompt user to write the ratio in one of three forms:
+"a to b", "a:b", "a/b"
+
+Accept only the correct format
+
+b) equivalents:
+Level 1: Provide a ratio like x:4 = 3:4, user fills in x
+
+Level 2: Provide form x:y = 3:4, user fills both
+
+Level 3+: Show 5 options (at least 1 correct) and prompt for multi-select
+
+Validate user answer is mathematically equivalent
+
+c) visual_identification:
+Display fixed shapes in fixed colors
+
+Vary prompts:
+
+“What is the ratio of red to blue?”
+
+“What is the ratio of triangles to all other shapes?”
+
+Shapes and colors randomized but finite set
+
+Keep total count manageable, all numbers ≤ maxValue
+
+Answer format: a:b only
+
+Avoid 0s and ensure integers only. Use denominator cap of 50. Cap mixed numbers at level 5 if later added.
+
+✅ 5. Express API
+Create new route file routes/ratios.ts:
+
+ts
+Copy
+Edit
+router.get("/api/ratios/question", async (req, res) => {
+  const { skill, userId } = req.query;
+  const level = await getUserSkillLevel(userId, skill);
+  const questions = generateRatiosQuestions(skill, level);
+  res.json({ questions });
+});
+Mount in routes/index.ts.
+
+✅ 6. Client Play Flow
+/ratios/play:
+
+Fetch 5 questions based on selected skill & level
+
+Render via useQuestionWithHistory
+
+For visual skill: render centered shape display (max 70% width), use blue/orange only
+
+On completion → /ratios/complete
+
+✅ 7. Completion
+At /ratios/complete, show accuracy and:
+
+“Try Another Skill”
+
+“Back to Modules”
+
+✅ 8. Clarification Protocol
+Before implementing, list any uncertainties or edge cases with numbered bullets. Wait for reviewer answers before coding.
