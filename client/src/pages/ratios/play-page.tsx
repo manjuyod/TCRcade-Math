@@ -50,6 +50,9 @@ export default function RatiosPlayPage() {
     enabled: !!selectedSkill
   });
 
+  // Type guard to ensure questions data structure
+  const questions = questionsData?.questions || [];
+
   // Submit answer mutation
   const submitAnswerMutation = useMutation({
     mutationFn: async (answerData: any) => {
@@ -69,10 +72,10 @@ export default function RatiosPlayPage() {
   });
 
   useEffect(() => {
-    if (questionsData?.questions?.length > 0) {
+    if (questions.length > 0) {
       setSessionActive(true);
     }
-  }, [questionsData]);
+  }, [questions]);
 
   useEffect(() => {
     // Initialize audio elements
@@ -105,9 +108,9 @@ export default function RatiosPlayPage() {
   };
 
   const handleSubmitAnswer = async () => {
-    if (!questionsData?.questions || currentQuestionIndex >= questionsData.questions.length) return;
+    if (!questions || currentQuestionIndex >= questions.length) return;
 
-    const currentQuestion = questionsData.questions[currentQuestionIndex];
+    const currentQuestion = questions[currentQuestionIndex];
     let answerToSubmit = '';
 
     // Handle different answer types

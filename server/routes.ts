@@ -42,6 +42,10 @@ import {
 import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
 import { DECIMAL_DEFENDER_RULES } from "../shared/decimalDefenderRules";
 
+// Import ratios module
+import { generateRatiosQuestions, validateRatiosAnswer, getUserSkillLevel } from "./modules/ratios";
+import { RATIOS_RULES } from "../shared/ratiosRules";
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -1456,6 +1460,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ tokens, totalTokens: (user?.tokens || 0) + tokens });
     } catch (error) {
       console.error("Error completing fractions puzzle:", error);
+      res.status(500).json({ error: "Failed to complete session" });
+    }
+  });
+
+  // Ratios & Proportions routes
+  app.get("/api/ratios/questions", async (req, res) => {
+    try {
+      const { skill = "write_form" } = req.query;
+
+      const questions = generateRatiosQuestions(skill as any, 1);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating ratios questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
+  app.post("/api/ratios/questions", async (req, res) => {
+    try {
+      const { skill = "write_form" } = req.body;
+
+      const questions = generateRatiosQuestions(skill as any, 1);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating ratios questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
+  app.post("/api/ratios/submit", ensureAuthenticated, async (req, res) => {
+    try {
+      const { questionIndex, answer, skill, question } = req.body;
+      const userId = getUserId(req);
+
+      // Validate the answer
+      const isCorrect = validateRatiosAnswer(question, answer);
+
+      // Calculate tokens for correct answers
+      const tokensEarned = isCorrect ? RATIOS_RULES.questionCount : 0;
+
+      // Update user tokens if correct
+      if (isCorrect) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          const updatedUser = await storage.updateUser(userId, {
+            tokens: (user.tokens || 0) + tokensEarned,
+          });
+
+          // Emit real-time token update
+          const tokenNamespace = (global as any).tokenNamespace;
+          if (tokenNamespace) {
+            tokenNamespace
+              .to(`user_${userId}`)
+              .emit("token_updated", updatedUser?.tokens || 0);
+          }
+        }
+      }
+
+      res.json({ 
+        correct: isCorrect,
+        tokensEarned,
+        explanation: isCorrect ? "Correct!" : "Keep practicing!"
+      });
+    } catch (error) {
+      console.error("Error submitting ratios answer:", error);
+      res.status(500).json({ error: "Failed to submit answer" });
+    }
+  });
+
+  app.post("/api/ratios/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const { correct, total, skill } = req.body;
+      const userId = getUserId(req);
+
+      // Calculate tokens based on performance
+      const baseTokens = Math.floor((correct / total) * 50);
+      const bonusTokens = correct === total ? 25 : 0;
+      const totalTokens = baseTokens + bonusTokens;
+
+      // Update user tokens
+      const user = await storage.getUser(userId);
+      if (user) {
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: (user.tokens || 0) + totalTokens,
+        });
+
+        // Emit real-time token update
+        const tokenNamespace = (global as any).tokenNamespace;
+        if (tokenNamespace) {
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", updatedUser?.tokens || 0);
+        }
+      }
+
+      // Update concept mastery for ratios
+      await storage.updateConceptMastery(
+        userId,
+        `ratios-${skill}`,
+        "5", // Grade 5+ for ratios
+        correct === total,
+      );
+
+      res.json({ 
+        tokens: totalTokens, 
+        totalTokens: (user?.tokens || 0) + totalTokens,
+        correct,
+        total,
+      });
+    } catch (error) {
+      console.error("Error completing ratios session:", error);
       res.status(500).json({ error: "Failed to complete session" });
     }
   });

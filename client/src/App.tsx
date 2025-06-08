@@ -19,6 +19,9 @@ import FractionsCompletePage from "@/pages/fractions/complete-page";
 import DecimalDefenderSetupPage from "@/pages/decimals/setup-page";
 import DecimalDefenderPlayPage from "@/pages/decimals/play-page";
 import DecimalDefenderCompletePage from "@/pages/decimals/complete-page";
+import RatiosSetupPage from "@/pages/ratios/setup-page";
+import RatiosPlayPage from "@/pages/ratios/play-page";
+import RatiosCompletePage from "@/pages/ratios/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -81,6 +84,9 @@ function Router() {
       <ProtectedRoute path="/decimals/setup" component={DecimalDefenderSetupPage} />
       <ProtectedRoute path="/decimals/play" component={DecimalDefenderPlayPage} />
       <ProtectedRoute path="/decimals/complete" component={DecimalDefenderCompletePage} />
+      <ProtectedRoute path="/ratios/setup" component={RatiosSetupPage} />
+      <ProtectedRoute path="/ratios/play" component={RatiosPlayPage} />
+      <ProtectedRoute path="/ratios/complete" component={RatiosCompletePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
