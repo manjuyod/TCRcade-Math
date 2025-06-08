@@ -51,7 +51,7 @@ export default function RatiosPlayPage() {
   });
 
   // Type guard to ensure questions data structure
-  const questions = questionsData?.questions || [];
+  const questions = (questionsData as any)?.questions || [];
 
   // Submit answer mutation
   const submitAnswerMutation = useMutation({
@@ -147,7 +147,7 @@ export default function RatiosPlayPage() {
 
     try {
       const result = await submitAnswerMutation.mutateAsync(answerData);
-      const isCorrect = result?.correct || false;
+      const isCorrect = (result as any)?.correct || false;
 
       playSound(isCorrect);
       
@@ -327,7 +327,7 @@ export default function RatiosPlayPage() {
     );
   }
 
-  if (error || !questionsData?.questions) {
+  if (error || !questions.length) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
@@ -350,7 +350,7 @@ export default function RatiosPlayPage() {
     );
   }
 
-  const currentQuestion = questionsData.questions[currentQuestionIndex];
+  const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / RATIOS_RULES.questionCount) * 100;
 
   return (

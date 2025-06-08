@@ -236,12 +236,12 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     const correctOptions = question.correctAnswers || [];
     
     // User must select at least one correct answer and no incorrect ones
-    const hasCorrect = userSelected.some(selected => 
-      correctOptions.some(correct => selected === correct.toLowerCase())
+    const hasCorrect = userSelected.some((selected: string) => 
+      correctOptions.some((correct: string) => selected === correct.toLowerCase())
     );
     
-    const hasIncorrect = userSelected.some(selected => 
-      !correctOptions.some(correct => selected === correct.toLowerCase())
+    const hasIncorrect = userSelected.some((selected: string) => 
+      !correctOptions.some((correct: string) => selected === correct.toLowerCase())
     );
     
     return hasCorrect && !hasIncorrect;
