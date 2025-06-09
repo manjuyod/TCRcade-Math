@@ -1496,8 +1496,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { questionIndex, answer, skill, question } = req.body;
       const userId = getUserId(req);
 
+      console.log("RATIOS DEBUG - Question:", JSON.stringify(question, null, 2));
+      console.log("RATIOS DEBUG - User answer:", JSON.stringify(answer));
+      console.log("RATIOS DEBUG - Expected answer:", question.correctAnswer);
+
       // Validate the answer
       const isCorrect = validateRatiosAnswer(question, answer);
+      console.log("RATIOS DEBUG - Validation result:", isCorrect);
 
       // Calculate tokens for correct answers
       const tokensEarned = isCorrect ? RATIOS_RULES.questionCount : 0;

@@ -231,6 +231,17 @@ export function generateRatiosQuestions(skill: RatiosSkill, level: number): Rati
   return questions;
 }
 
+// Normalize ratio format for comparison
+function normalizeRatioAnswer(answer: string): string {
+  return answer
+    .trim()
+    .toLowerCase()
+    .replace(/\s+to\s+/g, ':')
+    .replace(/\s*\/\s*/g, ':')
+    .replace(/\s*:\s*/g, ':')
+    .replace(/\s+/g, '');
+}
+
 // Validate answer for a ratios question
 export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: string): boolean {
   const cleanAnswer = userAnswer.trim().toLowerCase();
@@ -255,7 +266,10 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
   
   // For write_form questions, handle different acceptable formats
   if (question.skill === 'write_form') {
-    return cleanAnswer === correctAnswer;
+    // Normalize both answers for comparison
+    const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+    const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+    return normalizedUser === normalizedCorrect;
   }
   
   // For equivalents questions, handle both single value and ratio formats
@@ -264,15 +278,19 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     if (question.level === 1) {
       return cleanAnswer === correctAnswer;
     }
-    // Level 2: Ratio format answer
+    // Level 2: Ratio format answer - normalize for comparison
     if (question.level === 2) {
-      return cleanAnswer === correctAnswer;
+      const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+      const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+      return normalizedUser === normalizedCorrect;
     }
   }
   
-  // For visual_identification, expect ratio format
+  // For visual_identification, expect ratio format - normalize for comparison
   if (question.skill === 'visual_identification') {
-    return cleanAnswer === correctAnswer;
+    const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+    const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+    return normalizedUser === normalizedCorrect;
   }
   
   // Default comparison
