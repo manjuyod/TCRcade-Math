@@ -43,6 +43,12 @@ export default function MeasurementLoadingPage() {
           currentStepIndex++;
         }
         
+        // Stop the interval when we reach 100%
+        if (newProgress >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        
         return newProgress;
       });
     }, 800);
@@ -50,15 +56,15 @@ export default function MeasurementLoadingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Navigate to play page when loading is complete and data is available
+  // Navigate to play page when loading is complete
   useEffect(() => {
-    if (loadingProgress >= 100 && progressData && !isLoading) {
+    if (loadingProgress >= 100) {
       const timer = setTimeout(() => {
         navigate('/measurement/play');
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [loadingProgress, progressData, isLoading, navigate]);
+  }, [loadingProgress, navigate]);
 
   // Handle error state
   if (error) {
