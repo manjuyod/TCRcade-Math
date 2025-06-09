@@ -1,0 +1,80 @@
+1. Objective
+Flesh out and fully implement the Measurement Mastery module so it behaves exactly as described below, integrates with existing client/server/shared folders, and adheres to current coding conventions.
+
+2. High‑Level Flow
+2.1 Start Module button → client/src/pages/measurement/setup-page.tsx
+2.2 Setup Page offers three buttons (Test – greyed‑out, Practice Run, Token Run).
+2.3 Practice Run
+- Show loading page.
+- Run query A (see §3).
+- Query B (Try‑It questions).
+- Preload 5 questions (fill with more “Try It” rows if < 5).
+- Route to play-page.tsx.
+- User answers; no tokens, no consequences.
+- Route to complete-page.tsx, show stats, then Home.
+2.4 Token Tun
+- Show loading page.
+- Run query A.
+- Query C (main questions; last slot must be a Challenge row when available).
+- Preload 5 questions (see rule).
+- Route to play-page.tsx.
+- Score answers, update attempts & tokens logic (§4).
+- Route to level‑change page if level shifts, then complete-page.tsx, then Home.
+
+3. SQL Queries
+Query A – pull user progress & grade
+
+SELECT
+  (hidden_grade_asset #>> '{modules,measurement,grade_level}')::int    AS grade_level,
+  (hidden_grade_asset #>> '{modules,measurement,progress,lesson}')::int AS lesson
+FROM users
+WHERE id = :currentUserId;
+
+Query B – Practice Run question pool
+
+SELECT *
+FROM questions_measurementAndData
+WHERE GradeLevel = :grade_level
+  AND Lesson     = :lesson
+  AND Section ILIKE '%tryit%';
+
+Query C – Token Run question pool
+
+SELECT *
+FROM questions_measurementAndData
+WHERE GradeLevel = :grade_level
+  AND Lesson     = :lesson
+  AND Section NOT ILIKE '%tryit%';
+
+4. Scoring & Progress Rules
+| Condition    | DB Update (`users.hidden_grade_asset`) | Client token award                  |
+| ------------ | -------------------------------------- | ----------------------------------- |
+| Score ≥ 80 % | `attempt_bad → 0`, `attempt_good += 1` | +5 tokens (80 %), +8 tokens (100 %) |
+| Score < 80 % | `attempt_good → 0`, `attempt_bad += 1` | 0 tokens                            |
+- After each update, check attempt_good == 3 → level up (only if questions exist for next grade). Reset both counters to 0.
+- Check attempt_bad == 3 → level down (if lower grade exists). Reset counters.
+- Tokens & question states must update optimistically on the client, then persist to DB.
+
+5. File/Folder Work Breakdown
+| Layer        | Tasks                                                                                                                                                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Client**   | • Ensure `modules-page.tsx` lists Measurement Mastery.<br>• Build/adjust `setup-page.tsx`, `loading-page.tsx`, `play-page.tsx`, `complete-page.tsx`, and `level-change-page.tsx`.<br>• State management for preload, token bookkeeping, optimistic updates.                             |
+| **Shared**   | • Add Measurement Mastery config under `shared/modules/measurement.ts` (grade caps, token values, etc.).                                                                                                                                                                                |
+| **Server**   | • Create `server/src/modules/measurements.ts` with helpers:<br>  – `getUserMeasurementProgress(userId)` (Query A)<br>  – `getMeasurementQuestions(params)` (Query B/C)<br>  – mutation endpoints to write token/attempt/level changes.<br>• Update `routes.ts` to expose new endpoints. |
+| **Database** | • Verify/alter table `questions_measurementAndData` naming typo (was “meaasurement”).<br>• Add missing indexes on `(GradeLevel, Lesson, Section)` for performance.
+                                                                                                                      |
+6. Acceptance Criteria
+- Practice Run and Token Run follow exact logic; navigation is seamless.
+- Questions preload to 5 every time (Challenge in slot 5 for Token Run if any).
+- Attempt counters and level changes behave per rules; regression tested.
+- tokens appear instantly; DB state matches after server round‑trip.
+- Unit tests added/updated for server helpers and client scoring.
+- TypeScript passes strict mode; ESLint/Prettier clean.
+
+7. Deliverables
+- All modified/created files committed.
+- README_measurement.md summarizing module architecture, endpoints, and test commands.
+- Automated test suite (npm test) green.
+
+8. Clarification Request Protocol
+Before writing production code ask any clarifying questions in a single reply, then wait for my answers:

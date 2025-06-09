@@ -231,28 +231,21 @@ export function generateRatiosQuestions(skill: RatiosSkill, level: number): Rati
   return questions;
 }
 
-// Parse ratio string into numbers for comparison
-function parseRatio(ratioStr: string): [number, number] | null {
-  const parts = ratioStr.trim().split(':');
-  if (parts.length !== 2) return null;
-  
-  const first = parseInt(parts[0].trim());
-  const second = parseInt(parts[1].trim());
-  
-  if (isNaN(first) || isNaN(second)) return null;
-  return [first, second];
-}
-
-// Check if two ratios are equivalent (can be simplified to same form)
-function areRatiosEquivalent(ratio1: [number, number], ratio2: [number, number]): boolean {
-  // Cross multiply to check equivalence: a:b = c:d if a*d = b*c
-  return ratio1[0] * ratio2[1] === ratio1[1] * ratio2[0];
+// Normalize ratio format for comparison
+function normalizeRatioAnswer(answer: string): string {
+  return answer
+    .trim()
+    .toLowerCase()
+    .replace(/\s+to\s+/g, ':')
+    .replace(/\s*\/\s*/g, ':')
+    .replace(/\s*:\s*/g, ':')
+    .replace(/\s+/g, '');
 }
 
 // Validate answer for a ratios question
 export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: string): boolean {
-  const cleanAnswer = userAnswer.trim();
-  const correctAnswer = question.correctAnswer.trim();
+  const cleanAnswer = userAnswer.trim().toLowerCase();
+  const correctAnswer = question.correctAnswer.toLowerCase();
   
   if (question.skill === 'equivalents' && question.level >= 3) {
     // For multi-select, check if user selected all correct options
@@ -261,38 +254,22 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     
     // User must select at least one correct answer and no incorrect ones
     const hasCorrect = userSelected.some((selected: string) => 
-      correctOptions.some((correct: string) => selected === correct)
+      correctOptions.some((correct: string) => selected === correct.toLowerCase())
     );
     
     const hasIncorrect = userSelected.some((selected: string) => 
-      !correctOptions.some((correct: string) => selected === correct)
+      !correctOptions.some((correct: string) => selected === correct.toLowerCase())
     );
     
     return hasCorrect && !hasIncorrect;
   }
   
-  // For visual_identification, parse and compare ratios exactly
-  if (question.skill === 'visual_identification') {
-    const userRatio = parseRatio(cleanAnswer);
-    const correctRatio = parseRatio(correctAnswer);
-    
-    if (!userRatio || !correctRatio) return false;
-    
-    // For visual identification, we want exact matches, not equivalent ratios
-    return userRatio[0] === correctRatio[0] && userRatio[1] === correctRatio[1];
-  }
-  
-  // For write_form questions, handle different ratio formats but check equivalence
+  // For write_form questions, handle different acceptable formats
   if (question.skill === 'write_form') {
-    const userRatio = parseRatio(cleanAnswer);
-    const correctRatio = parseRatio(correctAnswer);
-    
-    if (!userRatio || !correctRatio) {
-      // Fall back to string comparison for non-ratio formats
-      return cleanAnswer.toLowerCase() === correctAnswer.toLowerCase();
-    }
-    
-    return areRatiosEquivalent(userRatio, correctRatio);
+    // Normalize both answers for comparison
+    const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+    const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+    return normalizedUser === normalizedCorrect;
   }
   
   // For equivalents questions, handle both single value and ratio formats
@@ -301,16 +278,21 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     if (question.level === 1) {
       return cleanAnswer === correctAnswer;
     }
-    // Level 2: Ratio format answer - check equivalence
+    // Level 2: Ratio format answer - normalize for comparison
     if (question.level === 2) {
-      const userRatio = parseRatio(cleanAnswer);
-      const correctRatio = parseRatio(correctAnswer);
-      
-      if (!userRatio || !correctRatio) return false;
-      return areRatiosEquivalent(userRatio, correctRatio);
+      const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+      const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+      return normalizedUser === normalizedCorrect;
     }
   }
   
+  // For visual_identification, expect ratio format - normalize for comparison
+  if (question.skill === 'visual_identification') {
+    const normalizedUser = normalizeRatioAnswer(cleanAnswer);
+    const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+    return normalizedUser === normalizedCorrect;
+  }
+  
   // Default comparison
-  return cleanAnswer.toLowerCase() === correctAnswer.toLowerCase();
+  return cleanAnswer === correctAnswer;
 }
