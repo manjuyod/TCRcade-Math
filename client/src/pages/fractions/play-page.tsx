@@ -20,6 +20,8 @@ import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionPrevention } from '@/hooks/use-session-prevention';
+import { useModuleContext } from '@/context/module-context';
+
 
 interface FPQuestion {
   kind: "define" | "simplify" | "equivalent" | "addSub" | "mulDiv" | "mixedImproper";
@@ -29,6 +31,7 @@ interface FPQuestion {
 export default function FractionsPlayPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -44,7 +47,11 @@ export default function FractionsPlayPage() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionActive, setSessionActive] = useState(false); // Track session activity
 
-  useSessionPrevention(sessionActive);
+  const { endSession } = useSessionPrevention({
+    isActive: sessionActive,
+    onAttemptExit: () => setShowExitDialog(true),
+    allowedPaths: ['/fractions/complete']
+  });
 
   // Audio refs for sound effects
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -843,15 +850,11 @@ export default function FractionsPlayPage() {
   };
 
   useEffect(() => {
-    if (questionsData?.questions) {
-      // Ensure questionsData and questions are defined
-      const { questions } = questionsData;
-      if (questions && Array.isArray(questions)) {
-        // Ensure questions is an array
-        setSessionActive(true); // Activate session prevention
-      }
+    if (!isLoading && questionsData?.questions?.length > 0) {
+      setSessionActive(true);
     }
-  }, [questionsData]);
+  }, [isLoading, questionsData]);
+
 
   if (isLoading) {
     return (

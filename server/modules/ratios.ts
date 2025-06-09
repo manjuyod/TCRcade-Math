@@ -56,35 +56,45 @@ function generateEquivalentsQuestion(level: number): RatiosQuestion {
   const maxValue = RATIOS_RULES.levels[level as RatiosLevel].maxValue;
   
   if (level === 1) {
-    // Level 1: x:4 = 3:4, fill in x
-    const b = Math.floor(Math.random() * maxValue) + 1;
-    const ratio = Math.floor(Math.random() * maxValue) + 1;
-    const x = Math.floor(Math.random() * maxValue) + 1;
+    // Level 1: x:4 = 6:12, fill in x (answer should be 2)
+    const a = Math.floor(Math.random() * 8) + 2; // 2-9
+    const b = Math.floor(Math.random() * 8) + 2; // 2-9
+    const multiplier = Math.floor(Math.random() * 4) + 2; // 2-5
+    
+    const scaledA = a * multiplier;
+    const scaledB = b * multiplier;
     
     return {
       skill: 'equivalents',
       level,
       prompt: `Find the missing value to make equivalent ratios`,
-      equation: `x:${b} = ${x}:${ratio * b}`,
-      correctAnswer: `${x * ratio}`,
-      x: x * ratio,
-      b,
-      ratio
+      equation: `x:${b} = ${scaledA}:${scaledB}`,
+      correctAnswer: `${a}`,
+      originalA: a,
+      originalB: b,
+      scaledA,
+      scaledB,
+      multiplier
     };
   } else if (level === 2) {
-    // Level 2: x:y = 3:4, fill both
-    const a = Math.floor(Math.random() * maxValue) + 1;
-    const b = Math.floor(Math.random() * maxValue) + 1;
-    const multiplier = Math.floor(Math.random() * 5) + 2;
+    // Level 2: 6:8 = x:y where user fills in both values for a simpler ratio
+    const a = Math.floor(Math.random() * 6) + 2; // 2-7
+    const b = Math.floor(Math.random() * 6) + 2; // 2-7
+    const multiplier = Math.floor(Math.random() * 3) + 2; // 2-4
+    
+    const scaledA = a * multiplier;
+    const scaledB = b * multiplier;
     
     return {
       skill: 'equivalents',
       level,
-      prompt: `Find the missing values to complete the equivalent ratio`,
-      equation: `${a * multiplier}:${b * multiplier} = ${a}:${b}`,
-      correctAnswer: `${a * multiplier}, ${b * multiplier}`,
-      baseA: a,
-      baseB: b,
+      prompt: `Simplify this ratio to its lowest terms`,
+      equation: `${scaledA}:${scaledB} = x:y`,
+      correctAnswer: `${a}:${b}`,
+      originalA: a,
+      originalB: b,
+      scaledA,
+      scaledB,
       multiplier
     };
   } else {
@@ -243,6 +253,28 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     return hasCorrect && !hasIncorrect;
   }
   
-  // For other question types, direct comparison
+  // For write_form questions, handle different acceptable formats
+  if (question.skill === 'write_form') {
+    return cleanAnswer === correctAnswer;
+  }
+  
+  // For equivalents questions, handle both single value and ratio formats
+  if (question.skill === 'equivalents') {
+    // Level 1: Single number answer
+    if (question.level === 1) {
+      return cleanAnswer === correctAnswer;
+    }
+    // Level 2: Ratio format answer
+    if (question.level === 2) {
+      return cleanAnswer === correctAnswer;
+    }
+  }
+  
+  // For visual_identification, expect ratio format
+  if (question.skill === 'visual_identification') {
+    return cleanAnswer === correctAnswer;
+  }
+  
+  // Default comparison
   return cleanAnswer === correctAnswer;
 }

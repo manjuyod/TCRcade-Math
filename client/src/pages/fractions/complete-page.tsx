@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
-import { motion } from 'framer-motion';
-import { ArrowRight, Trophy, Star, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Header from '@/components/header';
-import Navigation from '@/components/navigation';
-import { FRACTIONS_PUZZLE_RULES } from '@shared/fractionsPuzzleRules';
-import confetti from 'canvas-confetti';
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { ArrowRight, Trophy, Star, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Header from "@/components/header";
+import Navigation from "@/components/navigation";
+import { FRACTIONS_PUZZLE_RULES } from "@shared/fractionsPuzzleRules";
+import confetti from "canvas-confetti";
 
 interface CompletionResult {
   correct: number;
@@ -22,25 +22,27 @@ export default function FractionsCompletePage() {
 
   useEffect(() => {
     // Get result from localStorage
-    const savedResult = localStorage.getItem('fractionsResult');
+    const savedResult = localStorage.getItem("fractionsResult");
     if (savedResult) {
       const parsedResult = JSON.parse(savedResult);
       setResult(parsedResult);
-      
+
+      sessionStorage.removeItem("moduleInProgress");
+
       // Trigger confetti for good performance
       if (parsedResult.correct >= parsedResult.total * 0.8) {
         confetti({
           particleCount: 100,
           spread: 70,
-          origin: { y: 0.6 }
+          origin: { y: 0.6 },
         });
       }
-      
+
       // Clean up localStorage
-      localStorage.removeItem('fractionsResult');
+      localStorage.removeItem("fractionsResult");
     } else {
       // Redirect if no result found
-      navigate('/fractions/setup');
+      navigate("/fractions/setup");
     }
   }, [navigate]);
 
@@ -80,13 +82,13 @@ export default function FractionsCompletePage() {
 
   const getSkillTitle = (skill: string) => {
     const skillTitles = {
-      define: 'Define Fractions',
-      gcdSimplify: 'GCD & Simplify',
-      simplify: 'Simplify Fractions',
-      equivalent: 'Equivalent Fractions',
-      addSub: 'Add & Subtract',
-      mulDiv: 'Multiply & Divide',
-      mixedImproper: 'Mixed & Improper'
+      define: "Define Fractions",
+      gcdSimplify: "GCD & Simplify",
+      simplify: "Simplify Fractions",
+      equivalent: "Equivalent Fractions",
+      addSub: "Add & Subtract",
+      mulDiv: "Multiply & Divide",
+      mixedImproper: "Mixed & Improper",
     };
     return skillTitles[skill as keyof typeof skillTitles] || skill;
   };
@@ -95,7 +97,7 @@ export default function FractionsCompletePage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <Navigation active="home" />
-      
+
       <main className="flex-1 container max-w-4xl py-6 px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -127,11 +129,11 @@ export default function FractionsCompletePage() {
                     <Star className="h-10 w-10 text-primary" />
                   )}
                 </motion.div>
-                
+
                 <h2 className={`text-2xl font-bold ${getPerformanceColor()}`}>
                   {getPerformanceMessage()}
                 </h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                   <Card className="p-4">
                     <div className="text-center">
@@ -143,7 +145,7 @@ export default function FractionsCompletePage() {
                       </div>
                     </div>
                   </Card>
-                  
+
                   <Card className="p-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-primary">
@@ -154,7 +156,7 @@ export default function FractionsCompletePage() {
                       </div>
                     </div>
                   </Card>
-                  
+
                   <Card className="p-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-yellow-600">
@@ -170,18 +172,27 @@ export default function FractionsCompletePage() {
 
               {/* Token Breakdown */}
               <Card className="p-4 bg-yellow-50 border border-yellow-200">
-                <h3 className="font-semibold text-yellow-800 mb-3">Token Breakdown:</h3>
+                <h3 className="font-semibold text-yellow-800 mb-3">
+                  Token Breakdown:
+                </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Base tokens ({Math.floor(result.correct / 5)} × 5 correct answers):</span>
+                    <span>
+                      Base tokens ({Math.floor(result.correct / 5)} × 5 correct
+                      answers):
+                    </span>
                     <span className="font-semibold">
-                      {Math.floor(result.correct / 5) * FRACTIONS_PUZZLE_RULES.tokensPer5} tokens
+                      {Math.floor(result.correct / 5) *
+                        FRACTIONS_PUZZLE_RULES.tokensPer5}{" "}
+                      tokens
                     </span>
                   </div>
                   {isPerfect && (
                     <div className="flex justify-between text-yellow-700">
                       <span>Perfect score bonus:</span>
-                      <span className="font-semibold">+{FRACTIONS_PUZZLE_RULES.bonusPerfect} tokens</span>
+                      <span className="font-semibold">
+                        +{FRACTIONS_PUZZLE_RULES.bonusPerfect} tokens
+                      </span>
                     </div>
                   )}
                   <div className="border-t border-yellow-300 pt-2 flex justify-between font-bold text-yellow-800">
@@ -194,18 +205,15 @@ export default function FractionsCompletePage() {
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
-                  onClick={() => navigate('/fractions/setup')}
+                  onClick={() => navigate("/fractions/setup")}
                   variant="outline"
                   size="lg"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Try Another Skill
                 </Button>
-                
-                <Button
-                  onClick={() => navigate('/modules')}
-                  size="lg"
-                >
+
+                <Button onClick={() => navigate("/modules")} size="lg">
                   Back to Modules
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -215,22 +223,26 @@ export default function FractionsCompletePage() {
               <div className="text-center space-y-2">
                 {isPerfect && (
                   <p className="text-green-600 font-semibold">
-                    🎯 You've mastered this fraction skill! Try a more challenging one!
+                    🎯 You've mastered this fraction skill! Try a more
+                    challenging one!
                   </p>
                 )}
                 {isGood && !isPerfect && (
                   <p className="text-blue-600">
-                    🌟 Great progress! A few more practice sessions and you'll have this mastered!
+                    🌟 Great progress! A few more practice sessions and you'll
+                    have this mastered!
                   </p>
                 )}
                 {isOkay && !isGood && (
                   <p className="text-orange-600">
-                    💪 You're on the right track! Keep practicing to build your confidence!
+                    💪 You're on the right track! Keep practicing to build your
+                    confidence!
                   </p>
                 )}
                 {!isOkay && (
                   <p className="text-purple-600">
-                    🚀 Every expert was once a beginner! Try the same skill again or start with an easier one!
+                    🚀 Every expert was once a beginner! Try the same skill
+                    again or start with an easier one!
                   </p>
                 )}
               </div>

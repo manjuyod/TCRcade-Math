@@ -31,6 +31,7 @@ export default function RatiosPlayPage() {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [showFeedback, setShowFeedback] = useState(false);
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
@@ -168,6 +169,7 @@ export default function RatiosPlayPage() {
       const result = await submitAnswerMutation.mutateAsync(answerData);
       const isCorrect = (result as any)?.correct || false;
 
+      setLastAnswerCorrect(isCorrect);
       playSound(isCorrect);
       
       if (isCorrect) {
@@ -462,13 +464,17 @@ export default function RatiosPlayPage() {
                   className="bg-white rounded-lg p-6 text-center max-w-sm mx-4"
                 >
                   <div className="mb-4">
-                    <Check className="h-16 w-16 text-green-500 mx-auto" />
+                    {lastAnswerCorrect ? (
+                      <Check className="h-16 w-16 text-green-500 mx-auto" />
+                    ) : (
+                      <X className="h-16 w-16 text-red-500 mx-auto" />
+                    )}
                   </div>
-                  <h3 className="text-xl font-bold text-green-600 mb-2">
-                    Excellent work!
+                  <h3 className={`text-xl font-bold mb-2 ${lastAnswerCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                    {lastAnswerCorrect ? 'Excellent work!' : 'Not quite right'}
                   </h3>
                   <p className="text-gray-600">
-                    Moving to the next question...
+                    {lastAnswerCorrect ? 'Moving to the next question...' : 'Keep practicing! Moving to the next question...'}
                   </p>
                 </motion.div>
               </motion.div>

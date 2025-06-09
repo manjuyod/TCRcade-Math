@@ -1,3 +1,4 @@
+import { SessionAwareLink } from './session-aware-link'; // adjust path if needed
 import { Link } from 'wouter';
 import { Home, Gamepad as GamepadIcon, Trophy, User, Menu, Users, Brain, Pencil, GraduationCap, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -60,13 +61,12 @@ export default function Navigation({ active }: NavigationProps) {
       <div className="container mx-auto">
         <ul className="flex justify-around items-center h-full">
           <li className="flex flex-col items-center">
-            <Link 
+            <SessionAwareLink 
               href="/modules" 
-              onClick={(e) => !handleNavigation("/modules", e) && e.preventDefault()}
               className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'home' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Home className={`${active === 'home' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'home' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Home</span>
           </li>
           
@@ -92,43 +92,49 @@ export default function Navigation({ active }: NavigationProps) {
                   </button>
                   
                   <div className="flex flex-wrap justify-around py-2 mt-2">
-                    <Link 
-                      href="/multiplayer" 
-                      className={`flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100 ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                      onClick={(e) => {
-                        if (!handleNavigation("/multiplayer", e)) {
-                          e.preventDefault();
-                          return;
-                        }
-                        setIsFeatureMenuOpen(false);
-                      }}
-                    >
-                      <div className={`p-2 rounded-full ${active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                    <SessionAwareLink href="/multiplayer" className="flex flex-col items-center justify-center w-16">
+                      <div className={`h-10 w-10 flex items-center justify-center rounded-full ${
+                        active === 'multiplayer' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                      }`}>
                         <Users className="h-5 w-5" />
                       </div>
-                      <span className="text-xs text-center">Multiplayer</span>
-                    </Link>
+                      <span className={`text-[11px] mt-1 ${active === 'multiplayer' ? 'font-semibold text-primary' : 'text-gray-600'}`}>
+                        Multiplayer
+                      </span>
+                    </SessionAwareLink>
                     
-                    <Link href="/analytics" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
-                      <div className={`p-2 rounded-full ${active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                    <SessionAwareLink href="/analytics" className="flex flex-col items-center justify-center w-16">
+                      <div className={`h-10 w-10 flex items-center justify-center rounded-full ${
+                        active === 'analytics' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                      }`}>
                         <Brain className="h-5 w-5" />
                       </div>
-                      <span className="text-xs text-center">AI Analytics</span>
-                    </Link>
+                      <span className={`text-[11px] mt-1 ${active === 'analytics' ? 'font-semibold text-primary' : 'text-gray-600'}`}>
+                        AI Analytics
+                      </span>
+                    </SessionAwareLink>
 
-                    <Link href="/practice" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
-                      <div className={`p-2 rounded-full ${active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                    <SessionAwareLink href="/practice" className="flex flex-col items-center justify-center w-20">
+                      <div className={`h-10 w-10 flex items-center justify-center rounded-full ${
+                        active === 'create-a-quiz' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                      }`}>
                         <Pencil className="h-5 w-5" />
                       </div>
-                      <span className="text-xs text-center">Create-A-Quiz</span>
-                    </Link>
+                      <span className={`text-[11px] mt-1 text-center whitespace-nowrap ${active === 'create-a-quiz' ? 'font-semibold text-primary' : 'text-gray-600'}`}>
+                        Create-A-Quiz
+                      </span>
+                    </SessionAwareLink>
                     
-                    <Link href="/tutor" className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-100" onClick={() => setIsFeatureMenuOpen(false)}>
-                      <div className={`p-2 rounded-full ${active === 'tutor' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'}`}>
+                    <SessionAwareLink href="/tutor" className="flex flex-col items-center justify-center w-16">
+                      <div className={`h-10 w-10 flex items-center justify-center rounded-full ${
+                        active === 'tutor' ? 'bg-primary text-white' : 'bg-primary/10 text-primary'
+                      }`}>
                         <GraduationCap className="h-5 w-5" />
                       </div>
-                      <span className="text-xs text-center">AI Tutor</span>
-                    </Link>
+                      <span className={`text-[11px] mt-1 ${active === 'tutor' ? 'font-semibold text-primary' : 'text-gray-600'}`}>
+                        AI Tutor
+                      </span>
+                    </SessionAwareLink>
                   </div>
                 </div>
               )}
@@ -137,24 +143,22 @@ export default function Navigation({ active }: NavigationProps) {
           </li>
           
           <li className="flex flex-col items-center">
-            <Link 
+            <SessionAwareLink 
               href="/leaderboard" 
-              onClick={(e) => !handleNavigation("/leaderboard", e) && e.preventDefault()}
-              className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'leaderboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-1 rounded-full ...`}
             >
               <Trophy className={`${active === 'leaderboard' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'leaderboard' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Leaderboard</span>
           </li>
           
           <li className="flex flex-col items-center">
-            <Link 
-              href="/profile" 
-              onClick={(e) => !handleNavigation("/profile", e) && e.preventDefault()}
-              className={`p-1 rounded-full transition-all duration-200 transform hover:scale-110 ${active === 'profile' ? 'bg-primary text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'} ${hasActiveSession ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+              <SessionAwareLink 
+                href="/profile" 
+                className={`p-1 rounded-full ...`}
+              >
               <User className={`${active === 'profile' ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Link>
+            </SessionAwareLink>
             <span className={`text-[8px] ${active === 'profile' ? 'text-primary font-bold' : 'text-gray-500'} mt-0.5`}>Profile</span>
           </li>
         </ul>

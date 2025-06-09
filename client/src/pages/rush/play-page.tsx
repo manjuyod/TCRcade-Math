@@ -154,6 +154,8 @@ export default function MathRushPlayPage() {
     if (!loading && questions.length > 0 && !gameStarted) {
       startTimer();
       setGameStarted(true);
+      setSessionActive(true); // ✅ Activate session prevention
+      sessionStorage.setItem('moduleInProgress', 'true'); // ✅ Enable nav bar session mode
     }
   }, [loading, questions, gameStarted]);
   
@@ -308,6 +310,7 @@ export default function MathRushPlayPage() {
       
       // Navigate to completion page after a small delay
       setTimeout(() => {
+        sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
         endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
@@ -325,6 +328,7 @@ export default function MathRushPlayPage() {
       }));
       
       setTimeout(() => {
+        sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
         endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
