@@ -249,23 +249,7 @@ export default function RatiosPlayPage() {
               ))}
             </div>
             
-            {/* Shape count helper */}
-            <div className="mt-4 p-3 bg-white rounded border text-sm">
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="text-blue-600 font-medium">
-                  Blue: {question.blueCount || 0}
-                </div>
-                <div className="text-orange-600 font-medium">
-                  Orange: {question.orangeCount || 0}
-                </div>
-                <div className="text-gray-600">
-                  Triangles: {question.triangleCount || 0}
-                </div>
-                <div className="text-gray-600">
-                  Other shapes: {(question.totalShapes || 0) - (question.triangleCount || 0)}
-                </div>
-              </div>
-            </div>
+
           </div>
           
           <p className="text-sm text-gray-600 mt-4">
