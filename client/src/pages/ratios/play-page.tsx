@@ -28,6 +28,7 @@ export default function RatiosPlayPage() {
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
+  const [correctAnswers, setCorrectAnswers] = useState<boolean[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [showFeedback, setShowFeedback] = useState(false);
@@ -170,6 +171,12 @@ export default function RatiosPlayPage() {
       const isCorrect = (result as any)?.correct || false;
 
       setLastAnswerCorrect(isCorrect);
+      
+      // Track correct answers for session completion
+      const newCorrectAnswers = [...correctAnswers];
+      newCorrectAnswers[currentQuestionIndex] = isCorrect;
+      setCorrectAnswers(newCorrectAnswers);
+      
       playSound(isCorrect);
       
       if (isCorrect) {
@@ -188,7 +195,17 @@ export default function RatiosPlayPage() {
           setCurrentAnswer('');
           setSelectedOptions(new Set());
         } else {
-          // Session complete
+          // Session complete - store results for completion page
+          const totalCorrect = newCorrectAnswers.filter(Boolean).length;
+          const accuracy = Math.round((totalCorrect / RATIOS_RULES.questionCount) * 100);
+          
+          localStorage.setItem('ratiosSessionResults', JSON.stringify({
+            correct: totalCorrect,
+            total: RATIOS_RULES.questionCount,
+            accuracy,
+            skill: selectedSkill
+          }));
+          
           setShowCelebration(true);
           setSessionActive(false);
           
@@ -212,19 +229,42 @@ export default function RatiosPlayPage() {
           {/* Visual display area */}
           <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 max-w-md mx-auto">
             <div 
-              className="flex flex-wrap justify-center gap-2"
-              style={{ maxWidth: '70%', margin: '0 auto' }}
+              className="flex flex-wrap justify-center gap-3"
+              style={{ maxWidth: '80%', margin: '0 auto' }}
             >
               {question.shapes?.map((shape: any, index: number) => (
                 <div
                   key={index}
-                  className={`w-8 h-8 ${shape.color === 'blue' ? 'bg-blue-500' : 'bg-orange-500'} 
-                    ${shape.type === 'circle' ? 'rounded-full' : shape.type === 'triangle' ? 'transform rotate-45' : 'rounded-none'}`}
+                  className={`w-10 h-10 flex items-center justify-center transition-all hover:scale-110 ${
+                    shape.color === 'blue' ? 'bg-blue-500' : 'bg-orange-500'
+                  } ${
+                    shape.type === 'circle' ? 'rounded-full' : 
+                    shape.type === 'triangle' ? '' : 'rounded-sm'
+                  }`}
                   style={{
                     clipPath: shape.type === 'triangle' ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : undefined
                   }}
+                  title={`${shape.color} ${shape.type}`}
                 />
               ))}
+            </div>
+            
+            {/* Shape count helper */}
+            <div className="mt-4 p-3 bg-white rounded border text-sm">
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="text-blue-600 font-medium">
+                  Blue: {question.blueCount || 0}
+                </div>
+                <div className="text-orange-600 font-medium">
+                  Orange: {question.orangeCount || 0}
+                </div>
+                <div className="text-gray-600">
+                  Triangles: {question.triangleCount || 0}
+                </div>
+                <div className="text-gray-600">
+                  Other shapes: {(question.totalShapes || 0) - (question.triangleCount || 0)}
+                </div>
+              </div>
             </div>
           </div>
           

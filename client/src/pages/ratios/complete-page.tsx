@@ -22,18 +22,20 @@ export default function RatiosCompletePage() {
       origin: { y: 0.6 }
     });
 
-    // Get session results from localStorage or calculate from stored answers
+    // Get session results from localStorage
     const storedResults = localStorage.getItem('ratiosSessionResults');
     if (storedResults) {
       const results = JSON.parse(storedResults);
       setAccuracy(results.accuracy || 0);
       setTotalCorrect(results.correct || 0);
+      
+      // Clear the results after reading them
+      localStorage.removeItem('ratiosSessionResults');
     } else {
-      // Default values if no results stored
-      setAccuracy(80); // Default to 80% if no data
-      setTotalCorrect(4); // Default to 4/5 correct
+      // No session data available - redirect back to setup
+      navigate('/ratios/setup');
     }
-  }, []);
+  }, [navigate]);
 
   const handleTryAnotherSkill = () => {
     // Clear previous session data
