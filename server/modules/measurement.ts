@@ -14,6 +14,26 @@ export interface QuestionQueryParams {
   section_filter: string;
 }
 
+// Helper function to process question answers for free response questions
+function processQuestionAnswers(questions: MeasurementQuestion[]): MeasurementQuestion[] {
+  return questions.map(question => {
+    if (question.Type === 'FR' && typeof question.CorrectAnswer === 'string') {
+      // Convert single string answers to arrays for free response questions
+      // Handle common separators: commas, semicolons, "or", "and"
+      const answer = question.CorrectAnswer;
+      if (answer.includes(',') || answer.includes(';') || answer.includes(' or ') || answer.includes(' and ')) {
+        const possibleAnswers = answer
+          .split(/[,;]|\s+or\s+|\s+and\s+/i)
+          .map(a => a.trim())
+          .filter(a => a.length > 0);
+        
+        question.CorrectAnswer = possibleAnswers.length > 1 ? possibleAnswers : answer;
+      }
+    }
+    return question;
+  });
+}
+
 // Query A - Get user measurement progress & grade
 export async function getUserMeasurementProgress(userId: number): Promise<MeasurementProgressResult> {
   const result = await db.select({

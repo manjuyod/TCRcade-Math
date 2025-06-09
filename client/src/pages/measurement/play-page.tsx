@@ -127,11 +127,38 @@ export default function MeasurementPlayPage() {
     if (!currentQuestion || currentQuestion.isAnswered) return;
 
     const updatedQuestions = [...questions];
-    const isCorrect = answer === currentQuestion.question.CorrectAnswer;
-    
     updatedQuestions[currentQuestionIndex] = {
       ...currentQuestion,
       selectedAnswer: answer,
+      isAnswered: false,
+      isCorrect: null,
+      showFeedback: false
+    };
+    
+    setQuestions(updatedQuestions);
+  };
+
+  const handleCheckAnswer = () => {
+    if (!currentQuestion || currentQuestion.isAnswered || !currentQuestion.selectedAnswer) return;
+
+    const updatedQuestions = [...questions];
+    const userAnswer = currentQuestion.selectedAnswer.trim();
+    const correctAnswer = currentQuestion.question.CorrectAnswer;
+    
+    let isCorrect = false;
+    
+    if (Array.isArray(correctAnswer)) {
+      // Multiple possible answers
+      isCorrect = correctAnswer.some(answer => 
+        userAnswer.toLowerCase() === answer.toLowerCase()
+      );
+    } else {
+      // Single answer
+      isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+    }
+    
+    updatedQuestions[currentQuestionIndex] = {
+      ...currentQuestion,
       isAnswered: true,
       isCorrect,
       showFeedback: true
@@ -274,12 +301,17 @@ export default function MeasurementPlayPage() {
                   <CardContent>
                     {/* SVG Display */}
                     {currentQuestion.question.AnswerBank.question.svg && (
-                      <div className="mb-6 flex justify-center overflow-x-auto">
+                      <div className="mb-6 flex justify-center overflow-x-auto p-4 bg-gray-50 rounded-lg">
                         <div 
                           dangerouslySetInnerHTML={{ 
                             __html: currentQuestion.question.AnswerBank.question.svg 
                           }}
-                          className="max-w-full w-full [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-96"
+                          className="svg-container [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:scale-75 sm:[&>svg]:scale-90 md:[&>svg]:scale-100"
+                          style={{
+                            maxWidth: '100%',
+                            width: 'fit-content',
+                            height: 'auto'
+                          }}
                         />
                       </div>
                     )}
@@ -295,10 +327,18 @@ export default function MeasurementPlayPage() {
                           type="text"
                           value={currentQuestion.selectedAnswer || ''}
                           onChange={(e) => handleAnswerSelect(e.target.value)}
-                          placeholder="Enter your answer here..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentQuestion.selectedAnswer && !currentQuestion.showFeedback) {
+                              handleCheckAnswer();
+                            }
+                          }}
+                          placeholder="Enter your answer and press Enter..."
                           className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
                           disabled={currentQuestion.showFeedback}
                         />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Press Enter to submit your answer
+                        </p>
                         {currentQuestion.showFeedback && (
                           <div className={`mt-2 p-3 rounded-lg ${
                             currentQuestion.isCorrect 
@@ -311,7 +351,9 @@ export default function MeasurementPlayPage() {
                               {currentQuestion.isCorrect ? '✓ Correct!' : '✗ Incorrect'}
                             </p>
                             <p className="text-sm mt-1 text-gray-600">
-                              Correct answer: {currentQuestion.question.CorrectAnswer}
+                              Correct answer: {Array.isArray(currentQuestion.question.CorrectAnswer) 
+                                ? currentQuestion.question.CorrectAnswer.join(', ') 
+                                : currentQuestion.question.CorrectAnswer}
                             </p>
                           </div>
                         )}

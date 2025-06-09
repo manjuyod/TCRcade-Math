@@ -46,7 +46,7 @@ export interface MeasurementQuestion {
       svg: string | null;
     }>;
   };
-  CorrectAnswer: string;
+  CorrectAnswer: string | string[];
 }
 
 export interface MeasurementProgress {
