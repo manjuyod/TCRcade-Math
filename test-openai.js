@@ -43,27 +43,38 @@ async function testOpenAI() {
       messages: [
         {
           role: "system",
-          content: "Generate a simple math question for grade 2 in the category of Addition. Return ONLY the JSON object with 'question', 'answer', and 'options' fields."
+      // Alex R: Changing content prompt for 5 questions instead of 1
+          content: "Generate 5 simple math question for grade 2 in the category of Addition. Return ONLY the JSON object with 'question', 'answer', and 'options' fields."
         },
         {
           role: "user",
-          content: "Create a grade 2 math question about Addition. Use pure calculation format (e.g., '4 + 5 = ?')."
+          content: "Create 5 grade 2 math question about Addition. Use pure calculation format (e.g., '4 + 5 = ?')."
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 500
+      // Alex R: Increasing max tokens to 800 to accommodate 5 questions
+      max_tokens: 800
     });
     
     console.log("✅ Math question generation successful!");
     
     const content = mathResponse.choices[0].message.content || '{}';
     console.log("Raw response:", content);
+
+    // Alex R: Parse JSON and log the 1st generated question
+    let parsedResponse;
+    try{
     
-    const parsedResponse = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    // Alex R: If the response is an array, take the 1st element
+    parsedResponse = Array.isArray(parsed) ? parsed[0] : parsed;  
     console.log("Question:", parsedResponse.question || 'Unknown');
     console.log("Answer:", parsedResponse.answer || 'Unknown');
     console.log("Options:", parsedResponse.options || []);
-    
+    } catch(parseError){
+      console.error("❌ Failed to parse JSON response:", parseError.message);
+      return false;
+    }
     return true;
   } catch (error) {
     console.error("❌ OpenAI API test failed:", error.message || String(error));

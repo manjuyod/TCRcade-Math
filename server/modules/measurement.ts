@@ -302,6 +302,30 @@ export async function checkGradeAvailability(gradeLevel: number): Promise<boolea
   return (result.rows[0] as any).count > 0;
 }
 
+// Validate a single answer for a measurement question
+export async function validateMeasurementAnswer(questionId: number, userAnswer: string): Promise<{ correct: boolean; correctAnswer: string }> {
+  // Get the question from database
+  const result = await db.execute(
+    sql`SELECT "CorrectAnswer" FROM "questions_measurementAndData" WHERE "id" = ${questionId}`
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Question not found');
+  }
+
+  const question = result.rows[0] as any;
+  const correctAnswer = question.CorrectAnswer;
+
+  // Use the same validation logic as the server-side submission
+  const { validateMeasurementAnswer: validate } = await import('../shared/measurementRules');
+  const isCorrect = validate(userAnswer, correctAnswer);
+
+  return {
+    correct: isCorrect,
+    correctAnswer: correctAnswer
+  };
+}
+
 // Get user's current measurement data
 export async function getUserMeasurementData(userId: number): Promise<MeasurementUserData> {
   const userResult = await db.select()

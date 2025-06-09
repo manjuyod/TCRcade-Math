@@ -138,40 +138,48 @@ export default function MeasurementPlayPage() {
     setQuestions(updatedQuestions);
   };
 
-  const handleCheckAnswer = () => {
+  const handleCheckAnswer = async () => {
     if (!currentQuestion || currentQuestion.isAnswered || !currentQuestion.selectedAnswer) return;
 
-    const updatedQuestions = [...questions];
-    const userAnswer = currentQuestion.selectedAnswer.trim().toLowerCase();
-    const correctAnswer = currentQuestion.question.CorrectAnswer;
-    
-    let isCorrect = false;
-    
-    if (Array.isArray(correctAnswer)) {
-      // Multiple possible answers
-      isCorrect = correctAnswer.some(answer => {
-        const cleanAnswer = answer.toLowerCase().trim();
-        // Check exact match or if user answer contains the main measurement
-        return userAnswer === cleanAnswer || 
-               cleanAnswer.includes(userAnswer) ||
-               userAnswer.includes(cleanAnswer);
+    try {
+      // Submit to server for validation
+      const response = await fetch('/api/measurement/validate-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId: currentQuestion.question.id,
+          userAnswer: currentQuestion.selectedAnswer
+        })
       });
-    } else {
-      // Single answer - check for partial matches and variations
-      const cleanCorrect = correctAnswer.toLowerCase().trim();
-      isCorrect = userAnswer === cleanCorrect || 
-                  cleanCorrect.includes(userAnswer) ||
-                  userAnswer.includes(cleanCorrect);
+
+      const result = await response.json();
+      
+      const updatedQuestions = [...questions];
+      updatedQuestions[currentQuestionIndex] = {
+        ...currentQuestion,
+        isAnswered: true,
+        isCorrect: result.correct,
+        showFeedback: true
+      };
+      
+      setQuestions(updatedQuestions);
+    } catch (error) {
+      console.error('Answer validation error:', error);
+      // Fallback to basic validation if server fails
+      const updatedQuestions = [...questions];
+      const userAnswer = currentQuestion.selectedAnswer.trim();
+      const correctAnswer = currentQuestion.question.CorrectAnswer;
+      const isCorrect = userAnswer === correctAnswer;
+      
+      updatedQuestions[currentQuestionIndex] = {
+        ...currentQuestion,
+        isAnswered: true,
+        isCorrect,
+        showFeedback: true
+      };
+      
+      setQuestions(updatedQuestions);
     }
-    
-    updatedQuestions[currentQuestionIndex] = {
-      ...currentQuestion,
-      isAnswered: true,
-      isCorrect,
-      showFeedback: true
-    };
-    
-    setQuestions(updatedQuestions);
   };
 
   const handleNextQuestion = () => {

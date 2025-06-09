@@ -181,9 +181,11 @@ export default function RatiosPlayPage() {
 
     try {
       const result = await submitAnswerMutation.mutateAsync(answerData);
-      const isCorrect = (result as any)?.correct || false;
+      const isCorrect = (result as any)?.correct;
 
       setLastAnswerCorrect(isCorrect);
+      console.log(`Answer ${isCorrect ? 'correct' : 'incorrect'}:`, result)
+      console.log(`lastAnswerCorrect: ${lastAnswerCorrect}`)
       
       // Track correct answers for session completion
       const newCorrectAnswers = [...correctAnswers];

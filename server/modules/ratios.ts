@@ -10,8 +10,7 @@ interface RatiosQuestion {
 
 // Get user's current skill level for a specific ratios skill
 export async function getUserSkillLevel(userId: number, skill: RatiosSkill): Promise<number> {
-  // For now, return a default level based on user progress
-  // In a real implementation, this would query the database
+  // TODO: Implement actual logic to fetch user's current skill level from the database
   return 1; // Start at level 1
 }
 
@@ -269,6 +268,7 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     // Normalize both answers for comparison
     const normalizedUser = normalizeRatioAnswer(cleanAnswer);
     const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
+    console.log(`Comparing normalized answers: ${normalizedUser} vs ${normalizedCorrect}`);
     return normalizedUser === normalizedCorrect;
   }
   
