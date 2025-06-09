@@ -30,6 +30,8 @@ export default function RatiosPlayPage() {
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState<boolean[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState('');
+  const [ratioFirst, setRatioFirst] = useState('');
+  const [ratioSecond, setRatioSecond] = useState('');
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
@@ -135,7 +137,18 @@ export default function RatiosPlayPage() {
     let answerToSubmit = '';
 
     // Handle different answer types
-    if (currentQuestion.skill === 'visual_identification' || currentQuestion.skill === 'write_form') {
+    if (currentQuestion.skill === 'visual_identification') {
+      // Use separate ratio inputs for visual identification
+      if (!ratioFirst.trim() || !ratioSecond.trim()) {
+        toast({
+          title: "Incomplete Answer",
+          description: "Please fill in both parts of the ratio.",
+          variant: "destructive"
+        });
+        return;
+      }
+      answerToSubmit = `${ratioFirst.trim()}:${ratioSecond.trim()}`;
+    } else if (currentQuestion.skill === 'write_form') {
       answerToSubmit = currentAnswer.trim();
     } else if (currentQuestion.skill === 'equivalents' && currentQuestion.level >= 3) {
       // Multi-select for level 3+ equivalents
@@ -193,6 +206,8 @@ export default function RatiosPlayPage() {
           // Move to next question
           setCurrentQuestionIndex(prev => prev + 1);
           setCurrentAnswer('');
+          setRatioFirst('');
+          setRatioSecond('');
           setSelectedOptions(new Set());
         } else {
           // Session complete - store results for completion page
@@ -256,17 +271,31 @@ export default function RatiosPlayPage() {
           </p>
         </div>
         
-        <Input
-          value={currentAnswer}
-          onChange={(e) => setCurrentAnswer(e.target.value)}
-          placeholder="Enter ratio (e.g., 3:2)"
-          className="text-center text-lg"
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && currentAnswer.trim()) {
-              handleSubmitAnswer();
-            }
-          }}
-        />
+        <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+          <Input
+            value={ratioFirst}
+            onChange={(e) => setRatioFirst(e.target.value)}
+            placeholder="0"
+            className="text-center text-lg w-20"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && ratioFirst.trim() && ratioSecond.trim()) {
+                handleSubmitAnswer();
+              }
+            }}
+          />
+          <span className="text-2xl font-bold text-gray-600">:</span>
+          <Input
+            value={ratioSecond}
+            onChange={(e) => setRatioSecond(e.target.value)}
+            placeholder="0"
+            className="text-center text-lg w-20"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && ratioFirst.trim() && ratioSecond.trim()) {
+                handleSubmitAnswer();
+              }
+            }}
+          />
+        </div>
       </div>
     );
   };
@@ -456,7 +485,9 @@ export default function RatiosPlayPage() {
               <Button
                 onClick={handleSubmitAnswer}
                 disabled={submitAnswerMutation.isPending || showFeedback || 
-                  (!currentAnswer && selectedOptions.size === 0)}
+                  (currentQuestion.skill === 'visual_identification' ? (!ratioFirst || !ratioSecond) :
+                   currentQuestion.skill === 'equivalents' && currentQuestion.level >= 3 ? selectedOptions.size === 0 :
+                   !currentAnswer)}
                 className="w-full bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {submitAnswerMutation.isPending ? (
