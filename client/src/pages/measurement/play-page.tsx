@@ -311,17 +311,18 @@ export default function MeasurementPlayPage() {
                       <div className="mb-6 p-4 bg-gray-50 rounded-lg w-full">
                         <style>{`
                           .svg-container svg {
-                            width: 100% !important;
                             max-width: 100% !important;
+                            max-height: 500px !important;
+                            width: auto !important;
                             height: auto !important;
-                            max-height: 300px !important;
+                            object-fit: contain !important;
                           }
                         `}</style>
                         <div 
                           dangerouslySetInnerHTML={{ 
                             __html: currentQuestion.question.AnswerBank.question.svg 
                           }}
-                          className="svg-container flex justify-center"
+                          className="svg-container flex justify-center items-center"
                         />
                       </div>
                     )}
