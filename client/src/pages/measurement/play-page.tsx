@@ -385,7 +385,12 @@ export default function MeasurementPlayPage() {
                         return (
                           <button
                             key={index}
-                            onClick={() => handleAnswerSelect(option.label)}
+                            onClick={() => {
+                              if (!currentQuestion.isAnswered) {
+                                handleAnswerSelect(option.label);
+                                setTimeout(() => handleCheckAnswer(), 50);
+                              }
+                            }}
                             disabled={currentQuestion.isAnswered}
                             className={buttonClass}
                           >

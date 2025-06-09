@@ -27,7 +27,7 @@ function processQuestionAnswers(questions: MeasurementQuestion[]): MeasurementQu
           .map(a => a.trim())
           .filter(a => a.length > 0);
         
-        question.CorrectAnswer = possibleAnswers.length > 1 ? possibleAnswers : answer;
+        (question as any).CorrectAnswer = possibleAnswers.length > 1 ? possibleAnswers : answer;
       }
     }
     return question;
@@ -82,7 +82,8 @@ export async function getTokenQuestions(params: QuestionQueryParams): Promise<Me
       id
   `);
 
-  return result.rows as unknown as MeasurementQuestion[];
+  const questions = result.rows as unknown as MeasurementQuestion[];
+  return processQuestionAnswers(questions);
 }
 
 // Preload 5 questions with specific rules
@@ -144,10 +145,18 @@ export async function preloadMeasurementQuestions(
 
 // Validate answer for measurement question
 export function validateMeasurementAnswer(question: MeasurementQuestion, userAnswer: string): boolean {
-  const correctAnswer = question.CorrectAnswer.trim().toLowerCase();
   const cleanUserAnswer = userAnswer.trim().toLowerCase();
   
-  return cleanUserAnswer === correctAnswer;
+  if (Array.isArray(question.CorrectAnswer)) {
+    // Multiple possible answers
+    return question.CorrectAnswer.some(answer => 
+      cleanUserAnswer === answer.toLowerCase().trim()
+    );
+  } else {
+    // Single answer
+    const correctAnswer = (question.CorrectAnswer as string).trim().toLowerCase();
+    return cleanUserAnswer === correctAnswer;
+  }
 }
 
 // Calculate session results and determine level changes
