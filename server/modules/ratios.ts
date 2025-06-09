@@ -242,6 +242,22 @@ function normalizeRatioAnswer(answer: string): string {
     .replace(/\s+/g, '');
 }
 
+// Check if two ratios are equivalent
+function areRatiosEquivalent(ratio1: string, ratio2: string): boolean {
+  const parseRatio = (r: string) => {
+    const parts = r.split(':').map(p => parseInt(p.trim()));
+    return parts.length === 2 && parts.every(p => !isNaN(p) && p > 0) ? parts : null;
+  };
+  
+  const r1 = parseRatio(ratio1);
+  const r2 = parseRatio(ratio2);
+  
+  if (!r1 || !r2) return false;
+  
+  // Check if ratios are equivalent by cross multiplication
+  return r1[0] * r2[1] === r1[1] * r2[0];
+}
+
 // Validate answer for a ratios question
 export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: string): boolean {
   const cleanAnswer = userAnswer.trim().toLowerCase();
