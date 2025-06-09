@@ -1582,6 +1582,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Measurement Mastery routes
+  app.get("/api/measurement/progress", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { getUserMeasurementProgress, getUserMeasurementData } = await import('./modules/measurement');
+      
+      const progress = await getUserMeasurementProgress(userId);
+      const userData = await getUserMeasurementData(userId);
+      
+      res.json({ progress, userData });
+    } catch (error) {
+      console.error("Error getting measurement progress:", error);
+      res.status(500).json({ error: "Failed to get progress" });
+    }
+  });
+
+  app.post("/api/measurement/questions", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { runType } = req.body;
+      const { preloadMeasurementQuestions } = await import('./modules/measurement');
+      
+      if (!runType || !['practice', 'token'].includes(runType)) {
+        return res.status(400).json({ error: "Invalid run type" });
+      }
+      
+      const questions = await preloadMeasurementQuestions(userId, runType);
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error loading measurement questions:", error);
+      res.status(500).json({ error: "Failed to load questions" });
+    }
+  });
+
+  app.post("/api/measurement/submit", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { answers, questions } = req.body;
+      const { calculateSessionResults } = await import('./modules/measurement');
+      
+      if (!answers || !questions || !Array.isArray(answers) || !Array.isArray(questions)) {
+        return res.status(400).json({ error: "Invalid submission data" });
+      }
+      
+      const results = await calculateSessionResults(userId, answers, questions);
+      
+      // Emit real-time token update
+      const tokenNamespace = (global as any).tokenNamespace;
+      if (tokenNamespace && results.tokensEarned > 0) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", user.tokens || 0);
+        }
+      }
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error submitting measurement answers:", error);
+      res.status(500).json({ error: "Failed to submit answers" });
+    }
+  });
+
   app.post("/api/multiplayer/rooms", async (req, res) => {
     const { name, grade, category, maxPlayers, gameType, settings } = req.body;
 
