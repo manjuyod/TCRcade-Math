@@ -242,39 +242,10 @@ function normalizeRatioAnswer(answer: string): string {
     .replace(/\s+/g, '');
 }
 
-// Check if two ratios are equivalent
-function areRatiosEquivalent(ratio1: string, ratio2: string): boolean {
-  console.log("EQUIVALENT DEBUG - Comparing ratios:", ratio1, "vs", ratio2);
-  
-  const parseRatio = (r: string) => {
-    const parts = r.split(':').map(p => parseInt(p.trim()));
-    return parts.length === 2 && parts.every(p => !isNaN(p) && p > 0) ? parts : null;
-  };
-  
-  const r1 = parseRatio(ratio1);
-  const r2 = parseRatio(ratio2);
-  
-  console.log("EQUIVALENT DEBUG - Parsed r1:", r1, "r2:", r2);
-  
-  if (!r1 || !r2) {
-    console.log("EQUIVALENT DEBUG - One or both ratios failed to parse");
-    return false;
-  }
-  
-  // Check if ratios are equivalent by cross multiplication
-  const equivalent = r1[0] * r2[1] === r1[1] * r2[0];
-  console.log("EQUIVALENT DEBUG - Cross multiplication:", r1[0], "*", r2[1], "=", r1[0] * r2[1], "vs", r1[1], "*", r2[0], "=", r1[1] * r2[0], "result:", equivalent);
-  
-  return equivalent;
-}
-
 // Validate answer for a ratios question
 export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: string): boolean {
   const cleanAnswer = userAnswer.trim().toLowerCase();
   const correctAnswer = question.correctAnswer.toLowerCase();
-  
-  console.log("VALIDATION DEBUG - Clean user answer:", cleanAnswer);
-  console.log("VALIDATION DEBUG - Clean correct answer:", correctAnswer);
   
   if (question.skill === 'equivalents' && question.level >= 3) {
     // For multi-select, check if user selected all correct options
@@ -298,14 +269,7 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     // Normalize both answers for comparison
     const normalizedUser = normalizeRatioAnswer(cleanAnswer);
     const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
-    
-    // First try exact match
-    if (normalizedUser === normalizedCorrect) {
-      return true;
-    }
-    
-    // Then try equivalent ratios
-    return areRatiosEquivalent(normalizedUser, normalizedCorrect);
+    return normalizedUser === normalizedCorrect;
   }
   
   // For equivalents questions, handle both single value and ratio formats
@@ -314,33 +278,19 @@ export function validateRatiosAnswer(question: RatiosQuestion, userAnswer: strin
     if (question.level === 1) {
       return cleanAnswer === correctAnswer;
     }
-    // Level 2: Ratio format answer - check for equivalent ratios
+    // Level 2: Ratio format answer - normalize for comparison
     if (question.level === 2) {
       const normalizedUser = normalizeRatioAnswer(cleanAnswer);
       const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
-      
-      // First try exact match
-      if (normalizedUser === normalizedCorrect) {
-        return true;
-      }
-      
-      // Then try equivalent ratios
-      return areRatiosEquivalent(normalizedUser, normalizedCorrect);
+      return normalizedUser === normalizedCorrect;
     }
   }
   
-  // For visual_identification, expect ratio format - check for equivalent ratios
+  // For visual_identification, expect ratio format - normalize for comparison
   if (question.skill === 'visual_identification') {
     const normalizedUser = normalizeRatioAnswer(cleanAnswer);
     const normalizedCorrect = normalizeRatioAnswer(correctAnswer);
-    
-    // First try exact match
-    if (normalizedUser === normalizedCorrect) {
-      return true;
-    }
-    
-    // Then try equivalent ratios
-    return areRatiosEquivalent(normalizedUser, normalizedCorrect);
+    return normalizedUser === normalizedCorrect;
   }
   
   // Default comparison
