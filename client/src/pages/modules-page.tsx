@@ -173,6 +173,9 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
+    // COMMENTED OUT FOR REMOVAL FROM HOME PAGE
+    // Can be uncommented later to restore this module
+    /*
     {
       id: 'word-race',
       name: 'Math Word Race',
@@ -184,6 +187,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
+    */
     // COMMENTED OUT FOR REMOVAL FROM HOME PAGE
     // Can be uncommented later to restore these modules
     /*
