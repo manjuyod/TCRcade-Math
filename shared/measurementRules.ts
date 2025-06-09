@@ -64,6 +64,11 @@ export interface MeasurementProgress {
   total_questions_answered: number;
 }
 
+export interface MeasurementProgressResult {
+  grade_level: number;
+  lesson: number;
+}
+
 export interface MeasurementUserData {
   grade_level: number;
   progress: MeasurementProgress;

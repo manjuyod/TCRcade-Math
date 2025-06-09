@@ -188,11 +188,11 @@ export async function calculateSessionResults(
     if (measurementData.progress.attempt_good >= MEASUREMENT_CONFIG.attempts.levelUpThreshold) {
       if (measurementData.grade_level < MEASUREMENT_CONFIG.maxGrade) {
         // Check if questions exist for next grade
-        const nextGradeQuestions = await db.execute(`
-          SELECT COUNT(*) as count
-          FROM "questions_measurementAndData"
-          WHERE "GradeLevel" = $1
-        `, [measurementData.grade_level + 1]);
+        const nextGradeQuestions = await db.execute(
+          sql`SELECT COUNT(*) as count
+              FROM "questions_measurementAndData"
+              WHERE "GradeLevel" = ${measurementData.grade_level + 1}`
+        );
 
         if ((nextGradeQuestions.rows[0] as any).count > 0) {
           measurementData.grade_level += 1;
@@ -240,7 +240,7 @@ export async function calculateSessionResults(
 
   await db.update(users)
     .set({
-      hidden_grade_asset: updatedHiddenAsset,
+      hiddenGradeAsset: updatedHiddenAsset,
       tokens: (user.tokens || 0) + tokensEarned
     })
     .where(eq(users.id, userId));
@@ -258,11 +258,11 @@ export async function calculateSessionResults(
 
 // Check if higher grades have questions available
 export async function checkGradeAvailability(gradeLevel: number): Promise<boolean> {
-  const result = await db.execute(`
-    SELECT COUNT(*) as count
-    FROM "questions_measurementAndData"
-    WHERE "GradeLevel" = $1
-  `, [gradeLevel]);
+  const result = await db.execute(
+    sql`SELECT COUNT(*) as count
+        FROM "questions_measurementAndData"
+        WHERE "GradeLevel" = ${gradeLevel}`
+  );
 
   return (result.rows[0] as any).count > 0;
 }
@@ -279,7 +279,7 @@ export async function getUserMeasurementData(userId: number): Promise<Measuremen
   }
 
   const user = userResult[0];
-  const hiddenAsset = user.hidden_grade_asset as any;
+  const hiddenAsset = user.hiddenGradeAsset as any;
   
   return hiddenAsset?.modules?.measurement || {
     grade_level: MEASUREMENT_CONFIG.minGrade,
