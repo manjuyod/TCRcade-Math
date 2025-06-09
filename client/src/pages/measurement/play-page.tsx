@@ -83,7 +83,7 @@ export default function MeasurementPlayPage() {
 
   // Submit session mutation
   const submitSessionMutation = useMutation({
-    mutationFn: async (sessionData: any) => {
+    mutationFn: async (sessionData: any): Promise<MeasurementSessionResult> => {
       return apiRequest('/api/measurement/submit-session', {
         method: 'POST',
         body: sessionData

@@ -382,6 +382,13 @@ export default function ModulesPage() {
       setLocation('/ratios/setup');
       return;
     }
+
+    if (module.id === 'measurement') {
+      // For Measurement Mastery, navigate to the setup page
+      console.log('Loading measurement module, navigating to setup page');
+      setLocation('/measurement/setup');
+      return;
+    }
     
     // For Math Facts modules, we need to set additional information
     if (isMathFactsModule) {

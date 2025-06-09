@@ -22,6 +22,10 @@ import DecimalDefenderCompletePage from "@/pages/decimals/complete-page";
 import RatiosSetupPage from "@/pages/ratios/setup-page";
 import RatiosPlayPage from "@/pages/ratios/play-page";
 import RatiosCompletePage from "@/pages/ratios/complete-page";
+import MeasurementSetupPage from "@/pages/measurement/setup-page";
+import MeasurementLoadingPage from "@/pages/measurement/loading-page";
+import MeasurementPlayPage from "@/pages/measurement/play-page";
+import MeasurementCompletePage from "@/pages/measurement/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -87,6 +91,10 @@ function Router() {
       <ProtectedRoute path="/ratios/setup" component={RatiosSetupPage} />
       <ProtectedRoute path="/ratios/play" component={RatiosPlayPage} />
       <ProtectedRoute path="/ratios/complete" component={RatiosCompletePage} />
+      <ProtectedRoute path="/measurement/setup" component={MeasurementSetupPage} />
+      <ProtectedRoute path="/measurement/loading" component={MeasurementLoadingPage} />
+      <ProtectedRoute path="/measurement/play" component={MeasurementPlayPage} />
+      <ProtectedRoute path="/measurement/complete" component={MeasurementCompletePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
