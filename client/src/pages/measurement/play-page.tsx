@@ -274,19 +274,52 @@ export default function MeasurementPlayPage() {
                   <CardContent>
                     {/* SVG Display */}
                     {currentQuestion.question.AnswerBank.question.svg && (
-                      <div className="mb-6 flex justify-center">
+                      <div className="mb-6 flex justify-center overflow-x-auto">
                         <div 
                           dangerouslySetInnerHTML={{ 
                             __html: currentQuestion.question.AnswerBank.question.svg 
                           }}
-                          className="max-w-full"
+                          className="max-w-full w-full [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-96"
                         />
                       </div>
                     )}
 
-                    {/* Answer Options */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                      {currentQuestion.question.AnswerBank?.options?.filter(option => option.label && option.text).map((option, index) => {
+                    {/* Answer Section - Multiple Choice or Free Response */}
+                    {currentQuestion.question.Type === 'FR' ? (
+                      // Free Response Input
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Your Answer:
+                        </label>
+                        <input
+                          type="text"
+                          value={currentQuestion.selectedAnswer || ''}
+                          onChange={(e) => handleAnswerSelect(e.target.value)}
+                          placeholder="Enter your answer here..."
+                          className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
+                          disabled={currentQuestion.showFeedback}
+                        />
+                        {currentQuestion.showFeedback && (
+                          <div className={`mt-2 p-3 rounded-lg ${
+                            currentQuestion.isCorrect 
+                              ? 'bg-green-50 border border-green-200' 
+                              : 'bg-red-50 border border-red-200'
+                          }`}>
+                            <p className={`font-medium ${
+                              currentQuestion.isCorrect ? 'text-green-800' : 'text-red-800'
+                            }`}>
+                              {currentQuestion.isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                            </p>
+                            <p className="text-sm mt-1 text-gray-600">
+                              Correct answer: {currentQuestion.question.CorrectAnswer}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Multiple Choice Options
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        {currentQuestion.question.AnswerBank?.options?.filter(option => option.label && option.text).map((option, index) => {
                         const isSelected = currentQuestion.selectedAnswer === option.label;
                         const isCorrect = option.label === currentQuestion.question.CorrectAnswer;
                         const showResult = currentQuestion.showFeedback;
@@ -339,7 +372,8 @@ export default function MeasurementPlayPage() {
                           </button>
                         );
                       })}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Feedback and Next Button */}
                     {currentQuestion.showFeedback && (
