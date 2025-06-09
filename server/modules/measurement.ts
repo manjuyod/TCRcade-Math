@@ -156,7 +156,7 @@ export async function calculateSessionResults(
   }
 
   const user = userResult[0];
-  const hiddenAsset = user.hidden_grade_asset as any;
+  const hiddenAsset = user.hiddenGradeAsset as any;
   const measurementData: MeasurementUserData = hiddenAsset?.modules?.measurement || {
     grade_level: MEASUREMENT_CONFIG.minGrade,
     progress: {
