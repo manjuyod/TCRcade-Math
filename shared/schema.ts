@@ -281,14 +281,15 @@ export const questionsMultiplication = pgTable("questions_multiplication", {
 });
 
 export const questionsMeasurementAndData = pgTable("questions_measurementAndData", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  category: text("category").notNull(),
-  grade: text("grade").notNull(),
-  difficulty: integer("difficulty").notNull(),
-  question: text("question").notNull(),
-  answer: text("answer").notNull(),
-  options: text("options").array().notNull(),
-  concepts: text("concepts").array(),
+  id: serial("id").primaryKey(),
+  GradeLevel: integer("GradeLevel").notNull(),
+  Lesson: integer("Lesson").notNull(),
+  Title: text("Title").notNull(),
+  Section: text("Section").notNull(),
+  Type: text("Type").notNull(),
+  AnswerBank: json("AnswerBank").notNull(),
+  CorrectAnswer: text("CorrectAnswer").notNull(),
+  category: text("category").default('measurement').notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

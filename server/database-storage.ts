@@ -1276,7 +1276,7 @@ export class DatabaseStorage implements IStorage {
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
-            .where(eq(questionsMeasurementAndData.grade, grade));
+            .where(eq(questionsMeasurementAndData.GradeLevel, parseInt(grade)));
 
           console.log(`Found ${measurementQuestions.length} measurement questions for grade ${grade}`);
 
