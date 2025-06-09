@@ -309,11 +309,19 @@ export default function MeasurementPlayPage() {
                     {/* SVG Display */}
                     {currentQuestion.question.AnswerBank.question.svg && (
                       <div className="mb-6 p-4 bg-gray-50 rounded-lg w-full">
+                        <style>{`
+                          .svg-container svg {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            height: auto !important;
+                            max-height: 300px !important;
+                          }
+                        `}</style>
                         <div 
                           dangerouslySetInnerHTML={{ 
                             __html: currentQuestion.question.AnswerBank.question.svg 
                           }}
-                          className="w-full flex justify-center [&>svg]:w-full [&>svg]:max-w-full [&>svg]:h-auto"
+                          className="svg-container flex justify-center"
                         />
                       </div>
                     )}
