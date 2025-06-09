@@ -63,15 +63,23 @@ export default function MeasurementPlayPage() {
   };
 
   // Fetch questions for the session
-  const { data: fetchedQuestions, isLoading } = useQuery<MeasurementQuestion[]>({
+  const { data: fetchedQuestions, isLoading, error } = useQuery<MeasurementQuestion[]>({
     queryKey: ['/api/measurement/questions', runType],
-    queryFn: () => fetch(`/api/measurement/questions?runType=${runType}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/measurement/questions?runType=${runType}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      console.log('Fetched questions data:', data);
+      return Array.isArray(data) ? data : [];
+    },
     enabled: !!user && questions.length === 0,
   });
 
   // Initialize questions when data arrives
   useEffect(() => {
-    if (fetchedQuestions && questions.length === 0) {
+    if (fetchedQuestions && Array.isArray(fetchedQuestions) && questions.length === 0) {
       setQuestions(fetchedQuestions.map(q => ({
         question: q,
         selectedAnswer: null,
@@ -169,6 +177,9 @@ export default function MeasurementPlayPage() {
           <div className="text-center">
             <Ruler className="h-12 w-12 animate-pulse text-purple-500 mx-auto mb-4" />
             <p className="text-gray-600">Loading questions...</p>
+            {fetchedQuestions === null && (
+              <p className="text-red-600 mt-2">Error loading questions. Please try again.</p>
+            )}
           </div>
         </main>
         <Navigation active="practice" />
@@ -275,7 +286,7 @@ export default function MeasurementPlayPage() {
 
                     {/* Answer Options */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                      {currentQuestion.question.AnswerBank.options.map((option, index) => {
+                      {currentQuestion.question.AnswerBank?.options?.filter(option => option.label && option.text).map((option, index) => {
                         const isSelected = currentQuestion.selectedAnswer === option.label;
                         const isCorrect = option.label === currentQuestion.question.CorrectAnswer;
                         const showResult = currentQuestion.showFeedback;
