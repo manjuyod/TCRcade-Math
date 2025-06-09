@@ -149,13 +149,19 @@ export function validateMeasurementAnswer(question: MeasurementQuestion, userAns
   
   if (Array.isArray(question.CorrectAnswer)) {
     // Multiple possible answers
-    return question.CorrectAnswer.some(answer => 
-      cleanUserAnswer === answer.toLowerCase().trim()
-    );
+    return question.CorrectAnswer.some(answer => {
+      const cleanAnswer = answer.toLowerCase().trim();
+      // Check exact match or if user answer contains the main measurement
+      return cleanUserAnswer === cleanAnswer || 
+             cleanAnswer.includes(cleanUserAnswer) ||
+             cleanUserAnswer.includes(cleanAnswer);
+    });
   } else {
-    // Single answer
+    // Single answer - check for partial matches and variations
     const correctAnswer = (question.CorrectAnswer as string).trim().toLowerCase();
-    return cleanUserAnswer === correctAnswer;
+    return cleanUserAnswer === correctAnswer || 
+           correctAnswer.includes(cleanUserAnswer) ||
+           cleanUserAnswer.includes(correctAnswer);
   }
 }
 

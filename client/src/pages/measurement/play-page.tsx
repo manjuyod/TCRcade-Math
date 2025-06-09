@@ -142,19 +142,26 @@ export default function MeasurementPlayPage() {
     if (!currentQuestion || currentQuestion.isAnswered || !currentQuestion.selectedAnswer) return;
 
     const updatedQuestions = [...questions];
-    const userAnswer = currentQuestion.selectedAnswer.trim();
+    const userAnswer = currentQuestion.selectedAnswer.trim().toLowerCase();
     const correctAnswer = currentQuestion.question.CorrectAnswer;
     
     let isCorrect = false;
     
     if (Array.isArray(correctAnswer)) {
       // Multiple possible answers
-      isCorrect = correctAnswer.some(answer => 
-        userAnswer.toLowerCase() === answer.toLowerCase()
-      );
+      isCorrect = correctAnswer.some(answer => {
+        const cleanAnswer = answer.toLowerCase().trim();
+        // Check exact match or if user answer contains the main measurement
+        return userAnswer === cleanAnswer || 
+               cleanAnswer.includes(userAnswer) ||
+               userAnswer.includes(cleanAnswer);
+      });
     } else {
-      // Single answer
-      isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+      // Single answer - check for partial matches and variations
+      const cleanCorrect = correctAnswer.toLowerCase().trim();
+      isCorrect = userAnswer === cleanCorrect || 
+                  cleanCorrect.includes(userAnswer) ||
+                  userAnswer.includes(cleanCorrect);
     }
     
     updatedQuestions[currentQuestionIndex] = {
@@ -301,17 +308,12 @@ export default function MeasurementPlayPage() {
                   <CardContent>
                     {/* SVG Display */}
                     {currentQuestion.question.AnswerBank.question.svg && (
-                      <div className="mb-6 flex justify-center overflow-x-auto p-4 bg-gray-50 rounded-lg">
+                      <div className="mb-6 p-4 bg-gray-50 rounded-lg w-full">
                         <div 
                           dangerouslySetInnerHTML={{ 
                             __html: currentQuestion.question.AnswerBank.question.svg 
                           }}
-                          className="svg-container [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:scale-75 sm:[&>svg]:scale-90 md:[&>svg]:scale-100"
-                          style={{
-                            maxWidth: '100%',
-                            width: 'fit-content',
-                            height: 'auto'
-                          }}
+                          className="w-full flex justify-center [&>svg]:w-full [&>svg]:max-w-full [&>svg]:h-auto"
                         />
                       </div>
                     )}
