@@ -46,6 +46,17 @@ import { DECIMAL_DEFENDER_RULES } from "../shared/decimalDefenderRules";
 import { generateRatiosQuestions, validateRatiosAnswer, getUserSkillLevel } from "./modules/ratios";
 import { RATIOS_RULES } from "../shared/ratiosRules";
 
+// Import measurement module
+import { 
+  getUserMeasurementProgress,
+  getPracticeQuestions,
+  getTokenQuestions,
+  validateMeasurementAnswer,
+  calculateSessionResults,
+  getUserMeasurementData 
+} from "./modules/measurement";
+import { MEASUREMENT_CONFIG } from "../shared/measurementRules";
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)
@@ -1598,35 +1609,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/measurement/questions", ensureAuthenticated, async (req, res) => {
+  app.get("/api/measurement/questions", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { runType } = req.body;
+      const runType = req.query.runType as string || 'practice';
       const { preloadMeasurementQuestions } = await import('./modules/measurement');
       
       if (!runType || !['practice', 'token'].includes(runType)) {
         return res.status(400).json({ error: "Invalid run type" });
       }
       
-      const questions = await preloadMeasurementQuestions(userId, runType);
-      res.json({ questions });
+      const questions = await preloadMeasurementQuestions(userId, runType as any);
+      res.json(questions);
     } catch (error) {
       console.error("Error loading measurement questions:", error);
       res.status(500).json({ error: "Failed to load questions" });
     }
   });
 
-  app.post("/api/measurement/submit", ensureAuthenticated, async (req, res) => {
+  app.post("/api/measurement/submit-session", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { answers, questions } = req.body;
+      const { runType, questions, totalTime, score } = req.body;
       const { calculateSessionResults } = await import('./modules/measurement');
       
-      if (!answers || !questions || !Array.isArray(answers) || !Array.isArray(questions)) {
+      if (!runType || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: "Invalid submission data" });
       }
       
-      const results = await calculateSessionResults(userId, answers, questions);
+      const results = await calculateSessionResults(userId, questions, runType);
       
       // Emit real-time token update
       const tokenNamespace = (global as any).tokenNamespace;
@@ -1641,8 +1652,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(results);
     } catch (error) {
-      console.error("Error submitting measurement answers:", error);
-      res.status(500).json({ error: "Failed to submit answers" });
+      console.error("Error submitting measurement session:", error);
+      res.status(500).json({ error: "Failed to submit session" });
     }
   });
 

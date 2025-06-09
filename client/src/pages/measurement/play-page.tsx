@@ -65,6 +65,7 @@ export default function MeasurementPlayPage() {
   // Fetch questions for the session
   const { data: fetchedQuestions, isLoading } = useQuery<MeasurementQuestion[]>({
     queryKey: ['/api/measurement/questions', runType],
+    queryFn: () => fetch(`/api/measurement/questions?runType=${runType}`).then(res => res.json()),
     enabled: !!user && questions.length === 0,
   });
 
@@ -84,10 +85,14 @@ export default function MeasurementPlayPage() {
   // Submit session mutation
   const submitSessionMutation = useMutation({
     mutationFn: async (sessionData: any): Promise<MeasurementSessionResult> => {
-      return apiRequest('/api/measurement/submit-session', {
+      const response = await fetch('/api/measurement/submit-session', {
         method: 'POST',
-        body: sessionData
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(sessionData)
       });
+      return response.json();
     },
     onSuccess: (result: MeasurementSessionResult) => {
       // Store results for the complete page
