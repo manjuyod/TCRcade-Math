@@ -1272,11 +1272,23 @@ export class DatabaseStorage implements IStorage {
           // Import the schema for questions_measurementAndData
           const { questionsMeasurementAndData } = await import("@shared/schema");
           
-          // Build measurement query completely separate from main query logic
+          // Build measurement query with grade fallback logic
+          // Since measurement questions are only available for certain grades, 
+          // map user grades to available measurement content
+          let measurementGrade = parseInt(grade);
+          
+          // Map user grade to available measurement grades (currently only grade 2)
+          if (measurementGrade < 2) {
+            measurementGrade = 2;
+          } else if (measurementGrade > 5) {
+            // For higher grades, still use grade 2 content as baseline
+            measurementGrade = 2;
+          }
+          
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
-            .where(eq(questionsMeasurementAndData.GradeLevel, parseInt(grade)));
+            .where(eq(questionsMeasurementAndData.GradeLevel, measurementGrade));
 
           console.log(`Found ${measurementQuestions.length} measurement questions for grade ${grade}`);
 
@@ -1292,16 +1304,45 @@ export class DatabaseStorage implements IStorage {
               // Select a random question
               const selectedMeasurement = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
               
-              // Transform to match Question interface - note the correct field mappings
+              // Parse the AnswerBank JSON to extract question and options
+              let questionText = selectedMeasurement.Title;
+              let options: string[] = [];
+              
+              try {
+                const answerBank = typeof selectedMeasurement.AnswerBank === 'string' 
+                  ? JSON.parse(selectedMeasurement.AnswerBank) 
+                  : selectedMeasurement.AnswerBank;
+                
+                // Extract question text from AnswerBank if available
+                if (answerBank?.question?.text) {
+                  questionText = answerBank.question.text;
+                }
+                
+                // Extract options from AnswerBank
+                if (answerBank?.options && Array.isArray(answerBank.options)) {
+                  options = answerBank.options
+                    .filter(opt => opt.text && opt.text.trim())
+                    .map(opt => opt.text);
+                }
+              } catch (e) {
+                console.error('Error parsing AnswerBank:', e);
+              }
+              
+              // Fallback if no options found
+              if (options.length === 0) {
+                options = [selectedMeasurement.CorrectAnswer, "Option B", "Option C", "Option D"];
+              }
+              
+              // Transform to match Question interface
               const transformedQuestion: Question = {
                 id: selectedMeasurement.id,
                 category: 'measurement',
-                grade: selectedMeasurement.grade,
-                difficulty: selectedMeasurement.difficulty || 3, // Use actual difficulty or default to 3
-                question: selectedMeasurement.question, // Use 'question' field, not 'title'
-                answer: selectedMeasurement.answer, // Use 'answer' field, not 'CorrectAnswer'
-                options: selectedMeasurement.options || [], // Use 'options' field directly
-                concepts: selectedMeasurement.concepts || ['measurement'],
+                grade: grade, // Keep original user grade for consistency
+                difficulty: selectedMeasurement.Lesson || 3, // Use Lesson as difficulty level
+                question: questionText,
+                answer: selectedMeasurement.CorrectAnswer,
+                options: options,
+                concepts: ['measurement', selectedMeasurement.Section?.toLowerCase() || 'general'],
                 storyId: null,
                 storyNode: null,
                 storyText: null,
