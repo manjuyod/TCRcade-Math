@@ -48,6 +48,8 @@ export const users = pgTable("users", {
   resetPasswordExpires: timestamp("reset_password_expires"),
   // New field found in actual database - using default value of 3 to match DB
   preferredDifficulty: integer("preferred_difficulty").default(3).notNull(),
+  // Hidden grade asset for tracking module progress and grade levels
+  hiddenGradeAsset: json("hidden_grade_asset"),
 });
 
 // Avatar items that can be unlocked and purchased
