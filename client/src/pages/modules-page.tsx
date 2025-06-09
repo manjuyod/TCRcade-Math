@@ -227,7 +227,7 @@ export default function ModulesPage() {
       name: 'Measurement Mastery',
       description: 'Convert between units of length, volume, and weight',
       gameType: GameType.STANDARD,
-      icon: <Sparkles className="h-12 w-12 text-purple-500" />,
+      icon: <Ruler className="h-12 w-12 text-purple-500" />,
       difficulty: 4,
       category: 'measurement',
       locked: false,
