@@ -1277,20 +1277,15 @@ export class DatabaseStorage implements IStorage {
           // map user grades to available measurement content
           let measurementGrade = parseInt(grade);
           
-          // Map user grade to available measurement grades (currently only grade 2)
-          if (measurementGrade < 2) {
-            measurementGrade = 2;
-          } else if (measurementGrade > 5) {
-            // For higher grades, still use grade 2 content as baseline
-            measurementGrade = 2;
-          }
+          // Map all user grades to Grade 2 since that's the only available measurement content
+          measurementGrade = 2;
           
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
             .where(eq(questionsMeasurementAndData.GradeLevel, measurementGrade));
 
-          console.log(`Found ${measurementQuestions.length} measurement questions for grade ${grade}`);
+          console.log(`Found ${measurementQuestions.length} measurement questions for mapped grade ${measurementGrade} (user grade: ${grade})`);
 
           if (measurementQuestions.length > 0) {
             // Filter out excluded IDs if any
