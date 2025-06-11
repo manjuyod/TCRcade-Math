@@ -718,6 +718,9 @@ export default function HomePage() {
         // Use safer session completion check based on current session progress
         console.log("✅ Session complete triggered");
         setSessionCompleted(true);
+        sessionStorage.removeItem("moduleInProgress");
+        const event = new Event("session-change");
+        setTimeout(() => window.dispatchEvent(event), 100);
 
         // Show feedback for a moment before transitioning to the completion screen
         setTimeout(() => {
@@ -817,6 +820,10 @@ export default function HomePage() {
       }, 100);
     });
   };
+
+  sessionStorage.setItem("moduleInProgress", "true");
+  const event = new Event("session-change");
+  setTimeout(() => window.dispatchEvent(event), 100);
 
   // Simpler version with our improved hook
   const handleStartNewSession = async () => {

@@ -181,13 +181,12 @@ export default function RatiosPlayPage() {
 
     try {
       const result = await submitAnswerMutation.mutateAsync(answerData);
-      const isCorrect = (result as any)?.correct;
+      const data = await result.json();
+      const isCorrect = data?.correct;
 
-      console.log(`Answer ${isCorrect ? 'correct' : 'incorrect'}:`, result)
-      
-      // Update all states together to avoid race conditions
       setLastAnswerCorrect(isCorrect);
-      setShowFeedback(true);
+      console.log(`Answer ${isCorrect ? 'correct' : 'incorrect'}:`, data);
+      console.log(`lastAnswerCorrect: ${lastAnswerCorrect}`)
       
       // Track correct answers for session completion
       const newCorrectAnswers = [...correctAnswers];
@@ -199,6 +198,8 @@ export default function RatiosPlayPage() {
       if (isCorrect) {
         triggerCelebration();
       }
+
+      setShowFeedback(true);
 
       // Auto-advance after feedback
       setTimeout(() => {
