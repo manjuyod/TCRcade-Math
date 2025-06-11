@@ -718,14 +718,7 @@ export default function HomePage() {
         // Use safer session completion check based on current session progress
         console.log("✅ Session complete triggered");
         setSessionCompleted(true);
-        
-        // Clear the module in progress flag
         sessionStorage.removeItem("moduleInProgress");
-        
-        // Dispatch the moduleSessionChange event to notify navigation
-        window.dispatchEvent(new Event("moduleSessionChange"));
-        
-        // Also dispatch storage event for backwards compatibility
         const event = new Event("session-change");
         setTimeout(() => window.dispatchEvent(event), 100);
 
@@ -828,7 +821,7 @@ export default function HomePage() {
     });
   };
 
-  // Module session management is handled by the useModuleSession hook
+  sessionStorage.setItem("moduleInProgress", "true");
   const event = new Event("session-change");
   setTimeout(() => window.dispatchEvent(event), 100);
 
