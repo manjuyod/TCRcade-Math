@@ -1670,6 +1670,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pre-Algebra Basics routes
+  app.get("/api/algebra/progress", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const progress = await getUserAlgebraProgress(userId);
+      
+      res.json({ progress });
+    } catch (error) {
+      console.error("Error getting algebra progress:", error);
+      res.status(500).json({ error: "Failed to get progress" });
+    }
+  });
+
+  app.get("/api/algebra/questions", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const runType = req.query.runType as string || 'practice';
+      
+      if (!runType || !['practice', 'token'].includes(runType)) {
+        return res.status(400).json({ error: "Invalid run type" });
+      }
+      
+      const progress = await getUserAlgebraProgress(userId);
+      const params = { grade_level: progress.grade_level, lesson: progress.lesson };
+      
+      let questions = [];
+      
+      if (runType === 'practice') {
+        // Practice: TryIt sections only
+        questions = await getAlgebraPracticeQuestions(params);
+        questions = sampleQuestions(questions, ALGEBRA_CONFIG.practiceQuestionCount);
+      } else {
+        // Token run: Mix of regular and challenge questions
+        const regularQuestions = await getAlgebraTokenQuestions(params);
+        const challengeQuestions = await getChallengeQuestions(params);
+        
+        const selectedRegular = sampleQuestions(regularQuestions, ALGEBRA_CONFIG.tokenRunRegularCount);
+        const selectedChallenge = sampleQuestions(challengeQuestions, ALGEBRA_CONFIG.tokenRunChallengeCount);
+        
+        questions = [...selectedRegular, ...selectedChallenge];
+      }
+      
+      // Process questions to add category and parse content
+      const processedQuestions = questions.map(q => ({
+        ...q,
+        category: 'algebra',
+        questionText: q.AnswerBank?.question || q.Title || '',
+        options: q.AnswerBank?.options || [],
+        correctAnswers: parseAlgebraAnswer(q.CorrectAnswer)
+      }));
+      
+      res.json(processedQuestions);
+    } catch (error) {
+      console.error("Error loading algebra questions:", error);
+      res.status(500).json({ error: "Failed to load questions" });
+    }
+  });
+
+  app.post("/api/algebra/submit-session", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { runType, questions, totalTime, score } = req.body;
+      
+      if (!runType || !questions || !Array.isArray(questions)) {
+        return res.status(400).json({ error: "Invalid submission data" });
+      }
+      
+      const correctCount = questions.filter(q => q.isCorrect).length;
+      const totalCount = questions.length;
+      const sessionScore = totalCount > 0 ? correctCount / totalCount : 0;
+      
+      // Calculate tokens based on performance
+      let tokensEarned = 0;
+      if (sessionScore >= ALGEBRA_CONFIG.perfectScore) {
+        tokensEarned = ALGEBRA_CONFIG.tokensForPerfect;
+      } else if (sessionScore >= ALGEBRA_CONFIG.passingScore) {
+        tokensEarned = ALGEBRA_CONFIG.tokensForPassing;
+      }
+      
+      // Update user progress based on performance
+      if (sessionScore >= ALGEBRA_CONFIG.passingScore) {
+        await updateAlgebraProgressSuccess(userId);
+      } else {
+        await updateAlgebraProgressFailure(userId);
+      }
+      
+      // Check for level changes
+      const levelChange = await checkAndUpdateAlgebraLevel(userId);
+      
+      // Update user tokens
+      const user = await storage.getUser(userId);
+      if (user) {
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: (user.tokens || 0) + tokensEarned,
+          questionsAnswered: (user.questionsAnswered || 0) + totalCount,
+          correctAnswers: (user.correctAnswers || 0) + correctCount,
+        });
+
+        // Emit real-time token update
+        const tokenNamespace = (global as any).tokenNamespace;  
+        if (tokenNamespace) {
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", updatedUser?.tokens || 0);
+        }
+      }
+      
+      res.json({
+        success: true,
+        tokensEarned,
+        totalTokens: (user?.tokens || 0) + tokensEarned,
+        score: sessionScore,
+        correctAnswers: correctCount,
+        totalQuestions: totalCount,
+        levelChange
+      });
+    } catch (error) {
+      console.error("Error submitting algebra session:", error);
+      res.status(500).json({ error: "Failed to submit session" });
+    }
+  });
+
   app.post("/api/multiplayer/rooms", async (req, res) => {
     const { name, grade, category, maxPlayers, gameType, settings } = req.body;
 
