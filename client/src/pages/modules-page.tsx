@@ -260,17 +260,6 @@ export default function ModulesPage() {
       completeCount: 0
     },
     {
-      id: 'algebra',
-      name: 'Pre-Algebra Basics',
-      description: 'Solve for unknowns in equations using algebraic principles',
-      gameType: GameType.STANDARD,
-      icon: <BarChart4 className="h-12 w-12 text-indigo-500" />,
-      difficulty: 4,
-      category: 'algebra',
-      locked: false,
-      completeCount: 0
-    },
-    {
       id: 'mixed',
       name: 'Ultimate Challenge',
       description: 'Test your skills with a mix of all topics at maximum difficulty',
@@ -291,7 +280,7 @@ export default function ModulesPage() {
       category: 'mixed',
       locked: false,
       completeCount: 0
-    },
+    }
   ];
 
   // Filter modules based on active filter
@@ -402,6 +391,13 @@ export default function ModulesPage() {
       // For Measurement Mastery, navigate to the setup page
       console.log('Loading measurement module, navigating to setup page');
       setLocation('/measurement/setup');
+      return;
+    }
+
+    if (module.id === 'algebra') {
+      // For Pre-Algebra Basics, navigate to the setup page
+      console.log('Loading algebra module, navigating to setup page');
+      setLocation('/algebra/setup');
       return;
     }
     
