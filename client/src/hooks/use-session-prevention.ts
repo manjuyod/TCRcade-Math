@@ -7,6 +7,55 @@ interface UseSessionPreventionOptions {
   allowedPaths?: string[];
 }
 
+interface SessionData {
+  timestamp: number;
+  sessionId: string;
+  module?: string;
+}
+
+// Auto-diagnostic and recovery system
+const sessionMonitor = {
+  // Check every 5 seconds for stuck sessions
+  detectStuckSessions: () => {
+    const moduleInProgress = sessionStorage.getItem('moduleInProgress');
+    const sessionData = sessionStorage.getItem('moduleSessionData');
+    
+    if (moduleInProgress === 'true' && sessionData) {
+      try {
+        const data: SessionData = JSON.parse(sessionData);
+        const age = Date.now() - data.timestamp;
+        
+        // 30 minute timeout
+        if (age > 30 * 60 * 1000) {
+          console.warn('🤖 Auto-fixing: STUCK_SESSION', { age, sessionId: data.sessionId });
+          sessionMonitor.autoFix('STUCK_SESSION', { age, data });
+        }
+      } catch (e) {
+        console.warn('🤖 Auto-fixing: INVALID_SESSION_DATA', e);
+        sessionMonitor.autoFix('INVALID_SESSION_DATA', {});
+      }
+    }
+  },
+  
+  // Automatic fixes for common issues
+  autoFix: (issue: string, context: any) => {
+    console.warn(`🤖 Auto-fixing: ${issue}`, context);
+    
+    switch (issue) {
+      case 'STUCK_SESSION':
+        sessionStorage.removeItem('moduleInProgress');
+        sessionStorage.removeItem('moduleSessionData');
+        window.dispatchEvent(new Event('moduleSessionChange'));
+        break;
+        
+      case 'INVALID_SESSION_DATA':
+        sessionStorage.clear();
+        window.dispatchEvent(new Event('moduleSessionChange'));
+        break;
+    }
+  }
+};
+
 export function useSessionPrevention({
   isActive,
   onAttemptExit,
@@ -34,8 +83,15 @@ export function useSessionPrevention({
     if (isActive) {
       window.addEventListener("beforeunload", handleBeforeUnload);
 
-      // Store session state
+      // Store enhanced session state with timestamp
+      const sessionData: SessionData = {
+        timestamp: Date.now(),
+        sessionId: Math.random().toString(36).substr(2, 9),
+        module: window.location.pathname.split('/')[1]
+      };
+      
       sessionStorage.setItem("moduleInProgress", "true");
+      sessionStorage.setItem("moduleSessionData", JSON.stringify(sessionData));
       window.dispatchEvent(new Event("moduleSessionChange"));
 
       return () => {
@@ -44,6 +100,8 @@ export function useSessionPrevention({
     } else {
       // Clear session state when not active
       sessionStorage.removeItem("moduleInProgress");
+      sessionStorage.removeItem("moduleSessionData");
+      window.dispatchEvent(new Event("moduleSessionChange"));
     }
   }, [isActive]);
 
@@ -102,10 +160,25 @@ export function useSessionPrevention({
     };
   }, [isActive, onAttemptExit, allowedPaths]);
 
+  // Auto-monitoring system
+  useEffect(() => {
+    // Start monitoring when session becomes active
+    if (isActive) {
+      const monitorInterval = setInterval(() => {
+        sessionMonitor.detectStuckSessions();
+      }, 5000); // Check every 5 seconds
+
+      return () => {
+        clearInterval(monitorInterval);
+      };
+    }
+  }, [isActive]);
+
   // Function to safely end session
   const endSession = () => {
     isActiveRef.current = false;
     sessionStorage.removeItem("moduleInProgress");
+    sessionStorage.removeItem("moduleSessionData");
     window.dispatchEvent(new Event("moduleSessionChange"));
   };
 

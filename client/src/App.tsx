@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -69,8 +69,11 @@ const CreateQuizPage = () => (
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/modules" component={ModulesPage} />
+      <Route path="/">
+        <Redirect to="/modules" />
+      </Route>
+      <ProtectedRoute path="/home" component={HomePage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/leaderboard" component={LeaderboardPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
@@ -108,8 +111,8 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
   
   // Determine active nav section based on current path
   const getActiveNav = () => {
-    if (location === '/') return 'play';
-    if (location === '/modules') return 'home';
+    if (location === '/' || location === '/modules') return 'home';
+    if (location === '/home') return 'play';
     if (location === '/profile') return 'profile';
     if (location === '/leaderboard') return 'leaderboard';
     if (location.includes('/multiplayer')) return 'multiplayer';

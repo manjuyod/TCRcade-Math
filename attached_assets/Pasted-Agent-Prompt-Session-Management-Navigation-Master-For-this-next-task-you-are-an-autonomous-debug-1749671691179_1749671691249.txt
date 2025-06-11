@@ -1,0 +1,146 @@
+Agent Prompt: Session Management & Navigation Master
+For this next task you are an autonomous debugging and fixing agent specializing in React session management and navigation systems. Your mission is to maintain a robust, self-healing session prevention system while ensuring seamless navigation flow.
+
+Core Objectives
+1. Session State Management: Monitor and maintain proper session storage states
+2. Auto-Recovery: Detect and fix stuck/orphaned sessions automatically
+3. Navigation Flow: Ensure smooth routing with proper redirects and active states
+4. Real-time Monitoring: Continuously watch for session anomalies
+5. Detailed Diagnostics: Provide comprehensive debugging information
+
+Critical Issues to Address
+
+- Session Prevention System
+- Stuck Sessions: Detect sessions that remain active when they shouldn't be
+- Storage Cleanup: Automatically clear orphaned session storage entries
+- Timeout Management: Implement 30-minute auto-cleanup for abandoned sessions
+- State Synchronization: Keep all components in sync with session changes
+
+Navigation System
+
+- Root Redirect: Ensure "/" redirects to "/modules" (modules as home base)
+- Route Ordering: Place modules route before redirect to prevent conflicts
+- Active State Logic: Both "/" and "/modules" should show "home" as active
+- Import Management: Properly import Redirect component from wouter
+
+Auto-Diagnostic Capabilities
+"""// Implement continuous monitoring
+const sessionMonitor = {
+  // Check every 5 seconds for stuck sessions
+  detectStuckSessions: () => {
+    const moduleInProgress = sessionStorage.getItem('moduleInProgress');
+    const sessionData = sessionStorage.getItem('moduleSessionData');
+    
+    if (moduleInProgress === 'true' && sessionData) {
+      const data = JSON.parse(sessionData);
+      const age = Date.now() - data.timestamp;
+      
+      if (age > 30 * 60 * 1000) { // 30 minutes
+        this.autoFix('STUCK_SESSION', { age, data });
+      }
+    }
+  },
+  
+  // Automatic fixes for common issues
+  autoFix: (issue: string, context: any) => {
+    console.warn(`🤖 Auto-fixing: ${issue}`, context);
+    
+    switch (issue) {
+      case 'STUCK_SESSION':
+        sessionStorage.removeItem('moduleInProgress');
+        sessionStorage.removeItem('moduleSessionData');
+        window.dispatchEvent(new Event('moduleSessionChange'));
+        break;
+        
+      case 'INVALID_SESSION_DATA':
+        sessionStorage.clear();
+        window.dispatchEvent(new Event('moduleSessionChange'));
+        break;
+    }
+  }
+};"""
+
+Testing Protocol
+Automated Tests to Run
+1. Session Lifecycle: Start session → Navigate away → Verify blocking → End session → Verify cleanup
+2. Auto-Recovery: Create stuck session → Wait for auto-cleanup → Verify resolution
+3. Navigation Flow: Test root redirect → Verify modules as home → Check active states
+4. Storage Persistence: Refresh during session → Verify state maintenance
+5. Timeout Handling: Leave session idle → Verify 30-minute cleanup
+
+Continuous Monitoring
+"""
+// Implement real-time health checks
+const healthCheck = () => {
+  const issues = [];
+  
+  // Check for session storage leaks
+  const moduleSession = sessionStorage.getItem('moduleInProgress');
+  const hasActiveComponent = /* check if any module is actually active */;
+  
+  if (moduleSession === 'true' && !hasActiveComponent) {
+    issues.push('ORPHANED_SESSION');
+  }
+  
+  // Check navigation state consistency
+  const currentPath = window.location.pathname;
+  const navState = /* get current nav active state */;
+  
+  if (currentPath === '/' && navState !== 'home') {
+    issues.push('NAV_STATE_MISMATCH');
+  }
+  
+  return issues;
+};
+"""
+Error Recovery Strategies
+Level 1: Soft Recovery
+- Clear specific session storage entries
+- Dispatch session change events
+- Update component states
+Level 2: Hard Recovery
+- Clear all session storage
+- Force component re-renders
+- Reset navigation state
+Level 3: Emergency Recovery
+- Page reload with session cleanup
+- Log detailed error report
+- Notify user of recovery action
+
+Implementation Checklist
+Session Prevention (use-session-prevention.ts)
+✅ Auto-cleanup timeout (30 minutes)
+✅ Stuck session detection every 5 seconds
+✅ Enhanced debugging with timestamps
+✅ Graceful session ending
+✅ Session data validation
+Navigation System (App.tsx)
+✅ Import Redirect component
+✅ Move modules route above root redirect
+✅ Implement root to modules redirect
+✅ Update active nav logic for home state
+Session Aware Components (session-aware-link.tsx)
+✅ Auto-recovery for old sessions
+✅ Enhanced debugging in blocked navigation
+✅ Stuck session interval checking
+✅ Session data validation
+Diagnostics System (use-session-diagnostics.ts)
+✅ Real-time session monitoring
+✅ Comprehensive debug information
+✅ Manual stuck session clearing
+✅ Diagnostic report export
+
+Success Metrics
+1. Zero Stuck Sessions: No sessions remain active without corresponding active components
+2. Instant Navigation: Root redirects work immediately without delays
+3. Consistent State: Navigation active states always match current route
+4. Auto-Recovery: System automatically fixes issues within 10 seconds
+5. Clean Storage: Session storage is properly cleaned up on session end
+
+Debugging Commands
+// Add to browser console for manual debugging
+window.sessionDebug = {
+  status: () => useSessionDiagnostics().exportDiagnostics(),
+  clear: () => useSessionDiagnostics().clearStuckSession(),
+  monitor: () => setInterval(() => console.log(window.sessionDebug.status()), 5000)
+};
