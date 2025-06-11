@@ -1,0 +1,51 @@
+Your next task is now fixing a critical runtime error in the Pre-Algebra module's session prevention system.
+
+Problem Analysis:
+The useSessionPrevention hook is being called without proper parameters. The hook expects a configuration object but is receiving undefined.
+
+Required Actions:
+
+1 Locate Usage Sites:
+- Find all files in the algebra module that import and use useSessionPrevention
+- Check client/src/pages/algebra/setup-page.tsx, play-page.tsx, and complete-page.tsx
+- Look for any calls to useSessionPrevention() without parameters
+
+2 Fix Hook Usage:
+- Update all useSessionPrevention() calls to include the required parameters object
+- For setup pages: useSessionPrevention({ isActive: false })
+- For play pages: useSessionPrevention({ isActive: true, allowedPaths: ['/algebra/complete'] })
+- For complete pages: useSessionPrevention({ isActive: false })
+
+3 Reference Pattern:
+Look at the measurement module files for correct usage examples:
+- client/src/pages/measurement/setup-page.tsx
+- client/src/pages/measurement/play-page.tsx
+- client/src/pages/measurement/complete-page.tsx
+
+4 Verify Implementation:
+- Ensure all algebra pages follow the same session prevention pattern as measurement
+- Test that the Pre-Algebra module loads without errors
+- Verify session prevention works correctly during navigation
+
+Expected Hook Usage Pattern:
+"""
+// Setup page - no active session
+const { endSession } = useSessionPrevention({ isActive: false });
+
+// Play page - active session with allowed completion path
+const { endSession } = useSessionPrevention({ 
+  isActive: true, 
+  allowedPaths: ['/algebra/complete'] 
+});
+
+// Complete page - no active session
+const { endSession } = useSessionPrevention({ isActive: false });
+"""
+
+Success Criteria:
+- Pre-Algebra module loads without runtime errors
+- Session prevention works correctly during algebra sessions
+- Navigation is properly blocked/allowed based on session state
+- All algebra pages follow consistent session management patterns
+
+Please systematically check and fix all useSessionPrevention hook calls in the algebra module to match the measurement module's implementation pattern.

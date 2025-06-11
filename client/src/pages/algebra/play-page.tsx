@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calculator, Clock, Trophy, CheckCircle, XCircle } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { parseAlgebraText, checkAlgebraAnswer } from '@shared/algebraRules';
+import { useSessionPrevention } from '@/hooks/use-session-prevention';
 
 interface AlgebraQuestion {
   id: number;
@@ -34,6 +35,12 @@ interface QuestionResult {
 export default function AlgebraPlayPage() {
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  
+  // Session management
+  const { endSession } = useSessionPrevention({ 
+    isActive: true, 
+    allowedPaths: ['/algebra/complete'] 
+  });
   
   // Get run type from URL params
   const runType = new URLSearchParams(window.location.search).get('runType') || 'practice';

@@ -18,7 +18,7 @@ export default function AlgebraSetupPage() {
   const [selectedRunType, setSelectedRunType] = useState<'practice' | 'token'>('practice');
   
   // Session management
-  const { endSession } = useSessionPrevention();
+  const { endSession } = useSessionPrevention({ isActive: false });
 
   const { data: progressData, isLoading } = useQuery({
     queryKey: ['/api/algebra/progress'],

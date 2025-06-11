@@ -8,7 +8,7 @@ import { useSessionPrevention } from '@/hooks/use-session-prevention';
 
 export default function AlgebraCompletePage() {
   const [_, setLocation] = useLocation();
-  const { endSession } = useSessionPrevention();
+  const { endSession } = useSessionPrevention({ isActive: false });
 
   // Get results from URL params
   const params = new URLSearchParams(window.location.search);
