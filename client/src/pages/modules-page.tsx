@@ -251,6 +251,17 @@ export default function ModulesPage() {
     {
       id: 'algebra',
       name: 'Pre-Algebra Basics',
+      description: 'Master fundamental algebra skills through interactive practice',
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-purple-600" />,
+      difficulty: 5,
+      category: 'algebra',
+      locked: false,
+      completeCount: 0
+    },
+    {
+      id: 'algebra',
+      name: 'Pre-Algebra Basics',
       description: 'Solve for unknowns in equations using algebraic principles',
       gameType: GameType.STANDARD,
       icon: <BarChart4 className="h-12 w-12 text-indigo-500" />,

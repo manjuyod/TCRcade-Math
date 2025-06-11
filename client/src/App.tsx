@@ -26,6 +26,9 @@ import MeasurementSetupPage from "@/pages/measurement/setup-page";
 import MeasurementLoadingPage from "@/pages/measurement/loading-page";
 import MeasurementPlayPage from "@/pages/measurement/play-page";
 import MeasurementCompletePage from "@/pages/measurement/complete-page";
+import AlgebraSetup from "@/pages/AlgebraSetup";
+import AlgebraPlay from "@/pages/AlgebraPlay";
+import AlgebraComplete from "@/pages/AlgebraComplete";
 import AiTutorPage from "@/pages/ai-tutor-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -101,6 +104,9 @@ function Router() {
       <ProtectedRoute path="/measurement/loading" component={MeasurementLoadingPage} />
       <ProtectedRoute path="/measurement/play" component={MeasurementPlayPage} />
       <ProtectedRoute path="/measurement/complete" component={MeasurementCompletePage} />
+      <ProtectedRoute path="/algebra/setup" component={AlgebraSetup} />
+      <ProtectedRoute path="/algebra/play" component={AlgebraPlay} />
+      <ProtectedRoute path="/algebra/complete" component={AlgebraComplete} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />

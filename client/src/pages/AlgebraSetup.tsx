@@ -24,7 +24,7 @@ export default function AlgebraSetup() {
     queryKey: ['/api/algebra/progress'],
   });
 
-  const progress = progressData?.progress as AlgebraProgress;
+  const progress = (progressData as any)?.progress as AlgebraProgress;
 
   const handleStartSession = () => {
     
