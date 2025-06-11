@@ -136,7 +136,6 @@ export default function HomePage() {
   // Monitor session state to ensure completion detection - only after all questions are actually answered
   useEffect(() => {
     if (
-      false &&
       !sessionCompleted &&
       sessionStats.questionsAnswered >= sessionSize
     ) {
@@ -737,7 +736,7 @@ export default function HomePage() {
         }, 2000); // Show feedback for 2 seconds before showing session complete
       }
       // Use safer completion check - ensure we've actually answered 5 questions
-      else if (false && newTotalAnswered >= sessionSize) {
+      else if (newTotalAnswered >= sessionSize) {
         console.log(
           `Frontend fallback: Session complete after ${newTotalAnswered} questions`,
         );
@@ -1077,7 +1076,10 @@ export default function HomePage() {
 
                       setTimeout(() => {
                         console.log("✅ Session complete triggered");
-                        // setSessionCompleted(true);
+                        setSessionCompleted(true);
+                        sessionStorage.removeItem("moduleInProgress");
+                        const event = new Event("session-change");
+                        setTimeout(() => window.dispatchEvent(event), 100);
                         setShowFeedback(false);
 
                         // Play session complete sound - always regular since we timed out the last question
