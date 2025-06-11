@@ -57,6 +57,19 @@ import {
 } from "./modules/measurement";
 import { MEASUREMENT_CONFIG } from "../shared/measurementRules";
 
+// Import algebra module
+import {
+  getUserAlgebraProgress,
+  getPracticeQuestions as getAlgebraPracticeQuestions,
+  getTokenQuestions as getAlgebraTokenQuestions,
+  getChallengeQuestions,
+  updateAlgebraProgressSuccess,
+  updateAlgebraProgressFailure,
+  checkAndUpdateAlgebraLevel,
+  sampleQuestions
+} from "./modules/algebra";
+import { ALGEBRA_CONFIG, parseAlgebraText, parseAlgebraAnswer, checkAlgebraAnswer } from "../shared/algebraRules";
+
 // Cache configuration
 const CACHE_MAX_SIZE = 500; // Maximum number of items to keep in cache
 const CACHE_TTL = 12 * 60 * 60 * 1000; // Cache time-to-live (12 hours in milliseconds)

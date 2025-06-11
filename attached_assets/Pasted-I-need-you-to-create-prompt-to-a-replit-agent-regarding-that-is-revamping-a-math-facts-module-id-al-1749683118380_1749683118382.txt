@@ -1,0 +1,48 @@
+I need you to create prompt to a replit agent regarding that is revamping a math facts module (id:algebra, name:Pre-Algebra Basics):
+
+- It's goal is to flesh out the Pre-Algebra Module.
+
+Rules for the module: 
+- When pressing start module it takes you to client/src/pages/algebra/setup-page.tsx.
+-- Set-Up page give you three options: Test (Greyed Out for now), Practice Run -OR- Token Run
+-- If you click Practice Run, 
+-- it will send to a loading page. From here it will run a query: 
+--- (SELECT
+  (hidden_grade_asset #>> '{modules,algebra,grade_level}')::int    AS {grade_level},
+  (hidden_grade_asset #>> '{modules,algebra,progress,lesson}')::int AS {lesson}
+FROM users
+-- WHERE id = WHATEVER THE CURRENT USER IS ON;   -- filter to the row(s) you care about
+)
+--- It will use the values from the previous queries to SELECT * FROM questions_algebra WHERE GradeLevel = {grade_level} AND Lesson = {lesson} AND Section LIKE '%tryit%'.
+--- Immediately Pre-Load 5 RANDOMIZED try it questions from the question pool pulled from the query before (if there arent enough TryIts then load more UNTIL 5 questions are met). -- Column Type - MC is multiple choice, FR is Free Response, so take into account both types. Analyse the table questions_algebra before making any moves
+-- When pre-loading is done then client is taken to client/src/pages/algebra/play-page.tsx.
+-- They can answer the questions but they receive no tokens for their answers here. However, there are no consequences.
+--- PARSING QUESTIONS - Questions are string type in the JSON inside the column "AnswerBank" inside the table questions_algebra. If the Question contains a "^(number)" Then immediately visualize at the front end as a raised exponent without the "^".
+--- PARSING ANSWERS - Questions from the database are stored as strings. However, IF the string begins with "[" and ends with "]" then convert that string to a list. Those are the acceptable answers. On output of the correct answers remove the brackets.
+-- From here it takes them to a client/src/pages/algebra/complete-page.tsx that shows them their stats and routes them to the home page.
+-- If you click Token Run, 
+-- it will send to a loading page. From here it will run a query: 
+--- (SELECT
+  (hidden_grade_asset #>> '{modules,algebra,grade_level}')::int    AS {grade_level},
+  (hidden_grade_asset #>> '{modules,algebra,progress,lesson}')::int AS {lesson}
+FROM users
+-- WHERE id = WHATEVER THE CURRENT USER ON;   -- filter to the row(s) you care about
+)
+--- It will use the values from the previous queries to two queries (SELECT * FROM questions_algebra WHERE GradeLevel = {grade_level} AND Lesson = {lesson} AND Section NOT LIKE '%tryit%' AND Section NOT LIKE '%challenge%') and (SELECT * FROM questions_algebra WHERE GradeLevel = {grade_level} AND Lesson = {lesson} AND Section LIKE '%challenge%'
+---- Immediately Pre-Load 4 RANDOMIZED non-try it questions from the question pool of the first query then load more UNTIL 4 questions are met (If there are not enough, load one more RANDOMIZED question).
+---- After the 4 previous questions are loaded, then pre-load 1 RAMDOMIZED challenge question from the question pool of the second query.
+-- When pre-loading is done then client is taken to client/src/pages/algebra/play-page.tsx.
+--- client answers questions.
+--- On 80% or 100% UPDATE users SET hidden_grade_asset=jsonb_set(hidden_grade_asset,'{modules,algebra,progress,attempt_bad=0},increment attempt_good WHERE ID = CURRENT USER
+--- On less than 80% UPDATE users SET hidden_grade_asset=jsonb_set(hidden_grade_asset,'{modules,algebra,progress,attempt_good=0},increment attempt_bad WHERE ID = CURRENT USER
+--- If the user has attempt_good = 3 then increase grade level IF AND ONLY IF it's available in questions_algebra, and reset attempt_good and attempt_bad to 0, and take them to a level increase page before taking them to the complete_page.
+--- If the user has attempt_bad = 3 then decrease grade level IF AND ONLY IF it's available in questions_algebra, and reset attempt_good and attempt_bad to 0, and take them to a level increase page before taking them to the complete_page.
+-- 80% earns 5 tokens, 100% earns 8 tokens. Tokens and questions must be updated client side for speed, then database side for accuracy.
+--- PARSING QUESTIONS - Questions are string type in the JSON inside the column "AnswerBank" inside the table questions_algebra. If the Question contains a "^(number)" Then immediately visualize at the front end as a raised exponent without the "^".
+--- PARSING ANSWERS - Questions from the database are stored as strings. However, IF the string begins with "[" and ends with "]" then convert that string to a list. Those are the acceptable answers. On output of the correct answers remove the brackets.
+-- From here it takes them to a client/src/pages/measurement/complete-page.tsx that shows them their stats and routes them to the home page.
+- Client side - modules-page.tsx should handle it already. Make any adjustments as necessary
+- Shared - Rules and configuration for this module must go onder shared.
+- Server side- create a measurements.ts module and place necessary serverside functions there. Also, adjust routes.ts.
+
+Have it ask me clarifying questions before completing a product.

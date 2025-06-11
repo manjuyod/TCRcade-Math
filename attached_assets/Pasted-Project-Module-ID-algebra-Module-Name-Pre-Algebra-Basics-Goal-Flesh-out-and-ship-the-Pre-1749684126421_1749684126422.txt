@@ -1,0 +1,110 @@
+Project
+- Module ID: algebra
+- Module Name: Pre‑Algebra Basics
+- Goal: Flesh out and ship the Pre‑Algebra Basics module so it works end‑to‑end in the web app.
+
+High‑Level Requirements
+1. Start‑Up Flow
+- Entry point: client/src/pages/algebra/setup-page.tsx.
+- Three buttons are rendered: Test (disabled for now), Practice Run, Token Run.
+
+2. Practice Run Path
+2.1 On click, navigate to a loading page.
+2.2 Run
+"""
+SELECT
+  (hidden_grade_asset #>> '{modules,algebra,grade_level}')::int    AS grade_level,
+  (hidden_grade_asset #>> '{modules,algebra,progress,lesson}')::int AS lesson
+FROM users
+WHERE id = <CURRENT_USER_ID>;
+"""
+
+2.3. With grade_level & lesson, query
+"""
+SELECT * FROM questions_algebra
+WHERE GradeLevel = :grade_level
+  AND Lesson     = :lesson
+  AND Section ILIKE '%tryit%';
+"""
+
+2.4. Pre‑load exactly five random “TryIt” questions. If fewer than five are returned, keep sampling until five are reached.
+
+2.5. Question types: MC (multiple choice) and FR (free response) – handle both.
+
+2.6. Navigate to client/src/pages/algebra/play-page.tsx.
+-- Parsing rules
+--- Questions: If the string contains ^<number>, render the <number> as a superscript (drop the ^).
+--- Answers: If a string starts with [ and ends with ], treat it as a JSON‑style list of acceptable answers. Remove the brackets before display.
+-- No tokens awarded; no penalties.
+
+2.7. On completion, show stats in client/src/pages/algebra/complete-page.tsx then route home.
+
+3 Token Run Path
+3.1 Same initial user query as Practice Run.
+
+3.2. Run two SQL queries:
+- Non‑TryIt, non‑challenge:
+"""
+SELECT * FROM questions_algebra
+WHERE GradeLevel = :grade_level
+  AND Lesson     = :lesson
+  AND Section NOT ILIKE '%tryit%'
+  AND Section NOT ILIKE '%challenge%';
+"""
+- Challenge only:
+"""
+SELECT * FROM questions_algebra
+WHERE GradeLevel = :grade_level
+  AND Lesson     = :lesson
+  AND Section ILIKE '%challenge%';
+"""
+3.3 Pre‑load 4 random non‑TryIt questions (add extras as needed to reach four) then 1 random challenge question.
+
+3.4 Same parsing rules as Practice Run.
+3.5 Scoring & token logic (client‑side first, then persist to DB for accuracy):
+
+- ≥ 80 % correct → 5 tokens; 100 % → 8 tokens.
+- DB updates:
+-- Success (≥ 80 %):
+"""
+UPDATE users
+SET hidden_grade_asset = jsonb_set(hidden_grade_asset,
+          '{modules,algebra,progress,attempt_bad}', '0', false)
+    || jsonb_set(hidden_grade_asset,
+          '{modules,algebra,progress,attempt_good}',
+          COALESCE((hidden_grade_asset #>> '{modules,algebra,progress,attempt_good}')::int,0) + 1, false)
+WHERE id = <CURRENT_USER_ID>;
+"""
+-- Failure (< 80 %): analogous but swap attempt_good ↔ attempt_bad.
+- On attempt_good = 3, level‑up (if higher grade exists in questions_algebra); on attempt_bad = 3, level‑down (if lower grade exists). Reset both counters to 0 and show a level‑change page before the standard complete page.
+
+3.6 Complete page: client/src/pages/algebra/complete-page.tsx.
+
+4. Client Code Touch‑Points
+- modules-page.tsx already routes modules; adjust logic if needed.
+- All shared rules/config live under shared/.
+
+5. Server Code
+- Create measurements.ts equivalent for algebra: algebra.ts (or rename per convention) in server folder with relevant service functions.
+- Update routes.ts to wire new endpoints.
+
+Acceptance Checklist
+- All pages compile and route without TypeScript errors.
+- SQL queries are parameterized (no interpolation).
+- Five TryIt questions load reliably; four + one challenge load reliably.
+- Superscript and list‑answer parsing works for edge cases.
+- Token logic, attempt counters, and grade‑level adjustments persist correctly.
+- Unit tests (or React Testing Library tests) cover parsing helpers and state transitions.
+- Lint & prettier pass; CI green.
+
+Your Next Step
+Do not start coding yet.
+Please ask me any clarifying questions you have about:
+1. Database schema details (e.g., full column list in questions_algebra)[only if attempt to grab information from questions_algebra from the db fails].
+2. Expected component props/API shapes.
+3. Styling or UI/UX constraints.
+4. Edge cases for parsing questions/answers.
+5. Anything else you need before implementation.
+
+Once I answer, proceed with the implementation plan.
+
