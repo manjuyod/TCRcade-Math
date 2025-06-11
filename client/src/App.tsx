@@ -35,7 +35,10 @@ import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
 import Navigation from "@/components/navigation";
 import ScrollToTop from "@/components/scroll-to-top";
+import { sessionManager } from "@/lib/session-manager";
 
+// Initialize global session manager
+sessionManager;
 
 // Avatar functionality has been removed
 
