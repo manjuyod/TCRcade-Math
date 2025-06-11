@@ -1,0 +1,51 @@
+Current State:
+The algebra module files are currently located at:
+- client/src/pages/AlgebraComplete.tsx
+- client/src/pages/AlgebraPlay.tsx
+- client/src/pages/AlgebraSetup.tsx
+
+Required Actions:
+1. Create Directory Structure:
+Create the directory client/src/pages/algebra/ if it doesn't exist
+
+2. Move and Rename Files:
+- Move client/src/pages/AlgebraComplete.tsx to client/src/pages/algebra/complete-page.tsx
+- Move client/src/pages/AlgebraPlay.tsx to client/src/pages/algebra/play-page.tsx
+- Move client/src/pages/AlgebraSetup.tsx to client/src/pages/algebra/setup-page.tsx
+
+3.Create Loading Page:
+- Create client/src/pages/algebra/loading-page.tsx following the measurement module pattern (client/src/pages/measurement/loading-page.tsx) with algebra-specific content and branding
+
+4. Update Import References:
+- Update client/src/App.tsx to import from the new file locations
+- Update any other files that import these components
+- Ensure all imports use the new file paths and names
+
+5. Reference Pattern:
+- Use the measurement module structure as your template:
+- client/src/pages/measurement/setup-page.tsx
+- client/src/pages/measurement/loading-page.tsx
+- client/src/pages/measurement/play-page.tsx
+- client/src/pages/measurement/complete-page.tsx
+
+6. Test and Validate:
+- Ensure all routes in client/src/App.tsx work correctly
+- Test navigation between algebra pages
+- Verify no broken imports or missing components
+- Check that the algebra module loads and functions properly
+
+Key Requirements:
+- Maintain all existing functionality
+- Follow the exact naming convention used by other modules
+- Ensure the loading page integrates seamlessly with the algebra flow
+- Update any server-side references if they exist
+- The algebra module should behave identically to the measurement module in terms of navigation flow
+
+Success Criteria:
+- All algebra files are in the correct directory structure
+- All imports are updated and working
+- The loading page is implemented and functional
+- No console errors or broken functionality
+- Navigation flows work exactly as before
+
+Please complete this refactoring task systematically, ensuring each step is validated before proceeding to the next.
