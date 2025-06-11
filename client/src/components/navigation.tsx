@@ -49,18 +49,23 @@ export default function Navigation({ active }: NavigationProps) {
 
     checkActiveSession();
 
-    // Listen for storage changes
-    const handleStorageChange = () => {
+    // Listen for storage changes and module session changes
+    const handleSessionChange = () => {
+      console.log("📱 Navigation detected session change event");
       checkActiveSession();
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("storage", handleSessionChange);
+    window.addEventListener("moduleSessionChange", handleSessionChange);
+    window.addEventListener("session-change", handleSessionChange);
 
-    // Check every second for session state changes
+    // Check every second for session state changes (backup)
     const interval = setInterval(checkActiveSession, 1000);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storage", handleSessionChange);
+      window.removeEventListener("moduleSessionChange", handleSessionChange);
+      window.removeEventListener("session-change", handleSessionChange);
       clearInterval(interval);
     };
   }, []);
