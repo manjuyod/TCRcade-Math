@@ -15,7 +15,6 @@ interface AlgebraProgress {
 
 export default function AlgebraSetupPage() {
   const [_, setLocation] = useLocation();
-  const [selectedRunType, setSelectedRunType] = useState<'practice' | 'token'>('practice');
   
   // Session management
   const { endSession } = useSessionPrevention({ isActive: false });
@@ -26,8 +25,8 @@ export default function AlgebraSetupPage() {
 
   const progress = (progressData as any)?.progress as AlgebraProgress;
 
-  const handleStartSession = () => {
-    setLocation(`/algebra/loading?runType=${selectedRunType}`);
+  const handleStartSession = (runType: 'practice' | 'token') => {
+    setLocation(`/algebra/loading?runType=${runType}`);
   };
 
   if (isLoading) {
@@ -93,14 +92,7 @@ export default function AlgebraSetupPage() {
           </Card>
 
           {/* Practice Run */}
-          <Card 
-            className={`cursor-pointer transition-all duration-200 ${
-              selectedRunType === 'practice' 
-                ? 'ring-2 ring-purple-500 bg-purple-50/80' 
-                : 'bg-white/80 hover:bg-purple-50/50'
-            } backdrop-blur-sm border-purple-200`}
-            onClick={() => setSelectedRunType('practice')}
-          >
+          <Card className="bg-white/80 hover:bg-purple-50/50 backdrop-blur-sm border-purple-200 transition-all duration-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-purple-600" />
@@ -111,17 +103,19 @@ export default function AlgebraSetupPage() {
                 Learn new concepts with guided practice questions
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => handleStartSession('practice')}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Start Practice
+              </Button>
+            </CardContent>
           </Card>
 
           {/* Token Run */}
-          <Card 
-            className={`cursor-pointer transition-all duration-200 ${
-              selectedRunType === 'token' 
-                ? 'ring-2 ring-purple-500 bg-purple-50/80' 
-                : 'bg-white/80 hover:bg-purple-50/50'
-            } backdrop-blur-sm border-purple-200`}
-            onClick={() => setSelectedRunType('token')}
-          >
+          <Card className="bg-white/80 hover:bg-purple-50/50 backdrop-blur-sm border-purple-200 transition-all duration-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-purple-600" />
@@ -132,6 +126,15 @@ export default function AlgebraSetupPage() {
                 Demonstrate mastery and earn tokens for your progress
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => handleStartSession('token')}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Start Token Run
+              </Button>
+            </CardContent>
           </Card>
         </div>
 
@@ -161,17 +164,8 @@ export default function AlgebraSetupPage() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-4">
-          <Button 
-            onClick={handleStartSession}
-            size="lg" 
-            className="bg-purple-600 hover:bg-purple-700 text-white h-14 text-lg"
-          >
-            <Clock className="w-5 h-5 mr-2" />
-            Start {selectedRunType === 'practice' ? 'Practice' : 'Token'} Session
-          </Button>
-          
+        {/* Back to Modules */}
+        <div className="flex justify-center">
           <Button 
             variant="outline" 
             onClick={() => setLocation('/modules')}
