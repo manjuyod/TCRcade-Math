@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { BookOpen, Trophy, Clock, Calculator } from 'lucide-react';
+import { BookOpen, Trophy, Clock, Calculator, Target } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useSessionPrevention } from '@/hooks/use-session-prevention';
 
@@ -77,7 +77,21 @@ export default function AlgebraSetupPage() {
         )}
 
         {/* Run Type Selection */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Test - Disabled */}
+          <Card className="bg-gray-100/80 backdrop-blur-sm border-gray-300 opacity-60 cursor-not-allowed">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gray-500">
+                <Target className="w-5 h-5" />
+                Test
+                <Badge variant="outline" className="text-gray-500 border-gray-400">Coming Soon</Badge>
+              </CardTitle>
+              <CardDescription className="text-gray-500">
+                Assessment to evaluate your current skill level
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           {/* Practice Run */}
           <Card 
             className={`cursor-pointer transition-all duration-200 ${
