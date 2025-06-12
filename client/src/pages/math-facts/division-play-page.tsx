@@ -181,14 +181,10 @@ export default function DivisionPlayPage() {
         <Header />
         <main className="flex-1 flex items-center justify-center py-6">
           <SessionComplete
-            questionsAnswered={questionCount}
             correctAnswers={correctCount}
-            accuracy={accuracy}
-            timeSpent={Math.floor(elapsedTime / 60)}
+            totalQuestions={questionCount}
             tokensEarned={correctCount * 10}
-            onPlayAgain={() => setLocation('/math-facts/division/play')}
-            onBackToModules={() => setLocation('/modules')}
-            moduleName="Math Facts: Division"
+            onStartNewSession={() => setLocation('/math-facts/division/play')}
           />
         </main>
         <Navigation active="home" />

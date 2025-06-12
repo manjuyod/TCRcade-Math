@@ -38,7 +38,7 @@ export default function MultiplicationPlayPage() {
   const [isComplete, setIsComplete] = useState(false);
   const [questionCount, setQuestionCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(0);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 
@@ -181,14 +181,10 @@ export default function MultiplicationPlayPage() {
         <Header />
         <main className="flex-1 flex items-center justify-center py-6">
           <SessionComplete
-            questionsAnswered={questionCount}
             correctAnswers={correctCount}
-            accuracy={accuracy}
-            timeSpent={Math.floor(elapsedTime / 60)}
+            totalQuestions={questionCount}
             tokensEarned={correctCount * 10}
-            onPlayAgain={() => setLocation('/math-facts/multiplication/play')}
-            onBackToModules={() => setLocation('/modules')}
-            moduleName="Math Facts: Multiplication"
+            onStartNewSession={() => setLocation('/math-facts/multiplication/play')}
           />
         </main>
         <Navigation active="home" />
