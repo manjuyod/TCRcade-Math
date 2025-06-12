@@ -81,6 +81,16 @@ export function SessionAwareLink({ href, children, className }: Props) {
   const handleBlockedClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
+    // Allow navigation to modules page from any math facts module
+    if (href === '/modules' && window.location.pathname.includes('/math-facts/')) {
+      // Clear session and allow navigation
+      sessionStorage.removeItem('moduleInProgress');
+      sessionStorage.removeItem('moduleSessionData');
+      window.dispatchEvent(new Event('moduleSessionChange'));
+      window.location.href = href;
+      return;
+    }
+    
     // Enhanced debugging for blocked navigation
     const sessionData = sessionStorage.getItem('moduleSessionData');
     let sessionInfo = '';

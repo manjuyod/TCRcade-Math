@@ -113,7 +113,11 @@ export function useSessionPrevention({
     const interceptNavigation = (url: string) => {
       if (isActiveRef.current) {
         // Check if navigation is to an allowed path
-        const isAllowed = allowedPaths.some((path) => url.includes(path));
+        const isAllowed = allowedPaths.some((path) => {
+          // Handle both absolute URLs and relative paths
+          const targetPath = url.startsWith('http') ? new URL(url).pathname : url;
+          return targetPath.startsWith(path);
+        });
 
         if (!isAllowed) {
           if (onAttemptExit) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -33,7 +32,7 @@ export default function MultiplicationPlayPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
@@ -45,15 +44,15 @@ export default function MultiplicationPlayPage() {
 
   // Session prevention
   const { endSession } = useSessionPrevention({
-    isActive: !isComplete && currentQuestion !== null,
+    isActive: !isComplete,
+    allowedPaths: ['/modules', '/math-facts'],
     onAttemptExit: () => {
       toast({
         title: "Session in Progress",
-        description: "Complete your current question before leaving.",
+        description: "Complete your current session before leaving.",
         variant: "destructive",
       });
     },
-    allowedPaths: ["/math-facts/multiplication/play"],
   });
 
   // Session diagnostics
@@ -71,15 +70,15 @@ export default function MultiplicationPlayPage() {
     if (!user?.grade) return;
 
     setIsLoading(true);
-    
+
     try {
       const grade = user.grade;
       const operation = 'multiplication';
-      
+
       // Clear question cache for fresh questions
       queryClient.removeQueries({ queryKey: ['/api/questions/next'] });
       queryClient.removeQueries({ queryKey: ['/api/questions/math-facts'] });
-      
+
       const response = await fetch(
         `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
         {
@@ -93,7 +92,7 @@ export default function MultiplicationPlayPage() {
 
       const data = await response.json();
       setCurrentQuestion(data);
-      
+
     } catch (error) {
       console.error('Error loading question:', error);
       toast({
@@ -111,11 +110,11 @@ export default function MultiplicationPlayPage() {
 
     setIsSubmitting(true);
     const isCorrect = selectedAnswer === currentQuestion.answer;
-    
+
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
     }
-    
+
     setQuestionCount(prev => prev + 1);
 
     try {
@@ -178,7 +177,7 @@ export default function MultiplicationPlayPage() {
 
   if (isComplete) {
     const accuracy = questionCount > 0 ? Math.round((correctCount / questionCount) * 100) : 0;
-    
+
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
@@ -202,7 +201,7 @@ export default function MultiplicationPlayPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      
+
       <main className="flex-1 flex items-center justify-center py-6 px-4">
         <div className="w-full max-w-4xl">
           <div className="mb-6 flex items-center justify-between">
@@ -215,14 +214,14 @@ export default function MultiplicationPlayPage() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Modules
             </Button>
-            
+
             <div className="text-center">
               <h1 className="text-xl font-bold">Math Facts: Multiplication</h1>
               <p className="text-sm text-muted-foreground">
                 Question {questionCount + 1} of 10 | Correct: {correctCount}
               </p>
             </div>
-            
+
             <div className="w-24" /> {/* Spacer for centering */}
           </div>
 
