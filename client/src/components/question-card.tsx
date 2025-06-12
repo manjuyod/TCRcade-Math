@@ -144,6 +144,12 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       setQuestionText("Error loading question");
       setFlashcardStyle(null);
     }
+
+    // Reset feedback states when question changes
+    setSelectedOption(null);
+    setShowFeedback(false);
+    setIsCorrect(false);
+    setFeedbackMessage('');
   }, [question]);
 
   const [showFeedback, setShowFeedback] = useState(false);
@@ -194,11 +200,6 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
     // Auto-progress after showing feedback for 1.5 seconds
     setTimeout(() => {
       onAnswer(option);
-      // Reset states for next question
-      setSelectedOption(null);
-      setShowFeedback(false);
-      setIsCorrect(false);
-      setFeedbackMessage('');
     }, 1500);
   };
 

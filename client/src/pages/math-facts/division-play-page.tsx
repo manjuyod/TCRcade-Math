@@ -111,11 +111,14 @@ export default function DivisionPlayPage() {
     setIsSubmitting(true);
     const isCorrect = selectedAnswer === currentQuestion.answer;
 
-    if (isCorrect) {
-      setCorrectCount(prev => prev + 1);
-    }
+    // Update counts first
+    const newCorrectCount = isCorrect ? correctCount + 1 : correctCount;
+    const newQuestionCount = questionCount + 1;
 
-    setQuestionCount(prev => prev + 1);
+    if (isCorrect) {
+      setCorrectCount(newCorrectCount);
+    }
+    setQuestionCount(newQuestionCount);
 
     try {
       // Submit answer to server
@@ -141,7 +144,7 @@ export default function DivisionPlayPage() {
       }
 
       // Check if session should complete (after 10 questions)
-      if (questionCount + 1 >= 10) {
+      if (newQuestionCount >= 10) {
         endSession();
         setIsComplete(true);
       } else {
