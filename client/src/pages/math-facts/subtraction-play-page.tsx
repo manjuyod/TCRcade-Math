@@ -50,6 +50,7 @@ export default function SubtractionPlayPage() {
   const [correctCount, setCorrectCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [sessionAnswers, setSessionAnswers] = useState<any[]>([]);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 
@@ -143,29 +144,35 @@ export default function SubtractionPlayPage() {
       concepts: currentQuestion.concepts,
     };
 
+    // Add answer to session collection
+    const updatedAnswers = [...sessionAnswers, answerData];
+    setSessionAnswers(updatedAnswers);
+
     // Check if session should complete (after 10 questions)
     if (newQuestionCount >= 10) {
       try {
-        // Only submit to server when session completes normally
-        const response = await fetch('/api/answers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(answerData),
-        });
+        // Submit all answers from the session
+        for (const answer of updatedAnswers) {
+          const response = await fetch('/api/answers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(answer),
+          });
 
-        if (!response.ok) {
-          throw new Error('Failed to submit answer');
+          if (!response.ok) {
+            throw new Error('Failed to submit answer');
+          }
         }
 
         endSession();
         setIsComplete(true);
       } catch (error) {
-        console.error('Error submitting final answer:', error);
+        console.error('Error submitting answers:', error);
         toast({
           title: "Error",
-          description: "Failed to submit answer. Please try again.",
+          description: "Failed to submit answers. Please try again.",
           variant: "destructive",
         });
       }
