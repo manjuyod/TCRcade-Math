@@ -120,48 +120,50 @@ export default function AdditionPlayPage() {
     }
     setQuestionCount(newQuestionCount);
 
-    try {
-      // Submit answer to server
-      const response = await fetch('/api/answers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          questionId: currentQuestion.id,
-          selectedAnswer,
-          correctAnswer: currentQuestion.answer,
-          isCorrect,
-          category: 'math-facts-addition',
-          grade: user?.grade,
-          timeTaken: 5, // Default time
-          concepts: currentQuestion.concepts,
-        }),
-      });
+    // Store answer locally (don't submit to server until session completion)
+    const answerData = {
+      questionId: currentQuestion.id,
+      selectedAnswer,
+      correctAnswer: currentQuestion.answer,
+      isCorrect,
+      category: 'math-facts-addition',
+      grade: user?.grade,
+      timeTaken: 5,
+      concepts: currentQuestion.concepts,
+    };
 
-      if (!response.ok) {
-        throw new Error('Failed to submit answer');
-      }
+    // Check if session should complete (after 10 questions)
+    if (newQuestionCount >= 10) {
+      try {
+        // Only submit to server when session completes normally
+        const response = await fetch('/api/answers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(answerData),
+        });
 
-      // Check if session should complete (after 10 questions)
-      if (newQuestionCount >= 10) {
+        if (!response.ok) {
+          throw new Error('Failed to submit answer');
+        }
+
         endSession();
         setIsComplete(true);
-      } else {
-        // Load next question immediately (feedback delay is handled in QuestionCard)
-        loadNextQuestion();
+      } catch (error) {
+        console.error('Error submitting final answer:', error);
+        toast({
+          title: "Error",
+          description: "Failed to submit answer. Please try again.",
+          variant: "destructive",
+        });
       }
-
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit answer. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      // Load next question immediately (feedback delay is handled in QuestionCard)
+      loadNextQuestion();
     }
+
+    setIsSubmitting(false);
   };
 
   const handleBack = () => {
