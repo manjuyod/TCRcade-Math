@@ -40,11 +40,14 @@ export interface QuestionQueryParams {
 }
 
 // Text parsing utilities for algebra questions
-export const parseAlgebraText = (text: string): string => {
+export const parseAlgebraText = (text: any): string => {
   if (!text) return '';
   
+  // Convert to string if not already a string
+  const textStr = typeof text === 'string' ? text : String(text);
+  
   // Handle superscript notation: convert ^number to superscript
-  return text.replace(/\^(\d+)/g, '<sup>$1</sup>');
+  return textStr.replace(/\^(\d+)/g, '<sup>$1</sup>');
 };
 
 // Answer parsing utilities
