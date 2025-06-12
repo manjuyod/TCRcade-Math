@@ -46,8 +46,8 @@ export const parseAlgebraText = (text: any): string => {
   // Convert to string if not already a string
   const textStr = typeof text === 'string' ? text : String(text);
   
-  // Handle superscript notation: convert ^number to superscript
-  return textStr.replace(/\^(\d+)/g, '<sup>$1</sup>');
+  // Handle superscript notation: convert ^number and ^? to superscript
+  return textStr.replace(/\^(\d+|\?)/g, '<sup>$1</sup>');
 };
 
 // Answer parsing utilities
