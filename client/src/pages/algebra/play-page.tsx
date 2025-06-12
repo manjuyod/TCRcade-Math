@@ -227,7 +227,7 @@ export default function AlgebraPlayPage() {
             <div className="text-lg leading-relaxed">
               <div 
                 dangerouslySetInnerHTML={{ 
-                  __html: parseAlgebraText(currentQuestion?.Title || currentQuestion?.questionText || 'No question text available') 
+                  __html: parseAlgebraText(currentQuestion?.AnswerBank?.question?.text || 'No question text available') 
                 }} 
               />
             </div>
