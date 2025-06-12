@@ -164,14 +164,11 @@ export default function DivisionPlayPage() {
   };
 
   const handleBack = () => {
-    if (!isComplete && currentQuestion) {
-      toast({
-        title: "Session in Progress",
-        description: "Complete your current session before leaving.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Always allow navigation to modules, clearing session if needed
+    endSession();
+    sessionStorage.removeItem('moduleInProgress');
+    sessionStorage.removeItem('moduleSessionData');
+    window.dispatchEvent(new Event('moduleSessionChange'));
     setLocation('/modules');
   };
 
@@ -208,8 +205,6 @@ export default function DivisionPlayPage() {
             <Button
               variant="ghost"
               onClick={handleBack}
-              disabled={!isComplete && currentQuestion !== null}
-              className={!isComplete && currentQuestion !== null ? "opacity-50 cursor-not-allowed" : ""}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Modules
