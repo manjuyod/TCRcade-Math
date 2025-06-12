@@ -97,22 +97,6 @@ export default function AlgebraSetupPage() {
                 Learn new concepts with guided practice questions
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-medium text-gray-700">Questions</p>
-                  <p className="text-purple-600">5 TryIt problems</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Focus</p>
-                  <p className="text-purple-600">Learning & Practice</p>
-                </div>
-              </div>
-              <Separator />
-              <p className="text-sm text-gray-600">
-                Perfect for understanding new algebra concepts before earning tokens
-              </p>
-            </CardContent>
           </Card>
 
           {/* Token Run */}
@@ -134,23 +118,6 @@ export default function AlgebraSetupPage() {
                 Demonstrate mastery and earn tokens for your progress
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-medium text-gray-700">Questions</p>
-                  <p className="text-purple-600">4 Rep + 1 Challenge</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-700">Rewards</p>
-                  <p className="text-purple-600">5-8 tokens</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="space-y-1 text-sm">
-                <p className="text-gray-600">• 80%+ score: 5 tokens</p>
-                <p className="text-gray-600">• 100% score: 8 tokens</p>
-              </div>
-            </CardContent>
           </Card>
         </div>
 
