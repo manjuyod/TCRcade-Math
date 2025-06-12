@@ -60,13 +60,13 @@ import { MEASUREMENT_CONFIG } from "../shared/measurementRules";
 // Import algebra module
 import {
   getUserAlgebraProgress,
-  getPracticeQuestions as getAlgebraPracticeQuestions,
-  getTokenQuestions as getAlgebraTokenQuestions,
+  getPracticeQuestions,
+  getTokenQuestions,
   getChallengeQuestions,
+  sampleQuestions,
   updateAlgebraProgressSuccess,
   updateAlgebraProgressFailure,
-  checkAndUpdateAlgebraLevel,
-  sampleQuestions
+  checkAndUpdateAlgebraLevel
 } from "./modules/algebra";
 import { ALGEBRA_CONFIG, parseAlgebraText, parseAlgebraAnswer, checkAlgebraAnswer } from "../shared/algebraRules";
 
@@ -1611,10 +1611,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       const { getUserMeasurementProgress, getUserMeasurementData } = await import('./modules/measurement');
-      
+
       const progress = await getUserMeasurementProgress(userId);
       const userData = await getUserMeasurementData(userId);
-      
+
       res.json({ progress, userData });
     } catch (error) {
       console.error("Error getting measurement progress:", error);
@@ -1627,11 +1627,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       const runType = req.query.runType as string || 'practice';
       const { preloadMeasurementQuestions } = await import('./modules/measurement');
-      
+
       if (!runType || !['practice', 'token'].includes(runType)) {
         return res.status(400).json({ error: "Invalid run type" });
       }
-      
+
       const questions = await preloadMeasurementQuestions(userId, runType as any);
       res.json(questions);
     } catch (error) {
@@ -1645,13 +1645,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       const { runType, questions, totalTime, score } = req.body;
       const { calculateSessionResults } = await import('./modules/measurement');
-      
+
       if (!runType || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: "Invalid submission data" });
       }
-      
+
       const results = await calculateSessionResults(userId, questions, runType);
-      
+
       // Emit real-time token update
       const tokenNamespace = (global as any).tokenNamespace;
       if (tokenNamespace && results.tokensEarned > 0) {
@@ -1662,7 +1662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .emit("token_updated", user.tokens || 0);
         }
       }
-      
+
       res.json(results);
     } catch (error) {
       console.error("Error submitting measurement session:", error);
@@ -1675,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       const progress = await getUserAlgebraProgress(userId);
-      
+
       res.json({ progress });
     } catch (error) {
       console.error("Error getting algebra progress:", error);
@@ -1687,31 +1687,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       const runType = req.query.runType as string || 'practice';
-      
+
       if (!runType || !['practice', 'token'].includes(runType)) {
         return res.status(400).json({ error: "Invalid run type" });
       }
-      
+
       const progress = await getUserAlgebraProgress(userId);
       const params = { grade_level: progress.grade_level, lesson: progress.lesson };
-      
+
       let questions = [];
-      
+
       if (runType === 'practice') {
         // Practice: TryIt sections only
-        questions = await getAlgebraPracticeQuestions(params);
+        questions = await getPracticeQuestions(params);
         questions = sampleQuestions(questions, ALGEBRA_CONFIG.practiceQuestionCount);
       } else {
         // Token run: Mix of regular and challenge questions
-        const regularQuestions = await getAlgebraTokenQuestions(params);
+        const regularQuestions = await getTokenQuestions(params);
         const challengeQuestions = await getChallengeQuestions(params);
-        
+
         const selectedRegular = sampleQuestions(regularQuestions, ALGEBRA_CONFIG.tokenRunRegularCount);
         const selectedChallenge = sampleQuestions(challengeQuestions, ALGEBRA_CONFIG.tokenRunChallengeCount);
-        
+
         questions = [...selectedRegular, ...selectedChallenge];
       }
-      
+
       // Process questions to add category and parse content
       const processedQuestions = questions.map(q => ({
         ...q,
@@ -1720,7 +1720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         options: q.AnswerBank?.options || [],
         correctAnswers: parseAlgebraAnswer(q.CorrectAnswer)
       }));
-      
+
       res.json(processedQuestions);
     } catch (error) {
       console.error("Error loading algebra questions:", error);
@@ -1732,15 +1732,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       const { runType, questions, totalTime, score } = req.body;
-      
+
       if (!runType || !questions || !Array.isArray(questions)) {
         return res.status(400).json({ error: "Invalid submission data" });
       }
-      
+
       const correctCount = questions.filter(q => q.isCorrect).length;
       const totalCount = questions.length;
       const sessionScore = totalCount > 0 ? correctCount / totalCount : 0;
-      
+
       // Calculate tokens based on performance
       let tokensEarned = 0;
       if (sessionScore >= ALGEBRA_CONFIG.perfectScore) {
@@ -1748,17 +1748,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (sessionScore >= ALGEBRA_CONFIG.passingScore) {
         tokensEarned = ALGEBRA_CONFIG.tokensForPassing;
       }
-      
+
       // Update user progress based on performance
       if (sessionScore >= ALGEBRA_CONFIG.passingScore) {
         await updateAlgebraProgressSuccess(userId);
       } else {
         await updateAlgebraProgressFailure(userId);
       }
-      
+
       // Check for level changes
       const levelChange = await checkAndUpdateAlgebraLevel(userId);
-      
+
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
@@ -1776,7 +1776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .emit("token_updated", updatedUser?.tokens || 0);
         }
       }
-      
+
       res.json({
         success: true,
         tokensEarned,
