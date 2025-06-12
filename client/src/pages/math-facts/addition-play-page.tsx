@@ -12,6 +12,16 @@ import { useSessionDiagnostics } from "@/hooks/use-session-diagnostics";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Question {
   id: number;
@@ -39,6 +49,7 @@ export default function AdditionPlayPage() {
   const [questionCount, setQuestionCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 
@@ -167,7 +178,11 @@ export default function AdditionPlayPage() {
   };
 
   const handleBack = () => {
-    // Always allow navigation to modules, clearing session if needed
+    setShowExitDialog(true);
+  };
+
+  const handleConfirmExit = () => {
+    // Clear session and navigate
     endSession();
     sessionStorage.removeItem('moduleInProgress');
     sessionStorage.removeItem('moduleSessionData');
@@ -234,6 +249,24 @@ export default function AdditionPlayPage() {
       </main>
 
       <Navigation active="home" />
+
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Exit Math Facts Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're currently {questionCount > 0 ? `${questionCount}/10 questions` : 'starting your session'}. 
+              If you leave now, your progress will be lost and no tokens will be saved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Playing</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Exit Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
