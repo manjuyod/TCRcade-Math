@@ -213,9 +213,6 @@ export default function AlgebraPlayPage() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-purple-600">Q{currentQuestionIndex + 1}</span>
-                <Badge variant="outline" className="text-xs">
-                  {currentQuestion?.Section}
-                </Badge>
               </div>
               {runType === 'token' && (
                 <Badge className="bg-purple-600">
@@ -230,7 +227,7 @@ export default function AlgebraPlayPage() {
             <div className="text-lg leading-relaxed">
               <div 
                 dangerouslySetInnerHTML={{ 
-                  __html: parseAlgebraText(currentQuestion?.questionText || currentQuestion?.Title || '') 
+                  __html: parseAlgebraText(currentQuestion?.Title || currentQuestion?.questionText || 'No question text available') 
                 }} 
               />
             </div>
