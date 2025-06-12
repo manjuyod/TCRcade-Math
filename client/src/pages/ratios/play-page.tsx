@@ -16,6 +16,8 @@ import { RATIOS_RULES } from '@shared/ratiosRules';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionPrevention } from '@/hooks/use-session-prevention';
+import { AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface RatiosQuestion {
   skill: "write_form" | "equivalents" | "visual_identification";
@@ -38,6 +40,7 @@ export default function RatiosPlayPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useSessionPrevention({ isActive: sessionActive });
 
@@ -128,6 +131,23 @@ export default function RatiosPlayPage() {
       spread: 70,
       origin: { y: 0.6 }
     });
+  };
+
+  const handleExitSession = () => {
+    setIsExiting(true);
+    setSessionActive(false);
+    
+    // Clear session storage
+    sessionStorage.removeItem('moduleInProgress');
+    sessionStorage.removeItem('moduleSessionData');
+    window.dispatchEvent(new Event('moduleSessionChange'));
+    
+    // Clear any local storage for this session
+    localStorage.removeItem('ratiosSkill');
+    localStorage.removeItem('ratiosSessionResults');
+    
+    // Navigate back to setup
+    navigate('/ratios/setup');
   };
 
   const handleSubmitAnswer = async () => {
@@ -455,9 +475,43 @@ export default function RatiosPlayPage() {
                   <BarChart4 className="h-5 w-5 text-amber-600" />
                   Question {currentQuestionIndex + 1} of {RATIOS_RULES.questionCount}
                 </CardTitle>
-                <span className="text-sm text-gray-500">
-                  {Math.round(progress)}% Complete
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    {Math.round(progress)}% Complete
+                  </span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={isExiting}
+                      >
+                        Exit
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Exit Ratios Session?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to exit? Your progress will be lost and no tokens will be earned for this session.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Continue Session</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleExitSession}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Exit Session
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
               <ProgressBar progress={progress} height={8} />
             </CardHeader>
