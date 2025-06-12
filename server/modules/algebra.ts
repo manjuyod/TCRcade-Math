@@ -25,7 +25,7 @@ export async function getUserAlgebraProgress(userId: number): Promise<{ grade_le
 }
 
 // Query B - Practice Run questions (TryIt sections)
-export async function getPracticeQuestions(params: QuestionQueryParams): Promise<AlgebraQuestion[]> {
+export async function getPracticeQuestions(params: { grade_level: number; lesson: number }): Promise<AlgebraQuestion[]> {
   const result = await db.execute(sql`
     SELECT *
     FROM "questions_algebra"
@@ -39,7 +39,7 @@ export async function getPracticeQuestions(params: QuestionQueryParams): Promise
 }
 
 // Query C - Token Run questions (non-TryIt sections)
-export async function getTokenQuestions(params: QuestionQueryParams): Promise<AlgebraQuestion[]> {
+export async function getTokenQuestions(params: { grade_level: number; lesson: number }): Promise<AlgebraQuestion[]> {
   const result = await db.execute(sql`
     SELECT *
     FROM "questions_algebra"
@@ -54,7 +54,7 @@ export async function getTokenQuestions(params: QuestionQueryParams): Promise<Al
 }
 
 // Query D - Challenge questions for Token Run
-export async function getChallengeQuestions(params: QuestionQueryParams): Promise<AlgebraQuestion[]> {
+export async function getChallengeQuestions(params: { grade_level: number; lesson: number }): Promise<AlgebraQuestion[]> {
   const result = await db.execute(sql`
     SELECT *
     FROM "questions_algebra"
