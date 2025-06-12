@@ -146,11 +146,30 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
     }
   }, [question]);
 
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   const handleSelectOption = (option: string) => {
+    if (selectedOption || showFeedback) return; // Prevent multiple selections
+
     // Set the selected option first
     setSelectedOption(option);
+    
+    // Check if answer is correct
+    const correct = option === question?.answer;
+    setIsCorrect(correct);
+    setShowFeedback(true);
+    
+    // Set feedback message
+    if (correct) {
+      setFeedbackMessage('🎉 Excellent! That\'s correct!');
+    } else {
+      setFeedbackMessage(`💪 Not quite! The answer is ${question?.answer}. Keep practicing!`);
+    }
+
     // Log the selected answer for debugging
-    console.log(`Selected answer: ${option} for question ID: ${question?.id}`);
+    console.log(`Selected answer: ${option} for question ID: ${question?.id}, Correct: ${correct}`);
 
     // Increment the answer counter
     answersCounter.current += 1;
@@ -172,10 +191,15 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
       }
     }
 
-    // Submit the answer after a slight delay to ensure UI updates first
+    // Auto-progress after showing feedback for 1.5 seconds
     setTimeout(() => {
       onAnswer(option);
-    }, 100);
+      // Reset states for next question
+      setSelectedOption(null);
+      setShowFeedback(false);
+      setIsCorrect(false);
+      setFeedbackMessage('');
+    }, 1500);
   };
 
   return (
@@ -233,27 +257,69 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
         </p>
       </div>
 
+      {/* Feedback Message */}
+      {showFeedback && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`text-center p-4 mb-4 rounded-xl font-bold text-lg ${
+            isCorrect 
+              ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+              : 'bg-red-100 text-red-800 border-2 border-red-300'
+          }`}
+        >
+          {feedbackMessage}
+        </motion.div>
+      )}
+
       <div className={`grid ${isMathFactsModule ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2'} gap-4 mt-6`}>
         {question?.options && question.options.length > 0 ? (
-          question.options.map((option, index) => (
-            <motion.button
-              key={index}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={disableOptions || selectedOption !== null}
-              onClick={() => handleSelectOption(option)}
-              className={`
-                arcade-btn bg-white border-2 shadow-md hover:shadow-lg
-                ${selectedOption === option ? 'border-primary' : 'border-gray-200 hover:border-primary'} 
-                ${showCorrectAnswer && option === question.answer ? 'border-green-500' : ''}
-                text-dark font-bold py-3 rounded-xl 
-                ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
-                transition transform hover:scale-103
-              `}
-            >
-              {option}
-            </motion.button>
-          ))
+          question.options.map((option, index) => {
+            let buttonClass = `
+              arcade-btn bg-white border-2 shadow-md hover:shadow-lg
+              text-dark font-bold py-3 rounded-xl 
+              ${isMathFactsModule ? 'text-2xl md:text-3xl py-4' : 'text-xl'} 
+              transition transform hover:scale-103
+            `;
+
+            // Apply feedback styling
+            if (showFeedback) {
+              if (option === question.answer) {
+                // Correct answer - always green
+                buttonClass += ' border-green-500 bg-green-100 text-green-800';
+              } else if (selectedOption === option) {
+                // Selected wrong answer - red
+                buttonClass += ' border-red-500 bg-red-100 text-red-800';
+              } else {
+                // Other options - muted
+                buttonClass += ' border-gray-300 bg-gray-100 text-gray-500';
+              }
+            } else {
+              // Normal state
+              buttonClass += selectedOption === option 
+                ? ' border-primary' 
+                : ' border-gray-200 hover:border-primary';
+            }
+
+            return (
+              <motion.button
+                key={index}
+                whileHover={!showFeedback ? { scale: 1.03 } : {}}
+                whileTap={!showFeedback ? { scale: 0.98 } : {}}
+                disabled={disableOptions || selectedOption !== null || showFeedback}
+                onClick={() => handleSelectOption(option)}
+                className={buttonClass}
+              >
+                {option}
+                {showFeedback && option === question.answer && (
+                  <span className="ml-2">✓</span>
+                )}
+                {showFeedback && selectedOption === option && option !== question.answer && (
+                  <span className="ml-2">✗</span>
+                )}
+              </motion.button>
+            );
+          })
         ) : (
           // If no options are provided, show an input field
           <div className="col-span-2">
