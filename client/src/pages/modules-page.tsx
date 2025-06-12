@@ -401,17 +401,18 @@ export default function ModulesPage() {
       return;
     }
     
-    // For Math Facts modules, we need to set additional information
+    // For Math Facts modules, navigate to dedicated play pages
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')
       const operation = module.id.split('-').pop() || 'addition';
       console.log(`Loading Math Facts with grade=${user?.grade || 'K'}, operation=${operation}`);
 
-      // Store the operation for the Math Facts module
-      localStorage.setItem('mathFactsOperation', operation);
+      // Navigate to the dedicated play page for this operation
+      setLocation(`/math-facts/${operation}/play`);
+      return;
     }
 
-    // Navigate to home page (question session)
+    // Navigate to home page (question session) for non-math-facts modules
     setLocation('/');
   };
 

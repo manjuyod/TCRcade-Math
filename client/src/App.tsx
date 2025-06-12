@@ -23,9 +23,15 @@ import RatiosSetupPage from "@/pages/ratios/setup-page";
 import RatiosPlayPage from "@/pages/ratios/play-page";
 import RatiosCompletePage from "@/pages/ratios/complete-page";
 import MeasurementSetupPage from "@/pages/measurement/setup-page";
-import MeasurementLoadingPage from "@/pages/measurement/loading-page";
 import MeasurementPlayPage from "@/pages/measurement/play-page";
 import MeasurementCompletePage from "@/pages/measurement/complete-page";
+import MeasurementLoadingPage from "@/pages/measurement/loading-page";
+
+// Math Facts Play Pages
+import AdditionPlayPage from "@/pages/math-facts/addition-play-page";
+import SubtractionPlayPage from "@/pages/math-facts/subtraction-play-page";
+import MultiplicationPlayPage from "@/pages/math-facts/multiplication-play-page";
+import DivisionPlayPage from "@/pages/math-facts/division-play-page";
 import AlgebraSetupPage from "@/pages/algebra/setup-page";
 import AlgebraLoadingPage from "@/pages/algebra/loading-page";
 import AlgebraPlayPage from "@/pages/algebra/play-page";
@@ -101,14 +107,16 @@ function Router() {
       <ProtectedRoute path="/ratios/setup" component={RatiosSetupPage} />
       <ProtectedRoute path="/ratios/play" component={RatiosPlayPage} />
       <ProtectedRoute path="/ratios/complete" component={RatiosCompletePage} />
-      <ProtectedRoute path="/measurement/setup" component={MeasurementSetupPage} />
-      <ProtectedRoute path="/measurement/loading" component={MeasurementLoadingPage} />
-      <ProtectedRoute path="/measurement/play" component={MeasurementPlayPage} />
-      <ProtectedRoute path="/measurement/complete" component={MeasurementCompletePage} />
-      <ProtectedRoute path="/algebra/setup" component={AlgebraSetupPage} />
-      <ProtectedRoute path="/algebra/loading" component={AlgebraLoadingPage} />
-      <ProtectedRoute path="/algebra/play" component={AlgebraPlayPage} />
-      <ProtectedRoute path="/algebra/complete" component={AlgebraCompletePage} />
+      <Route path="/measurement/setup" component={MeasurementSetupPage} />
+      <Route path="/measurement/play" component={MeasurementPlayPage} />
+      <Route path="/measurement/complete" component={MeasurementCompletePage} />
+      <Route path="/measurement/loading" component={MeasurementLoadingPage} />
+
+      {/* Math Facts Play Pages */}
+      <Route path="/math-facts/addition/play" component={AdditionPlayPage} />
+      <Route path="/math-facts/subtraction/play" component={SubtractionPlayPage} />
+      <Route path="/math-facts/multiplication/play" component={MultiplicationPlayPage} />
+      <Route path="/math-facts/division/play" component={DivisionPlayPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
@@ -119,7 +127,7 @@ function Router() {
 // Navigation wrapper to ensure footer navigation appears on all pages
 const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
   const [location] = useLocation();
-  
+
   // Determine active nav section based on current path
   const getActiveNav = () => {
     if (location === '/' || location === '/modules') return 'home';
@@ -130,13 +138,13 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location.includes('/analytics')) return 'analytics';
     if (location.includes('/practice')) return 'create-a-quiz';
     if (location.includes('/tutor')) return 'tutor';
-    
+
     return 'home';
   };
-  
+
   // Don't show navigation on auth page or admin page
   const shouldShowNav = !location.includes('/auth') && !location.includes('/admin');
-  
+
   return (
     <>
       {children}
