@@ -145,10 +145,8 @@ export default function SubtractionPlayPage() {
         endSession();
         setIsComplete(true);
       } else {
-        // Load next question after a brief delay
-        setTimeout(() => {
-          loadNextQuestion();
-        }, 1000);
+        // Load next question immediately (feedback delay is handled in QuestionCard)
+        loadNextQuestion();
       }
 
     } catch (error) {
