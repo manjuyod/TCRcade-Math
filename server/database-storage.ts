@@ -298,13 +298,13 @@ export class DatabaseStorage implements IStorage {
   // Progress methods (now handled via JSON in users table)
   // Progress tracking migrated to hiddenGradeAsset JSON field
 
-  async getUserConceptMasteries(userId: number): Promise<ConceptMastery[]> {
-    const masteries = await db
-      .select()
-      .from(conceptMastery)
-      .where(eq(conceptMastery.userId, userId));
-
-    return masteries;
+  // Concept mastery methods now use JSON data from users table
+  async getUserConceptMasteries(userId: number): Promise<any[]> {
+    const user = await this.getUser(userId);
+    if (!user?.hiddenGradeAsset) return [];
+    
+    const hiddenGradeAsset = user.hiddenGradeAsset as any;
+    return hiddenGradeAsset.concept_mastery || [];
   }
 
   async getConceptsForGrade(grade: string): Promise<string[]> {
@@ -327,7 +327,7 @@ export class DatabaseStorage implements IStorage {
     return Array.from(conceptSet);
   }
 
-  async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean, questionDifficulty?: number): Promise<ConceptMastery> {
+  async updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean, questionDifficulty?: number): Promise<any> {
     // Enhance concept specificity based on grade and difficulty
     let enhancedConcept = concept;
 
@@ -357,59 +357,57 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Check if entry exists
-    const [existingMastery] = await db
-      .select()
-      .from(conceptMastery)
-      .where(and(
-        eq(conceptMastery.userId, userId),
-        eq(conceptMastery.concept, enhancedConcept),
-        eq(conceptMastery.grade, grade)
-      ));
-
-    if (existingMastery) {
+    // Update concept mastery in user's JSON data
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+    
+    const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
+    const conceptMasteries = hiddenGradeAsset.concept_mastery || [];
+    
+    // Find existing mastery entry
+    const existingIndex = conceptMasteries.findIndex((m: any) => 
+      m.userId === userId && m.concept === enhancedConcept && m.grade === grade
+    );
+    
+    if (existingIndex >= 0) {
       // Update existing mastery
-      const totalAttempts = existingMastery.totalAttempts + 1;
-      const correctAttempts = existingMastery.correctAttempts + (isCorrect ? 1 : 0);
+      const existing = conceptMasteries[existingIndex];
+      const totalAttempts = existing.totalAttempts + 1;
+      const correctAttempts = existing.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-
-      const [updatedMastery] = await db
-        .update(conceptMastery)
-        .set({
-          totalAttempts,
-          correctAttempts,
-          lastPracticed: new Date(),
-          masteryLevel,
-          needsReview: masteryLevel < 70 // Flag for review if mastery below 70%
-        })
-        .where(eq(conceptMastery.id, existingMastery.id))
-        .returning();
-
-      // Check if we should automatically update analytics
-      await this.autoUpdateAnalytics(userId);
-
-      return updatedMastery;
+      
+      conceptMasteries[existingIndex] = {
+        ...existing,
+        totalAttempts,
+        correctAttempts,
+        lastPracticed: new Date(),
+        masteryLevel,
+        needsReview: masteryLevel < 70
+      };
     } else {
       // Create new mastery entry
-      const [newMastery] = await db
-        .insert(conceptMastery)
-        .values({
-          userId,
-          concept: enhancedConcept,
-          grade,
-          totalAttempts: 1,
-          correctAttempts: isCorrect ? 1 : 0,
-          lastPracticed: new Date(),
-          masteryLevel: isCorrect ? 100 : 0,
-          needsReview: !isCorrect
-        })
-        .returning();
-
-      // Check if we should automatically update analytics
-      await this.autoUpdateAnalytics(userId);
-
-      return newMastery;
+      conceptMasteries.push({
+        id: Date.now(), // Simple ID generation
+        userId,
+        concept: enhancedConcept,
+        grade,
+        totalAttempts: 1,
+        correctAttempts: isCorrect ? 1 : 0,
+        lastPracticed: new Date(),
+        masteryLevel: isCorrect ? 100 : 0,
+        needsReview: !isCorrect
+      });
     }
+    
+    // Update user's hiddenGradeAsset
+    await this.updateUser(userId, {
+      hiddenGradeAsset: {
+        ...hiddenGradeAsset,
+        concept_mastery: conceptMasteries
+      }
+    });
+    
+    return conceptMasteries[existingIndex >= 0 ? existingIndex : conceptMasteries.length - 1];
   }
 
   // Automatically generate user analytics if needed
@@ -1468,37 +1466,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Subject mastery methods for adaptive grade progression
-  async getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]> {
-    return db
-      .select()
-      .from(subjectMastery)
-      .where(eq(subjectMastery.userId, userId));
+  async getUserSubjectMasteries(userId: number): Promise<any[]> {
+    const user = await this.getUser(userId);
+    if (!user?.hiddenGradeAsset) return [];
+    
+    const hiddenGradeAsset = user.hiddenGradeAsset as any;
+    return hiddenGradeAsset.subject_mastery || [];
   }
 
-  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]> {
-    return db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.grade, grade)
-      ));
+  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<any[]> {
+    const allMasteries = await this.getUserSubjectMasteries(userId);
+    return allMasteries.filter((mastery: any) => mastery.grade === grade);
   }
 
-  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined> {
-    const [mastery] = await db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.subject, subject),
-        eq(subjectMastery.grade, grade)
-      ));
-
-    return mastery;
+  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<any | undefined> {
+    const allMasteries = await this.getUserSubjectMasteries(userId);
+    return allMasteries.find((mastery: any) => 
+      mastery.subject === subject && mastery.grade === grade
+    );
   }
 
-  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery> {
+  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<any> {
     // Check if entry exists
     const [existingMastery] = await db
       .select()
@@ -1627,15 +1615,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
-    // Get all subject masteries for this user and grade that are unlocked
-    const userMasteries = await db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.grade, grade),
-        eq(subjectMastery.isUnlocked, true)
-      ));
+    // Get subject masteries from user's JSON data
+    const user = await this.getUser(userId);
+    if (!user?.hiddenGradeAsset) return [];
+    
+    const hiddenGradeAsset = user.hiddenGradeAsset as any;
+    const subjectMasteries = hiddenGradeAsset.subject_mastery || [];
+    const userMasteries = subjectMasteries.filter((mastery: any) => 
+      mastery.grade === grade && mastery.isUnlocked
+    );
 
     // Return the list of unlocked subjects
     return userMasteries.map(mastery => mastery.subject);
