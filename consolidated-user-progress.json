@@ -7,6 +7,7 @@
     "daily_tokens_earned": 0,
     "streak_days": 0,
     "daily_engagement_minutes": 0,
+    "total_time_spent": 0,
     "fastest_category": null,
     "highest_score_category": null,
     "last_active": null
@@ -44,7 +45,11 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "math_rush": {
@@ -63,7 +68,11 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "word_race": {
@@ -82,7 +91,11 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "decimal_defender": {
@@ -101,7 +114,11 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "ratios_proportions": {
@@ -120,37 +137,57 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "measurement": {
       "grade_level": 2,
       "progress": {
-        "attempt_good": 0,
-        "attempt_bad": 0,
-        "lesson": 1,
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
         "mastery_level": false,
         "last_played": null,
         "tokens_earned": 0,
         "test_taken": false,
         "timestamp": null,
         "concepts": "",
-        "preferred_difficulty": 3
+        "preferred_difficulty": 3,
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "lesson": 1,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "algebra": {
       "grade_level": 6,
       "progress": {
-        "attempt_good": 0,
-        "attempt_bad": 0,
-        "lesson": 1,
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
         "mastery_level": false,
         "last_played": null,
         "tokens_earned": 0,
         "test_taken": false,
         "timestamp": null,
         "concepts": "",
-        "preferred_difficulty": 3
+        "preferred_difficulty": 3,
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "lesson": 1,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "addition_facts": {
@@ -169,7 +206,11 @@
         "concepts": "",
         "preferred_difficulty": 1,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "subtraction_facts": {
@@ -188,7 +229,11 @@
         "concepts": "",
         "preferred_difficulty": 1,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "multiplication_facts": {
@@ -207,7 +252,11 @@
         "concepts": "",
         "preferred_difficulty": 2,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     },
     "division_facts": {
@@ -226,7 +275,11 @@
         "concepts": "",
         "preferred_difficulty": 3,
         "attempt_good": 0,
-        "attempt_bad": 0
+        "attempt_bad": 0,
+        "lesson": null,
+        "time_spent_total": 0,
+        "streak_current": 0,
+        "streak_best": 0
       }
     }
   }
