@@ -49,13 +49,6 @@ type Player = {
   avatar?: string;
   grade?: string;
   isReady?: boolean;
-  playerType?: string;
-  learningStyle?: string;
-  strengthConcepts?: string[];
-  weaknessConcepts?: string[];
-  preferredDifficulty?: number;
-  tokens?: number;
-  streakDays?: number;
 };
 
 // Game state
@@ -1233,26 +1226,9 @@ export default function MultiplayerMode() {
                       <div className="font-medium truncate flex items-center">
                         {player.username}
                         {player.isHost && <Crown className="h-3 w-3 ml-1 text-yellow-500" />}
-                        {player.playerType && (
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ml-1 ${
-                              player.playerType === 'Leader' ? 'bg-yellow-100 text-yellow-800' :
-                              player.playerType === 'Helper' ? 'bg-blue-100 text-blue-800' :
-                              player.playerType === 'Challenger' ? 'bg-red-100 text-red-800' :
-                              player.playerType === 'Explorer' ? 'bg-green-100 text-green-800' :
-                              player.playerType === 'Learner' ? 'bg-purple-100 text-purple-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {player.playerType}
-                          </Badge>
-                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {player.grade ? `Grade ${player.grade}` : ''} 
-                        {player.learningStyle && ` • ${player.learningStyle}`}
-                        {player.isReady && ' • Ready'}
+                        {player.grade ? `Grade ${player.grade}` : ''} {player.isReady && '• Ready'}
                       </div>
                     </div>
                   </div>
@@ -1441,27 +1417,9 @@ export default function MultiplayerMode() {
                     <div className="font-medium truncate flex items-center">
                       {player.username}
                       {player.isHost && <Crown className="h-3 w-3 ml-1 text-yellow-500" />}
-                      {player.playerType && (
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ml-1 ${
-                            player.playerType === 'Leader' ? 'bg-yellow-100 text-yellow-800' :
-                            player.playerType === 'Helper' ? 'bg-blue-100 text-blue-800' :
-                            player.playerType === 'Challenger' ? 'bg-red-100 text-red-800' :
-                            player.playerType === 'Explorer' ? 'bg-green-100 text-green-800' :
-                            player.playerType === 'Learner' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {player.playerType}
-                        </Badge>
-                      )}
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        Score: {player.score}
-                        {player.learningStyle && ` • ${player.learningStyle}`}
-                      </span>
+                      <span className="text-muted-foreground">Score: {player.score}</span>
                       {hasAnswered && (
                         <Badge variant="outline" className="text-xs">
                           Answered

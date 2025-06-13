@@ -981,8 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            // Update subject mastery```text
-if applicable
+            // Update subject mastery if applicable
             if (question?.category && question.grade) {
               await storage.updateSubjectMastery(
                 userId,
@@ -1059,9 +1058,9 @@ if applicable
             : (a as any).date
               ? new Date((a as any).date).getTime()
               : 0;
-          const dateB = (b as any).updatedAt
+          const dateB = (a as any).updatedAt
             ? new Date((a as any).updatedAt).getTime()
-            : (b as any).date
+            : (a as any).date
               ? new Date((a as any).date).getTime()
               : 0;
           return dateB - dateA;
@@ -1793,38 +1792,7 @@ if applicable
     }
   });
 
-  // Helper function to determine player type based on user characteristics
-function determinePlayerType(user: any): string {
-  const tokens = user.tokens || 0;
-  const streakDays = user.streakDays || 0;
-  const questionsAnswered = user.questionsAnswered || 0;
-  const correctAnswers = user.correctAnswers || 0;
-  const accuracyRate = questionsAnswered > 0 ? correctAnswers / questionsAnswered : 0;
-  const preferredDifficulty = user.preferredDifficulty || 1;
-  const strengthConcepts = user.strengthConcepts || [];
-  const weaknessConcepts = user.weaknessConcepts || [];
-  const learningStyle = user.learningStyle || '';
-
-  // Determine player type based on database characteristics
-  if (tokens >= 1000 && streakDays >= 7 && accuracyRate >= 0.8) {
-    return 'Leader'; // High-performing, consistent player
-  } else if (learningStyle === 'Visual' || learningStyle === 'Verbal') {
-    if (strengthConcepts.length >= 3 && accuracyRate >= 0.7) {
-      return 'Helper'; // Good at explaining concepts
-    }
-  } else if (preferredDifficulty >= 4 && accuracyRate >= 0.75) {
-    return 'Challenger'; // Seeks difficult problems
-  } else if (questionsAnswered >= 100 && streakDays >= 3) {
-    return 'Explorer'; // Consistent practice, explores different areas
-  } else if (weaknessConcepts.length >= 2 && questionsAnswered >= 20) {
-    return 'Learner'; // Still developing skills
-  } else {
-    return 'Beginner'; // New or low-activity player
-  }
-}
-
-  // Multiplayer endpoints
-app.post("/api/multiplayer/rooms", async (req, res) => {
+  app.post("/api/multiplayer/rooms", async (req, res) => {
     const { name, grade, category, maxPlayers, gameType, settings } = req.body;
 
     if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
@@ -1847,55 +1815,6 @@ app.post("/api/multiplayer/rooms", async (req, res) => {
       maxPlayers,
     });
   });
-
-app.get("/api/multiplayer/rooms/:id", async (req, res) => {
-  try {
-    const roomId = parseInt(req.params.id);
-    const room = await storage.getMultiplayerRoom(roomId);
-
-    if (!room) {
-      return res.status(404).json({ error: "Room not found" });
-    }
-
-    const userId = req.session?.userId;
-    const isHost = room.hostId === userId;
-
-    // Get player information with types
-    const players = [];
-    if (room.participants) {
-      for (const participantId of room.participants) {
-        const user = await storage.getUser(participantId);
-        if (user) {
-          const playerType = determinePlayerType(user);
-          players.push({
-            id: user.id,
-            username: user.username,
-            isHost: user.id === room.hostId,
-            score: 0, // Will be updated during gameplay
-            grade: user.grade,
-            avatar: user.avatarItems,
-            playerType,
-            learningStyle: user.learningStyle,
-            strengthConcepts: user.strengthConcepts,
-            weaknessConcepts: user.weaknessConcepts,
-            preferredDifficulty: user.preferredDifficulty,
-            tokens: user.tokens,
-            streakDays: user.streakDays
-          });
-        }
-      }
-    }
-
-    res.json({
-      ...room,
-      isHost,
-      players
-    });
-  } catch (error) {
-    console.error("Error fetching room:", error);
-    res.status(500).json({ error: "Failed to fetch room" });
-  }
-});
 
   // Endpoint to update user statistics
   app.post("/api/user/stats/update", ensureAuthenticated, async (req, res) => {
