@@ -3,12 +3,11 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { ProgressBar } from '@/components/progress-bar';
-import { UserProgress } from '@shared/schema';
 import { getGradeLabel } from '@/lib/utils';
 import { getCategoryLabel } from '@/lib/questions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Settings, Edit, Flame, HelpCircle, Coins, Star, Award, Medal } from 'lucide-react';
+import { Loader2, Settings, Edit, Flame, HelpCircle, Coins, Star, Award, Medal, TrendingUp, Target } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -103,40 +102,10 @@ export default function ProfilePage() {
     }
   });
   
-  // Mutation for updating learning style
-  const updateLearningStyleMutation = useMutation({
-    mutationFn: async (data: {
-      learningStyle: string;
-      strengths: string[];
-      weaknesses: string[];
-    }) => {
-      const response = await apiRequest('POST', '/api/analytics/learning-style', data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update learning style');
-      }
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      toast({
-        title: 'Learning style updated',
-        description: 'Your learning preferences have been updated.',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error updating learning style',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  });
-  
-  // Mutation to update email
+  // Email update mutation
   const updateEmailMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
-      const response = await apiRequest('PATCH', '/api/user/email', data);
+      const response = await apiRequest('PATCH', '/api/user', data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update email');
@@ -147,7 +116,7 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       toast({
         title: 'Email updated successfully',
-        description: 'Your email address has been updated.',
+        description: 'Your email address has been changed.',
       });
       setShowSettings(false);
     },
@@ -159,13 +128,10 @@ export default function ProfilePage() {
       });
     }
   });
-  
-  // Mutation to update password
+
+  // Password update mutation
   const updatePasswordMutation = useMutation({
-    mutationFn: async (data: { 
-      currentPassword: string;
-      newPassword: string;
-    }) => {
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
       const response = await apiRequest('PATCH', '/api/user/password', data);
       if (!response.ok) {
         const error = await response.json();
@@ -176,7 +142,7 @@ export default function ProfilePage() {
     onSuccess: () => {
       toast({
         title: 'Password updated successfully',
-        description: 'Your password has been changed. Please use your new password next time you login.',
+        description: 'Your password has been changed.',
       });
       setCurrentPassword('');
       setNewPassword('');
@@ -191,609 +157,461 @@ export default function ProfilePage() {
       });
     }
   });
-  
-  if (!user) return null;
-  
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
-  
-  const handleAddInterest = () => {
-    if (newInterest.trim() && !interests.includes(newInterest.trim())) {
-      setInterests([...interests, newInterest.trim()]);
+
+  const addInterest = () => {
+    if (newInterest && !interests.includes(newInterest)) {
+      setInterests([...interests, newInterest]);
       setNewInterest('');
     }
   };
-  
-  const handleRemoveInterest = (interest: string) => {
-    setInterests(interests.filter(i => i !== interest));
+
+  const removeInterest = (index: number) => {
+    setInterests(interests.filter((_, i) => i !== index));
   };
-  
-  const handleSaveProfile = () => {
+
+  const handleProfileUpdate = () => {
     updateProfileMutation.mutate({
       displayName,
       grade,
       interests
     });
   };
-  
-  const handleSelectLearningStyle = (style: string) => {
-    updateLearningStyleMutation.mutate({
-      learningStyle: style,
-      strengths: user.strengthConcepts || [],
-      weaknesses: user.weaknessConcepts || []
-    });
-  };
-  
-  // Handle email update
-  const handleUpdateEmail = () => {
-    if (!email.trim()) {
+
+  const handleEmailUpdate = () => {
+    if (!user || user.email === email) {
       toast({
-        title: "Error",
-        description: "Email cannot be empty",
-        variant: "destructive",
+        title: 'No changes detected',
+        description: 'Your email address is already up to date.',
+        variant: 'destructive',
       });
       return;
     }
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+
+    if (!email || email.length < 3) {
       toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
+        title: 'Invalid email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
       });
       return;
     }
-    
+
     updateEmailMutation.mutate({ email });
   };
-  
-  // Handle password update
-  const handleUpdatePassword = () => {
+
+  const handlePasswordUpdate = () => {
     if (!currentPassword) {
       toast({
-        title: "Error",
-        description: "Current password is required",
-        variant: "destructive",
+        title: 'Current password required',
+        description: 'Please enter your current password.',
+        variant: 'destructive',
       });
       return;
     }
-    
-    if (!newPassword) {
+
+    if (!newPassword || newPassword.length < 6) {
       toast({
-        title: "Error",
-        description: "New password is required",
-        variant: "destructive",
+        title: 'Invalid new password',
+        description: 'New password must be at least 6 characters long.',
+        variant: 'destructive',
       });
       return;
     }
-    
-    if (newPassword.length < 6) {
+
+    if (newPassword.length > 50) {
       toast({
-        title: "Error",
-        description: "New password must be at least 6 characters long",
-        variant: "destructive",
+        title: 'Password too long',
+        description: 'Password must be less than 50 characters.',
+        variant: 'destructive',
       });
       return;
     }
-    
+
     if (newPassword !== confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
+        title: 'Passwords do not match',
+        description: 'Please make sure your new passwords match.',
+        variant: 'destructive',
       });
       return;
     }
-    
+
     updatePasswordMutation.mutate({
       currentPassword,
       newPassword
     });
   };
-  
+
+  // Show loading state while fetching progress data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-100">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading your progress...</span>
+          </div>
+        </main>
+        <Navigation />
+      </div>
+    );
+  }
+
+  const progressData = progressResponse?.progress || [];
+  const globalStats = progressResponse?.globalStats || {
+    totalTokens: user?.tokens || 0,
+    totalQuestions: user?.questionsAnswered || 0,
+    totalCorrect: user?.correctAnswers || 0,
+    accuracy: 0,
+    tokenPercentile: 50,
+    accuracyPercentile: 50
+  };
+
+  // Find overall progress and module progress
+  const overallProgress = progressData.find(p => p.category === 'overall');
+  const moduleProgress = progressData.filter(p => p.category !== 'overall');
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-100">
       <Header />
       
-      <main className="flex-1 container mx-auto p-4">
-        <Card className="mb-6 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary to-purple-700 p-6 text-white">
-            <div className="flex items-center">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mr-4">
-                <span className="text-primary text-2xl font-bold">{user.initials}</span>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">{user.displayName || user.username}</h2>
-                <p className="text-white text-opacity-90">
-                  {getGradeLabel(user.grade || 'K')}
-                </p>
-              </div>
-            </div>
+      <main className="container mx-auto px-4 py-8" data-testid="progress-container">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Hello, {user?.displayName || user?.username}! 👋
+            </h1>
+            <p className="text-gray-600">
+              Welcome to your learning dashboard
+            </p>
           </div>
           
-          <CardContent className="p-0">
-            <div className="grid grid-cols-3 gap-2 p-4">
-              <div className="text-center p-4">
-                <div className="text-2xl font-bold text-primary">{user.tokens}</div>
-                <div className="text-sm text-gray-600">Tokens</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-2xl font-bold text-primary">{user.streakDays}</div>
-                <div className="text-sm text-gray-600">Day Streak</div>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-2xl font-bold text-primary">{user.questionsAnswered}</div>
-                <div className="text-sm text-gray-600">Questions</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-bold text-dark mb-4">Your Progress</h3>
-            
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : progressResponse && progressResponse.progress.length > 0 ? (
-              <div className="space-y-6">
-                {/* Global Stats Overview */}
-                {progressResponse.globalStats && (
-                  <div className="bg-gradient-to-r from-primary/10 to-purple-100 p-4 rounded-lg">
-                    <h4 className="font-semibold text-primary mb-3">Overall Performance</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.totalTokens}</div>
-                        <div className="text-gray-600">Total Tokens</div>
-                        <div className="text-xs text-green-600">
-                          {progressResponse.globalStats.tokenPercentile}th percentile
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.accuracy}%</div>
-                        <div className="text-gray-600">Accuracy</div>
-                        <div className="text-xs text-green-600">
-                          {progressResponse.globalStats.accuracyPercentile}th percentile
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.totalQuestions}</div>
-                        <div className="text-gray-600">Questions</div>
-                        <div className="text-xs text-gray-500">
-                          {progressResponse.globalStats.totalCorrect} correct
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.streak}</div>
-                        <div className="text-gray-600">Day Streak</div>
-                        <div className="text-xs text-orange-600">🔥 Keep it up!</div>
-                      </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={logoutMutation.isPending}
+            >
+              {logoutMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Sign Out'
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="subjects">Subjects</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Global Statistics Card */}
+            <Card data-testid="global-stats">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5 text-yellow-500" />
+                  Your Learning Journey
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <Coins className="h-6 w-6 text-yellow-500 mr-1" />
+                      <span className="text-2xl font-bold text-yellow-600" data-testid="total-tokens">
+                        {globalStats.totalTokens}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Total Tokens</p>
+                    <div className="mt-1">
+                      <Badge variant="secondary" className="percentile-display">
+                        {Math.round(globalStats.tokenPercentile)}th percentile
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <Target className="h-6 w-6 text-blue-500 mr-1" />
+                      <span className="text-2xl font-bold text-blue-600">
+                        {globalStats.totalQuestions}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Questions Answered</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <Star className="h-6 w-6 text-green-500 mr-1" />
+                      <span className="text-2xl font-bold text-green-600">
+                        {globalStats.totalCorrect}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Correct Answers</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <TrendingUp className="h-6 w-6 text-purple-500 mr-1" />
+                      <span className="text-2xl font-bold text-purple-600">
+                        {Math.round(globalStats.accuracy)}%
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">Accuracy</p>
+                    <div className="mt-1">
+                      <Badge variant="secondary" className="percentile-display">
+                        {Math.round(globalStats.accuracyPercentile)}th percentile
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* User Info Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Edit className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Display Name</p>
+                    <p className="text-lg">{user?.displayName || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Grade Level</p>
+                    <p className="text-lg">{getGradeLabel(user?.grade || 'K')}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Email</p>
+                    <p className="text-lg">{user?.email || 'Not set'}</p>
+                  </div>
+                </div>
+                
+                {interests.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Learning Interests</p>
+                    <div className="flex flex-wrap gap-2">
+                      {interests.map((interest, index) => (
+                        <Badge key={index} variant="outline">
+                          {interest}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                {/* Module Progress */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-700">Module Progress</h4>
-                  {progressResponse.progress
-                    .filter(progress => progress.category !== 'overall')
-                    .map((progress) => {
-                      return (
-                        <div className="border rounded-lg p-4 hover:shadow-md transition-shadow" key={progress.id}>
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h5 className="font-medium text-gray-800">{getCategoryLabel(progress.category)}</h5>
-                              <p className="text-sm text-gray-600">{progress.moduleData.concepts}</p>
-                              <p className="text-xs text-gray-500">Grade {progress.moduleData.gradeLevel}</p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-primary">{progress.completion}%</div>
-                              <div className="text-xs text-gray-500">Complete</div>
-                            </div>
-                          </div>
-                          
-                          <ProgressBar progress={progress.completion} />
-                          
-                          <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-700">{progress.score}</div>
-                              <div className="text-xs text-gray-500">Tokens</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-700">{progress.accuracy}%</div>
-                              <div className="text-xs text-gray-500">Accuracy</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-semibold text-gray-700">{progress.moduleData.streak}</div>
-                              <div className="text-xs text-gray-500">Streak</div>
-                            </div>
-                          </div>
-                          
-                          {progress.lastPlayed && (
-                            <div className="mt-2 text-xs text-gray-400">
-                              Last played: {new Date(progress.lastPlayed).toLocaleDateString()}
-                            </div>
-                          )}
+          <TabsContent value="progress" className="space-y-6">
+            {/* Module Progress Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {moduleProgress.map((progress, index) => (
+                <Card key={progress.category} data-testid="module-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{progress.label}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between text-sm">
+                        <span>Progress</span>
+                        <span>{Math.round(progress.completion)}%</span>
+                      </div>
+                      <ProgressBar 
+                        progress={progress.completion} 
+                        className="h-2"
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600">Tokens</p>
+                          <p className="font-semibold">{progress.score}</p>
                         </div>
-                      );
-                    })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                <p>No progress data yet. Start playing to see your progress!</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-bold text-dark mb-4">Your Badges</h3>
-            
-            <div className="grid grid-cols-3 gap-4">
-              {user.streakDays >= 3 && (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
-                    {/* Flame animation with multiple flames */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Flame className="h-10 w-10 text-red-500 absolute animate-pulse" style={{ transform: 'translateY(-2px)' }} />
-                      <Flame className="h-8 w-8 text-yellow-400 absolute animate-bounce" />
-                      <Flame className="h-12 w-12 text-orange-600 absolute opacity-50" style={{ transform: 'translateY(2px)' }} />
+                        <div>
+                          <p className="text-gray-600">Accuracy</p>
+                          <p className="font-semibold">{Math.round(progress.accuracy)}%</p>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500">
+                        {progress.questionsAnswered} questions answered • {progress.correctAnswers} correct
+                      </div>
                     </div>
-                    <span className="text-white font-bold z-10">{user.streakDays}🔥</span>
-                  </div>
-                  <span className="text-xs font-bold text-center text-gray-700">On Fire!</span>
-                </div>
-              )}
-              
-              {user.questionsAnswered >= 50 && (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
-                    {/* Multiple question marks in different positions */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <HelpCircle className="h-6 w-6 text-purple-300 absolute top-2 left-2 rotate-12" />
-                      <HelpCircle className="h-5 w-5 text-purple-200 absolute bottom-2 right-3 -rotate-12" />
-                      <HelpCircle className="h-4 w-4 text-purple-100 absolute bottom-3 left-4 rotate-45" />
-                      <HelpCircle className="h-7 w-7 text-white absolute" />
-                    </div>
-                    <span className="text-white font-bold z-10 text-xs absolute bottom-1">×{user.questionsAnswered}</span>
-                  </div>
-                  <span className="text-xs font-bold text-center text-gray-700">Question Master</span>
-                </div>
-              )}
-              
-              {user.tokens >= 100 && (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mb-2 relative overflow-hidden">
-                    {/* Multiple coins scattered around */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Coins className="h-5 w-5 text-yellow-300 absolute top-2 left-3 rotate-12" />
-                      <Coins className="h-4 w-4 text-yellow-200 absolute bottom-2 right-3 -rotate-12" />
-                      <Coins className="h-6 w-6 text-yellow-100 absolute top-4 right-2 rotate-45" />
-                      <Coins className="h-8 w-8 text-yellow-600 absolute" />
-                    </div>
-                    <div className="z-10 bg-yellow-600 text-white text-xs px-2 py-0.5 rounded-full absolute bottom-1">
-                      {user.tokens}
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-center text-gray-700">Token Collector</span>
-                </div>
-              )}
-              
-              {/* Show empty state if no badges */}
-              {user.streakDays < 3 && user.questionsAnswered < 50 && user.tokens < 100 && (
-                <div className="col-span-3 text-center py-4 text-gray-500">
-                  <p>Keep playing to earn badges!</p>
-                </div>
-              )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Subject Mastery Section */}
-        <div className="mb-6">
-          <SubjectMastery userId={user.id} currentGrade={user.grade || '5'} />
-        </div>
-        
-        {/* Settings/Profile Dialog */}
+          </TabsContent>
+
+          <TabsContent value="subjects">
+            <SubjectMastery />
+          </TabsContent>
+        </Tabs>
+
+        {/* Settings Dialog */}
         <Dialog open={showSettings} onOpenChange={setShowSettings}>
-          <DialogTrigger asChild>
-            <Button 
-              className="arcade-btn w-full bg-primary text-white font-bold py-3 px-4 rounded-xl mb-4"
-              onClick={() => setShowSettings(true)}
-            >
-              <Settings className="mr-2 h-4 w-4" /> Settings
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Profile Settings</DialogTitle>
               <DialogDescription>
-                Update your profile information and preferences
+                Update your profile information and preferences.
               </DialogDescription>
             </DialogHeader>
             
-            <Tabs defaultValue="profile">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="interests">Interests</TabsTrigger>
-                <TabsTrigger value="learning">Learning Style</TabsTrigger>
-                <TabsTrigger value="account">Account</TabsTrigger>
-              </TabsList>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium">Display Name</label>
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your display name"
+                />
+              </div>
               
-              {/* Profile Settings Tab */}
-              <TabsContent value="profile" className="space-y-4 py-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="displayName" className="text-sm font-medium">Display Name</label>
-                    <Input
-                      id="displayName"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Enter your display name"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="grade" className="text-sm font-medium">Grade Level</label>
-                    <select
-                      id="grade"
-                      value={grade}
-                      onChange={(e) => setGrade(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2"
-                    >
-                      <option value="K">Kindergarten</option>
-                      <option value="1">Grade 1</option>
-                      <option value="2">Grade 2</option>
-                      <option value="3">Grade 3</option>
-                      <option value="4">Grade 4</option>
-                      <option value="5">Grade 5</option>
-                      <option value="6">Grade 6</option>
-                      <option value="7">Grade 7</option>
-                      <option value="8">Grade 8</option>
-                      <option value="9">Grade 9</option>
-                      <option value="10">Grade 10</option>
-                      <option value="11">Grade 11</option>
-                      <option value="12">Grade 12</option>
-                    </select>
-                  </div>
+              <div>
+                <label className="text-sm font-medium">Grade Level</label>
+                <select 
+                  value={grade} 
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="K">Kindergarten</option>
+                  <option value="1">Grade 1</option>
+                  <option value="2">Grade 2</option>
+                  <option value="3">Grade 3</option>
+                  <option value="4">Grade 4</option>
+                  <option value="5">Grade 5</option>
+                  <option value="6">Grade 6</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Email Address</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                />
+                <Button 
+                  onClick={handleEmailUpdate}
+                  disabled={updateEmailMutation.isPending}
+                  className="w-full mt-2"
+                  variant="outline"
+                >
+                  {updateEmailMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Email'
+                  )}
+                </Button>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Change Password</label>
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                  />
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password"
+                  />
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                  />
                 </div>
-              </TabsContent>
+                <Button 
+                  onClick={handlePasswordUpdate}
+                  disabled={updatePasswordMutation.isPending}
+                  className="w-full mt-2"
+                  variant="outline"
+                >
+                  {updatePasswordMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Password'
+                  )}
+                </Button>
+              </div>
               
-              {/* Interests Tab */}
-              <TabsContent value="interests" className="space-y-4 py-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Interests</label>
-                    <p className="text-sm text-muted-foreground">
-                      These help us create more engaging math problems for you
-                    </p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {interests.length > 0 ? (
-                        interests.map((interest) => (
-                          <Badge key={interest} variant="outline" className="py-1">
-                            {interest}
-                            <button 
-                              className="ml-1 text-muted-foreground hover:text-foreground" 
-                              onClick={() => handleRemoveInterest(interest)}
-                            >
-                              &times;
-                            </button>
-                          </Badge>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No interests added yet</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <Input
-                        value={newInterest}
-                        onChange={(e) => setNewInterest(e.target.value)}
-                        placeholder="e.g. Space, Sports, Animals"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddInterest();
-                          }
-                        }}
-                      />
-                      <Button 
-                        onClick={handleAddInterest}
-                        disabled={!newInterest.trim()}
-                        type="button"
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </div>
+              <div>
+                <label className="text-sm font-medium">Learning Interests</label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={newInterest}
+                    onChange={(e) => setNewInterest(e.target.value)}
+                    placeholder="Add an interest"
+                    onKeyPress={(e) => e.key === 'Enter' && addInterest()}
+                  />
+                  <Button onClick={addInterest} size="sm">Add</Button>
                 </div>
-              </TabsContent>
-              
-              {/* Learning Style Tab */}
-              <TabsContent value="learning" className="space-y-4 py-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Preferred Learning Style</label>
-                    <p className="text-sm text-muted-foreground">
-                      Select how you learn best so we can adapt our teaching
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={user.learningStyle === 'visual' ? 'default' : 'outline'}
-                        className="justify-start"
-                        onClick={() => handleSelectLearningStyle('visual')}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Visual Learner
-                      </Button>
-                      
-                      <Button
-                        variant={user.learningStyle === 'auditory' ? 'default' : 'outline'}
-                        className="justify-start"
-                        onClick={() => handleSelectLearningStyle('auditory')}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 010-7.072m12.728 2.828a9 9 0 000-12.728" />
-                        </svg>
-                        Auditory Learner
-                      </Button>
-                      
-                      <Button
-                        variant={user.learningStyle === 'kinesthetic' ? 'default' : 'outline'}
-                        className="justify-start"
-                        onClick={() => handleSelectLearningStyle('kinesthetic')}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                        </svg>
-                        Hands-On Learner
-                      </Button>
-                      
-                      <Button
-                        variant={user.learningStyle === 'reading' ? 'default' : 'outline'}
-                        className="justify-start"
-                        onClick={() => handleSelectLearningStyle('reading')}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        Reading/Writing
-                      </Button>
-                    </div>
-                  </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {interests.map((interest, index) => (
+                    <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeInterest(index)}>
+                      {interest} ×
+                    </Badge>
+                  ))}
                 </div>
-              </TabsContent>
-              
-              {/* Account Settings Tab */}
-              <TabsContent value="account" className="space-y-4 py-4">
-                <div className="space-y-4">
-                  {/* Grade Information Section */}
-                  <div className="space-y-2 border-b pb-4">
-                    <h4 className="font-medium">Grade Information</h4>
-                    <p className="text-sm text-gray-600">
-                      Current Grade: <span className="font-bold">{getGradeLabel(user?.grade || 'K')}</span>
-                    </p>
-                    
-                    {user?.lastGradeAdvancement && (
-                      <p className="text-sm text-gray-600">
-                        Last Advanced: <span className="font-medium">
-                          {new Date(user.lastGradeAdvancement).toLocaleDateString()}
-                        </span>
-                      </p>
-                    )}
-                    
-                    <div className="mt-2 p-3 bg-blue-50 rounded-md">
-                      <h5 className="text-sm font-medium text-blue-700">About Grade Advancement</h5>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Your grade will automatically advance on July 4th each year. 
-                        Teachers and parents can also adjust your grade manually in the profile settings.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Email Change Section */}
-                  <div className="space-y-2 border-b pb-4">
-                    <h4 className="font-medium">Update Email</h4>
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleUpdateEmail}
-                      className="mt-2"
-                      disabled={updateEmailMutation.isPending}
-                    >
-                      {updateEmailMutation.isPending ? "Updating..." : "Update Email"}
-                    </Button>
-                  </div>
-                  
-                  {/* Password Change Section */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Change Password</h4>
-                    <div className="space-y-2">
-                      <label htmlFor="currentPassword" className="text-sm font-medium">Current Password</label>
-                      <Input
-                        id="currentPassword"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter your current password"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label htmlFor="newPassword" className="text-sm font-medium">New Password</label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter your new password"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm your new password"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleUpdatePassword}
-                      className="mt-4 w-full"
-                      disabled={updatePasswordMutation.isPending}
-                      variant="outline"
-                    >
-                      {updatePasswordMutation.isPending ? "Updating..." : "Change Password"}
-                    </Button>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
             
             <DialogFooter>
-              <Button 
-                onClick={handleSaveProfile} 
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              <Button variant="outline" onClick={() => setShowSettings(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleProfileUpdate} disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        <Button
-          onClick={handleLogout}
-          className="arcade-btn w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-4 rounded-xl mb-4"
-          disabled={logoutMutation.isPending}
-        >
-          {logoutMutation.isPending ? "Signing Out..." : "Sign Out"}
-        </Button>
       </main>
       
-      <Navigation active="profile" />
+      <Navigation />
     </div>
   );
 }

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive User Progress System Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-results {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .test-item {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #e2e8f0;
+        }
+        .test-item.passed {
+            border-left-color: #10b981;
+        }
+        .test-item.failed {
+            border-left-color: #ef4444;
+        }
+        .test-item.running {
+            border-left-color: #3b82f6;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .test-status {
+            font-size: 14px;
+            color: #64748b;
+        }
+        .test-duration {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .metric {
+            display: inline-block;
+            margin: 10px 20px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #64748b;
+        }
+        .log-output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Comprehensive User Progress System Test Suite</h1>
+        <p>Validates the enhanced progress tracking system with global analytics and percentile calculations</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="runTests()" id="runBtn">Run Tests</button>
+        <button onclick="clearResults()" id="clearBtn">Clear Results</button>
+    </div>
+
+    <div class="summary" id="summary" style="display: none;">
+        <h3>Test Results Summary</h3>
+        <div class="metric">
+            <div class="metric-value" id="totalTests">0</div>
+            <div class="metric-label">Total Tests</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="passedTests">0</div>
+            <div class="metric-label">Passed</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="failedTests">0</div>
+            <div class="metric-label">Failed</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="successRate">0%</div>
+            <div class="metric-label">Success Rate</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value" id="totalDuration">0ms</div>
+            <div class="metric-label">Total Duration</div>
+        </div>
+    </div>
+
+    <div class="test-results" id="testResults"></div>
+
+    <div class="log-output" id="logOutput" style="display: none;"></div>
+
+    <script>
+        class BrowserProgressTestSuite {
+            constructor() {
+                this.results = [];
+                this.startTime = null;
+                this.logEntries = [];
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+                this.logEntries.push(logEntry);
+                
+                const logOutput = document.getElementById('logOutput');
+                if (logOutput) {
+                    logOutput.textContent = this.logEntries.join('\n');
+                    logOutput.scrollTop = logOutput.scrollHeight;
+                }
+                
+                console.log(logEntry);
+            }
+
+            async makeRequest(method, path, data = null) {
+                const url = `${window.location.origin}${path}`;
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                try {
+                    const response = await fetch(url, options);
+                    const responseData = await response.json();
+                    return { status: response.status, data: responseData, ok: response.ok };
+                } catch (error) {
+                    return { status: 0, data: { error: error.message }, ok: false };
+                }
+            }
+
+            updateTestDisplay(name, status, duration = null, error = null) {
+                const testResults = document.getElementById('testResults');
+                let testElement = document.getElementById(`test-${name.replace(/\s+/g, '-')}`);
+                
+                if (!testElement) {
+                    testElement = document.createElement('div');
+                    testElement.id = `test-${name.replace(/\s+/g, '-')}`;
+                    testElement.className = 'test-item';
+                    testResults.appendChild(testElement);
+                }
+
+                testElement.className = `test-item ${status.toLowerCase()}`;
+                testElement.innerHTML = `
+                    <div class="test-name">${name}</div>
+                    <div class="test-status">${status}${error ? ': ' + error : ''}</div>
+                    ${duration ? `<div class="test-duration">${duration}ms</div>` : ''}
+                `;
+            }
+
+            async test(name, testFunction) {
+                this.log(`Starting test: ${name}`);
+                this.updateTestDisplay(name, 'RUNNING');
+                const testStart = Date.now();
+                
+                try {
+                    await testFunction();
+                    const duration = Date.now() - testStart;
+                    this.results.push({ name, status: 'PASSED', duration, error: null });
+                    this.updateTestDisplay(name, 'PASSED', duration);
+                    this.log(`✅ Test passed: ${name} (${duration}ms)`);
+                } catch (error) {
+                    const duration = Date.now() - testStart;
+                    this.results.push({ name, status: 'FAILED', duration, error: error.message });
+                    this.updateTestDisplay(name, 'FAILED', duration, error.message);
+                    this.log(`❌ Test failed: ${name} - ${error.message}`);
+                }
+            }
+
+            // Test implementations
+            async testProgressAPIStructure() {
+                await this.test('API Response Structure', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    
+                    if (response.status !== 200) {
+                        throw new Error(`Expected status 200, got ${response.status}: ${response.data.message || 'Unknown error'}`);
+                    }
+
+                    const data = response.data;
+                    
+                    if (!Array.isArray(data.progress)) {
+                        throw new Error("Progress should be array");
+                    }
+                    
+                    if (data.globalStats === undefined) {
+                        throw new Error("Global stats required");
+                    }
+                    
+                    if (data.globalStats.tokenPercentile === undefined) {
+                        throw new Error("Token percentile required");
+                    }
+                    
+                    if (data.globalStats.accuracyPercentile === undefined) {
+                        throw new Error("Accuracy percentile required");
+                    }
+
+                    if (data.progress.length > 0) {
+                        const progressItem = data.progress[0];
+                        const requiredFields = ['category', 'label', 'score', 'completion', 'questionsAnswered', 'correctAnswers', 'accuracy'];
+                        
+                        for (const field of requiredFields) {
+                            if (progressItem[field] === undefined) {
+                                throw new Error(`Progress item missing required field: ${field}`);
+                            }
+                        }
+                    }
+                });
+            }
+
+            async testPercentileCalculation() {
+                await this.test('Percentile Calculation Accuracy', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    const data = response.data;
+                    
+                    if (data.globalStats.tokenPercentile < 0 || data.globalStats.tokenPercentile > 100) {
+                        throw new Error("Token percentile must be between 0-100");
+                    }
+                    
+                    if (data.globalStats.accuracyPercentile < 0 || data.globalStats.accuracyPercentile > 100) {
+                        throw new Error("Accuracy percentile must be between 0-100");
+                    }
+
+                    this.log(`Token percentile: ${data.globalStats.tokenPercentile}%`);
+                    this.log(`Accuracy percentile: ${data.globalStats.accuracyPercentile}%`);
+                });
+            }
+
+            async testModuleProgressAccuracy() {
+                await this.test('Module Progress Accuracy', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    const data = response.data;
+                    
+                    const moduleProgress = data.progress.find(p => p.category !== 'overall');
+                    
+                    if (moduleProgress) {
+                        if (moduleProgress.moduleData === undefined) {
+                            throw new Error("Module data required");
+                        }
+                        
+                        if (moduleProgress.completion < 0 || moduleProgress.completion > 100) {
+                            throw new Error("Completion percentage must be 0-100");
+                        }
+                        
+                        if (moduleProgress.accuracy < 0 || moduleProgress.accuracy > 100) {
+                            throw new Error("Accuracy percentage must be 0-100");
+                        }
+                    }
+                });
+            }
+
+            async testProfilePageLoadPerformance() {
+                await this.test('Profile Page Load Performance', async () => {
+                    const startTime = performance.now();
+                    
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    
+                    const endTime = performance.now();
+                    const loadTime = endTime - startTime;
+                    
+                    if (loadTime > 3000) {
+                        throw new Error(`Page load too slow: ${loadTime}ms`);
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+                    
+                    this.log(`Profile page data loaded in ${Math.round(loadTime)}ms`);
+                });
+            }
+
+            async testProgressDataDisplay() {
+                await this.test('Progress Data Display', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    const data = response.data;
+                    
+                    if (typeof data.globalStats.totalTokens !== 'number') {
+                        throw new Error("Total tokens should be a number");
+                    }
+                    
+                    if (typeof data.globalStats.accuracy !== 'number') {
+                        throw new Error("Accuracy should be a number");
+                    }
+                    
+                    if (data.progress.length > 0) {
+                        const moduleCard = data.progress.find(p => p.category !== 'overall');
+                        if (moduleCard) {
+                            if (typeof moduleCard.score !== 'number') {
+                                throw new Error("Module score should be a number");
+                            }
+                            
+                            if (typeof moduleCard.completion !== 'number') {
+                                throw new Error("Module completion should be a number");
+                            }
+                        }
+                    }
+                });
+            }
+
+            async testCrossModuleConsistency() {
+                await this.test('Cross-Module Consistency', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    const data = response.data;
+                    
+                    const moduleTokenSum = data.progress
+                        .filter(p => p.category !== 'overall')
+                        .reduce((sum, p) => sum + p.score, 0);
+                    
+                    if (moduleTokenSum > data.globalStats.totalTokens) {
+                        throw new Error("Module token sum should not exceed global tokens");
+                    }
+                });
+            }
+
+            async testCategoryLabels() {
+                await this.test('Category Label Accuracy', async () => {
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    const data = response.data;
+                    
+                    data.progress.forEach(progress => {
+                        if (!progress.label || progress.label === progress.category) {
+                            if (progress.category !== 'overall') {
+                                throw new Error(`Category ${progress.category} should have a user-friendly label`);
+                            }
+                        }
+                    });
+                });
+            }
+
+            async testResponseTime() {
+                await this.test('API Response Time', async () => {
+                    const startTime = performance.now();
+                    
+                    const response = await this.makeRequest('GET', '/api/progress');
+                    
+                    const endTime = performance.now();
+                    const responseTime = endTime - startTime;
+                    
+                    if (responseTime > 2000) {
+                        throw new Error(`API response too slow: ${Math.round(responseTime)}ms`);
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error("Should return progress data");
+                    }
+                    
+                    this.log(`API response time: ${Math.round(responseTime)}ms`);
+                });
+            }
+
+            async runAllTests() {
+                this.startTime = Date.now();
+                this.results = [];
+                this.logEntries = [];
+                
+                document.getElementById('logOutput').style.display = 'block';
+                document.getElementById('runBtn').disabled = true;
+                
+                this.log('Starting Comprehensive User Progress System Test Suite');
+                this.log('================================================================');
+                
+                try {
+                    this.log('Phase 1: Backend API functionality and data accuracy...');
+                    await this.testProgressAPIStructure();
+                    await this.testPercentileCalculation();
+                    await this.testModuleProgressAccuracy();
+                    
+                    this.log('Phase 2: Frontend integration and performance...');
+                    await this.testProfilePageLoadPerformance();
+                    await this.testProgressDataDisplay();
+                    await this.testResponseTime();
+                    
+                    this.log('Phase 3: Data consistency and validation...');
+                    await this.testCrossModuleConsistency();
+                    await this.testCategoryLabels();
+                    
+                } catch (error) {
+                    this.log(`Test suite execution encountered an error: ${error.message}`, 'error');
+                }
+                
+                this.generateReport();
+                document.getElementById('runBtn').disabled = false;
+            }
+
+            generateReport() {
+                const endTime = Date.now();
+                const totalDuration = endTime - this.startTime;
+                const passedTests = this.results.filter(r => r.status === 'PASSED').length;
+                const failedTests = this.results.filter(r => r.status === 'FAILED').length;
+                const totalTests = this.results.length;
+                
+                // Update summary display
+                const summary = document.getElementById('summary');
+                summary.style.display = 'block';
+                
+                document.getElementById('totalTests').textContent = totalTests;
+                document.getElementById('passedTests').textContent = passedTests;
+                document.getElementById('failedTests').textContent = failedTests;
+                document.getElementById('successRate').textContent = `${Math.round((passedTests / totalTests) * 100)}%`;
+                document.getElementById('totalDuration').textContent = `${totalDuration}ms`;
+                
+                // Log detailed report
+                this.log('\n================================================================');
+                this.log('COMPREHENSIVE USER PROGRESS SYSTEM TEST REPORT');
+                this.log('================================================================');
+                this.log(`Total Tests: ${totalTests}`);
+                this.log(`Passed: ${passedTests}`);
+                this.log(`Failed: ${failedTests}`);
+                this.log(`Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
+                this.log(`Total Duration: ${totalDuration}ms`);
+                this.log('================================================================');
+                
+                // Validation criteria
+                this.log('\nVALIDATION CRITERIA:');
+                this.log(`✅ All tests completed: ${totalTests >= 8 ? 'PASS' : 'FAIL'}`);
+                this.log(`✅ Page load time < 3s: ${this.checkPerformanceCriteria('Profile Page Load Performance', 3000)}`);
+                this.log(`✅ API response time < 2s: ${this.checkPerformanceCriteria('API Response Time', 2000)}`);
+                this.log(`✅ Progress data available: ${passedTests > 0 ? 'PASS' : 'FAIL'}`);
+                this.log(`✅ Data consistency: ${passedTests >= totalTests * 0.8 ? 'PASS' : 'PARTIAL'}`);
+                
+                this.log('\n================================================================');
+                this.log('Test suite execution completed.');
+                this.log('================================================================');
+            }
+
+            checkPerformanceCriteria(testName, maxTime) {
+                const test = this.results.find(r => r.name === testName);
+                if (!test || test.status === 'FAILED') return 'FAIL';
+                return test.duration < maxTime ? 'PASS' : 'FAIL';
+            }
+        }
+
+        let testSuite;
+
+        function runTests() {
+            testSuite = new BrowserProgressTestSuite();
+            testSuite.runAllTests();
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('logOutput').style.display = 'none';
+            document.getElementById('logOutput').textContent = '';
+        }
+
+        // Auto-run tests when page loads if user is authenticated
+        window.addEventListener('load', () => {
+            fetch('/api/user', { credentials: 'include' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('User authenticated - ready to run tests');
+                        document.querySelector('.header p').textContent += ' - User authenticated, ready to run tests';
+                    } else {
+                        document.querySelector('.header p').textContent += ' - Please log in to run tests';
+                        document.getElementById('runBtn').disabled = true;
+                    }
+                })
+                .catch(() => {
+                    document.querySelector('.header p').textContent += ' - Please log in to run tests';
+                    document.getElementById('runBtn').disabled = true;
+                });
+        });
+    </script>
+</body>
+</html>
