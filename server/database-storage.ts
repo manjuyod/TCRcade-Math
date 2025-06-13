@@ -1,17 +1,13 @@
 import { 
   users, type User, type InsertUser, 
   questions, type Question,
-  userProgress, type UserProgress,
-  conceptMastery, type ConceptMastery,
   recommendations, type Recommendation,
   avatarItems, type AvatarItem,
   dailyChallenges, type DailyChallenge,
   mathStories, type MathStory,
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
-  leaderboard, type Leaderboard,
-  subjectMastery, type SubjectMastery,
-  subjectDifficultyHistory, type SubjectDifficultyHistory
+  leaderboard, type Leaderboard
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";

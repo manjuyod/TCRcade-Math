@@ -1,8 +1,8 @@
 import { 
-  users, type User, type InsertUser, userProgress, type UserProgress, 
-  type Question, type Leaderboard, type ConceptMastery, type Recommendation,
+  users, type User, type InsertUser,
+  type Question, type Leaderboard, type Recommendation,
   type AvatarItem, type DailyChallenge, type MathStory, 
-  type MultiplayerRoom, type AiAnalytic, type SubjectMastery
+  type MultiplayerRoom, type AiAnalytic
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
