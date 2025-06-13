@@ -1,0 +1,215 @@
+
+{
+  "global_stats": {
+    "total_questions_answered": 0,
+    "total_correct_answers": 0,
+    "total_tokens_earned": 0,
+    "daily_tokens_earned": 0,
+    "streak_days": 0,
+    "daily_engagement_minutes": 0,
+    "fastest_category": null,
+    "highest_score_category": null,
+    "last_active": null
+  },
+  "ai_analytics": {
+    "analysis_date": null,
+    "learning_patterns": {},
+    "strengths": [],
+    "areas_for_improvement": [],
+    "engagement_analysis": {},
+    "suggested_activities": [],
+    "weaknesses": [],
+    "datetime_generated": null
+  },
+  "cross_module_analytics": {
+    "learning_patterns_between_modules": {},
+    "preferred_learning_sequence": [],
+    "module_transition_success_rate": {},
+    "cross_concept_mastery": {}
+  },
+  "modules": {
+    "fractions_puzzle": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "math_rush": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "word_race": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "decimal_defender": {
+      "grade_level": 4,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "ratios_proportions": {
+      "grade_level": 6,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "measurement": {
+      "grade_level": 2,
+      "progress": {
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "lesson": 1,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "algebra": {
+      "grade_level": 6,
+      "progress": {
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "lesson": 1,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    },
+    "addition_facts": {
+      "grade_level": 1,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 1
+      }
+    },
+    "subtraction_facts": {
+      "grade_level": 1,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 1
+      }
+    },
+    "multiplication_facts": {
+      "grade_level": 2,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 2
+      }
+    },
+    "division_facts": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "timestamp": null,
+        "concepts": "",
+        "preferred_difficulty": 3
+      }
+    }
+  }
+}
