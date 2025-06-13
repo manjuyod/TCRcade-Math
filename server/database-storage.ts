@@ -973,6 +973,26 @@ export class DatabaseStorage implements IStorage {
       return true;
     }
 
+    // Verify user exists and has necessary data for player type calculation
+    const [user] = await db
+      .select({
+        id: users.id,
+        tokens: users.tokens,
+        streakDays: users.streakDays,
+        questionsAnswered: users.questionsAnswered,
+        correctAnswers: users.correctAnswers,
+        preferredDifficulty: users.preferredDifficulty,
+        learningStyle: users.learningStyle,
+        strengthConcepts: users.strengthConcepts,
+        weaknessConcepts: users.weaknessConcepts
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
     // Add user to room
     const newParticipants = [...(room.participants || []), userId];
     await db
