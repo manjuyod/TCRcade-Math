@@ -314,7 +314,7 @@ export function getCategoryLabel(category: string): string {
     "math_rush": "Math Rush",
     "decimal_defender": "Decimal Defender", 
     "ratios_proportions": "Ratios & Proportions",
-    "measurement": "Measurement Mastery",
+    "measurement_mastery": "Measurement Mastery",
     "overall": "Overall Progress"
   };
 

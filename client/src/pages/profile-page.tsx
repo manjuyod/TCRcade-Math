@@ -46,23 +46,17 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Fetch user progress - comprehensive data with global stats and percentiles
+  // Fetch comprehensive progress data with global stats and percentiles
   const { data: progressResponse, isLoading } = useQuery<{
     progress: Array<{
-      id: string;
       category: string;
+      label: string;
       score: number;
-      completedQuestions: number;
+      completion: number;
+      questionsAnswered: number;
       correctAnswers: number;
       accuracy: number;
-      completion: number;
-      lastPlayed: string | null;
-      moduleData: {
-        gradeLevel: string;
-        concepts: string;
-        bestScore: number;
-        streak: number;
-      };
+      moduleData: any;
     }>;
     globalStats: {
       totalTokens: number;
@@ -71,11 +65,10 @@ export default function ProfilePage() {
       accuracy: number;
       tokenPercentile: number;
       accuracyPercentile: number;
-      streak: number;
-      lastActive: string;
     };
   }>({
     queryKey: ['/api/progress'],
+    enabled: !!user,
     refetchOnWindowFocus: false
   });
   

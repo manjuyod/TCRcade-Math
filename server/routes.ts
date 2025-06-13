@@ -49,6 +49,77 @@ import {
   generateAchievements,
 } from "./openai";
 
+// Helper function for category labels
+function getCategoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    addition: "Addition",
+    subtraction: "Subtraction", 
+    multiplication: "Multiplication",
+    division: "Division",
+    fractions: "Fractions",
+    decimals: "Decimals",
+    geometry: "Geometry",
+    measurement: "Measurement",
+    time: "Time",
+    money: "Money",
+    algebra: "Pre-Algebra Basics",
+    "math-facts-addition": "Addition Facts",
+    "math-facts-subtraction": "Subtraction Facts",
+    "math-facts-multiplication": "Multiplication Facts",
+    "math-facts-division": "Division Facts",
+    "fractions_puzzle": "Fractions Puzzle",
+    "math_rush": "Math Rush",
+    "decimal_defender": "Decimal Defender", 
+    "ratios_proportions": "Ratios & Proportions",
+    "measurement_mastery": "Measurement Mastery",
+    "overall": "Overall Progress"
+  };
+  return labels[category] || category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+// Helper functions for percentile calculations
+async function calculateTokenPercentile(userTokens: number): Promise<number> {
+  try {
+    const result = await db.execute(sql`
+      SELECT COUNT(*) as total_users,
+             SUM(CASE WHEN tokens < ${userTokens} THEN 1 ELSE 0 END) as users_below
+      FROM users
+    `);
+    
+    const row = result.rows[0] as any;
+    const totalUsers = parseInt(row.total_users) || 1;
+    const usersBelow = parseInt(row.users_below) || 0;
+    
+    return (usersBelow / totalUsers) * 100;
+  } catch (error) {
+    console.error("Error calculating token percentile:", error);
+    return 50; // Default to 50th percentile on error
+  }
+}
+
+async function calculateAccuracyPercentile(userAccuracy: number): Promise<number> {
+  try {
+    const result = await db.execute(sql`
+      SELECT COUNT(*) as total_users,
+             SUM(CASE 
+               WHEN questions_answered > 0 AND 
+                    (correct_answers::float / questions_answered::float * 100) < ${userAccuracy}
+               THEN 1 ELSE 0 END) as users_below
+      FROM users
+      WHERE questions_answered > 0
+    `);
+    
+    const row = result.rows[0] as any;
+    const totalUsers = parseInt(row.total_users) || 1;
+    const usersBelow = parseInt(row.users_below) || 0;
+    
+    return (usersBelow / totalUsers) * 100;
+  } catch (error) {
+    console.error("Error calculating accuracy percentile:", error);
+    return 50; // Default to 50th percentile on error
+  }
+}
+
 // Import decimal defender module
 import { generateDecimalDefenderQuestions } from "./modules/decimalDefender";
 import { DECIMAL_DEFENDER_RULES } from "../shared/decimalDefenderRules";
@@ -2310,6 +2381,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return questions;
   }
+
+  // Enhanced progress API endpoint with percentile calculations
+  app.get("/api/progress", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Extract hiddenGradeAsset data
+      const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
+      const modules = hiddenGradeAsset.modules || {};
+      const globalStats = hiddenGradeAsset.global_stats || {};
+
+      // Calculate global statistics
+      let totalTokens = user.tokens || 0;
+      let totalQuestions = user.questionsAnswered || 0;
+      let totalCorrect = user.correctAnswers || 0;
+      let accuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
+
+      // If hiddenGradeAsset has global stats, use those instead
+      if (globalStats.total_tokens !== undefined) {
+        totalTokens = globalStats.total_tokens;
+      }
+      if (globalStats.total_questions !== undefined) {
+        totalQuestions = globalStats.total_questions;
+      }
+      if (globalStats.total_correct !== undefined) {
+        totalCorrect = globalStats.total_correct;
+        accuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
+      }
+
+      // Calculate percentiles asynchronously
+      const [tokenPercentile, accuracyPercentile] = await Promise.all([
+        calculateTokenPercentile(totalTokens),
+        calculateAccuracyPercentile(accuracy)
+      ]);
+
+      // Build module progress array
+      const progress = [];
+
+      // Add overall progress
+      progress.push({
+        category: 'overall',
+        label: 'Overall Progress',
+        score: totalTokens,
+        completion: Math.min(100, (totalTokens / 1000) * 100), // Assume 1000 tokens = 100%
+        questionsAnswered: totalQuestions,
+        correctAnswers: totalCorrect,
+        accuracy: accuracy,
+        moduleData: globalStats
+      });
+
+      // Add individual module progress
+      Object.entries(modules).forEach(([moduleKey, moduleData]: [string, any]) => {
+        if (moduleData && moduleData.progress) {
+          const progress_data = moduleData.progress;
+          const tokens = progress_data.tokens_earned || 0;
+          const questions = progress_data.total_questions_answered || 0;
+          const correct = progress_data.correct_answers || 0;
+          const moduleAccuracy = questions > 0 ? (correct / questions) * 100 : 0;
+          
+          // Calculate completion based on sessions and mastery
+          let completion = 0;
+          if (progress_data.sessions_completed) {
+            completion = Math.min(100, (progress_data.sessions_completed / 10) * 100);
+          }
+          if (progress_data.mastery_level) {
+            completion = Math.max(completion, 80);
+          }
+
+          progress.push({
+            category: moduleKey,
+            label: getCategoryLabel(moduleKey),
+            score: tokens,
+            completion: completion,
+            questionsAnswered: questions,
+            correctAnswers: correct,
+            accuracy: moduleAccuracy,
+            moduleData: progress_data
+          });
+        }
+      });
+
+      // Response format
+      res.json({
+        progress,
+        globalStats: {
+          totalTokens,
+          totalQuestions,
+          totalCorrect,
+          accuracy: Math.round(accuracy * 100) / 100,
+          tokenPercentile: Math.round(tokenPercentile * 100) / 100,
+          accuracyPercentile: Math.round(accuracyPercentile * 100) / 100
+        }
+      });
+
+    } catch (error) {
+      console.error("Error fetching progress data:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch progress data",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Endpoint to update user statistics
   app.post("/api/user/stats/update", ensureAuthenticated, async (req, res) => {
