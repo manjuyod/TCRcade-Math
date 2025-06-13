@@ -567,13 +567,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/progress", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const progress = await storage.getUserProgress(userId);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-      res.json(progress);
+      // Get all users for percentile calculation (async operation)
+      const allUsersPromise = db.select({
+        id: users.id,
+        questionsAnswered: users.questionsAnswered,
+        correctAnswers: users.correctAnswers,
+        tokens: users.tokens
+      }).from(users);
+
+      const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
+      const globalStats = hiddenGradeAsset.global_stats || {};
+      const modules = hiddenGradeAsset.modules || {};
+
+      // Calculate overall progress
+      const totalTokens = user.tokens || 0;
+      const totalQuestions = user.questionsAnswered || 0;
+      const totalCorrect = user.correctAnswers || 0;
+      const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+      // Calculate module progress from hiddenGradeAsset
+      const moduleProgress = Object.entries(modules).map(([moduleId, moduleData]: [string, any]) => {
+        const progress = moduleData.progress || {};
+        const moduleTokens = progress.tokens_earned || 0;
+        const moduleQuestions = progress.total_questions_answered || 0;
+        const moduleCorrect = progress.correct_answers || 0;
+        const moduleAccuracy = moduleQuestions > 0 ? Math.round((moduleCorrect / moduleQuestions) * 100) : 0;
+        
+        // Calculate module completion based on sessions and mastery
+        let completionPercentage = 0;
+        if (progress.sessions_completed) {
+          completionPercentage = Math.min(100, (progress.sessions_completed * 20)); // 5 sessions = 100%
+        }
+        if (progress.mastery_level) {
+          completionPercentage = Math.max(completionPercentage, 80); // Mastery gives at least 80%
+        }
+
+        return {
+          id: `${moduleId}-${Date.now()}`, // Unique ID for frontend
+          category: moduleId,
+          score: moduleTokens,
+          completedQuestions: moduleQuestions,
+          correctAnswers: moduleCorrect,
+          accuracy: moduleAccuracy,
+          completion: completionPercentage,
+          lastPlayed: progress.last_played || null,
+          moduleData: {
+            gradeLevel: moduleData.grade_level || user.grade,
+            concepts: progress.concepts || '',
+            bestScore: progress.best_score || 0,
+            streak: progress.streak_current || 0
+          }
+        };
+      });
+
+      // Add overall/global progress entry
+      const globalProgress = {
+        id: `global-${Date.now()}`,
+        category: 'overall',
+        score: totalTokens,
+        completedQuestions: totalQuestions,
+        correctAnswers: totalCorrect,
+        accuracy: accuracy,
+        completion: Math.min(100, Math.round((totalTokens / 1000) * 100)), // 1000 tokens = 100%
+        lastPlayed: globalStats.last_active || user.lastActive,
+        moduleData: {
+          gradeLevel: user.grade,
+          concepts: 'all-subjects',
+          bestScore: totalTokens,
+          streak: user.streakDays || 0
+        }
+      };
+
+      // Get all users data for percentile calculation
+      const allUsers = await allUsersPromise;
+      
+      // Calculate percentiles asynchronously
+      const tokenPercentile = calculatePercentile(totalTokens, allUsers.map(u => u.tokens || 0));
+      const accuracyPercentile = calculatePercentile(accuracy, allUsers.map(u => {
+        const questions = u.questionsAnswered || 0;
+        const correct = u.correctAnswers || 0;
+        return questions > 0 ? (correct / questions) * 100 : 0;
+      }));
+
+      const response = {
+        progress: [globalProgress, ...moduleProgress],
+        globalStats: {
+          totalTokens,
+          totalQuestions,
+          totalCorrect,
+          accuracy,
+          tokenPercentile,
+          accuracyPercentile,
+          streak: user.streakDays || 0,
+          lastActive: user.lastActive
+        }
+      };
+
+      res.json(response);
     } catch (error) {
       errorResponse(res, 500, "Failed to fetch user progress", error);
     }
   });
+
+  // Helper function to calculate percentile
+  function calculatePercentile(value: number, allValues: number[]): number {
+    if (allValues.length === 0) return 50;
+    
+    const sortedValues = allValues.sort((a, b) => a - b);
+    const rank = sortedValues.filter(v => v < value).length;
+    return Math.round((rank / sortedValues.length) * 100);
+  }
 
   app.get("/api/leaderboard", ensureAuthenticated, async (req, res) => {
     try {

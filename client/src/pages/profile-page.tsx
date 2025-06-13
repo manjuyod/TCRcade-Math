@@ -46,8 +46,35 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Fetch user progress
-  const { data: progressData, isLoading } = useQuery<UserProgress[]>({
+  // Fetch user progress - comprehensive data with global stats and percentiles
+  const { data: progressResponse, isLoading } = useQuery<{
+    progress: Array<{
+      id: string;
+      category: string;
+      score: number;
+      completedQuestions: number;
+      correctAnswers: number;
+      accuracy: number;
+      completion: number;
+      lastPlayed: string | null;
+      moduleData: {
+        gradeLevel: string;
+        concepts: string;
+        bestScore: number;
+        streak: number;
+      };
+    }>;
+    globalStats: {
+      totalTokens: number;
+      totalQuestions: number;
+      totalCorrect: number;
+      accuracy: number;
+      tokenPercentile: number;
+      accuracyPercentile: number;
+      streak: number;
+      lastActive: string;
+    };
+  }>({
     queryKey: ['/api/progress'],
     refetchOnWindowFocus: false
   });
@@ -320,20 +347,90 @@ export default function ProfilePage() {
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : progressData && progressData.length > 0 ? (
-              progressData.map((progress) => {
-                const percentage = Math.min(100, (progress.score / 100) * 100);
-                
-                return (
-                  <div className="mb-4" key={progress.id}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-700">{getCategoryLabel(progress.category)}</span>
-                      <span className="text-primary font-bold">{Math.round(percentage)}%</span>
+            ) : progressResponse && progressResponse.progress.length > 0 ? (
+              <div className="space-y-6">
+                {/* Global Stats Overview */}
+                {progressResponse.globalStats && (
+                  <div className="bg-gradient-to-r from-primary/10 to-purple-100 p-4 rounded-lg">
+                    <h4 className="font-semibold text-primary mb-3">Overall Performance</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.totalTokens}</div>
+                        <div className="text-gray-600">Total Tokens</div>
+                        <div className="text-xs text-green-600">
+                          {progressResponse.globalStats.tokenPercentile}th percentile
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.accuracy}%</div>
+                        <div className="text-gray-600">Accuracy</div>
+                        <div className="text-xs text-green-600">
+                          {progressResponse.globalStats.accuracyPercentile}th percentile
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.totalQuestions}</div>
+                        <div className="text-gray-600">Questions</div>
+                        <div className="text-xs text-gray-500">
+                          {progressResponse.globalStats.totalCorrect} correct
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{progressResponse.globalStats.streak}</div>
+                        <div className="text-gray-600">Day Streak</div>
+                        <div className="text-xs text-orange-600">🔥 Keep it up!</div>
+                      </div>
                     </div>
-                    <ProgressBar progress={percentage} />
                   </div>
-                );
-              })
+                )}
+
+                {/* Module Progress */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-700">Module Progress</h4>
+                  {progressResponse.progress
+                    .filter(progress => progress.category !== 'overall')
+                    .map((progress) => {
+                      return (
+                        <div className="border rounded-lg p-4 hover:shadow-md transition-shadow" key={progress.id}>
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h5 className="font-medium text-gray-800">{getCategoryLabel(progress.category)}</h5>
+                              <p className="text-sm text-gray-600">{progress.moduleData.concepts}</p>
+                              <p className="text-xs text-gray-500">Grade {progress.moduleData.gradeLevel}</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-primary">{progress.completion}%</div>
+                              <div className="text-xs text-gray-500">Complete</div>
+                            </div>
+                          </div>
+                          
+                          <ProgressBar progress={progress.completion} />
+                          
+                          <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-700">{progress.score}</div>
+                              <div className="text-xs text-gray-500">Tokens</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-700">{progress.accuracy}%</div>
+                              <div className="text-xs text-gray-500">Accuracy</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-gray-700">{progress.moduleData.streak}</div>
+                              <div className="text-xs text-gray-500">Streak</div>
+                            </div>
+                          </div>
+                          
+                          {progress.lastPlayed && (
+                            <div className="mt-2 text-xs text-gray-400">
+                              Last played: {new Date(progress.lastPlayed).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
             ) : (
               <div className="text-center py-4 text-gray-500">
                 <p>No progress data yet. Start playing to see your progress!</p>
