@@ -1,0 +1,204 @@
+Try It! Decide if these expressions are using the Identity Property of Multiplication, or
+
+the Identity Property of Addition, or neither.
+
+#1 1 + 3 #2 1 * 30 #3 0 * 4
+#4 0 + 2 #5 5 + 0 #6 12 * 1
+Level 7: Algebra
+Lesson 1: Understand the Identity and Inverse Properties
+
+Level 7: Algebra, Lesson 1: Understand the Identity and Inverse Properties 2 of 3
+Example 2: Decide if this expression uses an inverse property.
+
+3
+3
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+The Multiplication Inverse Property tells you what to multiply a number by to get 1. The Addition Inverse Property
+tells you what to add to a number to get zero.
+Step 1: Another new property of mathematics:
+
+Inverse Property
+The inverse property’s goal is to
+produce an identity (Multiplication
+Inverse Property), or a value of 0
+(Addition Inverse Property).
+
+Inverse Property:
+Multiplication: a * 1
+a
+= 1
+Addition: a + (-a) = 0
+
+If you multiply a value by its inverse (its
+
+reciprocal), you get 1.
+If you add a value by its inverse (its
+opposite), you get 0.
+
+Step 2: Now let’s look at our example: 3
+3
+
+3
+3
+is another way of saying 3 ÷ 3 or 3 *
+1
+3
+It’s important to remember that fractions
+are another way of expressing division or
+
+multiplication.
+
+Step 3:
+Does 3 *
+1
+3 look familiar? 3 * 1
+3
+has the same form as a * 1
+a
+= 1
+This expression uses the Inverse Property
+
+of Multiplication!
+Try It! Decide if these expressions are using the Inverse Property of Multiplication,
+
+or the Inverse Property of Addition, or neither.
+
+#1 3 - 3 #2 6
+4
+
+#3 -2 + 2
+
+#4
+8 *
+1
+8
+
+#5 3 - 4 #6 9 + 9
+
+Review: Okay, we learned a few new
+ones.So, here are some review
+properties that will be needed in
+the Reps.
+
+Associative: a + (b + c) = (a + b) + c
+a * (b * c) = (a * b) * c
+
+Commutative: a + b = b + a a * b = b * a
+Distributive: a (b + c) = ab + ac
+Identity: 0 + a = a 1 * a = a
+Inverse: a * 1
+a
+= 1 a + (-a) = 0
+
+Level 7: Algebra, Lesson 1: Understand the Identity and Inverse Properties 3 of 3
+Challenge Answer the following word problems.
+
+Score:
+/2
+#1 Each one of these properties is essential to finding swift or alternative paths through
+math problems. In fact, we use the identity property to reduce fractions. 4
+8 ÷ 4
+4 = 1
+2
+Which fraction in this equation is equal to one, the identity for multiplication?
+
+#2 The inverse property paired with the addition property of equality or multiplication prop-
+erty of equality, depending on which inverse is needed, is incredibly helpful when we try
+
+to solve for the values of variables. The equation x - 3 = 6, for example, can be solved by
+adding the additive inverse of -3 to both sides of the equation. What does x equal? Show
+your work.
+Rep 2 Identify each property by name!
+
+Score:
+/6
+#1 3 * (5 * 4) = (3 * 5) * 4 #2 5 – 5 = 0 #3 8 (x + a) = 8x + 8a
+
+#4 3x * 3 = 3 * 3x #5 74 * 1 = 74 #6 x * 1
+x
+= 1
+
+Rep 3 Identify each property by name!
+
+Score:
+/6
+
+#1 6 + 3 = 3 + 6 #2 a(b + c) = ab + ac #3 99 * 1
+99 = 1
+#4 (5 * 15) * 8 = 5 * (15 * 8) #5 6 – 0 = 6 #6 10 * 1 = 10
+Rep 1 Identify each property by name!
+
+Score:
+/6
+
+#1 3 + (5 + 4) = (3 + 5) + 4 #2 14 + 0 = 14 #3 x – x = 0
+#4 x (3 – a) = 3x - ax #5 4 * x = x * 4 #6 3x = x * 3
+
+Algebra Level 7
+
+Lesson 1: Understand the Identity and Inverse Properties
+
+Try It! #1
+1 Neither
+
+Rep 1
+1 Associative
+
+Rep 3
+1 Commutative
+
+2 Multiplication
+Identity Property 2 Addition Identity
+
+Property 2 Distributive
+3 Neither 3 Distributive 3 Inverse Property of
+Multiplication
+
+4 Multiplication
+Identity Property 4 Commutative 4 Associative
+5 Addition Identity
+Property 5 Multiplication Identity
+
+Property 5 Addition Identity
+
+Property
+
+6 Multiplication
+Identity Property 6 Inverse Property of
+
+Multiplication 6 Multiplication
+Identity Property
+
+Try It! #2
+1 Inverse Property of
+Addition
+
+Rep 2
+1 Associative
+
+Challenge
+1 4/4
+
+2 Neither 2 Inverse Property of
+
+Addition
+
+3 Inverse Property of
+Addition 3 Distributive
+
+2 x=9
+
+4 Inverse Property of
+Multiplication 4 Commutative
+5 Neither 5 Multiplication Identity
+
+Property 3 N/A
+
+6 Neither 6 Inverse Property of
+Multiplication
