@@ -1037,16 +1037,13 @@ export class DatabaseStorage implements IStorage {
       // Do not add fallback strengths - let users earn them through actual performance
     }
 
-    // Get progress data
-    const progress = await db
-      .select()
-      .from(userProgress)
-      .where(eq(userProgress.userId, userId));
-
+    // Get progress data from JSON
+    const progressData = hiddenGradeAsset.user_progress || [];
+    
     // Create a simple analysis based on available data
-    const strongCategories = progress
-      .filter(p => p.score > 100)
-      .map(p => p.category);
+    const strongCategories = progressData
+      .filter((p: any) => p.score > 100)
+      .map((p: any) => p.category);
 
     // Map weaknesses to practice activities but also add common learning activities
     // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
