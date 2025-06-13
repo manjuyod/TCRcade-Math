@@ -1487,62 +1487,60 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<any> {
-    // Check if entry exists
-    const [existingMastery] = await db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.subject, subject),
-        eq(subjectMastery.grade, grade)
-      ));
-
-    if (existingMastery) {
+    // Update subject mastery in user's JSON data
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+    
+    const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
+    const subjectMasteries = hiddenGradeAsset.subject_mastery || [];
+    
+    // Find existing mastery entry
+    const existingIndex = subjectMasteries.findIndex((m: any) => 
+      m.userId === userId && m.subject === subject && m.grade === grade
+    );
+    
+    if (existingIndex >= 0) {
       // Update existing mastery
-      const totalAttempts = existingMastery.totalAttempts + 1;
-      const correctAttempts = existingMastery.correctAttempts + (isCorrect ? 1 : 0);
+      const existing = subjectMasteries[existingIndex];
+      const totalAttempts = existing.totalAttempts + 1;
+      const correctAttempts = existing.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-
-      // Check for grade progression criteria (80% mastery with at least 30 attempts)
-      const canProgressToNextGrade = masteryLevel >= 80 && totalAttempts >= 30;
-
-      // Check for downgrade criteria (less than 50% mastery)
-      const shouldDowngrade = masteryLevel < 50 && totalAttempts >= 10;
-
-      const [updatedMastery] = await db
-        .update(subjectMastery)
-        .set({
-          totalAttempts,
-          correctAttempts,
-          lastPracticed: new Date(),
-          masteryLevel,
-          nextGradeUnlocked: existingMastery.nextGradeUnlocked || canProgressToNextGrade,
-          downgraded: shouldDowngrade
-        })
-        .where(eq(subjectMastery.id, existingMastery.id))
-        .returning();
-
-      return updatedMastery;
+      
+      subjectMasteries[existingIndex] = {
+        ...existing,
+        totalAttempts,
+        correctAttempts,
+        lastPracticed: new Date(),
+        masteryLevel,
+        nextGradeUnlocked: existing.nextGradeUnlocked || (masteryLevel >= 80 && totalAttempts >= 30),
+        downgraded: masteryLevel < 50 && totalAttempts >= 10
+      };
     } else {
       // Create new mastery entry
-      const [newMastery] = await db
-        .insert(subjectMastery)
-        .values({
-          userId,
-          subject,
-          grade,
-          totalAttempts: 1,
-          correctAttempts: isCorrect ? 1 : 0,
-          lastPracticed: new Date(),
-          masteryLevel: isCorrect ? 100 : 0,
-          isUnlocked: true,
-          nextGradeUnlocked: false,
-          downgraded: false
-        })
-        .returning();
-
-      return newMastery;
+      subjectMasteries.push({
+        id: Date.now(), // Simple ID generation
+        userId,
+        subject,
+        grade,
+        totalAttempts: 1,
+        correctAttempts: isCorrect ? 1 : 0,
+        lastPracticed: new Date(),
+        masteryLevel: isCorrect ? 100 : 0,
+        isUnlocked: true,
+        nextGradeUnlocked: false,
+        downgraded: false
+      });
     }
+    
+    // Update user's hiddenGradeAsset
+    await this.updateUser(userId, {
+      hiddenGradeAsset: {
+        ...hiddenGradeAsset,
+        subject_mastery: subjectMasteries
+      }
+    });
+    
+    return subjectMasteries[existingIndex >= 0 ? existingIndex : subjectMasteries.length - 1];
   }
 
   async checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
