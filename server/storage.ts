@@ -26,14 +26,8 @@ export interface IStorage {
   getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean, category?: string): Promise<Question | undefined>;
   getRecommendedQuestion(userId: number): Promise<Question | undefined>;
 
-  // Progress methods
-  getUserProgress(userId: number): Promise<UserProgress[]>;
-  updateUserProgress(userId: number, category: string, data: Partial<UserProgress>): Promise<UserProgress>;
-
-  // Concept mastery methods
-  getUserConceptMasteries(userId: number): Promise<ConceptMastery[]>;
-  getConceptsForGrade(grade: string): Promise<string[]>;
-  updateConceptMastery(userId: number, concept: string, grade: string, isCorrect: boolean): Promise<ConceptMastery>;
+  // Progress methods (now using JSON in users table)
+  // Progress tracking now handled via hiddenGradeAsset JSON field in users table
 
   // Recommendation methods
   getUserRecommendations(userId: number): Promise<Recommendation | undefined>;
@@ -66,18 +60,8 @@ export interface IStorage {
   leaveMultiplayerRoom(roomId: number, userId: number): Promise<boolean>;
   updateMultiplayerRoom(roomId: number, data: Partial<MultiplayerRoom>): Promise<MultiplayerRoom | undefined>;
 
-  // Subject mastery methods for adaptive grade progression
-  getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]>;
-  getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]>;
-  getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined>;
-  updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery>;
-  checkAndProcessGradeProgression(userId: number, subject: string, grade: string): Promise<{
-    shouldUpgrade: boolean, 
-    shouldDowngrade: boolean, 
-    nextGrade?: string, 
-    previousGrade?: string
-  }>;
-  unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery>;
+  // Subject mastery methods (now using JSON in users table)
+  // Subject mastery tracking now handled via hiddenGradeAsset JSON field in users table
   getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]>;
   getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]>;
 

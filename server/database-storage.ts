@@ -295,52 +295,8 @@ export class DatabaseStorage implements IStorage {
     return shuffledResults;
   }
 
-  // We'll implement some basic utility methods first, and add the more complex ones later
-  // Progress methods
-  async getUserProgress(userId: number): Promise<UserProgress[]> {
-    const progress = await db
-      .select()
-      .from(userProgress)
-      .where(eq(userProgress.userId, userId));
-
-    return progress;
-  }
-
-  async updateUserProgress(userId: number, category: string, data: Partial<UserProgress>): Promise<UserProgress> {
-    // First check if progress entry exists
-    const [existingProgress] = await db
-      .select()
-      .from(userProgress)
-      .where(and(
-        eq(userProgress.userId, userId),
-        eq(userProgress.category, category)
-      ));
-
-    if (existingProgress) {
-      // Update existing progress
-      const [updatedProgress] = await db
-        .update(userProgress)
-        .set(data)
-        .where(eq(userProgress.id, existingProgress.id))
-        .returning();
-
-      return updatedProgress;
-    } else {
-      // Create new progress
-      const [newProgress] = await db
-        .insert(userProgress)
-        .values({
-          userId,
-          category,
-          level: data.level || 1,
-          score: data.score || 0,
-          completedQuestions: data.completedQuestions || 0
-        })
-        .returning();
-
-      return newProgress;
-    }
-  }
+  // Progress methods (now handled via JSON in users table)
+  // Progress tracking migrated to hiddenGradeAsset JSON field
 
   async getUserConceptMasteries(userId: number): Promise<ConceptMastery[]> {
     const masteries = await db
