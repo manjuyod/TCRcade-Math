@@ -1,0 +1,174 @@
+{
+  "modules": {
+    "fractions_puzzle": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "math_rush": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "word_race": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "decimal_defender": {
+      "grade_level": 4,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "ratios_proportions": {
+      "grade_level": 6,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "measurement": {
+      "grade_level": 2,
+      "progress": {
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "lesson": 1
+      }
+    },
+    "algebra": {
+      "grade_level": 6,
+      "progress": {
+        "attempt_good": 0,
+        "attempt_bad": 0,
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": false,
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false,
+        "lesson": 1
+      }
+    },
+    "math_facts_addition": {
+      "grade_level": 1,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "math_facts_subtraction": {
+      "grade_level": 1,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "math_facts_multiplication": {
+      "grade_level": 2,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    },
+    "math_facts_division": {
+      "grade_level": 3,
+      "progress": {
+        "sessions_completed": 0,
+        "total_questions_answered": 0,
+        "correct_answers": 0,
+        "best_score": 0,
+        "best_time": null,
+        "mastery_level": "beginner",
+        "last_played": null,
+        "tokens_earned": 0,
+        "test_taken": false
+      }
+    }
+  },
+  "global_stats": {
+    "daily_tokens_earned": 0,
+    "total_tokens_earned": 0,
+    "total_questions_answered": 0,
+    "total_correct_answers": 0,
+    "overall_accuracy": 0,
+    "total_time_played": 0,
+    "favorite_module": null,
+    "achievement_badges": []
+  }
+}

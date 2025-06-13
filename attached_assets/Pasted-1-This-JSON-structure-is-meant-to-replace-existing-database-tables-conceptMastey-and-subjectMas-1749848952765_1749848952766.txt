@@ -1,0 +1,17 @@
+1. This JSON structure is meant to replace existing database tables.
+- conceptMastey and subjectMastery I don't think are necessary because come of the modules have inherent rules in place for level up. I think that it should be based around each module.
+- ai analytics can be integrated into each specific module under the json. It won't need a specific ID or user ID for obvious reasons (it's going under users.hidden_grade_asset)
+2. Yes let's migrate necessary items.
+- Separate global section for AI analytics which we'll call OpenAI to fill. - Migrate - analysis_date, learning_patterns, strengths, areas_for_improvement, engagement_analysis, suggested activities, strengths, weaknesses, datetime_generated (currently called generated_at).
+- Concept Mastery is unnecessary (I think the only thing that needs to be added to each module in each sections is a "timestamp" (datetime) and a "concepts" (string) key.
+- subject_difficulty_history is redundant. Let's add a "preferred_difficulty" (integer) key in each module.
+- subject_mastery is completely redundant (unless you think there is something to migrate to the JSON. In which case point out further clarities before proceeding)
+- user_progress is completely redundant
+- in table users i think last_grade_advancement is a useless global metric, and isn't utilized. tokens can be migrated (already is globally). streak_days should be migrated. daily_tokens should go under global_stats (it might be there already). There are also redundant columns here.
+3. Other than what was pointed out in number 2
+- Streak tracking yes (please snake case)
+- I think learning analytics mentioned in number 2 go under the separate AI_analytics
+- engagement analytics/ metrics can be global (analysis can be left in ne AI section because we'll make calls for that)
+4. Let's keep Boolean for Mastery level that relies on the metrics in each user's jsonb
+5. Add another Cross-module analytics section that involves learning patterns between each module
+6. Real-time updates - update of this would respect current rules. It would point to this JSON in the db rather than each respective table. (This is just to centralize)
