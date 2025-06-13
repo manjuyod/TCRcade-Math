@@ -1,3 +1,7 @@
+` tags.
+
+```
+<replit_final_file>
 import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -154,35 +158,12 @@ export const multiplayerRooms = pgTable("multiplayer_rooms", {
   endedAt: timestamp("ended_at"),
 });
 
-// Track user progress per category
-export const userProgress = pgTable("user_progress", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  category: text("category").notNull(),
-  level: integer("level").default(1).notNull(),
-  score: integer("score").default(0).notNull(),
-  completedQuestions: integer("completed_questions").default(0).notNull(),
-});
-
 // Leaderboard
 export const leaderboard = pgTable("leaderboard", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   score: integer("score").default(0).notNull(),
   date: timestamp("date").defaultNow().notNull(),
-});
-
-// Track user performance by concept for personalized recommendations
-export const conceptMastery = pgTable("concept_mastery", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  concept: text("concept").notNull(),
-  grade: text("grade").notNull(),
-  totalAttempts: integer("total_attempts").default(0).notNull(),
-  correctAttempts: integer("correct_attempts").default(0).notNull(),
-  lastPracticed: timestamp("last_practiced").defaultNow().notNull(),
-  masteryLevel: integer("mastery_level").default(0).notNull(), // 0-100 measure of mastery
-  needsReview: boolean("needs_review").default(false).notNull(),
 });
 
 // Store recommendations for each user
@@ -217,53 +198,6 @@ export const aiAnalytics = pgTable("ai_analytics", {
   recommendedActivities: text("recommended_activities").array().default([]),
   generatedAt: timestamp("generated_at").defaultNow(),
 });
-
-// Subject mastery tracking for adaptive grade progression - based on actual DB structure
-export const subjectMastery = pgTable("subject_mastery", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  subject: text("subject").notNull(), // e.g., "algebra", "fractions", "geometry", etc.
-  grade: text("grade").notNull(), // The grade level this mastery applies to
-  totalAttempts: integer("total_attempts").default(0).notNull(),
-  correctAttempts: integer("correct_attempts").default(0).notNull(),
-  lastPracticed: timestamp("last_practiced").defaultNow().notNull(),
-  masteryLevel: integer("mastery_level").default(0).notNull(), // 0-100 measure of mastery
-  isUnlocked: boolean("is_unlocked").default(true).notNull(), // Whether this grade-subject combo is available to user
-  nextGradeUnlocked: boolean("next_grade_unlocked").default(false).notNull(), // Whether user has unlocked next grade for this subject
-  downgraded: boolean("downgraded").default(false).notNull(), // Whether user was downgraded to this level
-  // Adaptive difficulty tracking
-  difficultyLevel: integer("difficulty_level").default(1).notNull(), // Current difficulty level (1-5)
-  upgradeEligible: boolean("upgrade_eligible").default(false).notNull(), // If ready to move up in difficulty
-  downgradeEligible: boolean("downgrade_eligible").default(false).notNull(), // If should move down in difficulty
-  // Tracking for adaptive algorithm
-  recent30Attempts: integer("recent_30_attempts").default(0).notNull(), // Count of recent attempts for tracking upgrade threshold
-  recent30Correct: integer("recent_30_correct").default(0).notNull(), // Count of recent correct answers
-  recent20Attempts: integer("recent_20_attempts").default(0).notNull(), // Count of more recent attempts for tracking downgrade threshold
-  recent20Correct: integer("recent_20_correct").default(0).notNull(), // Count of more recent correct answers
-});
-
-// Subject difficulty tracking - stores detailed history for accuracy tracking - based on actual DB structure
-export const subjectDifficultyHistory = pgTable("subject_difficulty_history", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  subject: text("subject").notNull(), // e.g., "addition", "subtraction", "multiplication", etc.
-  grade: text("grade").notNull(), // The grade level this history applies to
-  isCorrect: boolean("is_correct").notNull(), // Whether the answer was correct
-  timestamp: timestamp("timestamp").defaultNow().notNull(), // When this attempt was recorded
-  difficultyLevel: integer("difficulty_level").notNull(), // Difficulty level when this attempt was made
-  questionId: integer("question_id"), // ID of the question that was answered, if available
-});
-
-// Session table for auth - exists in DB but was missing from schema
-// We're excluding the session table from schema pushing to avoid data loss warnings
-// This commented definition is for reference only and won't be used for migrations
-/*
-export const session = pgTable("session", {
-  sid: varchar("sid").primaryKey(),
-  sess: json("sess").notNull(),
-  expire: timestamp("expire").notNull(),
-});
-*/
 
 // Tables for math facts operations
 export const questionsAddition = pgTable("questions_addition", {
@@ -301,37 +235,27 @@ export const insertUserSchema = createInsertSchema(users).pick({
   lastGradeAdvancement: true,
   initials: true,
   isAdmin: true,
-  preferredDifficulty: true, // Added new field
+  preferredDifficulty: true,
 });
 
 export const insertQuestionSchema = createInsertSchema(questions);
-export const insertProgressSchema = createInsertSchema(userProgress);
 export const insertLeaderboardSchema = createInsertSchema(leaderboard);
-export const insertConceptMasterySchema = createInsertSchema(conceptMastery);
 export const insertRecommendationSchema = createInsertSchema(recommendations);
 export const insertAvatarItemSchema = createInsertSchema(avatarItems);
 export const insertDailyChallengeSchema = createInsertSchema(dailyChallenges);
 export const insertMathStorySchema = createInsertSchema(mathStories);
 export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
-export const insertSubjectMasterySchema = createInsertSchema(subjectMastery);
-export const insertSubjectDifficultyHistorySchema = createInsertSchema(subjectDifficultyHistory);
 export const insertQuestionsMeasurementAndDataSchema = createInsertSchema(questionsMeasurementAndData);
-// Session schema excluded to avoid conflicts with the existing table
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Question = typeof questions.$inferSelect;
-export type UserProgress = typeof userProgress.$inferSelect;
 export type Leaderboard = typeof leaderboard.$inferSelect;
-export type ConceptMastery = typeof conceptMastery.$inferSelect;
 export type Recommendation = typeof recommendations.$inferSelect;
 export type AvatarItem = typeof avatarItems.$inferSelect;
 export type DailyChallenge = typeof dailyChallenges.$inferSelect;
 export type MathStory = typeof mathStories.$inferSelect;
 export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
-export type SubjectMastery = typeof subjectMastery.$inferSelect;
-export type SubjectDifficultyHistory = typeof subjectDifficultyHistory.$inferSelect;
 export type QuestionMeasurementAndData = typeof questionsMeasurementAndData.$inferSelect;
-// Session type removed
