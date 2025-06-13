@@ -147,7 +147,13 @@ export default function MultiplayerMode() {
     queryFn: async () => {
       if (!activeRoomId) return null;
       const res = await fetch(`/api/multiplayer/rooms/${activeRoomId}`);
-      if (!res.ok) throw new Error('Failed to fetch room');
+      if (!res.ok) {
+        console.error('Failed to fetch room:', res.status, res.statusText)
+        throw new Error('Failed to fetch room');
+      }
+      console.log('Fetched room:', res);
+      console.log('return data:', res);
+      console.log('game state: ', gameState)
       return res.json() as Promise<MultiplayerRoom & { 
         isHost: boolean;
         players: Player[];
@@ -185,6 +191,7 @@ export default function MultiplayerMode() {
       return res.json() as Promise<MultiplayerRoom>;
     },
     onSuccess: (data) => {
+      console.log("Received room:", data)
       setActiveRoomId(data.id);
       setView('room');
       toast({
@@ -1212,7 +1219,7 @@ export default function MultiplayerMode() {
           </CardHeader>
           <CardContent>
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Players ({activeRoom.players.length}/{activeRoom.maxParticipants})</h3>
+              <h3 className="text-sm font-medium mb-2">Players ({activeRoom.participants?.length}/{activeRoom.maxParticipants})</h3>
               <div className="grid grid-cols-2 gap-2">
                 {activeRoom.players.map((player) => (
                   <div 

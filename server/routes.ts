@@ -1791,29 +1791,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to submit session" });
     }
   });
-
+  
+  app.get("/api/multiplayer/rooms/:id", async (req, res) => {
+    const roomId = Number(req.params.id);
+    console.log("Fetching room with ID:", roomId)
+    const room = await storage.getMultiplayerRoom(roomId); 
+    if (!room) {
+      console.log("Room not found:", roomId)
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    console.log("Room found:", room);
+    const isHost = req.user?.id === room.hostId
+    // const players = await storage.get(roomId);
+    res.json(...room, isHost);
+  });
+  
   app.post("/api/multiplayer/rooms", async (req, res) => {
     const { name, grade, category, maxPlayers, gameType, settings } = req.body;
-
+    console.log("Creating room with data:", { name, grade, category, maxPlayers, gameType, settings });
     if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+    const hostID = req.user!.id
+    const players = [storage.getUser(hostID)]
+    try {
+      const room = await storage.createMultiplayerRoom(hostID, {
+        name, 
+        grade, 
+        category, 
+        maxPlayers, 
+        gameType, 
+        settings
+      });
 
-    // Mock implementation for now
-    const roomId = Math.floor(Math.random() * 10000);
-    const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+      res.status(201).json(...room, players);
+    } catch (err) {
+      console.error("Failed to create room:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+    
+    // // Mock implementation for now
+    // const roomId = Math.floor(Math.random() * 10000);
+    // const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    res.status(201).json({
-      id: roomId,
-      name,
-      roomCode,
-      players: [],
-      settings,
-      gameType,
-      grade,
-      category,
-      maxPlayers,
-    });
+    // res.status(201).json({
+    //   id: roomId,
+    //   name,
+    //   roomCode,
+    //   players: [],
+    //   settings,
+    //   gameType,
+    //   grade,
+    //   category,
+    //   maxPlayers,
+    // });
   });
 
   // Endpoint to update user statistics

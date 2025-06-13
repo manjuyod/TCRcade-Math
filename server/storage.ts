@@ -1585,10 +1585,18 @@ export class MemStorage implements IStorage {
   // Multiplayer methods
   async createMultiplayerRoom(hostId: number, roomData: Partial<MultiplayerRoom>): Promise<MultiplayerRoom> {
     const roomId = this.currentMultiplayerRoomId++;
+    // Generate a unique 6-character room code
+    const generateRoomCode = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoiding confusing characters
+      let code = '';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    };
 
-    // Generate a random 6-character room code
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
+    const roomCode = generateRoomCode();
+    
     const room: MultiplayerRoom = {
       id: roomId,
       hostId,
