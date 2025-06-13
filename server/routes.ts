@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { questions, User, UserProgress, MultiplayerRoom } from "@shared/schema";
+import { questions, users, User, UserProgress, MultiplayerRoom } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 
@@ -656,13 +656,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const globalStats = hiddenGradeAsset.global_stats || {};
       const modules = hiddenGradeAsset.modules || {};
 
-      // Calculate overall progress
-      const totalTokens = user.tokens || 0;
-      const totalQuestions = user.questionsAnswered || 0;
-      const totalCorrect = user.correctAnswers || 0;
+      // Calculate overall progress from hiddenGradeAsset first, fallback to user fields
+      let totalTokens = globalStats.total_tokens_earned || user.tokens || 0;
+      let totalQuestions = globalStats.total_questions_answered || user.questionsAnswered || 0;
+      let totalCorrect = globalStats.total_correct_answers || user.correctAnswers || 0;
+      
+      // If hiddenGradeAsset doesn't have global stats, aggregate from modules
+      if (!globalStats.total_questions_answered && Object.keys(modules).length > 0) {
+        totalQuestions = Object.values(modules).reduce((sum: number, moduleData: any) => {
+          return sum + (moduleData.progress?.total_questions_answered || 0);
+        }, 0);
+        
+        totalCorrect = Object.values(modules).reduce((sum: number, moduleData: any) => {
+          return sum + (moduleData.progress?.correct_answers || 0);
+        }, 0);
+        
+        totalTokens = Object.values(modules).reduce((sum: number, moduleData: any) => {
+          return sum + (moduleData.progress?.tokens_earned || 0);
+        }, 0);
+      }
+      
       const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
-      // Calculate module progress from hiddenGradeAsset
+      // Calculate module progress from hiddenGradeAsset with proper labels
       const moduleProgress = Object.entries(modules).map(([moduleId, moduleData]: [string, any]) => {
         const progress = moduleData.progress || {};
         const moduleTokens = progress.tokens_earned || 0;
@@ -679,39 +695,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           completionPercentage = Math.max(completionPercentage, 80); // Mastery gives at least 80%
         }
 
+        // Get user-friendly category labels
+        const categoryLabels: { [key: string]: string } = {
+          'addition': 'Addition',
+          'subtraction': 'Subtraction', 
+          'multiplication': 'Multiplication',
+          'division': 'Division',
+          'fractions': 'Fractions',
+          'decimals': 'Decimals',
+          'geometry': 'Geometry',
+          'measurement': 'Measurement',
+          'algebra': 'Pre-Algebra',
+          'ratios': 'Ratios & Proportions',
+          'statistics': 'Statistics & Data',
+          'puzzle': 'Math Puzzles'
+        };
+
         return {
-          id: `${moduleId}-${Date.now()}`, // Unique ID for frontend
           category: moduleId,
+          label: categoryLabels[moduleId] || moduleId.charAt(0).toUpperCase() + moduleId.slice(1),
           score: moduleTokens,
-          completedQuestions: moduleQuestions,
+          completion: completionPercentage,
+          questionsAnswered: moduleQuestions,
           correctAnswers: moduleCorrect,
           accuracy: moduleAccuracy,
-          completion: completionPercentage,
-          lastPlayed: progress.last_played || null,
           moduleData: {
             gradeLevel: moduleData.grade_level || user.grade,
             concepts: progress.concepts || '',
             bestScore: progress.best_score || 0,
-            streak: progress.streak_current || 0
+            streak: progress.streak_current || 0,
+            lastPlayed: progress.last_played || null
           }
         };
       });
 
       // Add overall/global progress entry
       const globalProgress = {
-        id: `global-${Date.now()}`,
         category: 'overall',
+        label: 'Overall Progress',
         score: totalTokens,
-        completedQuestions: totalQuestions,
+        completion: Math.min(100, Math.round((totalTokens / 1000) * 100)), // 1000 tokens = 100%
+        questionsAnswered: totalQuestions,
         correctAnswers: totalCorrect,
         accuracy: accuracy,
-        completion: Math.min(100, Math.round((totalTokens / 1000) * 100)), // 1000 tokens = 100%
-        lastPlayed: globalStats.last_active || user.lastActive,
         moduleData: {
           gradeLevel: user.grade,
           concepts: 'all-subjects',
           bestScore: totalTokens,
-          streak: user.streakDays || 0
+          streak: user.streakDays || 0,
+          lastPlayed: globalStats.last_active || user.lastActive
         }
       };
 
