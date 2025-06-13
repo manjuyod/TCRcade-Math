@@ -111,6 +111,12 @@ function Router() {
       <Route path="/measurement/play" component={MeasurementPlayPage} />
       <Route path="/measurement/complete" component={MeasurementCompletePage} />
       <Route path="/measurement/loading" component={MeasurementLoadingPage} />
+      
+      {/* Algebra Module Routes */}
+      <Route path="/algebra/setup" component={AlgebraSetupPage} />
+      <Route path="/algebra/loading" component={AlgebraLoadingPage} />
+      <Route path="/algebra/play" component={AlgebraPlayPage} />
+      <Route path="/algebra/complete" component={AlgebraCompletePage} />
 
       {/* Math Facts Play Pages */}
       <Route path="/math-facts/addition/play" component={AdditionPlayPage} />
