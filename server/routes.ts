@@ -1710,11 +1710,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (runType === 'practice') {
         // Practice: TryIt sections only
-        questions = await getPracticeQuestions(params);
+        questions = await getAlgebraPracticeQuestions(params);
         questions = sampleQuestions(questions, ALGEBRA_CONFIG.practiceQuestionCount);
       } else {
         // Token run: Mix of regular and challenge questions
-        const regularQuestions = await getTokenQuestions(params);
+        const regularQuestions = await getAlgebraTokenQuestions(params);
         const challengeQuestions = await getChallengeQuestions(params);
 
         const selectedRegular = sampleQuestions(regularQuestions, ALGEBRA_CONFIG.tokenRunRegularCount);
@@ -1999,7 +1999,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate questions for the game
-      const questionCount = room.settings?.questionCount || 10;
+      const settings = room.settings as any;
+      const questionCount = settings?.questionCount || 10;
       const questions = await generateGameQuestions(room.grade || 'K', room.category || 'all', questionCount);
 
       // Update room with game state
@@ -2137,25 +2138,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     for (let i = 0; i < count; i++) {
       try {
-        // Use existing question generation logic
-        if (category === 'math-facts-addition') {
-          const fact = getNextMathFact('addition', grade);
+        // Generate basic arithmetic questions for multiplayer
+        if (category === 'math-facts-addition' || category === 'addition') {
+          const num1 = Math.floor(Math.random() * 12) + 1;
+          const num2 = Math.floor(Math.random() * 12) + 1;
           questions.push({
-            id: `mf-add-${i}`,
-            questionText: `${fact.operand1} + ${fact.operand2} = ?`,
-            correctAnswer: fact.answer.toString(),
+            id: `add-${i}`,
+            questionText: `${num1} + ${num2} = ?`,
+            correctAnswer: (num1 + num2).toString(),
             options: [],
-            category: 'math-facts-addition',
+            category: 'addition',
             grade
           });
-        } else if (category === 'math-facts-multiplication') {
-          const fact = getNextMathFact('multiplication', grade);
+        } else if (category === 'math-facts-multiplication' || category === 'multiplication') {
+          const num1 = Math.floor(Math.random() * 12) + 1;
+          const num2 = Math.floor(Math.random() * 12) + 1;
           questions.push({
-            id: `mf-mult-${i}`,
-            questionText: `${fact.operand1} × ${fact.operand2} = ?`,
-            correctAnswer: fact.answer.toString(),
+            id: `mult-${i}`,
+            questionText: `${num1} × ${num2} = ?`,
+            correctAnswer: (num1 * num2).toString(),
             options: [],
-            category: 'math-facts-multiplication',
+            category: 'multiplication',
             grade
           });
         } else {
@@ -2184,7 +2187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error("Error generating question:", error);
-        // Fallback question
+        // Basic fallback question
         questions.push({
           id: `fallback-${i}`,
           questionText: `2 + 2 = ?`,
