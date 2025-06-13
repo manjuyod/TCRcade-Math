@@ -5,8 +5,8 @@
  * Tests all critical functionality after database cleanup
  */
 
-const http = require('http');
-const fs = require('fs');
+import http from 'http';
+import fs from 'fs';
 
 class E2ETestSuite {
   constructor() {
@@ -371,7 +371,7 @@ class E2ETestSuite {
 }
 
 // Run tests if called directly
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   const suite = new E2ETestSuite();
   
   // Wait for server to be ready
@@ -383,4 +383,4 @@ if (require.main === module) {
   }, 2000);
 }
 
-module.exports = E2ETestSuite;
+export default E2ETestSuite;

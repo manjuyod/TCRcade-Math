@@ -1,0 +1,49 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 5,
+    "failed": 2,
+    "totalTime": 1099,
+    "timestamp": "2025-06-13T22:53:33.919Z",
+    "success": false
+  },
+  "tests": [
+    {
+      "name": "Database Tables Drop Verification",
+      "status": "PASS",
+      "duration": 25
+    },
+    {
+      "name": "Adaptive Questions Functionality",
+      "status": "FAIL",
+      "duration": 6,
+      "error": "Adaptive question should return a question object with ID"
+    },
+    {
+      "name": "Question Submission Functionality",
+      "status": "PASS",
+      "duration": 13
+    },
+    {
+      "name": "Backup Tables Existence",
+      "status": "PASS",
+      "duration": 3
+    },
+    {
+      "name": "Schema Consistency",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "Data Migration Integrity",
+      "status": "PASS",
+      "duration": 1
+    },
+    {
+      "name": "Application Stability",
+      "status": "FAIL",
+      "duration": 42,
+      "error": "No adaptive question endpoints working"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "summary": {
+    "total": 13,
+    "passed": 3,
+    "failed": 10,
+    "totalTime": 2699,
+    "timestamp": "2025-06-13T22:52:36.330Z"
+  },
+  "tests": [
+    {
+      "name": "Server Health Check",
+      "status": "PASS",
+      "duration": 30
+    },
+    {
+      "name": "User Authentication",
+      "status": "FAIL",
+      "duration": 586,
+      "error": "Login failed with status 401"
+    },
+    {
+      "name": "User Progress Data Migration",
+      "status": "FAIL",
+      "duration": 3,
+      "error": "User missing hiddenGradeAsset JSON data"
+    },
+    {
+      "name": "Analytics Generation",
+      "status": "FAIL",
+      "duration": 6,
+      "error": "Analytics request failed with status 401"
+    },
+    {
+      "name": "Subject Masteries",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Subject masteries request failed with status 401"
+    },
+    {
+      "name": "Available Subjects",
+      "status": "FAIL",
+      "duration": 1,
+      "error": "Available subjects request failed with status 401"
+    },
+    {
+      "name": "Question Retrieval",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Question retrieval failed with status 401"
+    },
+    {
+      "name": "Adaptive Questions",
+      "status": "FAIL",
+      "duration": 11,
+      "error": "Adaptive question should return a question object"
+    },
+    {
+      "name": "Question Submission",
+      "status": "FAIL",
+      "duration": 14,
+      "error": "Cannot read properties of undefined (reading 'id')"
+    },
+    {
+      "name": "Leaderboard",
+      "status": "FAIL",
+      "duration": 5,
+      "error": "Leaderboard request failed with status 401"
+    },
+    {
+      "name": "Database Integrity",
+      "status": "FAIL",
+      "duration": 2,
+      "error": "Database integrity check failed: Cannot use 'in' operator to search for 'id' in Unauthorized"
+    },
+    {
+      "name": "Concept Mastery Update",
+      "status": "PASS",
+      "duration": 18
+    },
+    {
+      "name": "Module Progress",
+      "status": "PASS",
+      "duration": 5
+    }
+  ]
+}
