@@ -3,9 +3,20 @@ import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { questions, User, UserProgress } from "@shared/schema";
+import { questions, User, UserProgress, MultiplayerRoom } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
+
+// Player type for multiplayer functionality
+type Player = {
+  id: number;
+  username: string;
+  isHost: boolean;
+  score: number;
+  avatar?: string;
+  grade?: string;
+  isReady?: boolean;
+};
 import {
   calcTokensRush,
   calcTokensFacts,
@@ -49,8 +60,8 @@ import { RATIOS_RULES } from "../shared/ratiosRules";
 // Import measurement module
 import { 
   getUserMeasurementProgress,
-  getPracticeQuestions,
-  getTokenQuestions,
+  getPracticeQuestions as getMeasurementPracticeQuestions,
+  getTokenQuestions as getMeasurementTokenQuestions,
   validateMeasurementAnswer,
   calculateSessionResults,
   getUserMeasurementData 
@@ -60,8 +71,8 @@ import { MEASUREMENT_CONFIG } from "../shared/measurementRules";
 // Import algebra module
 import {
   getUserAlgebraProgress,
-  getPracticeQuestions,
-  getTokenQuestions,
+  getPracticeQuestions as getAlgebraPracticeQuestions,
+  getTokenQuestions as getAlgebraTokenQuestions,
   getChallengeQuestions,
   sampleQuestions,
   updateAlgebraProgressSuccess,
@@ -1792,30 +1803,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/multiplayer/rooms/:id", async (req, res) => {
-    const roomId = Number(req.params.id);
-    console.log("Fetching room with ID:", roomId)
-    const room = await storage.getMultiplayerRoom(roomId); 
-    if (!room) {
-      console.log("Room not found:", roomId)
-      return res.status(404).json({ error: 'Room not found' });
+  // Helper function to populate player data from user IDs
+  async function populatePlayersData(participants: number[]): Promise<Player[]> {
+    const players: Player[] = [];
+    for (const userId of participants) {
+      const user = await storage.getUser(userId);
+      if (user) {
+        players.push({
+          id: user.id,
+          username: user.username,
+          isHost: false, // Will be set later
+          score: 0,
+          avatar: (user as any).avatar || undefined,
+          grade: user.grade || undefined,
+          isReady: false
+        });
+      }
     }
-    console.log("Room found:", room);
-    const isHost = req.user?.id === room.hostId
-    // const players = await storage.get(roomId);
-    res.json(...room, isHost);
+    return players;
+  }
+
+  // Get all available multiplayer rooms
+  app.get("/api/multiplayer/rooms", async (req, res) => {
+    try {
+      const { grade } = req.query;
+      const rooms = await storage.listActiveMultiplayerRooms(grade?.toString());
+      
+      // Populate player data for each room
+      const roomsWithPlayers = await Promise.all(
+        rooms.map(async (room) => {
+          const players = await populatePlayersData(room.participants || []);
+          // Mark the host
+          const hostPlayer = players.find(p => p.id === room.hostId);
+          if (hostPlayer) hostPlayer.isHost = true;
+          
+          return {
+            ...room,
+            players
+          };
+        })
+      );
+      
+      res.json(roomsWithPlayers);
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+      res.status(500).json({ error: "Failed to fetch rooms" });
+    }
+  });
+
+  // Get specific multiplayer room with player data
+  app.get("/api/multiplayer/rooms/:id", async (req, res) => {
+    try {
+      const roomId = Number(req.params.id);
+      console.log("API: GET /api/multiplayer/rooms/" + roomId);
+      console.log("Fetching room with ID:", roomId);
+      
+      const room = await storage.getMultiplayerRoom(roomId); 
+      if (!room) {
+        console.log("Room not found:", roomId);
+        return res.status(404).json({ error: 'Room not found' });
+      }
+      
+      console.log("Room found:", room);
+      
+      // Populate player data
+      const players = await populatePlayersData(room.participants || []);
+      // Mark the host
+      const hostPlayer = players.find(p => p.id === room.hostId);
+      if (hostPlayer) hostPlayer.isHost = true;
+      
+      const roomWithPlayers = {
+        ...room,
+        players
+      };
+      
+      res.json(roomWithPlayers);
+    } catch (error) {
+      console.error("Error fetching room:", error);
+      res.status(500).json({ error: "Failed to fetch room" });
+    }
   });
   
-  app.post("/api/multiplayer/rooms", async (req, res) => {
-    const { name, grade, category, maxPlayers, gameType, settings } = req.body;
-    console.log("Creating room with data:", { name, grade, category, maxPlayers, gameType, settings });
-    if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    const hostID = req.user!.id
-    const players = [storage.getUser(hostID)]
+  // Create a multiplayer room
+  app.post("/api/multiplayer/rooms", ensureAuthenticated, async (req, res) => {
     try {
-      const room = await storage.createMultiplayerRoom(hostID, {
+      const { name, grade, category, maxPlayers, gameType, settings } = req.body;
+      console.log("API: POST /api/multiplayer/rooms");
+      console.log("Creating room with data:", { name, grade, category, maxPlayers, gameType, settings });
+      
+      if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const hostId = req.user!.id;
+      
+      const room = await storage.createMultiplayerRoom(hostId, {
         name, 
         grade, 
         category, 
@@ -1824,28 +1906,298 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings
       });
 
-      res.status(201).json(...room, players);
-    } catch (err) {
-      console.error("Failed to create room:", err);
+      // Populate player data
+      const players = await populatePlayersData(room.participants || []);
+      // Mark the host
+      const hostPlayer = players.find(p => p.id === room.hostId);
+      if (hostPlayer) hostPlayer.isHost = true;
+
+      const roomWithPlayers = {
+        ...room,
+        players
+      };
+
+      res.status(201).json(roomWithPlayers);
+    } catch (error) {
+      console.error("Failed to create room:", error);
       res.status(500).json({ message: "Internal server error" });
     }
-    
-    // // Mock implementation for now
-    // const roomId = Math.floor(Math.random() * 10000);
-    // const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    // res.status(201).json({
-    //   id: roomId,
-    //   name,
-    //   roomCode,
-    //   players: [],
-    //   settings,
-    //   gameType,
-    //   grade,
-    //   category,
-    //   maxPlayers,
-    // });
   });
+
+  // Join a multiplayer room
+  app.post("/api/multiplayer/join", ensureAuthenticated, async (req, res) => {
+    try {
+      const { roomId, roomCode } = req.body;
+      const userId = req.user!.id;
+      
+      console.log("API: POST /api/multiplayer/join");
+      console.log("Join request:", { roomId, roomCode, userId });
+
+      let room: MultiplayerRoom | undefined;
+
+      if (roomId) {
+        room = await storage.getMultiplayerRoom(roomId);
+      } else if (roomCode) {
+        room = await storage.getMultiplayerRoomByCode(roomCode);
+      } else {
+        return res.status(400).json({ error: "Room ID or code required" });
+      }
+
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      const success = await storage.joinMultiplayerRoom(room.id, userId);
+      if (!success) {
+        return res.status(400).json({ error: "Cannot join room (full or already joined)" });
+      }
+
+      res.json({ roomId: room.id });
+    } catch (error) {
+      console.error("Error joining room:", error);
+      res.status(500).json({ error: "Failed to join room" });
+    }
+  });
+
+  // Leave a multiplayer room
+  app.post("/api/multiplayer/leave", ensureAuthenticated, async (req, res) => {
+    try {
+      const { roomId } = req.body;
+      const userId = req.user!.id;
+      
+      console.log("API: POST /api/multiplayer/leave");
+      console.log("Leave request:", { roomId, userId });
+
+      const success = await storage.leaveMultiplayerRoom(roomId, userId);
+      if (!success) {
+        return res.status(400).json({ error: "Cannot leave room" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      res.status(500).json({ error: "Failed to leave room" });
+    }
+  });
+
+  // Start a multiplayer game
+  app.post("/api/multiplayer/start", ensureAuthenticated, async (req, res) => {
+    try {
+      const { roomId } = req.body;
+      const userId = req.user!.id;
+      
+      console.log("API: POST /api/multiplayer/start");
+      console.log("Start game request:", { roomId, userId });
+
+      const room = await storage.getMultiplayerRoom(roomId);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      if (room.hostId !== userId) {
+        return res.status(403).json({ error: "Only host can start the game" });
+      }
+
+      // Generate questions for the game
+      const questionCount = room.settings?.questionCount || 10;
+      const questions = await generateGameQuestions(room.grade || 'K', room.category || 'all', questionCount);
+
+      // Update room with game state
+      const gameState = {
+        questions,
+        currentQuestionIndex: 0,
+        startTime: new Date(),
+        playerAnswers: {}
+      };
+
+      await storage.updateMultiplayerRoom(roomId, {
+        status: 'playing',
+        startedAt: new Date(),
+        gameState
+      });
+
+      // Get updated room with players
+      const updatedRoom = await storage.getMultiplayerRoom(roomId);
+      const players = await populatePlayersData(updatedRoom?.participants || []);
+      const hostPlayer = players.find(p => p.id === updatedRoom?.hostId);
+      if (hostPlayer) hostPlayer.isHost = true;
+
+      res.json({
+        success: true,
+        room: {
+          ...updatedRoom,
+          players
+        }
+      });
+    } catch (error) {
+      console.error("Error starting game:", error);
+      res.status(500).json({ error: "Failed to start game" });
+    }
+  });
+
+  // Submit answer in multiplayer game
+  app.post("/api/multiplayer/answer", ensureAuthenticated, async (req, res) => {
+    try {
+      const { roomId, answer } = req.body;
+      const userId = req.user!.id;
+      
+      console.log("API: POST /api/multiplayer/answer");
+      console.log("Answer submission:", { roomId, userId, answer });
+
+      const room = await storage.getMultiplayerRoom(roomId);
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      if (room.status !== 'playing') {
+        return res.status(400).json({ error: "Game is not active" });
+      }
+
+      const gameState = room.gameState as any;
+      const currentQuestion = gameState?.questions?.[gameState.currentQuestionIndex];
+      
+      if (!currentQuestion) {
+        return res.status(400).json({ error: "No current question" });
+      }
+
+      // Check answer
+      const isCorrect = String(answer).trim().toLowerCase() === 
+                       String(currentQuestion.correctAnswer).trim().toLowerCase();
+
+      // Update player answers
+      if (!gameState.playerAnswers) gameState.playerAnswers = {};
+      if (!gameState.playerAnswers[userId]) gameState.playerAnswers[userId] = [];
+      
+      gameState.playerAnswers[userId].push({
+        questionIndex: gameState.currentQuestionIndex,
+        answer,
+        isCorrect,
+        timestamp: new Date()
+      });
+
+      // Check if all players have answered
+      const participants = room.participants || [];
+      const allAnswered = participants.every(playerId => 
+        gameState.playerAnswers[playerId]?.some((a: any) => 
+          a.questionIndex === gameState.currentQuestionIndex
+        )
+      );
+
+      let nextQuestion = null;
+      let gameOver = false;
+
+      if (allAnswered) {
+        // Move to next question or end game
+        gameState.currentQuestionIndex += 1;
+        
+        if (gameState.currentQuestionIndex >= gameState.questions.length) {
+          // Game over
+          gameOver = true;
+          await storage.updateMultiplayerRoom(roomId, {
+            status: 'finished',
+            endedAt: new Date(),
+            gameState
+          });
+        } else {
+          // Next question
+          nextQuestion = gameState.questions[gameState.currentQuestionIndex];
+          await storage.updateMultiplayerRoom(roomId, { gameState });
+        }
+      } else {
+        // Update game state with new answer
+        await storage.updateMultiplayerRoom(roomId, { gameState });
+      }
+
+      // Calculate tokens for correct answer
+      const tokensEarned = isCorrect ? 2 : 0;
+      if (tokensEarned > 0) {
+        const user = await storage.getUser(userId);
+        if (user) {
+          await storage.updateUser(userId, {
+            tokens: (user.tokens || 0) + tokensEarned
+          });
+        }
+      }
+
+      res.json({
+        correct: isCorrect,
+        nextQuestion,
+        gameOver,
+        tokensEarned
+      });
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      res.status(500).json({ error: "Failed to submit answer" });
+    }
+  });
+
+  // Helper function to generate questions for multiplayer games
+  async function generateGameQuestions(grade: string, category: string, count: number) {
+    const questions = [];
+    
+    for (let i = 0; i < count; i++) {
+      try {
+        // Use existing question generation logic
+        if (category === 'math-facts-addition') {
+          const fact = getNextMathFact('addition', grade);
+          questions.push({
+            id: `mf-add-${i}`,
+            questionText: `${fact.operand1} + ${fact.operand2} = ?`,
+            correctAnswer: fact.answer.toString(),
+            options: [],
+            category: 'math-facts-addition',
+            grade
+          });
+        } else if (category === 'math-facts-multiplication') {
+          const fact = getNextMathFact('multiplication', grade);
+          questions.push({
+            id: `mf-mult-${i}`,
+            questionText: `${fact.operand1} × ${fact.operand2} = ?`,
+            correctAnswer: fact.answer.toString(),
+            options: [],
+            category: 'math-facts-multiplication',
+            grade
+          });
+        } else {
+          // Generate a basic arithmetic question
+          const num1 = Math.floor(Math.random() * 10) + 1;
+          const num2 = Math.floor(Math.random() * 10) + 1;
+          const operations = ['+', '-', '×'];
+          const op = operations[Math.floor(Math.random() * operations.length)];
+          
+          let answer;
+          switch (op) {
+            case '+': answer = num1 + num2; break;
+            case '-': answer = Math.max(num1, num2) - Math.min(num1, num2); break;
+            case '×': answer = num1 * num2; break;
+            default: answer = num1 + num2;
+          }
+          
+          questions.push({
+            id: `gen-${i}`,
+            questionText: `${Math.max(num1, num2)} ${op} ${Math.min(num1, num2)} = ?`,
+            correctAnswer: answer.toString(),
+            options: [],
+            category,
+            grade
+          });
+        }
+      } catch (error) {
+        console.error("Error generating question:", error);
+        // Fallback question
+        questions.push({
+          id: `fallback-${i}`,
+          questionText: `2 + 2 = ?`,
+          correctAnswer: "4",
+          options: [],
+          category,
+          grade
+        });
+      }
+    }
+    
+    return questions;
+  }
 
   // Endpoint to update user statistics
   app.post("/api/user/stats/update", ensureAuthenticated, async (req, res) => {
