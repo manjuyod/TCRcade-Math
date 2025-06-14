@@ -587,9 +587,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Add to module history
-      // Record module completion in history
-      // await storage.recordModuleHistory({...}); // TODO: Fix interface
+      // Record assessment completion in module history
+      // Assessment completion means they found their appropriate grade level
+      await storage.recordModuleHistory({
+        userId,
+        moduleName: `math-facts-${operation}`,
+        runType: 'test',
+        finalScore: 100, // Assessment completion is considered 100% success
+        questionsTotal: questionsAnswered,
+        questionsCorrect: questionsAnswered, // Assessment questions answered to determine grade
+        timeSpentSeconds: 0, // Assessment doesn't track time
+        difficultyLevel: 1,
+        gradeLevel: finalGrade,
+        tokensEarned: 15
+      });
 
       res.json({ 
         success: true, 
@@ -678,8 +689,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Add to module history - TODO: Fix storage interface
-      // await storage.recordModuleCompletion(...)
+      // Record practice session completion in module history
+      await storage.recordModuleHistory({
+        userId,
+        moduleName: `math-facts-${operation}`,
+        runType: 'token_run',
+        finalScore: Math.round(sessionResult.percentage * 100),
+        questionsTotal: questions.length,
+        questionsCorrect: correctAnswers,
+        timeSpentSeconds: timeSpent || 0,
+        difficultyLevel: 1,
+        gradeLevel: currentGradeLevel,
+        tokensEarned: sessionResult.tokensEarned
+      });
 
       res.json({
         success: true,
