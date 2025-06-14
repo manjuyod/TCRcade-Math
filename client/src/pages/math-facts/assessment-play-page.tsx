@@ -434,7 +434,7 @@ export default function MathFactsAssessmentPlayPage() {
         console.log('📊 Assessment completion data:', data);
         const tokensEarned = data.tokensEarned || 15;
         
-        const navigationUrl = `/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`;
+        const navigationUrl = `/math-facts/${operation}/assessment/complete?grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`;
         
         console.log('🔗 Navigating to:', navigationUrl);
         setLocation(navigationUrl);

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useLocation, useSearch } from 'wouter';
+import { useLocation, useSearch, useRoute } from 'wouter';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,10 @@ export default function MathFactsAssessmentCompletePage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
   const { refreshUser } = useAuth();
+  const [match, params] = useRoute('/math-facts/:operation/assessment/complete');
   
   const searchParams = new URLSearchParams(searchString);
-  const operation = searchParams.get('operation') || 'addition';
+  const operation = params?.operation || 'addition';
   const grade = searchParams.get('grade') || 'K';
   const questionsAnswered = parseInt(searchParams.get('questionsAnswered') || '0');
   const correctAnswers = parseInt(searchParams.get('correctAnswers') || '0');
