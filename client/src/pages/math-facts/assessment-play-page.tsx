@@ -91,8 +91,12 @@ export default function MathFactsAssessmentPlayPage() {
     const isCorrect = selectedAnswer === currentQuestion.answer;
     const newAnswers = [...assessmentState.answers, selectedAnswer];
 
-    // Check if we've completed questions for this grade
-    if (assessmentState.currentQuestionIndex === assessmentState.questions.length - 1) {
+    // Update state with new answer first
+    const newQuestionIndex = assessmentState.currentQuestionIndex + 1;
+
+    // Check if we've completed ALL questions for this grade
+    if (newQuestionIndex >= assessmentState.questions.length) {
+      // All questions answered, evaluate grade level
       const correctCount = newAnswers.reduce((count, answer, index) => {
         return count + (answer === assessmentState.questions[index].answer ? 1 : 0);
       }, 0);
@@ -110,7 +114,7 @@ export default function MathFactsAssessmentPlayPage() {
       // Move to next question at same grade
       setAssessmentState(prev => ({
         ...prev,
-        currentQuestionIndex: prev.currentQuestionIndex + 1,
+        currentQuestionIndex: newQuestionIndex,
         answers: newAnswers
       }));
       setSelectedAnswer('');
