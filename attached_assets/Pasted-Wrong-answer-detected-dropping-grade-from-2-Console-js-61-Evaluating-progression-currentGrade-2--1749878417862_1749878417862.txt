@@ -1,0 +1,31 @@
+Wrong answer detected - dropping grade from 2
+Console.js:61 Evaluating progression: currentGrade=2, passed=false, currentIndex=2
+Console.js:61 Dropping from grade 2 to grade 1
+Console.js:61 Moving from grade 2 to grade 1
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=1
+Console.js:61 API Response for grade 1: {questions: Array(2)}
+Console.js:61 🔄 STATE TRANSITION: Moving from 2 to 1
+Console.js:61 📝 New questions for grade 1: (2) ['5 + 7 = ?', '8 + 4 = ?']
+Console.js:61 Successfully moved to grade 1 with 2 questions
+Console.js:61 ✅ STATE UPDATED: Now at grade 1, showing question: 5 + 7 = ?
+Console.js:61 Question: 5 + 7 = ?, Selected: 13, Correct: 12, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 1
+Console.js:61 Evaluating progression: currentGrade=1, passed=false, currentIndex=1
+Console.js:61 Dropping from grade 1 to grade K
+Console.js:61 Moving from grade 1 to grade K
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=K
+3Console.js:61 [SessionAwareLink] moduleInProgress = false
+Console.js:61 Question: 5 + 7 = ?, Selected: 13, Correct: 12, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 1
+Console.js:61 Evaluating progression: currentGrade=1, passed=false, currentIndex=1
+Console.js:61 Dropping from grade 1 to grade K
+Console.js:61 Moving from grade 1 to grade K
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=K
+3Console.js:61 [SessionAwareLink] moduleInProgress = false
+Console.js:61 Question: 5 + 7 = ?, Selected: 13, Correct: 12, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 1
+Console.js:61 Evaluating progression: currentGrade=1, passed=false, currentIndex=1
+Console.js:61 Dropping from grade 1 to grade K
+Console.js:61 Moving from grade 1 to grade K
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=K
+3Console.js:61 [SessionAwareLink] moduleInProgress = false
