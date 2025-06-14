@@ -1879,7 +1879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ((user as any).correct_answers || 0) + correct
           });
 
-          const newBalance = (user.tokens || 0) + tokens;
+                    const newBalance = (user.tokens || 0) + tokens;
 
           // Record module history with module-specific grade level
           const moduleGradeLevel = getModuleGradeLevel(user, `math_rush_${mode}`);
@@ -3159,6 +3159,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to update user statistics",
         message: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  });
+
+  // Math Facts question endpoint - validates operation
+  app.get('/api/questions/math-facts', async (req, res) => {
+    try {
+      const { grade, operation } = req.query;
+      console.log(`API: GET /api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${req.query._t}`);
+
+      if (!grade || !operation) {
+        return res.status(400).json({ message: 'Missing required parameters: grade and operation' });
+      }
+
+      // Get category ID for the operation
+      const categoryMap: { [key: string]: number } = {
+        'addition': 1,
+        'subtraction': 2,
+        'multiplication': 3,
+        'division': 4
+      };
+
+      const categoryId = categoryMap[operation as string];
+
+      if (!categoryId) {
+        return res.status(400).json({ message: `Invalid operation: ${operation}` });
+      }
+
+      const question = await storage.getQuestion(categoryId, grade as string, []);
+
+      if (!question) {
+        return res.status(404).json({ message: 'No questions found for the specified criteria' });
+      }
+
+      res.json(question);
+    } catch (error) {
+      console.error('Error fetching math facts question:', error);
+      res.status(500).json({ message: 'Failed to fetch question' });
     }
   });
 

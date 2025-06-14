@@ -21,13 +21,13 @@ function shuffleAnswerOptions(question: Question): Question {
   if (!question.options || question.options.length <= 1) {
     return question;
   }
-  
+
   // Create a copy of the question to avoid mutating the original
   const shuffledQuestion = { ...question };
-  
+
   // Use a more robust shuffling algorithm with multiple passes
   let shuffledOptions = [...question.options];
-  
+
   // Perform multiple shuffle passes for better randomization
   for (let pass = 0; pass < 3; pass++) {
     for (let i = shuffledOptions.length - 1; i > 0; i--) {
@@ -35,17 +35,17 @@ function shuffleAnswerOptions(question: Question): Question {
       [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
     }
   }
-  
+
   // Additional randomization: ensure the correct answer isn't always in the same position
   const correctAnswer = question.answer;
   const correctIndex = shuffledOptions.indexOf(correctAnswer);
-  
+
   // If correct answer is in first position, randomly swap it with another position
   if (correctIndex === 0 && Math.random() < 0.7) {
     const swapIndex = Math.floor(Math.random() * (shuffledOptions.length - 1)) + 1;
     [shuffledOptions[0], shuffledOptions[swapIndex]] = [shuffledOptions[swapIndex], shuffledOptions[0]];
   }
-  
+
   shuffledQuestion.options = shuffledOptions;
   return shuffledQuestion;
 }
@@ -273,10 +273,10 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`getQuestionsByGrade: Found ${result.length} questions with grade=${grade}, category=${category || 'all'}`);
     console.log(`After filtering out image questions: ${filteredResults.length} questions remain`);
-    
+
     // Shuffle answer options for each question to prevent predictable correct answer positions
     const shuffledResults = filteredResults.map(question => shuffleAnswerOptions(question));
-    
+
     return shuffledResults;
   }
 
@@ -292,7 +292,7 @@ export class DatabaseStorage implements IStorage {
 
     // Shuffle answer options for each question to prevent predictable correct answer positions
     const shuffledResults = questionsWithConcept.map(question => shuffleAnswerOptions(question));
-    
+
     return shuffledResults;
   }
 
@@ -303,7 +303,7 @@ export class DatabaseStorage implements IStorage {
   async getUserConceptMasteries(userId: number): Promise<any[]> {
     const user = await this.getUser(userId);
     if (!user?.hiddenGradeAsset) return [];
-    
+
     const hiddenGradeAsset = user.hiddenGradeAsset as any;
     return hiddenGradeAsset.concept_mastery || [];
   }
@@ -361,22 +361,22 @@ export class DatabaseStorage implements IStorage {
     // Update concept mastery in user's JSON data
     const user = await this.getUser(userId);
     if (!user) throw new Error('User not found');
-    
+
     const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
     const conceptMasteries = hiddenGradeAsset.concept_mastery || [];
-    
+
     // Find existing mastery entry
     const existingIndex = conceptMasteries.findIndex((m: any) => 
       m.userId === userId && m.concept === enhancedConcept && m.grade === grade
     );
-    
+
     if (existingIndex >= 0) {
       // Update existing mastery
       const existing = conceptMasteries[existingIndex];
       const totalAttempts = existing.totalAttempts + 1;
       const correctAttempts = existing.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-      
+
       conceptMasteries[existingIndex] = {
         ...existing,
         totalAttempts,
@@ -399,7 +399,7 @@ export class DatabaseStorage implements IStorage {
         needsReview: !isCorrect
       });
     }
-    
+
     // Update user's hiddenGradeAsset
     await this.updateUser(userId, {
       hiddenGradeAsset: {
@@ -407,7 +407,7 @@ export class DatabaseStorage implements IStorage {
         concept_mastery: conceptMasteries
       }
     });
-    
+
     return conceptMasteries[existingIndex >= 0 ? existingIndex : conceptMasteries.length - 1];
   }
 
@@ -1038,7 +1038,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get progress data from JSON
     const progressData = hiddenGradeAsset.user_progress || [];
-    
+
     // Create a simple analysis based on available data
     const strongCategories = progressData
       .filter((p: any) => p.score > 100)
@@ -1215,19 +1215,19 @@ export class DatabaseStorage implements IStorage {
       // SPECIAL HANDLING FOR MEASUREMENT CATEGORY
       if (category === 'measurement') {
         console.log(`Measurement category detected - querying questions_measurementAndData table`);
-        
+
         try {
           // Import the schema for questions_measurementAndData
           const { questionsMeasurementAndData } = await import("@shared/schema");
-          
+
           // Build measurement query with grade fallback logic
           // Since measurement questions are only available for certain grades, 
           // map user grades to available measurement content
           let measurementGrade = parseInt(grade);
-          
+
           // Map all user grades to Grade 2 since that's the only available measurement content
           measurementGrade = 2;
-          
+
           const measurementQuestions = await db
             .select()
             .from(questionsMeasurementAndData)
@@ -1246,21 +1246,21 @@ export class DatabaseStorage implements IStorage {
             if (filteredQuestions.length > 0) {
               // Select a random question
               const selectedMeasurement = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
-              
+
               // Parse the AnswerBank JSON to extract question and options
               let questionText = selectedMeasurement.Title;
               let options: string[] = [];
-              
+
               try {
                 const answerBank = typeof selectedMeasurement.AnswerBank === 'string' 
                   ? JSON.parse(selectedMeasurement.AnswerBank) 
                   : selectedMeasurement.AnswerBank;
-                
+
                 // Extract question text from AnswerBank if available
                 if (answerBank?.question?.text) {
                   questionText = answerBank.question.text;
                 }
-                
+
                 // Extract options from AnswerBank
                 if (answerBank?.options && Array.isArray(answerBank.options)) {
                   options = answerBank.options
@@ -1270,12 +1270,12 @@ export class DatabaseStorage implements IStorage {
               } catch (e) {
                 console.error('Error parsing AnswerBank:', e);
               }
-              
+
               // Fallback if no options found
               if (options.length === 0) {
                 options = [selectedMeasurement.CorrectAnswer, "Option B", "Option C", "Option D"];
               }
-              
+
               // Transform to match Question interface
               const transformedQuestion: Question = {
                 id: selectedMeasurement.id,
@@ -1470,7 +1470,7 @@ export class DatabaseStorage implements IStorage {
   async getUserSubjectMasteries(userId: number): Promise<any[]> {
     const user = await this.getUser(userId);
     if (!user?.hiddenGradeAsset) return [];
-    
+
     const hiddenGradeAsset = user.hiddenGradeAsset as any;
     return hiddenGradeAsset.subject_mastery || [];
   }
@@ -1491,22 +1491,22 @@ export class DatabaseStorage implements IStorage {
     // Update subject mastery in user's JSON data
     const user = await this.getUser(userId);
     if (!user) throw new Error('User not found');
-    
+
     const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
     const subjectMasteries = hiddenGradeAsset.subject_mastery || [];
-    
+
     // Find existing mastery entry
     const existingIndex = subjectMasteries.findIndex((m: any) => 
       m.userId === userId && m.subject === subject && m.grade === grade
     );
-    
+
     if (existingIndex >= 0) {
       // Update existing mastery
       const existing = subjectMasteries[existingIndex];
       const totalAttempts = existing.totalAttempts + 1;
       const correctAttempts = existing.correctAttempts + (isCorrect ? 1 : 0);
       const masteryLevel = Math.round((correctAttempts / totalAttempts) * 100);
-      
+
       subjectMasteries[existingIndex] = {
         ...existing,
         totalAttempts,
@@ -1532,7 +1532,7 @@ export class DatabaseStorage implements IStorage {
         downgraded: false
       });
     }
-    
+
     // Update user's hiddenGradeAsset
     await this.updateUser(userId, {
       hiddenGradeAsset: {
@@ -1540,7 +1540,7 @@ export class DatabaseStorage implements IStorage {
         subject_mastery: subjectMasteries
       }
     });
-    
+
     return subjectMasteries[existingIndex >= 0 ? existingIndex : subjectMasteries.length - 1];
   }
 
@@ -1617,7 +1617,7 @@ export class DatabaseStorage implements IStorage {
     // Get subject masteries from user's JSON data
     const user = await this.getUser(userId);
     if (!user?.hiddenGradeAsset) return [];
-    
+
     const hiddenGradeAsset = user.hiddenGradeAsset as any;
     const subjectMasteries = hiddenGradeAsset.subject_mastery || [];
     const userMasteries = subjectMasteries.filter((mastery: any) => 
@@ -1928,7 +1928,7 @@ export class DatabaseStorage implements IStorage {
         eq(moduleHistory.userId, userId),
         eq(moduleHistory.moduleName, moduleName)
       ));
-    
+
     return result[0]?.count || 0;
   }
 
@@ -1939,7 +1939,7 @@ export class DatabaseStorage implements IStorage {
     let query = db.select().from(moduleHistory);
 
     const filters = [];
-    
+
     if (userId) {
       filters.push(eq(moduleHistory.userId, userId));
     }
