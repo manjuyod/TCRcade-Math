@@ -1037,6 +1037,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Get progress data from JSON
+    const hiddenGradeAsset = user.hiddenGradeAsset || {};
     const progressData = hiddenGradeAsset.user_progress || [];
 
     // Create a simple analysis based on available data
@@ -1053,25 +1054,75 @@ export class DatabaseStorage implements IStorage {
       'conceptMapping',
       'realWorldApplications'
     ];
-    // Create a new analytics entry
+
+    // Calculate engagement metrics from module data
+    const modules = hiddenGradeAsset.modules || {};
+    let totalQuestions = 0;
+    let totalCorrect = 0;
+    let totalSessions = 0;
+    let totalTimeSpent = 0;
+
+    Object.values(modules).forEach((module: any) => {
+      if (module.progress) {
+        totalQuestions += module.progress.total_questions_answered || 0;
+        totalCorrect += module.progress.correct_answers || 0;
+        totalSessions += module.progress.sessions_completed || 0;
+        totalTimeSpent += module.progress.time_spent_total || 0;
+      }
+    });
+
+    // Create comprehensive analytics data
+    const analyticsData = {
+      analysis_date: new Date().toISOString(),
+      learning_patterns: {
+        correctAnswerRate: totalQuestions > 0 ? totalCorrect / totalQuestions : 0,
+        questionsPerSession: totalSessions > 0 ? totalQuestions / totalSessions : 0,
+        totalSessions,
+        averageTimePerQuestion: totalQuestions > 0 ? totalTimeSpent / totalQuestions : 0,
+        preferredCategories: strongCategories
+      },
+      strengths: strengthConcepts.slice(0, 5),
+      areas_for_improvement: weaknessConcepts.slice(0, 5),
+      engagement_analysis: {
+        totalSessionTime: totalTimeSpent,
+        dailyEngagementMinutes: user.dailyEngagementMinutes || 0,
+        activityBreakdown: {
+          totalQuestions,
+          totalCorrect,
+          totalSessions
+        }
+      },
+      suggested_activities: recommendedActivities,
+      weaknesses: weaknessConcepts.slice(0, 5),
+      datetime_generated: new Date().toISOString()
+    };
+
+    // Update user's hiddenGradeAsset with the new analytics data
+    const updatedHiddenGradeAsset = {
+      ...hiddenGradeAsset,
+      ai_analytics: analyticsData
+    };
+
+    // Update user in database with new analytics in hiddenGradeAsset
+    await db
+      .update(users)
+      .set({
+        hiddenGradeAsset: updatedHiddenGradeAsset,
+        strengthConcepts: strengthConcepts,
+        weaknessConcepts: weaknessConcepts
+      })
+      .where(eq(users.id, userId));
+
+    // Also create a new analytics entry in the separate table for historical tracking
     const [analytic] = await db
       .insert(aiAnalytics)
       .values({
         userId,
         analysisDate: new Date(),
-        learningPatterns: {
-          correctAnswerRate: user.questionsAnswered > 0 
-            ? user.correctAnswers / user.questionsAnswered 
-            : 0,
-          averageTimePerQuestion: 0,
-          preferredCategories: strongCategories
-        },
+        learningPatterns: analyticsData.learning_patterns,
         strengths: strengthConcepts.slice(0, 5),
         areasForImprovement: weaknessConcepts.slice(0, 5),
-        engagementAnalysis: {
-          totalSessionTime: user.dailyEngagementMinutes,
-          activityBreakdown: {}
-        },
+        engagementAnalysis: analyticsData.engagement_analysis,
         suggestedActivities: recommendedActivities,
         recommendedActivities,
         strengthConcepts: strengthConcepts,
@@ -2096,16 +2147,35 @@ export class DatabaseStorage implements IStorage {
    */
   async getEnhancedUserAnalytics(userId: number): Promise<any> {
     try {
-      // Get the existing analytics if available
-      const existingAnalytics = await this.getUserAnalytics(userId);
-      
       // Get comprehensive data for enhanced analytics
       const moduleHistoryData = await this.getUserModuleHistory(userId, 100);
       const progressData = await this.getUserProgress(userId);
       const conceptMasteries = await this.getUserConceptMasteries(userId);
       const user = await this.getUser(userId);
 
-      // Calculate enhanced metrics
+      // First check if user has ai_analytics in hiddenGradeAsset - this is our primary source
+      const hiddenGradeAsset = user?.hiddenGradeAsset || {};
+      const aiAnalytics = hiddenGradeAsset.ai_analytics;
+
+      // If no ai_analytics exist, generate them first
+      if (!aiAnalytics || !aiAnalytics.datetime_generated) {
+        console.log(`No AI analytics found in hiddenGradeAsset for user ${userId}, generating...`);
+        await this.generateUserAnalytics(userId);
+        
+        // Refresh user data to get the newly generated analytics
+        const updatedUser = await this.getUser(userId);
+        const updatedHiddenGradeAsset = updatedUser?.hiddenGradeAsset || {};
+        const updatedAiAnalytics = updatedHiddenGradeAsset.ai_analytics;
+        
+        if (updatedAiAnalytics) {
+          return this.buildEnhancedAnalyticsFromHiddenAsset(updatedUser, updatedAiAnalytics, moduleHistoryData, progressData, conceptMasteries);
+        }
+      } else {
+        // Use existing ai_analytics from hiddenGradeAsset
+        return this.buildEnhancedAnalyticsFromHiddenAsset(user, aiAnalytics, moduleHistoryData, progressData, conceptMasteries);
+      }
+
+      // Fallback: calculate from scratch if hiddenGradeAsset is unavailable
       const totalSessions = moduleHistoryData.length;
       const overallAccuracy = totalSessions > 0 
         ? (moduleHistoryData.reduce((sum, h) => sum + h.questionsCorrect, 0) / 
@@ -2139,7 +2209,7 @@ export class DatabaseStorage implements IStorage {
 
       // Enhanced analytics object
       const enhancedAnalytics = {
-        id: existingAnalytics?.id || 0,
+        id: 0,
         userId,
         analysisDate: new Date(),
         learningPatterns: {
@@ -2198,6 +2268,80 @@ export class DatabaseStorage implements IStorage {
       console.error('Error getting enhanced user analytics:', error);
       return null;
     }
+  }
+
+  /**
+   * Build enhanced analytics using ai_analytics data from user's hiddenGradeAsset
+   */
+  private buildEnhancedAnalyticsFromHiddenAsset(user: any, aiAnalytics: any, moduleHistoryData: any[], progressData: any[], conceptMasteries: any[]): any {
+    // Use the ai_analytics data from hiddenGradeAsset as primary source
+    const learningPatterns = aiAnalytics.learning_patterns || {};
+    const engagementAnalysis = aiAnalytics.engagement_analysis || {};
+    
+    // Build enhanced analytics object that utilizes the populated ai_analytics data
+    const enhancedAnalytics = {
+      id: 0, // Generated analytics don't have a DB ID
+      userId: user.id,
+      analysisDate: aiAnalytics.analysis_date ? new Date(aiAnalytics.analysis_date) : new Date(),
+      learningPatterns: {
+        correctAnswerRate: learningPatterns.correctAnswerRate || 0,
+        averageTimePerQuestion: learningPatterns.averageTimePerQuestion || 0,
+        preferredCategories: learningPatterns.preferredCategories || [],
+        questionsPerSession: learningPatterns.questionsPerSession || 0,
+        totalSessions: learningPatterns.totalSessions || 0,
+        performanceTrend: 'stable'
+      },
+      strengths: aiAnalytics.strengths || [],
+      areasForImprovement: aiAnalytics.areas_for_improvement || aiAnalytics.weaknesses || [],
+      engagementAnalysis: {
+        totalSessionTime: engagementAnalysis.totalSessionTime || 0,
+        averageSessionTime: engagementAnalysis.dailyEngagementMinutes || 0,
+        activityBreakdown: engagementAnalysis.activityBreakdown || {}
+      },
+      suggestedActivities: aiAnalytics.suggested_activities || [],
+      learningStyle: user.learningStyle || 'Visual',
+      strengthConcepts: aiAnalytics.strengths || [],
+      weaknessConcepts: aiAnalytics.weaknesses || aiAnalytics.areas_for_improvement || [],
+      recommendedActivities: aiAnalytics.suggested_activities || [],
+      generatedAt: aiAnalytics.datetime_generated ? new Date(aiAnalytics.datetime_generated) : new Date(),
+      // Enhanced metrics using real data
+      performanceMetrics: {
+        overallPerformanceScore: moduleHistoryData.length > 0 
+          ? moduleHistoryData.reduce((sum, h) => sum + h.finalScore, 0) / moduleHistoryData.length
+          : 0,
+        learningVelocity: learningPatterns.questionsPerSession || 0,
+        consistencyIndex: this.calculateConsistencyIndex(moduleHistoryData),
+        retentionRate: this.calculateRetentionRate(moduleHistoryData)
+      },
+      modulePerformance: this.buildModulePerformanceFromHistory(moduleHistoryData)
+    };
+
+    return {
+      analytics: enhancedAnalytics,
+      conceptMasteries,
+      recentProgress: progressData.slice(0, 10),
+      moduleHistory: moduleHistoryData.slice(0, 20)
+    };
+  }
+
+  /**
+   * Build module performance data from historical data
+   */
+  private buildModulePerformanceFromHistory(moduleHistoryData: any[]): any[] {
+    const moduleGroups = moduleHistoryData.reduce((groups, session) => {
+      if (!groups[session.moduleName]) groups[session.moduleName] = [];
+      groups[session.moduleName].push(session);
+      return groups;
+    }, {} as Record<string, any[]>);
+
+    return Object.entries(moduleGroups).map(([moduleName, sessions]) => ({
+      moduleName,
+      averageScore: sessions.reduce((sum: number, s: any) => sum + s.finalScore, 0) / sessions.length,
+      accuracy: sessions.reduce((sum: number, s: any) => sum + (s.questionsCorrect / Math.max(1, s.questionsTotal)), 0) / sessions.length * 100,
+      sessionCount: sessions.length,
+      lastSession: sessions[0].completedAt,
+      trend: this.calculateModuleTrend(sessions as any[])
+    }));
   }
 
   // Helper methods for analytics calculations
