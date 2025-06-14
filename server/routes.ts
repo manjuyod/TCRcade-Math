@@ -678,20 +678,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Add to module history
-      // await storage.recordModuleCompletion(userId, 'math-facts', {
-        operation,
-        type: 'practice',
-        grade_level: currentGradeLevel,
-        questions_answered: questions.length,
-        correct_answers: correctAnswers,
-        percentage: Math.round(sessionResult.percentage * 100),
-        tokens_earned: sessionResult.tokensEarned,
-        time_spent: timeSpent,
-        level_changed: levelChangeResult.shouldChangeLevel,
-        level_direction: levelChangeResult.direction,
-        completed_at: new Date().toISOString()
-      });
+      // Add to module history - TODO: Fix storage interface
+      // await storage.recordModuleCompletion(...)
 
       res.json({
         success: true,
