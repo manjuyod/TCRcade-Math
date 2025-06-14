@@ -1,0 +1,245 @@
+
+# AI Learning Analytics Enhancement Agent
+
+## Project Context
+**Stack**: React TS client, Node Express TS server, Drizzle ORM, PostgreSQL  
+**Module**: AI Learning Analytics (`client/src/components/ai-analytics.tsx`)  
+**Current State**: Basic analytics display with limited data sources and simple study plan generation
+
+## Objective
+Completely overhaul the AI Learning Analytics system to create a comprehensive, data-driven KPI dashboard with sophisticated analytics and AI-powered personalized study plans.
+
+## Core Requirements
+
+### 1. Two-Pronged Data Architecture
+
+#### Historical Data (Primary Source)
+- **Table**: `module_history` 
+- **Purpose**: Track all completed sessions across all modules
+- **Data Points**:
+  - Session completion times
+  - Performance trends over time
+  - Module-specific progress patterns
+  - Grade level progression
+  - Token earning patterns
+  - Success/failure patterns by module type
+
+#### Current Progress Data (Secondary Source)
+- **Source**: `users.hiddenGradeAsset` JSON field
+- **Purpose**: Real-time module states and current progress
+- **Data Points**:
+  - Current grade levels per module
+  - Active attempt counters
+  - Module unlock status
+  - Current learning trajectories
+
+### 2. Comprehensive Analytics Dashboard
+
+#### Performance Metrics
+- **Overall Performance Score**: Weighted average across all modules
+- **Learning Velocity**: Questions answered per time period with trend analysis
+- **Accuracy Trends**: Module-specific accuracy over time with regression analysis
+- **Retention Rate**: Performance maintenance over time gaps
+- **Consistency Index**: Variance in performance across different sessions
+
+#### Learning Pattern Analysis
+- **Peak Performance Times**: Time-of-day performance correlation
+- **Learning Curve Analysis**: Rate of improvement across different concept types
+- **Struggle Point Identification**: Concepts where user consistently struggles
+- **Mastery Milestones**: Concepts where user has achieved stable mastery
+- **Cross-Module Correlation**: How performance in one module affects others
+
+#### Engagement Analytics
+- **Session Duration Patterns**: Optimal vs actual session lengths
+- **Module Preference Rankings**: Time spent and performance correlation
+- **Difficulty Adaptation**: How quickly user adapts to difficulty increases
+- **Comeback Performance**: Performance after breaks or failures
+- **Goal Achievement Rate**: Progress toward learning objectives
+
+#### Predictive Analytics
+- **Performance Forecasting**: Predict performance in next 5 sessions
+- **Risk Assessment**: Identify concepts at risk of being forgotten
+- **Optimal Challenge Level**: Recommend difficulty adjustments
+- **Learning Path Optimization**: Suggest module sequence for best outcomes
+- **Time to Mastery Estimates**: Predict when concepts will be mastered
+
+### 3. AI-Powered Study Plan Generation
+
+#### OpenAI Integration Requirements
+- **Endpoint**: Use existing `server/openai.ts` infrastructure
+- **Model**: GPT-4o (already configured)
+- **Function**: Create new `generatePersonalizedStudyPlan()` function
+
+#### Hyper-Specific Prompt Structure
+```
+ROLE: You are an expert K-6 mathematics education specialist and learning analytics expert.
+
+CONTEXT: You are analyzing a student's comprehensive learning data to create a personalized study plan.
+
+STUDENT DATA:
+- Grade Level: {user.grade}
+- Total Sessions: {totalSessions}
+- Overall Accuracy: {overallAccuracy}%
+- Learning Velocity: {questionsPerSession} questions/session
+- Top 3 Strengths: {strengthConcepts}
+- Top 3 Weaknesses: {weaknessConcepts}
+- Recent Performance Trend: {performanceTrend}
+- Module Performance: {modulePerformanceMap}
+- Time Since Last Session: {daysSinceLastSession}
+- Optimal Session Length: {optimalSessionLength} minutes
+
+HISTORICAL PERFORMANCE:
+{moduleHistoryAnalysis}
+
+CONSTRAINTS:
+1. Study plan must be for exactly 2 weeks (14 days)
+2. Each day must have 1-3 specific activities
+3. Activities must be achievable in 15-30 minutes per day
+4. Must include specific module recommendations from: math-facts-addition, math-facts-subtraction, math-facts-multiplication, math-facts-division, algebra, fractions_puzzle, decimal_defender, measurement_mastery, ratios_proportions, math_rush
+5. Must address identified weaknesses while maintaining strengths
+6. Must specify exact difficulty levels and question counts
+7. No generic advice - everything must be actionable and specific
+
+OUTPUT FORMAT:
+Return a JSON object with this exact structure:
+{
+  "studyPlan": {
+    "totalDays": 14,
+    "estimatedTimePerDay": "15-25 minutes",
+    "focusAreas": ["specific concept 1", "specific concept 2"],
+    "dailyActivities": [
+      {
+        "day": 1,
+        "activities": [
+          {
+            "module": "exact module name",
+            "activity": "specific action",
+            "duration": "X minutes",
+            "targetQuestions": X,
+            "difficultyLevel": "grade X",
+            "rationale": "why this activity today"
+          }
+        ]
+      }
+    ]
+  },
+  "learningObjectives": [
+    "Specific measurable goal 1",
+    "Specific measurable goal 2"
+  ],
+  "assessmentMilestones": [
+    {
+      "day": X,
+      "checkpoint": "specific skill to assess",
+      "successCriteria": "measurable criteria"
+    }
+  ]
+}
+
+CRITICAL: Do not use placeholder text, generic advice, or vague recommendations. Every element must be specific to this student's data.
+```
+
+## Implementation Tasks
+
+### Backend Enhancements
+
+#### 1. Analytics Data Service (`server/analytics-service.ts`)
+```typescript
+interface AnalyticsMetrics {
+  performanceScore: number;
+  learningVelocity: number;
+  accuracyTrends: ModuleAccuracyTrend[];
+  retentionRate: number;
+  consistencyIndex: number;
+  peakPerformanceTimes: TimeSlot[];
+  learningCurveAnalysis: LearningCurve[];
+  strugglePoints: ConceptStruggle[];
+  masteryMilestones: ConceptMastery[];
+  crossModuleCorrelation: ModuleCorrelation[];
+  engagementPatterns: EngagementMetrics;
+  predictiveAnalytics: PredictiveMetrics;
+}
+```
+
+#### 2. Enhanced Analytics Route (`server/routes.ts`)
+- Modify `/api/analytics` to use two-pronged data approach
+- Add comprehensive metrics calculation
+- Integrate historical analysis from `module_history`
+- Combine with real-time data from `hiddenGradeAsset`
+
+#### 3. OpenAI Study Plan Generator (`server/openai.ts`)
+- Add `generatePersonalizedStudyPlan()` function
+- Implement hyper-specific prompt with user data injection
+- Add validation for returned JSON structure
+- Include error handling and fallback plans
+
+### Frontend Enhancements
+
+#### 1. Analytics Dashboard Redesign (`client/src/components/ai-analytics.tsx`)
+- **Performance Overview**: Charts showing key metrics
+- **Learning Patterns**: Visual representations of learning curves
+- **Module Performance**: Detailed breakdown by module
+- **Trend Analysis**: Time-series charts for various metrics
+- **Study Plan Display**: Interactive daily schedule with progress tracking
+
+#### 2. New Analytics Components
+- `PerformanceChart.tsx`: Real-time performance visualization
+- `LearningVelocityGauge.tsx`: Speed of learning indicator
+- `ConceptMasteryHeatmap.tsx`: Visual mastery matrix
+- `StudyPlanCalendar.tsx`: Interactive 14-day plan display
+- `PredictiveInsights.tsx`: Forecasting and recommendations
+
+#### 3. Enhanced Data Hooks
+- `useAnalyticsData.ts`: Comprehensive data fetching and processing
+- `useStudyPlan.ts`: Study plan generation and progress tracking
+- `usePerformanceMetrics.ts`: Real-time metrics calculation
+
+### Database Schema Updates
+
+#### 1. Module History Enhancements
+- Ensure `module_history` table captures all required analytics data
+- Add indexes for performance optimization
+- Consider partitioning for large datasets
+
+#### 2. Analytics Cache Table
+- Optional: Create `analytics_cache` table for pre-computed metrics
+- Reduces real-time calculation overhead
+- Updates on significant user activity
+
+## Dependencies
+
+### NPM Packages (if needed)
+- `recharts` or `chart.js`: For advanced data visualization
+- `date-fns`: For date calculations and formatting
+- `lodash`: For data manipulation and analysis
+
+### API Integrations
+- OpenAI API: Enhanced usage for study plan generation
+- Existing module APIs: Ensure all modules report to `module_history`
+
+## Success Criteria
+
+1. **Data Integration**: Seamlessly combines historical and current data
+2. **Analytics Depth**: Provides 15+ meaningful metrics with visualizations
+3. **Study Plan Quality**: AI generates specific, actionable 14-day plans
+4. **Performance**: Dashboard loads in <2 seconds with smooth interactions
+5. **Accuracy**: Predictive analytics show >80% accuracy in testing
+6. **User Experience**: Complex data presented in intuitive, actionable format
+
+## Testing Requirements
+
+1. **Unit Tests**: All analytics calculation functions
+2. **Integration Tests**: Data flow from database to frontend
+3. **OpenAI Tests**: Study plan generation with various user profiles
+4. **Performance Tests**: Dashboard with large datasets
+5. **User Testing**: Validate study plan effectiveness
+
+## Deliverables
+
+1. Enhanced analytics backend service
+2. Redesigned analytics dashboard frontend
+3. OpenAI-powered study plan generator
+4. Comprehensive test suite
+5. Documentation for analytics metrics and study plan logic
+
+This implementation will transform the basic analytics into a sophisticated, data-driven learning intelligence system that rivals commercial educational analytics platforms.
