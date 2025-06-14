@@ -8,8 +8,7 @@ import {
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
   leaderboard, type Leaderboard,
-  moduleHistory, type ModuleHistory,
-  conceptMastery, subjectMastery
+  moduleHistory, type ModuleHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
@@ -991,54 +990,27 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User not found");
     }
 
-    // Get user's concept masteries - filter by user's grade level
-    const conceptMasteries = await db
-      .select()
-      .from(conceptMastery)
-      .where(and(
-        eq(conceptMastery.userId, userId),
-        eq(conceptMastery.grade, user.grade || 'K')
-      ));
-
-    // Identify user's strengths (concepts with high mastery, excluding 'general')
-    const strengthConcepts = [...new Set(conceptMasteries
-      .filter(m => m.masteryLevel >= 90 && !m.concept.toLowerCase().includes('general'))
-      .sort((a, b) => b.masteryLevel - a.masteryLevel)
-      .slice(0, 5)
-      .map(m => m.concept))];
-
-    // Identify user's weaknesses (concepts with low mastery, excluding strengths and 'general')
-    const weaknessConcepts = conceptMasteries
-      .filter(m => m.masteryLevel < 75 && 
-               !strengthConcepts.includes(m.concept) && 
-               !m.concept.toLowerCase().includes('general'))
-      .sort((a, b) => a.masteryLevel - b.masteryLevel)
-      .slice(0, 5)
-      .map(m => m.concept);
-
-    // Add grade-appropriate defaults ONLY when user has insufficient practice data
-    // This ensures accuracy while providing helpful defaults for new users
-    if (weaknessConcepts.length < 3) {
-      const grade = user.grade || 'K';
-
-      // Generate grade-appropriate default concepts
-      const defaultConcepts: {[key: string]: string[]} = {
-        'K': ['counting', 'shapes', 'patterns', 'number recognition', 'sorting'],
-        '1': ['addition', 'subtraction', 'place value', 'time', 'measurement'],
-        '2': ['skip counting', 'mental math', 'money', 'basic fractions', 'place value'],
-        '3': ['multiplication', 'division', 'fractions', 'area', 'perimeter'],
-        '4': ['multi-digit multiplication', 'long division', 'decimals', 'angles', 'factors'],
-        '5': ['fractions', 'decimals', 'percentages', 'volume', 'coordinate grid'],
-        '6': ['ratios', 'rates', 'integers', 'expressions', 'equations']
-      };
-
-      // Only add defaults that aren't already identified as strengths or weaknesses
-      const gradeSpecificConcepts = defaultConcepts[grade] || defaultConcepts['K'];
-      // Do not add fallback strengths - let users earn them through actual performance
-    }
-
-    // Get progress data from JSON
+    // Calculate concept masteries from module data
+    const conceptMasteries = await this.calculateConceptMasteries(userId, user);
+    
+    // Update user's hiddenGradeAsset with the new concept mastery data
     const hiddenGradeAsset = user.hiddenGradeAsset || {};
+    hiddenGradeAsset.concept_mastery = conceptMasteries;
+
+    // Identify user's strengths and weaknesses based on weighted scores
+    const strengthConcepts = Object.entries(conceptMasteries)
+      .filter(([_, mastery]: [string, any]) => mastery.weightedScore >= 80)
+      .sort(([_a, a]: [string, any], [_b, b]: [string, any]) => b.weightedScore - a.weightedScore)
+      .slice(0, 5)
+      .map(([concept, _]) => concept);
+
+    const weaknessConcepts = Object.entries(conceptMasteries)
+      .filter(([_, mastery]: [string, any]) => mastery.weightedScore < 60 && !strengthConcepts.includes(_))
+      .sort(([_a, a]: [string, any], [_b, b]: [string, any]) => a.weightedScore - b.weightedScore)
+      .slice(0, 5)
+      .map(([concept, _]) => concept);
+
+    // Get progress data from the updated hiddenGradeAsset
     const progressData = hiddenGradeAsset.user_progress || [];
 
     // Create a simple analysis based on available data
@@ -1098,9 +1070,10 @@ export class DatabaseStorage implements IStorage {
       datetime_generated: new Date().toISOString()
     };
 
-    // Update user's hiddenGradeAsset with the new analytics data
+    // Update user's hiddenGradeAsset with the new analytics data and concept mastery
     const updatedHiddenGradeAsset = {
       ...hiddenGradeAsset,
+      concept_mastery: conceptMasteries,
       ai_analytics: analyticsData
     };
 
@@ -2447,5 +2420,127 @@ export class DatabaseStorage implements IStorage {
     
     return recentAvg > olderAvg + 10 ? 'improving' : 
            recentAvg < olderAvg - 10 ? 'declining' : 'stable';
+  }
+
+  /**
+   * Calculate concept masteries from module data with weighted scoring
+   * Formula: accuracy (40%) + consistency (30%) + practice volume (20%) + mastery flag (10%)
+   */
+  async calculateConceptMasteries(userId: number, user: any): Promise<Record<string, any>> {
+    const hiddenGradeAsset = user.hiddenGradeAsset || {};
+    const modules = hiddenGradeAsset.modules || {};
+    
+    // Get all users for practice volume comparison
+    const allUsers = await db.select().from(users);
+    const totalQuestionsByUser = allUsers.map(u => {
+      const userModules = (u.hiddenGradeAsset as any)?.modules || {};
+      return Object.values(userModules).reduce((sum: number, mod: any) => 
+        sum + (mod?.progress?.total_questions_answered || 0), 0);
+    });
+    const avgTotalQuestions = totalQuestionsByUser.length > 0 
+      ? totalQuestionsByUser.reduce((a, b) => a + b, 0) / totalQuestionsByUser.length 
+      : 1;
+
+    // Extract and aggregate concept data
+    const conceptData: Record<string, {
+      modules: string[];
+      totalQuestions: number;
+      correctAnswers: number;
+      scores: number[];
+      masteryFlags: boolean[];
+    }> = {};
+
+    Object.entries(modules).forEach(([moduleName, moduleData]: [string, any]) => {
+      const progress = moduleData?.progress || {};
+      const concepts = progress.concepts || [];
+      
+      concepts.forEach((concept: string) => {
+        if (!conceptData[concept]) {
+          conceptData[concept] = {
+            modules: [],
+            totalQuestions: 0,
+            correctAnswers: 0,
+            scores: [],
+            masteryFlags: []
+          };
+        }
+        
+        conceptData[concept].modules.push(moduleName);
+        conceptData[concept].totalQuestions += progress.total_questions_answered || 0;
+        conceptData[concept].correctAnswers += progress.correct_answers || 0;
+        
+        // Calculate module score for consistency tracking
+        const moduleScore = progress.total_questions_answered > 0 
+          ? (progress.correct_answers / progress.total_questions_answered) * 100
+          : 0;
+        conceptData[concept].scores.push(moduleScore);
+        conceptData[concept].masteryFlags.push(progress.mastery_level || false);
+      });
+    });
+
+    // Calculate weighted scores for each concept
+    const conceptMasteries: Record<string, any> = {};
+    
+    Object.entries(conceptData).forEach(([concept, data]) => {
+      // 1. Accuracy (40%)
+      const accuracy = data.totalQuestions > 0 
+        ? (data.correctAnswers / data.totalQuestions) * 100
+        : 0;
+      const accuracyScore = (accuracy / 100) * 40;
+      
+      // 2. Consistency (30%) - lower standard deviation = higher consistency
+      const consistency = data.scores.length > 1 
+        ? this.calculateConsistencyScore(data.scores) 
+        : accuracy; // Use accuracy if only one score
+      const consistencyScore = (consistency / 100) * 30;
+      
+      // 3. Practice Volume (20%) - relative to average user
+      const practiceVolumeRatio = Math.min(data.totalQuestions / avgTotalQuestions, 2); // Cap at 200%
+      const practiceVolumeScore = (practiceVolumeRatio / 2) * 20;
+      
+      // 4. Mastery Flag (10%) - if any module has mastery, award points
+      const hasMastery = data.masteryFlags.some(flag => flag);
+      const masteryFlagScore = hasMastery ? 10 : 0;
+      
+      // Calculate final weighted score
+      const weightedScore = accuracyScore + consistencyScore + practiceVolumeScore + masteryFlagScore;
+      
+      conceptMasteries[concept] = {
+        weightedScore: Math.round(weightedScore * 100) / 100,
+        accuracy: Math.round(accuracy * 100) / 100,
+        consistency: Math.round(consistency * 100) / 100,
+        practiceVolume: data.totalQuestions,
+        practiceVolumeRatio: Math.round(practiceVolumeRatio * 100) / 100,
+        hasMastery,
+        modules: data.modules,
+        breakdown: {
+          accuracyScore: Math.round(accuracyScore * 100) / 100,
+          consistencyScore: Math.round(consistencyScore * 100) / 100,
+          practiceVolumeScore: Math.round(practiceVolumeScore * 100) / 100,
+          masteryFlagScore
+        }
+      };
+    });
+
+    return conceptMasteries;
+  }
+
+  /**
+   * Calculate consistency score based on standard deviation of scores
+   * Lower SD = higher consistency
+   */
+  private calculateConsistencyScore(scores: number[]): number {
+    if (scores.length <= 1) return scores[0] || 0;
+    
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // Convert SD to consistency score (lower SD = higher consistency)
+    // Normalize SD: assume max reasonable SD is 30 (very inconsistent)
+    const normalizedSD = Math.min(standardDeviation / 30, 1);
+    const consistencyScore = (1 - normalizedSD) * mean; // High consistency * performance level
+    
+    return Math.max(0, Math.min(100, consistencyScore));
   }
 }
