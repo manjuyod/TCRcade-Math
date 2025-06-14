@@ -676,17 +676,13 @@ export default function AiAnalytics() {
                       <span className="font-medium">{analytics.learningPatterns?.totalSessions || recentProgress.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Avg Session Time:</span>
-                      <span className="font-medium">
-                        {analytics.engagementAnalysis?.averageSessionTime 
-                          ? Math.round(analytics.engagementAnalysis.averageSessionTime / 60) 
-                          : 'N/A'
-                        } min
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Questions/Session:</span>
-                      <span className="font-medium">{analytics.learningPatterns?.questionsPerSession || 'N/A'}</span>
+                      <span className="font-medium">
+                        {analytics.learningPatterns?.questionsPerSession 
+                          ? Number(analytics.learningPatterns.questionsPerSession).toFixed(2)
+                          : 'N/A'
+                        }
+                      </span>
                     </div>
                   </div>
                 </CardContent>
