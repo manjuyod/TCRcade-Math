@@ -129,6 +129,8 @@ export default function MathFactsAssessmentPlayPage() {
     const isCorrect = selectedAnswer === currentQuestion.answer;
     const newAnswers = [...assessmentState.answers, selectedAnswer];
 
+    console.log(`Question: ${currentQuestion.question}, Selected: ${selectedAnswer}, Correct: ${currentQuestion.answer}, Is Correct: ${isCorrect}`);
+
     // Update tracking data
     const newTotalQuestionsAnswered = assessmentState.totalQuestionsAnswered + 1;
     const newTotalCorrectAnswers = assessmentState.totalCorrectAnswers + (isCorrect ? 1 : 0);
@@ -138,6 +140,7 @@ export default function MathFactsAssessmentPlayPage() {
 
     // If answer is incorrect, drop to lower grade immediately (don't advance question)
     if (!isCorrect) {
+      console.log(`Wrong answer detected - dropping grade from ${assessmentState.currentGrade}`);
       // Update state with attempt but don't advance question index
       setAssessmentState(prev => ({
         ...prev,
@@ -214,30 +217,48 @@ export default function MathFactsAssessmentPlayPage() {
     const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
 
+    console.log(`Evaluating progression: currentGrade=${assessmentState.currentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);
+
     if (passedCurrentGrade) {
       // Passed current grade - this is their final assessed level
-      // Complete assessment at this grade level since they achieved 100%
+      console.log(`Assessment passed at grade ${assessmentState.currentGrade} - completing assessment`);
       await completeAssessment(assessmentState.currentGrade, totalQuestionsAnswered, totalCorrectAnswers);
       return;
     } else {
       // Failed current grade - immediately drop down
       if (currentIndex <= 0) {
         // At lowest grade (K), find highest passed grade or default to K
+        console.log('At lowest grade (K), finding highest passed grade or defaulting to K');
         const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
+        console.log(`Completing assessment at grade ${highestPassedGrade}`);
         await completeAssessment(highestPassedGrade, totalQuestionsAnswered, totalCorrectAnswers);
         return;
       }
 
       // Drop to next lower grade immediately
       const lowerGrade = gradeOrder[currentIndex - 1];
+      console.log(`Dropping from grade ${assessmentState.currentGrade} to grade ${lowerGrade}`);
       await moveToGradeLevel(lowerGrade, updatedGradeCache);
     }
   };
 
   const moveToGradeLevel = async (newGrade: string, gradeCache: any) => {
     try {
+      console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade}`);
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${newGrade}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get questions for grade ${newGrade}: HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
+      
+      if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+        throw new Error(`Invalid questions received for grade ${newGrade}`);
+      }
+
+      // Clear selected answer before updating state
+      setSelectedAnswer('');
 
       setAssessmentState(prev => ({
         ...prev,
@@ -248,7 +269,8 @@ export default function MathFactsAssessmentPlayPage() {
         gradeCache: gradeCache,
         maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested
       }));
-      setSelectedAnswer('');
+      
+      console.log(`Successfully moved to grade ${newGrade} with ${data.questions.length} questions`);
     } catch (error) {
       console.error('Error getting questions for grade:', newGrade, error);
       await completeAssessment(assessmentState.currentGrade, assessmentState.totalQuestionsAnswered, assessmentState.totalCorrectAnswers);
