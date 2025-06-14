@@ -1,5 +1,5 @@
-import React from 'react';
-import { useLocation, useSearch } from 'wouter';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,16 +7,52 @@ import { CheckCircle, Trophy, Coins, Target, ArrowRight } from 'lucide-react';
 
 export default function MathFactsCompletePage() {
   const [, setLocation] = useLocation();
-  const [query, setQuery] = useSearch();
+  const [params, setParams] = useState({
+    operation: 'addition',
+    score: 0,
+    total: 6,
+    tokens: 0,
+    gradeLevel: 'K',
+    levelChanged: false,
+    levelDirection: ''
+  });
 
-  const operation = new URLSearchParams(query).get('operation') || 'addition';
-  const score = parseInt(new URLSearchParams(query).get('score') || '0');
-  const total = parseInt(new URLSearchParams(query).get('total') || '6');
-  const tokens = parseInt(new URLSearchParams(query).get('tokens') || '0');
-  const percentage = Math.round((score / total) * 100);
-  const gradeLevel = new URLSearchParams(query).get('gradeLevel') || 'K';
-  const levelChanged = new URLSearchParams(query).get('levelChanged') === 'true';
-  const levelDirection = new URLSearchParams(query).get('levelDirection');
+  useEffect(() => {
+    // Parse URL parameters from window.location.search
+    const urlParams = new URLSearchParams(window.location.search);
+    const operation = urlParams.get('operation') || 'addition';
+    const score = parseInt(urlParams.get('score') || '0');
+    const total = parseInt(urlParams.get('total') || '6');
+    const tokens = parseInt(urlParams.get('tokens') || '0');
+    const gradeLevel = urlParams.get('gradeLevel') || 'K';
+    const levelChanged = urlParams.get('levelChanged') === 'true';
+    const levelDirection = urlParams.get('levelDirection') || '';
+
+    setParams({
+      operation,
+      score,
+      total,
+      tokens,
+      gradeLevel,
+      levelChanged,
+      levelDirection
+    });
+
+    // Debug logging
+    console.log('Completion page URL params:', {
+      search: window.location.search,
+      operation,
+      score,
+      total,
+      tokens,
+      gradeLevel,
+      levelChanged,
+      levelDirection
+    });
+  }, []);
+
+  const { operation, score, total, tokens, gradeLevel, levelChanged, levelDirection } = params;
+  const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
   const getOperationDisplay = (op: string) => {
     switch (op) {
