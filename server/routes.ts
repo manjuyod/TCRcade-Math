@@ -2060,9 +2060,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { skill = "define" } = req.query;
 
+      console.log('Fractions API: questionCount =', R.questionCount); // Debug log
       const questions = Array.from({ length: R.questionCount }, (_, i) =>
         generateFractionsPuzzle(skill as any, i),
       );
+      console.log('Fractions API: Generated', questions.length, 'questions'); // Debug log
       res.json({ questions });
     } catch (error) {
       console.error("Error generating fractions questions:", error);
