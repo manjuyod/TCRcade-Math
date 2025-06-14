@@ -1918,6 +1918,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   /**
+   * Get module history count for a specific user and module
+   */
+  async getModuleHistoryCount(userId: number, moduleName: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(moduleHistory)
+      .where(and(
+        eq(moduleHistory.userId, userId),
+        eq(moduleHistory.moduleName, moduleName)
+      ));
+    
+    return result[0]?.count || 0;
+  }
+
+  /**
    * Get module history for analytics and reporting
    */
   async getModuleHistoryAnalytics(userId?: number, days?: number): Promise<ModuleHistory[]> {

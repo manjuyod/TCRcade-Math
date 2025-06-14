@@ -782,6 +782,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/module-history/count/:moduleName", ensureAuthenticated, async (req, res) => {
+    try {
+      const { moduleName } = req.params;
+      const userId = getUserId(req);
+      
+      const count = await storage.getModuleHistoryCount(userId, moduleName);
+      res.json({ count });
+    } catch (error) {
+      errorResponse(res, 500, "Failed to get module history count", error);
+    }
+  });
+
   app.get("/api/module-history/latest/:moduleName", ensureAuthenticated, async (req, res) => {
     try {
       const { moduleName } = req.params;
