@@ -1379,7 +1379,7 @@ This commit refactors the Math Facts module by adding new assessment and practic
               (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
 
             // Prepare the update with required fields
-            const userUpdate: Partial<User> = {
+            const userUpdate = {
               questionsAnswered: newQuestionsAnswered,
               correctAnswers: newCorrectAnswers,
             };
