@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { playSound } from '@/lib/sounds';
-import { AiAnalytic, ConceptMastery } from '@shared/schema';
+import { AiAnalytic } from '@shared/schema';
 import { generateCustomStudyPlanFromAnalytics } from '@/lib/analytics-helpers';
 import { 
   Loader2, 
