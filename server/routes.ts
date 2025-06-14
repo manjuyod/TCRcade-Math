@@ -1679,6 +1679,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correct === total ? DECIMAL_DEFENDER_RULES.bonusTokensOnPerfect : 0;
         const tokensEarned = baseTokens + bonusTokens;
 
+        // Calculate final score
+        const finalScore = Math.round((correct / total) * 100);
+
         // Update user tokens
         const user = await storage.getUser(userId);
         if (user) {
@@ -1686,6 +1689,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tokens: (user.tokens || 0) + tokensEarned,
             questionsAnswered: (user.questionsAnswered || 0) + total,
             correctAnswers: (user.correctAnswers || 0) + correct,
+          });
+
+          // Record module history
+          await storage.recordModuleHistory({
+            userId,
+            moduleName: `decimal_defender_${skill || 'default'}`,
+            runType: 'token_run',
+            finalScore,
+            questionsTotal: total,
+            questionsCorrect: correct,
+            timeSpentSeconds: 0, // Duration not tracked in current implementation
+            gradeLevel: user.grade || undefined,
+            tokensEarned
           });
 
           // Emit real-time token update to client
@@ -1740,11 +1756,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Math.floor(correct / 5) * R.tokensPer5 +
         (correct === total ? R.bonusPerfect : 0);
 
+      // Calculate final score
+      const finalScore = Math.round((correct / total) * 100);
+
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
           tokens: (user.tokens || 0) + tokens,
+        });
+
+        // Record module history
+        await storage.recordModuleHistory({
+          userId,
+          moduleName: 'fractions_puzzle',
+          runType: 'token_run',
+          finalScore,
+          questionsTotal: total,
+          questionsCorrect: correct,
+          timeSpentSeconds: 0, // Duration not tracked in current implementation
+          gradeLevel: user.grade || undefined,
+          tokensEarned: tokens
         });
 
         // Emit real-time token update to client
@@ -1853,11 +1885,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bonusTokens = correct === total ? 25 : 0;
       const totalTokens = baseTokens + bonusTokens;
 
+      // Calculate final score
+      const finalScore = Math.round((correct / total) * 100);
+
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
           tokens: (user.tokens || 0) + totalTokens,
+        });
+
+        // Record module history
+        await storage.recordModuleHistory({
+          userId,
+          moduleName: 'ratios_proportions',
+          runType: 'token_run',
+          finalScore,
+          questionsTotal: total,
+          questionsCorrect: correct,
+          timeSpentSeconds: 0, // Duration not tracked in current implementation
+          gradeLevel: user.grade || undefined,
+          tokensEarned: totalTokens
         });
 
         // Emit real-time token update
@@ -1935,10 +1983,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = await calculateSessionResults(userId, questions, runType);
 
+      // Record module history
+      const user = await storage.getUser(userId);
+      if (user) {
+        const questionsTotal = questions.length;
+        const questionsCorrect = questions.filter((q: any) => q.isCorrect).length;
+        const finalScore = score || Math.round((questionsCorrect / questionsTotal) * 100);
+
+        await storage.recordModuleHistory({
+          userId,
+          moduleName: 'measurement_mastery',
+          runType: runType === 'token' ? 'token_run' : 'test',
+          finalScore,
+          questionsTotal,
+          questionsCorrect,
+          timeSpentSeconds: totalTime || 0,
+          gradeLevel: user.grade || undefined,
+          tokensEarned: results.tokensEarned || 0
+        });
+      }
+
       // Emit real-time token update
       const tokenNamespace = (global as any).tokenNamespace;
       if (tokenNamespace && results.tokensEarned > 0) {
-        const user = await storage.getUser(userId);
         if (user) {
           tokenNamespace
             .to(`user_${userId}`)
@@ -2049,6 +2116,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokens: (user.tokens || 0) + tokensEarned,
           questionsAnswered: (user.questionsAnswered || 0) + totalCount,
           correctAnswers: (user.correctAnswers || 0) + correctCount,
+        });
+
+        // Record module history
+        const finalScore = Math.round(sessionScore * 100);
+        await storage.recordModuleHistory({
+          userId,
+          moduleName: 'algebra',
+          runType: runType === 'token' ? 'token_run' : 'test',
+          finalScore,
+          questionsTotal: totalCount,
+          questionsCorrect: correctCount,
+          timeSpentSeconds: totalTime || 0,
+          gradeLevel: user.grade || undefined,
+          tokensEarned
         });
 
         // Emit real-time token update
