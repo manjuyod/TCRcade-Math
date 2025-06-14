@@ -1,0 +1,103 @@
+function MathFactsAssessmentPlayPage() {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const [operation] = useRouteParam('/math-facts/:operation/assessment'); // small helper
+
+  // ➊ Reducer replaces 12 different useState calls
+  const [state, dispatch] = React.useReducer(reducer, {
+    status: 'idle',
+    currentGrade: '',
+    questions: [],
+    currentQuestionIndex: 0,
+    gradeCache: {},
+    maxGradeTested: '',
+    totalQuestionsAnswered: 0,
+    totalCorrectAnswers: 0,
+  });
+
+  /* ➋ Initialisation */
+  useEffect(() => {
+    if (!user || !operation) return;
+    dispatch({ type: 'INIT_START' });
+
+    const start = async () => {
+      const userGrade = user.grade as Grade;
+      const startGrade: Grade = ['6', '7', '8', '9', '10', '11', '12'].includes(userGrade) ? '6' : userGrade;
+      try {
+        const data = await fetchJSON(`/api/math-facts/assessment/${operation}?grade=${startGrade}`);
+        if (!Array.isArray(data.questions)) throw new Error('bad payload');
+        dispatch({ type: 'INIT_SUCCESS', grade: startGrade, questions: data.questions });
+      } catch (e) {
+        dispatch({ type: 'INIT_FAILURE', message: (e as Error).message });
+      }
+    };
+
+    start();
+  }, [user, operation]);
+
+  /* ➌ Grade-drop / grade-load effect */
+  useEffect(() => {
+    if (state.status !== 'loading' || !state.currentGrade) return;
+
+    const gradeOrder: Grade[] = ['0', '1', '2', '3', '4', '5', '6'];
+    const idx = gradeOrder.indexOf(state.currentGrade as Grade);
+    const lower = idx > 0 ? gradeOrder[idx - 1] : gradeOrder[0];
+
+    const run = async () => {
+      dispatch({ type: 'LOAD_GRADE_START', grade: lower });
+      try {
+        const data = await fetchJSON(`/api/math-facts/assessment/${operation}?grade=${lower}`);
+        dispatch({ type: 'LOAD_GRADE_SUCCESS', grade: lower, questions: data.questions });
+      } catch (e) {
+        dispatch({ type: 'LOAD_GRADE_FAILURE', message: (e as Error).message });
+      }
+    };
+
+    run();
+  }, [state.status, state.currentGrade, operation]);
+
+  /* ➍ Complete assessment once reducer flags it */
+  useEffect(() => {
+    if (state.status !== 'completing') return;
+
+    const complete = async () => {
+      try {
+        await fetch('/api/math-facts/assessment/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operation,
+            finalGrade: state.currentGrade,
+            questionsAnswered: state.totalQuestionsAnswered,
+            correctAnswers: state.totalCorrectAnswers,
+            userId: user?.id,
+          }),
+        });
+      } finally {
+        navigate(
+          `/math-facts/assessment/complete?operation=${operation}` +
+            `&grade=${state.currentGrade}` +
+            `&questionsAnswered=${state.totalQuestionsAnswered}` +
+            `&correctAnswers=${state.totalCorrectAnswers}`,
+        );
+      }
+    };
+    complete();
+  }, [state.status]);
+
+  /* ➎ Helpers */
+  const current = state.questions[state.currentQuestionIndex];
+  if (state.status === 'idle' || state.status === 'loading') return <LoadingScreen />;
+  if (state.status === 'error') return <ErrorScreen message={state.errorMessage!} />;
+
+  /* ➏ Event handler — no async/clashing state calls */
+  function submit(option: string) {
+    if (option === current.answer) {
+      dispatch({ type: 'ANSWER_CORRECT' });
+    } else {
+      dispatch({ type: 'ANSWER_WRONG' });
+    }
+  }
+
+  /* …render UI here… */
+}
