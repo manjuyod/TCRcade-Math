@@ -23,6 +23,15 @@ interface AssessmentState {
   answers: string[];
   completed: boolean;
   results: any[];
+  gradeCache: {
+    [grade: string]: {
+      questionsAnswered: number;
+      correctAnswers: number;
+      attempts: number;
+      passed: boolean;
+    };
+  };
+  maxGradeTested: string;
 }
 
 export default function MathFactsAssessmentPlayPage() {
@@ -73,7 +82,9 @@ export default function MathFactsAssessmentPlayPage() {
         currentQuestionIndex: 0,
         answers: [],
         completed: false,
-        results: []
+        results: [],
+        gradeCache: {},
+        maxGradeTested: startingGrade
       });
 
     } catch (error) {
@@ -96,20 +107,31 @@ export default function MathFactsAssessmentPlayPage() {
 
     // Check if we've completed ALL questions for this grade
     if (newQuestionIndex >= assessmentState.questions.length) {
-      // All questions answered, evaluate grade level
+      // All questions answered for this grade level, evaluate performance
       const correctCount = newAnswers.reduce((count, answer, index) => {
         return count + (answer === assessmentState.questions[index].answer ? 1 : 0);
       }, 0);
 
-      const passed = correctCount === assessmentState.questions.length;
+      // Update grade cache
+      const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        attempts: 0,
+        passed: false
+      };
 
-      if (passed) {
-        // Passed at this grade level - complete assessment
-        await completeAssessment(assessmentState.currentGrade);
-      } else {
-        // Failed - drop down a grade level
-        await dropGradeLevel();
-      }
+      const updatedGradeCache = {
+        ...assessmentState.gradeCache,
+        [assessmentState.currentGrade]: {
+          questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
+          correctAnswers: currentGradeCache.correctAnswers + correctCount,
+          attempts: currentGradeCache.attempts + 1,
+          passed: correctCount === assessmentState.questions.length
+        }
+      };
+
+      // Determine next action based on performance and cache
+      await evaluateGradeLevelProgression(updatedGradeCache, correctCount === assessmentState.questions.length);
     } else {
       // Move to next question at same grade
       setAssessmentState(prev => ({
@@ -121,17 +143,52 @@ export default function MathFactsAssessmentPlayPage() {
     }
   };
 
-  const dropGradeLevel = async () => {
+  const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean) => {
     const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
 
-    if (currentIndex <= 0) {
-      // Already at lowest grade (K), complete with K
-      await completeAssessment('K');
+    if (passedCurrentGrade) {
+      // Passed current grade - try to move up or complete
+      if (currentIndex >= gradeOrder.length - 1) {
+        // Already at highest grade, complete assessment
+        await completeAssessment(assessmentState.currentGrade);
+        return;
+      }
+
+      // Try next grade up
+      const nextGrade = gradeOrder[currentIndex + 1];
+      await moveToGradeLevel(nextGrade, updatedGradeCache);
+    } else {
+      // Failed current grade
+      const currentGradeData = updatedGradeCache[assessmentState.currentGrade];
+      
+      // Check if we should give another chance (max 2 attempts per grade)
+      if (currentGradeData.attempts < 2) {
+        // Give another chance at same grade
+        await retryCurrentGrade(updatedGradeCache);
+      } else {
+        // Failed twice, drop down or complete if at lowest
+        if (currentIndex <= 0) {
+          // At lowest grade, find highest passed grade or default to K
+          const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
+          await completeAssessment(highestPassedGrade);
+          return;
+        }
+
+        // Drop to lower grade
+        const lowerGrade = gradeOrder[currentIndex - 1];
+        await moveToGradeLevel(lowerGrade, updatedGradeCache);
+      }
+    }
+  };
+
+  const moveToGradeLevel = async (newGrade: string, gradeCache: any) => {
+    // Check if we've already tested this grade and passed
+    if (gradeCache[newGrade]?.passed) {
+      // Already passed this grade, complete assessment
+      await completeAssessment(newGrade);
       return;
     }
-
-    const newGrade = gradeOrder[currentIndex - 1];
 
     try {
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${newGrade}`);
@@ -142,13 +199,49 @@ export default function MathFactsAssessmentPlayPage() {
         currentGrade: newGrade,
         questions: data.questions,
         currentQuestionIndex: 0,
-        answers: []
+        answers: [],
+        gradeCache: gradeCache,
+        maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested
       }));
       setSelectedAnswer('');
     } catch (error) {
-      console.error('Error getting questions for lower grade:', error);
+      console.error('Error getting questions for grade:', newGrade, error);
       await completeAssessment(assessmentState.currentGrade);
     }
+  };
+
+  const retryCurrentGrade = async (gradeCache: any) => {
+    try {
+      const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${assessmentState.currentGrade}`);
+      const data = await response.json();
+
+      setAssessmentState(prev => ({
+        ...prev,
+        questions: data.questions,
+        currentQuestionIndex: 0,
+        answers: [],
+        gradeCache: gradeCache
+      }));
+      setSelectedAnswer('');
+    } catch (error) {
+      console.error('Error retrying grade:', error);
+      await completeAssessment(assessmentState.currentGrade);
+    }
+  };
+
+  const findHighestPassedGrade = (gradeCache: any): string | null => {
+    const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
+    for (let i = gradeOrder.length - 1; i >= 0; i--) {
+      if (gradeCache[gradeOrder[i]]?.passed) {
+        return gradeOrder[i];
+      }
+    }
+    return null;
+  };
+
+  const isHigherGrade = (grade1: string, grade2: string): boolean => {
+    const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
+    return gradeOrder.indexOf(grade1) > gradeOrder.indexOf(grade2);
   };
 
   const completeAssessment = async (finalGrade: string) => {
@@ -245,6 +338,14 @@ export default function MathFactsAssessmentPlayPage() {
             <div className="text-center text-sm text-gray-600">
               <p>We're finding your perfect starting level.</p>
               <p>Answer carefully - accuracy determines your grade level!</p>
+              {Object.keys(assessmentState.gradeCache).length > 0 && (
+                <div className="mt-2 text-xs">
+                  <p>Grades tested: {Object.keys(assessmentState.gradeCache).map(grade => {
+                    const cache = assessmentState.gradeCache[grade];
+                    return `${grade}(${cache.passed ? '✓' : cache.attempts > 1 ? '✗✗' : '✗'})`;
+                  }).join(', ')}</p>
+                </div>
+              )}
             </div>
           </CardContent>
 
