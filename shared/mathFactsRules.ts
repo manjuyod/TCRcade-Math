@@ -17,7 +17,7 @@
 const NUMBER_RANGES = {
   /* ---------- ADDITION ---------- */
   addition: {
-    K: { min1: 1,   max1: 5,    min2: 1,   max2: 5  },     // sums within 5
+    0: { min1: 1,   max1: 5,    min2: 1,   max2: 5  },     // sums within 5 (Kindergarten)
     1: { min1: 1,   max1: 10,   min2: 1,   max2: 10 },     // sums within 10
     2: { min1: 1,   max1: 20,   min2: 1,   max2: 20 },     // sums within 20
     3: { min1: 100, max1: 999,  min2: 100, max2: 999 },    // to 1 000
@@ -29,7 +29,7 @@ const NUMBER_RANGES = {
 
   /* ---------- SUBTRACTION ---------- */
   subtraction: {
-    K: { min2: 1,   max2: 3,    minDiff: 0,   maxDiff: 4  },
+    0: { min2: 1,   max2: 3,    minDiff: 0,   maxDiff: 4  },
     1: { min2: 1,   max2: 5,    minDiff: 0,   maxDiff: 9  },
     2: { min2: 1,   max2: 10,   minDiff: 0,   maxDiff: 19 },
     3: { min2: 1,   max2: 999,  minDiff: 0,   maxDiff: 999 },
@@ -42,7 +42,7 @@ const NUMBER_RANGES = {
   /* ---------- MULTIPLICATION ---------- */
   multiplication: {
     // K-2 multiplication = enrichment (comment out to disable)
-    K: { min1: 1, max1: 5,  min2: 1,  max2: 5  },
+    0: { min1: 1, max1: 5,  min2: 1,  max2: 5  },
     1: { min1: 1, max1: 5,  min2: 1,  max2: 5  },
     2: { min1: 1, max1: 5,  min2: 1,  max2: 5  },
     3: { min1: 1, max1: 10, min2: 1,  max2: 10 },           // facts through 10×10
@@ -55,7 +55,7 @@ const NUMBER_RANGES = {
   /* ---------- DIVISION ---------- */
   division: {
     // K-2 division = enrichment (comment out to disable)
-    K: { minDivisor: 2, maxDivisor: 5,  minQuotient: 1,  maxQuotient: 4 },
+    0: { minDivisor: 2, maxDivisor: 5,  minQuotient: 1,  maxQuotient: 4 },
     1: { minDivisor: 2, maxDivisor: 5,  minQuotient: 1,  maxQuotient: 4 },
     2: { minDivisor: 2, maxDivisor: 5,  minQuotient: 1,  maxQuotient: 4 },
     3: { minDivisor: 2, maxDivisor: 10, minQuotient: 1,  maxQuotient: 9 },      // facts within 100
@@ -105,24 +105,26 @@ export const MATH_FACTS_CONFIG = {
   PASS_THRESHOLD: 0.8,
   ATTEMPTS_TO_LEVEL_CHANGE: 4,
   MAX_GRADE_LEVEL: 6,
-  MIN_GRADE_LEVEL: 'K'
+  MIN_GRADE_LEVEL: '0'
 };
 
 export function getGradeForAssessment(userGrade: string): string {
   const gradeNum = userGrade === 'K' ? 0 : parseInt(userGrade);
   if (gradeNum >= 6) return '6';
-  if (gradeNum <= 0) return 'K';
+  if (gradeNum <= 0) return '0';  // Return '0' instead of 'K' for server compatibility
   return userGrade;
 }
 
 export function getNextGradeLevel(currentGrade: string, direction: 'up' | 'down'): string {
-  const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
-  const currentIndex = gradeOrder.indexOf(currentGrade);
+  const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
+  // Convert K to 0 for consistent handling
+  const normalizedGrade = currentGrade === 'K' ? '0' : currentGrade;
+  const currentIndex = gradeOrder.indexOf(normalizedGrade);
   
   if (direction === 'up') {
-    return currentIndex < gradeOrder.length - 1 ? gradeOrder[currentIndex + 1] : currentGrade;
+    return currentIndex < gradeOrder.length - 1 ? gradeOrder[currentIndex + 1] : normalizedGrade;
   } else {
-    return currentIndex > 0 ? gradeOrder[currentIndex - 1] : currentGrade;
+    return currentIndex > 0 ? gradeOrder[currentIndex - 1] : normalizedGrade;
   }
 }
 

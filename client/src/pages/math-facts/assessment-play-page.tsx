@@ -215,7 +215,7 @@ export default function MathFactsAssessmentPlayPage() {
   };
 
   const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number) => {
-    const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
+    const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
 
     console.log(`Evaluating progression: currentGrade=${assessmentState.currentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);
@@ -228,9 +228,9 @@ export default function MathFactsAssessmentPlayPage() {
     } else {
       // Failed current grade - immediately drop down
       if (currentIndex <= 0) {
-        // At lowest grade (K), find highest passed grade or default to K
-        console.log('At lowest grade (K), finding highest passed grade or defaulting to K');
-        const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
+        // At lowest grade (0/K), find highest passed grade or default to 0
+        console.log('At lowest grade (0/K), finding highest passed grade or defaulting to 0');
+        const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || '0';
         console.log(`Completing assessment at grade ${highestPassedGrade}`);
         await completeAssessment(highestPassedGrade, totalQuestionsAnswered, totalCorrectAnswers);
         return;
@@ -341,7 +341,7 @@ export default function MathFactsAssessmentPlayPage() {
   };
 
   const findHighestPassedGrade = (gradeCache: any): string | null => {
-    const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
+    const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
     for (let i = gradeOrder.length - 1; i >= 0; i--) {
       if (gradeCache[gradeOrder[i]]?.passed) {
         return gradeOrder[i];
@@ -351,7 +351,7 @@ export default function MathFactsAssessmentPlayPage() {
   };
 
   const isHigherGrade = (grade1: string, grade2: string): boolean => {
-    const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
+    const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
     return gradeOrder.indexOf(grade1) > gradeOrder.indexOf(grade2);
   };
 
@@ -431,7 +431,7 @@ export default function MathFactsAssessmentPlayPage() {
           <CardHeader className="text-center">
             <div className="flex justify-between items-center mb-2">
               <Badge variant="outline">Assessment</Badge>
-              <Badge variant="secondary">Grade {assessmentState.currentGrade}</Badge>
+              <Badge variant="secondary">Grade {assessmentState.currentGrade === '0' ? 'K' : assessmentState.currentGrade}</Badge>
             </div>
             <CardTitle className="text-2xl font-bold">
               {getOperationDisplay(operation)} Skills Test
