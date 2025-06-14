@@ -401,14 +401,14 @@ export default function ModulesPage() {
       return;
     }
 
-    // For Math Facts modules, navigate to dedicated play pages
+    // For Math Facts modules, navigate to loading page which handles assessment flow
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')
       const operation = module.id.split('-').pop() || 'addition';
       console.log(`Loading Math Facts with grade=${user?.grade || 'K'}, operation=${operation}`);
 
-      // Navigate to the dedicated play page for this operation
-      setLocation(`/math-facts/${operation}/play`);
+      // Navigate to the loading page which will check if assessment is needed
+      setLocation(`/math-facts/${operation}/loading`);
       return;
     }
 
