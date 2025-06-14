@@ -527,6 +527,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { operation } = req.params;
       const { grade } = req.query;
 
+      console.log(`Math Facts Assessment: operation=${operation}, grade=${grade}`);
+
       if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
         return res.status(400).json({ error: "Invalid operation" });
       }
@@ -536,12 +538,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { generateAssessmentQuestions } = await import("./modules/mathFacts");
+      console.log(`Generating assessment questions for ${operation} grade ${grade}`);
+      
       const questions = generateAssessmentQuestions(
         operation as any,
         grade as string,
         2 // Always 2 questions per grade in assessment
       );
 
+      console.log(`Generated ${questions.length} assessment questions`);
       res.json({ questions });
     } catch (error) {
       console.error("Math Facts assessment questions error:", error);

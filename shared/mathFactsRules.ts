@@ -210,8 +210,11 @@ export function generateMathFactQuestion(
   // Generate wrong answer options
   const correctAnswer = parseInt(answer);
   const wrongOptions = new Set<number>();
+  let attempts = 0;
+  const maxAttempts = 50; // Prevent infinite loops
 
-  while (wrongOptions.size < 3) {
+  while (wrongOptions.size < 3 && attempts < maxAttempts) {
+    attempts++;
     let wrongAnswer: number;
     const variance = Math.max(1, Math.floor(correctAnswer * 0.2));
 
@@ -223,6 +226,14 @@ export function generateMathFactQuestion(
 
     if (wrongAnswer !== correctAnswer && wrongAnswer >= 0) {
       wrongOptions.add(wrongAnswer);
+    }
+  }
+
+  // If we couldn't generate enough wrong options, use fallback values
+  while (wrongOptions.size < 3) {
+    const fallback = correctAnswer + wrongOptions.size + 1;
+    if (fallback !== correctAnswer) {
+      wrongOptions.add(fallback);
     }
   }
 
