@@ -51,6 +51,8 @@ export default function AdditionPlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionAnswers, setSessionAnswers] = useState<any[]>([]);
+  const [preloadedQuestions, setPreloadedQuestions] = useState<any[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 
@@ -73,18 +75,48 @@ export default function AdditionPlayPage() {
     moduleName: "Math Facts Addition",
   });
 
-  // Load initial question
+  // Load pre-loaded questions from sessionStorage
   useEffect(() => {
-    loadNextQuestion();
+    loadPreloadedQuestions();
   }, []);
 
+  const loadPreloadedQuestions = () => {
+    try {
+      const questionsData = sessionStorage.getItem('mathFactsQuestions');
+      const operation = sessionStorage.getItem('mathFactsOperation');
+      
+      if (questionsData && operation === 'addition') {
+        const questions = JSON.parse(questionsData);
+        setPreloadedQuestions(questions);
+        
+        if (questions.length > 0) {
+          setCurrentQuestion(questions[0]);
+          setCurrentQuestionIndex(0);
+          setIsLoading(false);
+          console.log(`Loaded ${questions.length} pre-loaded addition questions`);
+        } else {
+          throw new Error('No questions found in sessionStorage');
+        }
+      } else {
+        throw new Error('No pre-loaded questions found');
+      }
+    } catch (error) {
+      console.error('Error loading pre-loaded questions:', error);
+      // Fallback to single question loading
+      loadNextQuestion();
+    }
+  };
+
   const loadNextQuestion = async () => {
-    if (!user?.grade) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      const grade = user.grade;
+      // Get grade level from hidden_grade_asset for addition_facts module
+      const hiddenGradeAsset = user.hiddenGradeAsset as any;
+      const additionModule = hiddenGradeAsset?.modules?.addition_facts;
+      const grade = additionModule?.grade_level || user.grade || 'K';
       const operation = 'addition';
 
       // Clear question cache for fresh questions
@@ -177,8 +209,16 @@ export default function AdditionPlayPage() {
         });
       }
     } else {
-      // Load next question immediately (feedback delay is handled in QuestionCard)
-      loadNextQuestion();
+      // Move to next pre-loaded question or load new one if needed
+      if (preloadedQuestions.length > 0 && currentQuestionIndex + 1 < preloadedQuestions.length) {
+        const nextIndex = currentQuestionIndex + 1;
+        setCurrentQuestionIndex(nextIndex);
+        setCurrentQuestion(preloadedQuestions[nextIndex]);
+        console.log(`Moving to pre-loaded question ${nextIndex + 1}/${preloadedQuestions.length}`);
+      } else {
+        // Fallback to loading new question if no more pre-loaded ones
+        loadNextQuestion();
+      }
     }
 
     setIsSubmitting(false);

@@ -79,12 +79,15 @@ export default function DivisionPlayPage() {
   }, []);
 
   const loadNextQuestion = async () => {
-    if (!user?.grade) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      const grade = user.grade;
+      // Get grade level from hidden_grade_asset for division_facts module
+      const hiddenGradeAsset = user.hiddenGradeAsset as any;
+      const divisionModule = hiddenGradeAsset?.modules?.division_facts;
+      const grade = divisionModule?.grade_level || user.grade || 'K';
       const operation = 'division';
 
       // Clear question cache for fresh questions

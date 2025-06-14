@@ -79,12 +79,15 @@ export default function MultiplicationPlayPage() {
   }, []);
 
   const loadNextQuestion = async () => {
-    if (!user?.grade) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      const grade = user.grade;
+      // Get grade level from hidden_grade_asset for multiplication_facts module
+      const hiddenGradeAsset = user.hiddenGradeAsset as any;
+      const multiplicationModule = hiddenGradeAsset?.modules?.multiplication_facts;
+      const grade = multiplicationModule?.grade_level || user.grade || 'K';
       const operation = 'multiplication';
 
       // Clear question cache for fresh questions

@@ -79,12 +79,15 @@ export default function SubtractionPlayPage() {
   }, []);
 
   const loadNextQuestion = async () => {
-    if (!user?.grade) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      const grade = user.grade;
+      // Get grade level from hidden_grade_asset for subtraction_facts module
+      const hiddenGradeAsset = user.hiddenGradeAsset as any;
+      const subtractionModule = hiddenGradeAsset?.modules?.subtraction_facts;
+      const grade = subtractionModule?.grade_level || user.grade || 'K';
       const operation = 'subtraction';
 
       // Clear question cache for fresh questions
