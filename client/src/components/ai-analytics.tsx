@@ -86,6 +86,63 @@ export default function AiAnalytics() {
   const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
   const recentProgress = analyticsData?.analytics?.recentProgress || [];
   
+  // Extract concept mastery data from user's hiddenGradeAsset for weighted calculations
+  const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || [];
+  const moduleData = user?.hiddenGradeAsset?.modules || {};
+  
+  // Calculate weighted concept mastery scores
+  const calculateConceptMasteryScore = (concept: any) => {
+    const accuracy = concept.accuracy || 0;
+    const attempts = concept.attempts || 1;
+    const correctAnswers = concept.correctAnswers || 0;
+    const masteryFlag = concept.mastery || false;
+    
+    // Weighted calculation:
+    // - Accuracy: 40% weight
+    // - Consistency (correct/attempts ratio): 30% weight  
+    // - Attempt volume (normalized): 20% weight
+    // - Mastery flag: 10% weight (as specified)
+    
+    const accuracyScore = accuracy * 0.40;
+    const consistencyScore = (correctAnswers / Math.max(attempts, 1)) * 0.30;
+    const volumeScore = Math.min(attempts / 10, 1) * 0.20; // Normalize to max 10 attempts
+    const masteryScore = masteryFlag ? 0.10 : 0;
+    
+    return Math.round((accuracyScore + consistencyScore + volumeScore + masteryScore) * 100);
+  };
+  
+  // Process module data to extract concept insights
+  const processModuleConceptData = () => {
+    const conceptInsights: any[] = [];
+    
+    Object.entries(moduleData).forEach(([moduleName, moduleInfo]: [string, any]) => {
+      if (moduleInfo?.progress) {
+        const progress = moduleInfo.progress;
+        const concepts = progress.concepts || [];
+        
+        concepts.forEach((concept: any) => {
+          const masteryScore = calculateConceptMasteryScore(concept);
+          
+          conceptInsights.push({
+            module: moduleName,
+            concept: concept.name || concept.concept || 'Unknown',
+            accuracy: concept.accuracy || 0,
+            attempts: concept.attempts || 0,
+            correctAnswers: concept.correctAnswers || 0,
+            mastery: concept.mastery || false,
+            masteryScore,
+            lastAttempt: concept.lastAttempt || null,
+            trend: concept.trend || 'stable'
+          });
+        });
+      }
+    });
+    
+    return conceptInsights.sort((a, b) => b.masteryScore - a.masteryScore);
+  };
+  
+  const conceptInsights = processModuleConceptData();
+  
   // Generate new analytics
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerateAnalytics = async () => {
@@ -259,14 +316,18 @@ export default function AiAnalytics() {
       
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">
               <LineChart className="h-4 w-4 mr-2" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="concepts">
+              <Brain className="h-4 w-4 mr-2" />
+              Concept Mastery
+            </TabsTrigger>
             <TabsTrigger value="mastery">
               <Star className="h-4 w-4 mr-2" />
-              Mastery
+              Progress
             </TabsTrigger>
             <TabsTrigger value="recommendations">
               <Lightbulb className="h-4 w-4 mr-2" />
@@ -454,6 +515,219 @@ export default function AiAnalytics() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Concept Mastery Tab */}
+          <TabsContent value="concepts" className="pt-4">
+            {conceptInsights.length > 0 ? (
+              <div className="space-y-6">
+                {/* Mastery Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <Award className="h-4 w-4 mr-2 text-yellow-500" />
+                        Mastered Concepts
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-green-600">
+                        {conceptInsights.filter(c => c.masteryScore >= 80).length}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        Score ≥ 80%
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-blue-500" />
+                        In Progress
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-blue-600">
+                        {conceptInsights.filter(c => c.masteryScore >= 50 && c.masteryScore < 80).length}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        Score 50-79%
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center">
+                        <Target className="h-4 w-4 mr-2 text-red-500" />
+                        Need Practice
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-red-600">
+                        {conceptInsights.filter(c => c.masteryScore < 50).length}
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        Score &lt; 50%
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Concept Mastery Grid */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Brain className="h-5 w-5 mr-2 text-primary" />
+                      Detailed Concept Analysis
+                    </CardTitle>
+                    <CardDescription>
+                      Weighted mastery scores based on accuracy (40%), consistency (30%), practice volume (20%), and mastery flag (10%)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {conceptInsights.map((concept, index) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold capitalize">
+                                {concept.concept.replace(/_/g, ' ')}
+                              </h4>
+                              <p className="text-sm text-muted-foreground capitalize">
+                                {concept.module.replace(/_/g, ' ')}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-2xl font-bold ${
+                                concept.masteryScore >= 80 ? 'text-green-600' :
+                                concept.masteryScore >= 50 ? 'text-blue-600' : 'text-red-600'
+                              }`}>
+                                {concept.masteryScore}%
+                              </div>
+                              {concept.mastery && (
+                                <Badge variant="secondary" className="mt-1">
+                                  <Star className="h-3 w-3 mr-1" />
+                                  Mastered
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <Progress 
+                            value={concept.masteryScore} 
+                            className="h-2"
+                          />
+
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Accuracy:</span>
+                                <span className="font-medium">{Math.round(concept.accuracy)}%</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Attempts:</span>
+                                <span className="font-medium">{concept.attempts}</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Correct:</span>
+                                <span className="font-medium">{concept.correctAnswers}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Trend:</span>
+                                <span className={`font-medium ${
+                                  concept.trend === 'improving' ? 'text-green-600' :
+                                  concept.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                  {concept.trend === 'improving' ? '↗️' : 
+                                   concept.trend === 'declining' ? '↘️' : '→'} {concept.trend}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Module Performance Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BarChart className="h-5 w-5 mr-2 text-primary" />
+                      Module Performance Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {Object.entries(
+                        conceptInsights.reduce((acc: any, concept) => {
+                          if (!acc[concept.module]) {
+                            acc[concept.module] = {
+                              concepts: [],
+                              avgScore: 0,
+                              mastered: 0,
+                              total: 0
+                            };
+                          }
+                          acc[concept.module].concepts.push(concept);
+                          acc[concept.module].total += 1;
+                          if (concept.masteryScore >= 80) acc[concept.module].mastered += 1;
+                          return acc;
+                        }, {})
+                      ).map(([module, data]: [string, any]) => {
+                        const avgScore = Math.round(
+                          data.concepts.reduce((sum: number, c: any) => sum + c.masteryScore, 0) / data.concepts.length
+                        );
+                        
+                        return (
+                          <div key={module} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="font-semibold capitalize">
+                                {module.replace(/_/g, ' ')}
+                              </h4>
+                              <div className="text-right">
+                                <div className={`text-xl font-bold ${
+                                  avgScore >= 80 ? 'text-green-600' :
+                                  avgScore >= 50 ? 'text-blue-600' : 'text-red-600'
+                                }`}>
+                                  {avgScore}%
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {data.mastered}/{data.total} mastered
+                                </p>
+                              </div>
+                            </div>
+                            <Progress value={avgScore} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Concept Data Available</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Complete some learning activities to see your concept mastery analysis.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    The system tracks your performance across different math concepts and calculates weighted mastery scores.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Progress/Mastery Tab (renamed from original Mastery) */}
+          <TabsContent value="mastery" className="pt-4">
             
             {/* Analytics Card 3 - Strengths */}
             <Card className="mb-4">
