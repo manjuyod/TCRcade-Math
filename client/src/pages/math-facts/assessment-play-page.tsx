@@ -259,6 +259,16 @@ export default function MathFactsAssessmentPlayPage() {
       const data = await response.json();
       console.log(`API Response for grade ${newGrade}:`, data);
       
+      // Special handling for grade K
+      if (newGrade === 'K') {
+        console.log('🔍 Grade K Response Details:', {
+          hasQuestions: !!data.questions,
+          questionsType: typeof data.questions,
+          questionsLength: data.questions?.length,
+          fullResponse: JSON.stringify(data)
+        });
+      }
+      
       if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
         console.error(`Invalid questions data for grade ${newGrade}:`, data);
         throw new Error(`Invalid questions received for grade ${newGrade} - got ${data.questions?.length || 0} questions`);
@@ -267,15 +277,23 @@ export default function MathFactsAssessmentPlayPage() {
       // Clear selected answer before updating state
       setSelectedAnswer('');
 
-      setAssessmentState(prev => ({
-        ...prev,
-        currentGrade: newGrade,
-        questions: data.questions,
-        currentQuestionIndex: 0,
-        answers: [],
-        gradeCache: gradeCache,
-        maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested
-      }));
+      console.log(`🔄 STATE TRANSITION: Moving from ${assessmentState.currentGrade} to ${newGrade}`);
+      console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map(q => q.question));
+
+      setAssessmentState(prev => {
+        const newState = {
+          ...prev,
+          currentGrade: newGrade,
+          questions: data.questions,
+          currentQuestionIndex: 0,
+          answers: [],
+          gradeCache: gradeCache,
+          maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested
+        };
+        
+        console.log(`✅ STATE UPDATED: Now at grade ${newState.currentGrade}, showing question: ${newState.questions[0]?.question}`);
+        return newState;
+      });
       
       console.log(`Successfully moved to grade ${newGrade} with ${data.questions.length} questions`);
     } catch (error) {
