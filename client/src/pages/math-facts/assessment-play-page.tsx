@@ -169,7 +169,7 @@ export default function MathFactsAssessmentPlayPage() {
       };
 
       // Drop to lower grade immediately after recording the wrong answer
-      await evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers);
+      await evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers, assessmentState.currentGrade);
       return;
     }
 
@@ -209,21 +209,22 @@ export default function MathFactsAssessmentPlayPage() {
       };
 
       // Complete assessment at this grade since we got 100%
-      await evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers);
+      await evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers, assessmentState.currentGrade);
     }
     // If there are more questions and the answer was correct, continue with next question
   };
 
-  const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number) => {
+  const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number, currentGradeOverride?: string) => {
     const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
-    const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
+    const actualCurrentGrade = currentGradeOverride || assessmentState.currentGrade;
+    const currentIndex = gradeOrder.indexOf(actualCurrentGrade);
 
-    console.log(`Evaluating progression: currentGrade=${assessmentState.currentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);
+    console.log(`Evaluating progression: currentGrade=${actualCurrentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);
 
     if (passedCurrentGrade) {
       // Passed current grade - this is their final assessed level
-      console.log(`Assessment passed at grade ${assessmentState.currentGrade} - completing assessment`);
-      await completeAssessment(assessmentState.currentGrade, totalQuestionsAnswered, totalCorrectAnswers);
+      console.log(`Assessment passed at grade ${actualCurrentGrade} - completing assessment`);
+      await completeAssessment(actualCurrentGrade, totalQuestionsAnswered, totalCorrectAnswers);
       return;
     } else {
       // Failed current grade - immediately drop down
@@ -238,7 +239,7 @@ export default function MathFactsAssessmentPlayPage() {
 
       // Drop to next lower grade immediately
       const lowerGrade = gradeOrder[currentIndex - 1];
-      console.log(`Dropping from grade ${assessmentState.currentGrade} to grade ${lowerGrade}`);
+      console.log(`Dropping from grade ${actualCurrentGrade} to grade ${lowerGrade}`);
       await moveToGradeLevel(lowerGrade, updatedGradeCache);
     }
   };
