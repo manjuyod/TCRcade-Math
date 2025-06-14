@@ -260,27 +260,37 @@ export default function MathFactsAssessmentPlayPage() {
       
       const response = await fetch(url);
       
+      console.log(`📡 API Response status for grade ${newGrade}:`, response.status, response.statusText);
+      
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        console.error(`API Error for grade ${newGrade}:`, response.status, errorText);
+        console.error(`API Error for grade ${newGrade}:`, response.status, response.statusText, errorText);
         throw new Error(`Failed to get questions for grade ${newGrade}: HTTP ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log(`API Response for grade ${newGrade}:`, data);
+      console.log(`📋 Full API Response for grade ${newGrade}:`, JSON.stringify(data, null, 2));
       
-      // Special handling for grade K
-      if (newGrade === 'K') {
-        console.log('🔍 Grade K Response Details:', {
+      // Special handling for grade K/0
+      if (newGrade === 'K' || newGrade === '0') {
+        console.log(`🔍 Grade ${newGrade} Response Details:`, {
           hasQuestions: !!data.questions,
           questionsType: typeof data.questions,
           questionsLength: data.questions?.length,
           firstQuestion: data.questions?.[0]?.question,
+          allQuestions: data.questions?.map(q => q.question),
           fullResponse: JSON.stringify(data)
         });
         
+        // Validate the questions more thoroughly
+        if (data.questions && Array.isArray(data.questions)) {
+          data.questions.forEach((q, index) => {
+            console.log(`   Question ${index + 1}: "${q.question}" (Answer: ${q.answer})`);
+          });
+        }
+        
         // Force a small delay to ensure state update completes
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       
       if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
@@ -293,6 +303,10 @@ export default function MathFactsAssessmentPlayPage() {
 
       console.log(`🔄 STATE TRANSITION: Moving from ${assessmentState.currentGrade} to ${newGrade}`);
       console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map(q => q.question));
+      console.log(`🎯 Pre-update state:`, {
+        currentGrade: assessmentState.currentGrade,
+        currentQuestion: assessmentState.questions[assessmentState.currentQuestionIndex]?.question
+      });
 
       setAssessmentState(prev => {
         const newState = {
@@ -306,12 +320,24 @@ export default function MathFactsAssessmentPlayPage() {
         };
         
         console.log(`✅ STATE UPDATED: Now at grade ${newState.currentGrade}, showing question: ${newState.questions[0]?.question}`);
+        console.log(`🎯 Post-update validation:`, {
+          newGrade: newState.currentGrade,
+          questionsCount: newState.questions.length,
+          currentIndex: newState.currentQuestionIndex,
+          firstQuestion: newState.questions[0]?.question,
+          firstAnswer: newState.questions[0]?.answer
+        });
         
         // Reset transition attempts on successful state update
         setTransitionAttempts(0);
         
         return newState;
       });
+      
+      // Add a post-state-update check
+      setTimeout(() => {
+        console.log(`🔍 Post-setState verification: currentGrade should be ${newGrade}, actually is ${assessmentState.currentGrade}`);
+      }, 100);
       
       console.log(`Successfully moved to grade ${newGrade} with ${data.questions.length} questions`);
     } catch (error) {
