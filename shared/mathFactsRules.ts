@@ -1,4 +1,3 @@
-
 /**
  * Math Facts Module Configuration
  * Handles pure algorithmic generation of math fact questions
@@ -96,6 +95,44 @@ export interface MathFactsProgress {
   last_session_date?: string;
 }
 
+/**
+ * Math Facts Rules - Shared configuration and logic
+ */
+
+/**
+ * Convert grade to numeric value with K = 0
+ */
+export function normalizeGrade(grade: string | number): number {
+  if (typeof grade === 'number') return grade;
+  if (grade === 'K' || grade === 'k') return 0;
+  const parsed = parseInt(grade);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Convert numeric grade back to string with 0 = K
+ */
+export function gradeToString(grade: number): string {
+  if (grade === 0) return 'K';
+  return grade.toString();
+}
+
+/**
+ * Get next grade level for progression
+ */
+export function getNextGradeLevel(currentGrade: string | number, direction: 'up' | 'down'): string {
+  const normalized = normalizeGrade(currentGrade);
+  let newGrade = normalized;
+
+  if (direction === 'up') {
+    newGrade = Math.min(6, normalized + 1); // Cap at grade 6
+  } else {
+    newGrade = Math.max(0, normalized - 1); // Floor at K (0)
+  }
+
+  return gradeToString(newGrade);
+}
+
 export const MATH_FACTS_CONFIG = {
   ASSESSMENT_QUESTIONS_PER_GRADE: 2,
   PRACTICE_QUESTIONS_PER_SESSION: 6,
@@ -115,26 +152,13 @@ export function getGradeForAssessment(userGrade: string): string {
   return userGrade;
 }
 
-export function getNextGradeLevel(currentGrade: string, direction: 'up' | 'down'): string {
-  const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
-  // Convert K to 0 for consistent handling
-  const normalizedGrade = currentGrade === 'K' ? '0' : currentGrade;
-  const currentIndex = gradeOrder.indexOf(normalizedGrade);
-  
-  if (direction === 'up') {
-    return currentIndex < gradeOrder.length - 1 ? gradeOrder[currentIndex + 1] : normalizedGrade;
-  } else {
-    return currentIndex > 0 ? gradeOrder[currentIndex - 1] : normalizedGrade;
-  }
-}
-
 export function generateMathFactQuestion(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
   gradeLevel: string
 ): MathFactQuestion {
   const ranges = NUMBER_RANGES[operation];
   const range = ranges[gradeLevel as keyof typeof ranges] || ranges.default;
-  
+
   let question: string;
   let answer: string;
   let num1: number, num2: number, result: number;
@@ -180,17 +204,17 @@ export function generateMathFactQuestion(
   // Generate wrong answer options
   const correctAnswer = parseInt(answer);
   const wrongOptions = new Set<number>();
-  
+
   while (wrongOptions.size < 3) {
     let wrongAnswer: number;
     const variance = Math.max(1, Math.floor(correctAnswer * 0.2));
-    
+
     if (Math.random() < 0.5) {
       wrongAnswer = correctAnswer + Math.floor(Math.random() * variance) + 1;
     } else {
       wrongAnswer = Math.max(0, correctAnswer - Math.floor(Math.random() * variance) - 1);
     }
-    
+
     if (wrongAnswer !== correctAnswer && wrongAnswer >= 0) {
       wrongOptions.add(wrongAnswer);
     }

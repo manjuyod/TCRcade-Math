@@ -550,7 +550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { operation, finalGrade, questionsAnswered, correctAnswers, userId } = req.body;
 
-        if (!operation || !finalGrade || !userId) {
+        if (!operation || finalGrade === undefined || !userId) {
           return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -559,6 +559,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Import grade conversion functions
+      const { normalizeGrade, gradeToString } = await import("../shared/mathFactsRules");
+      
+      // Normalize the final grade to ensure K=0 conversion
+      const normalizedGrade = normalizeGrade(finalGrade);
+      const gradeString = gradeToString(normalizedGrade);
+
       // Update user's hidden grade asset
       const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
       const modules = hiddenGradeAsset.modules || {};
@@ -566,10 +573,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       modules[operationKey] = {
           ...modules[operationKey],
+          grade_level: normalizedGrade, // Store as number with K=0
           progress: {
             ...modules[operationKey]?.progress,
             test_taken: true,
-            grade_level: finalGrade,
+            grade_level: normalizedGrade, // Store as number with K=0
             attempt_good: 0,
             attempt_bad: 0,
             tokens_earned: (modules[operationKey]?.progress?.tokens_earned || 0) + 15,
@@ -598,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         questionsCorrect: correctAnswers, // Assessment questions answered to determine grade
         timeSpentSeconds: 0, // Assessment doesn't track time
         difficultyLevel: 1,
-        gradeLevel: finalGrade,
+        gradeLevel: gradeString, // Store as string for module history
         tokensEarned: 15
       });
 
@@ -606,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         message: "Assessment completed successfully",
         tokensEarned: 15,
-        gradeLevel: finalGrade
+        gradeLevel: gradeString
       });
 
     } catch (error) {
@@ -649,6 +657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const operationKey = `${operation}_facts`;
       const currentProgress = modules[operationKey]?.progress || {};
 
+      // Import grade conversion functions
+      const { normalizeGrade, gradeToString, getNextGradeLevel } = await import("../shared/mathFactsRules");
+
       // Grade level management using new logic
       const levelChangeResult = determineGradeLevelChange(
         currentProgress.attempt_good || 0,
@@ -656,11 +667,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionResult.passed
       );
 
-      let currentGradeLevel = currentProgress.grade_level || user.grade;
+      let currentGradeLevel = currentProgress.grade_level !== undefined ? currentProgress.grade_level : normalizeGrade(user.grade || 'K');
       if (levelChangeResult.shouldChangeLevel && levelChangeResult.direction) {
-        const newGrade = getNextGradeLevel(currentGradeLevel, levelChangeResult.direction);
-        if (newGrade !== currentGradeLevel) {
-          currentGradeLevel = newGrade;
+        const newGradeString = getNextGradeLevel(currentGradeLevel, levelChangeResult.direction);
+        const newGradeNum = normalizeGrade(newGradeString);
+        if (newGradeNum !== currentGradeLevel) {
+          currentGradeLevel = newGradeNum;
         }
       }
 
@@ -3173,15 +3185,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use the math facts generation module instead of database lookup
-      const { generateQuestionsForSession } = await import("./modules/mathFacts");
+      const { generateQuestionsForSession, normalizeGrade } = await import("./modules/mathFacts");
       
       if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
         return res.status(400).json({ message: `Invalid operation: ${operation}` });
       }
 
+      // Normalize grade to handle K=0 and validate range
+      const normalizedGrade = normalizeGrade(grade as string);
+      if (normalizedGrade > 6) {
+        return res.status(400).json({ message: `Invalid grade: ${grade}. Must be K-6` });
+      }
+
       const questions = generateQuestionsForSession(
         operation as 'addition' | 'subtraction' | 'multiplication' | 'division',
-        grade as string,
+        normalizedGrade,
         1
       );
 
