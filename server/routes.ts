@@ -3172,27 +3172,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required parameters: grade and operation' });
       }
 
-      // Get category ID for the operation
-      const categoryMap: { [key: string]: number } = {
-        'addition': 1,
-        'subtraction': 2,
-        'multiplication': 3,
-        'division': 4
-      };
-
-      const categoryId = categoryMap[operation as string];
-
-      if (!categoryId) {
+      // Use the math facts generation module instead of database lookup
+      const { generateQuestionsForSession } = await import("./modules/mathFacts");
+      
+      if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
         return res.status(400).json({ message: `Invalid operation: ${operation}` });
       }
 
-      const question = await storage.getQuestion(categoryId, grade as string, []);
+      const questions = generateQuestionsForSession(
+        operation as 'addition' | 'subtraction' | 'multiplication' | 'division',
+        grade as string,
+        1
+      );
 
-      if (!question) {
+      if (!questions || questions.length === 0) {
         return res.status(404).json({ message: 'No questions found for the specified criteria' });
       }
 
-      res.json(question);
+      res.json(questions[0]);
     } catch (error) {
       console.error('Error fetching math facts question:', error);
       res.status(500).json({ message: 'Failed to fetch question' });
