@@ -19,6 +19,16 @@ export default function MathFactsAssessmentCompletePage() {
   const correctAnswers = parseInt(searchParams.get('correctAnswers') || '0');
   const tokensEarned = parseInt(searchParams.get('tokensEarned') || '15');
   const isAllComplete = searchParams.get('allComplete') === 'true';
+  
+  console.log('📄 Assessment Complete Page - Received URL params:', {
+    searchString,
+    operation,
+    grade,
+    questionsAnswered,
+    correctAnswers,
+    tokensEarned,
+    allSearchParams: Object.fromEntries(searchParams.entries())
+  });
 
 
 

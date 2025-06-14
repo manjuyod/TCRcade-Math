@@ -407,6 +407,14 @@ export default function MathFactsAssessmentPlayPage() {
       const questionsAnswered = totalQuestions || assessmentState.totalQuestionsAnswered;
       const correctAnswers = totalCorrect || assessmentState.totalCorrectAnswers;
       
+      console.log('🚀 Starting assessment completion:', {
+        finalGrade,
+        questionsAnswered,
+        correctAnswers,
+        operation,
+        userId: user?.id
+      });
+      
       const response = await fetch('/api/math-facts/assessment/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -419,12 +427,20 @@ export default function MathFactsAssessmentPlayPage() {
         })
       });
 
+      console.log('📡 Assessment completion response:', response.status, response.statusText);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Assessment completion data:', data);
         const tokensEarned = data.tokensEarned || 15;
-
-        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`);
+        
+        const navigationUrl = `/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`;
+        
+        console.log('🔗 Navigating to:', navigationUrl);
+        setLocation(navigationUrl);
       } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Assessment completion failed:', response.status, errorData);
         throw new Error('Failed to save assessment results');
       }
     } catch (error) {
