@@ -51,6 +51,8 @@ export default function DivisionPlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionAnswers, setSessionAnswers] = useState<any[]>([]);
+  const [preloadedQuestions, setPreloadedQuestions] = useState<Question[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 

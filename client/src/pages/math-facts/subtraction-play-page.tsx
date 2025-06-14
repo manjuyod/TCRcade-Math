@@ -24,18 +24,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface Question {
-  id: number;
-  question: {
-    text: string;
-    style: any;
-    isFlashcard: boolean;
-  };
+  id: string;
+  question: string;
   answer: string;
   options: string[];
-  grade: string;
-  difficulty: number;
-  category: string;
-  concepts: string[];
+  operation: string;
+  gradeLevel: number;
 }
 
 export default function SubtractionPlayPage() {
@@ -51,6 +45,8 @@ export default function SubtractionPlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [sessionAnswers, setSessionAnswers] = useState<any[]>([]);
+  const [preloadedQuestions, setPreloadedQuestions] = useState<Question[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const { elapsedTime, progressPercentage } = useSessionTimer();
 
