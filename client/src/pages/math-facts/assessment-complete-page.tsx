@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 export default function MathFactsAssessmentCompletePage() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { refreshUser } = useAuth();
+  const { user } = useAuth();
   const [match, params] = useRoute('/math-facts/:operation/assessment/complete');
   
   const searchParams = new URLSearchParams(searchString);
@@ -21,32 +21,11 @@ export default function MathFactsAssessmentCompletePage() {
   const tokensEarned = parseInt(searchParams.get('tokensEarned') || '15');
   const isAllComplete = searchParams.get('allComplete') === 'true';
   
-  console.log('📄 Assessment Complete Page - Received URL params:', {
-    searchString,
-    operation,
-    grade,
-    questionsAnswered,
-    correctAnswers,
-    tokensEarned,
-    allSearchParams: Object.fromEntries(searchParams.entries())
-  });
-  
-  // Force display the actual data in browser console
-  console.error('🚨 ASSESSMENT COMPLETE PAGE DATA:', {
-    searchString,
-    operation,
-    grade,
-    questionsAnswered,
-    correctAnswers,
-    tokensEarned
-  });
 
 
 
-  useEffect(() => {
-    // Refresh user data to get updated assessment status
-    refreshUser();
-  }, [refreshUser]);
+
+
 
   const getOperationDisplay = (op: string) => {
     switch (op) {
