@@ -318,7 +318,7 @@ export default function AiAnalytics() {
       
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">
               <LineChart className="h-4 w-4 mr-2" />
               Overview
@@ -326,10 +326,6 @@ export default function AiAnalytics() {
             <TabsTrigger value="concepts">
               <Brain className="h-4 w-4 mr-2" />
               Concept Mastery
-            </TabsTrigger>
-            <TabsTrigger value="mastery">
-              <Star className="h-4 w-4 mr-2" />
-              Progress
             </TabsTrigger>
             <TabsTrigger value="recommendations">
               <Lightbulb className="h-4 w-4 mr-2" />
@@ -517,6 +513,101 @@ export default function AiAnalytics() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Strengths and Areas for Improvement */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Star className="h-4 w-4 mr-2 text-green-600" />
+                    Your Strengths
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {(analytics.strengthConcepts || []).length > 0 ? (
+                      [...new Set(analytics.strengthConcepts || [])].map((strength, index) => (
+                        <Badge key={index} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
+                          {strength}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-sm">
+                        Complete more questions to identify your strengths.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
+                    Areas for Improvement
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {(() => {
+                      const strengthConcepts = analytics.strengthConcepts || [];
+                      const filteredWeaknesses = (analytics.weaknessConcepts || []).filter(
+                        concept => !strengthConcepts.includes(concept)
+                      );
+                      return filteredWeaknesses.length > 0 ? (
+                        filteredWeaknesses.map((weakness, index) => (
+                          <Badge key={index} variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">
+                            {weakness}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm">
+                          Complete more questions to identify areas for improvement.
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Progress Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <LineChart className="h-4 w-4 mr-2 text-primary" />
+                  Recent Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentProgress && recentProgress.length > 0 ? (
+                  <div className="h-64">
+                    <div className="relative h-full flex items-end">
+                      {recentProgress.map((entry, index) => (
+                        <div 
+                          key={index} 
+                          className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
+                          style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
+                        >
+                          <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
+                            <div className="font-medium">{entry.date}</div>
+                            <div className="text-primary">{entry.score} points</div>
+                            <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
+                          </div>
+                          <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-4">
+                    <p className="text-muted-foreground">
+                      Not enough data to display progress chart yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Concept Mastery Tab */}
@@ -728,104 +819,7 @@ export default function AiAnalytics() {
             )}
           </TabsContent>
 
-          {/* Progress/Mastery Tab (renamed from original Mastery) */}
-          <TabsContent value="mastery" className="pt-4">
-            
-            {/* Analytics Card 3 - Strengths */}
-            <Card className="mb-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Star className="h-4 w-4 mr-2 text-primary" />
-                  Your Strengths
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {(analytics.strengthConcepts || []).length > 0 ? (
-                    [...new Set(analytics.strengthConcepts || [])].map((strength, index) => (
-                      <Badge key={index} variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
-                        {strength}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Complete more questions to identify your strengths.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Analytics Card 4 - Areas for Improvement */}
-            <Card className="mb-4">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <TrendingDown className="h-4 w-4 mr-2 text-primary" />
-                  Areas for Improvement
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    const strengthConcepts = analytics.strengthConcepts || [];
-                    const filteredWeaknesses = (analytics.weaknessConcepts || []).filter(
-                      concept => !strengthConcepts.includes(concept)
-                    );
-                    return filteredWeaknesses.length > 0 ? (
-                      filteredWeaknesses.map((weakness, index) => (
-                        <Badge key={index} variant="outline" className="bg-red-50 text-red-700 hover:bg-red-100">
-                          {weakness}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-sm">
-                        Complete more questions to identify areas for improvement.
-                      </p>
-                    );
-                  })()}
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Analytics Card 5 - Recent Progress Chart */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <LineChart className="h-4 w-4 mr-2 text-primary" />
-                  Recent Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentProgress && recentProgress.length > 0 ? (
-                  <div className="h-64">
-                    {/* Placeholder for chart - would use Recharts in a real implementation */}
-                    <div className="relative h-full flex items-end">
-                      {recentProgress.map((entry, index) => (
-                        <div 
-                          key={index} 
-                          className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
-                          style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
-                        >
-                          <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
-                            <div className="font-medium">{entry.date}</div>
-                            <div className="text-primary">{entry.score} points</div>
-                            <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
-                          </div>
-                          <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center p-4">
-                    <p className="text-muted-foreground">
-                      Not enough data to display progress chart yet.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+
           
 
           
