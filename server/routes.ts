@@ -37,9 +37,12 @@ import { getModuleGradeLevel } from "./utils/module-grade-extractor";
  * Import the efficient, deterministic math facts module
  */
 import {
-  getNextMathFact,
-  generateFallbackWordProblem,
-  MathOperation,
+  generateQuestionsForSession,
+  generateAssessmentQuestions,
+  calculateSessionScore,
+  determineGradeLevelChange,
+  runAssessmentForOperation,
+  validateMathFactAnswer,
 } from "./modules/mathFacts";
 
 /**
@@ -949,8 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       errorResponse(res, 500, "Failed to fetch user progress", error);
     }
-  });```tool_code
-This commit refactors the Math Facts module by adding new assessment and practice routes, and session completion logic.
+  });
   // Helper function to calculate percentile
   function calculatePercentile(value: number, allValues: number[]): number {
     if (allValues.length === 0) return 50;
