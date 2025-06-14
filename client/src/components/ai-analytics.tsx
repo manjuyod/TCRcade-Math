@@ -86,7 +86,34 @@ export default function AiAnalytics() {
   // Extract the nested analytics data
   const analytics = analyticsData?.analytics?.analytics;
   const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
-  const recentProgress = analyticsData?.analytics?.recentProgress || [];
+  // Process recent progress data - aggregate by day
+  const processRecentProgress = (rawProgress: any[]) => {
+    if (!rawProgress || rawProgress.length === 0) return [];
+    
+    // Group by date and aggregate
+    const dailyData = rawProgress.reduce((acc: any, entry: any) => {
+      const date = entry.date;
+      if (!acc[date]) {
+        acc[date] = {
+          date,
+          totalScore: 0,
+          totalQuestions: 0,
+          sessions: 0
+        };
+      }
+      acc[date].totalScore += entry.score || 0;
+      acc[date].totalQuestions += entry.questionsAnswered || 0;
+      acc[date].sessions += 1;
+      return acc;
+    }, {});
+    
+    // Convert to array and sort by date
+    return Object.values(dailyData)
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7); // Show last 7 days
+  };
+
+  const recentProgress = processRecentProgress(analyticsData?.analytics?.recentProgress || []);
   
   // Extract concept mastery data from user's hiddenGradeAsset for weighted calculations
   const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || [];
@@ -401,7 +428,7 @@ export default function AiAnalytics() {
             </div>
 
             {/* Recent Progress and Module Performance Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
               {/* Recent Progress Chart */}
               <Card>
                 <CardHeader className="pb-2">
@@ -413,21 +440,30 @@ export default function AiAnalytics() {
                 <CardContent>
                   {recentProgress && recentProgress.length > 0 ? (
                     <div className="h-64">
-                      <div className="relative h-full flex items-end">
-                        {recentProgress.map((entry, index) => (
+                      <div className="relative h-full flex items-end pb-8">
+                        {recentProgress.map((entry: any, index: number) => (
                           <div 
                             key={index} 
                             className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
-                            style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
+                            style={{ height: `${Math.max(15, Math.min(100, (entry.totalScore / 20) * 100))}%` }}
                           >
-                            <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
-                              <div className="font-medium">{entry.date}</div>
-                              <div className="text-primary">{entry.score} points</div>
-                              <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
+                            <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-32 text-center z-10">
+                              <div className="font-medium">{new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                              <div className="text-primary">{entry.totalScore} points</div>
+                              <div className="text-xs text-muted-foreground">{entry.totalQuestions} questions</div>
+                              <div className="text-xs text-muted-foreground">{entry.sessions} sessions</div>
                             </div>
                             <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
+                            {/* Date labels on x-axis */}
+                            <div className="absolute top-full mt-1 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
+                              {new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                            </div>
                           </div>
                         ))}
+                      </div>
+                      {/* X-axis title */}
+                      <div className="text-center mt-2">
+                        <p className="text-xs text-muted-foreground font-medium">Daily Progress (Last 7 Days)</p>
                       </div>
                     </div>
                   ) : (
@@ -450,35 +486,35 @@ export default function AiAnalytics() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="relative">
+                    <div className="relative min-h-[280px]">
                       <div className="overflow-hidden">
                         <div className="flex transition-transform duration-300 ease-in-out" id="module-carousel">
                           {analytics.modulePerformance.map((module: any, index: number) => (
-                            <div key={index} className="w-full flex-shrink-0 px-2">
-                              <div className="border rounded-lg p-4 h-64">
-                                <h4 className="font-semibold mb-4 text-center capitalize text-lg">
+                            <div key={index} className="w-full flex-shrink-0 px-3">
+                              <div className="border rounded-lg p-6 min-h-[240px] bg-card">
+                                <h4 className="font-semibold mb-6 text-center capitalize text-lg text-primary">
                                   {module.moduleName.replace(/-/g, ' ').replace(/_/g, ' ')}
                                 </h4>
-                                <div className="space-y-3">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Average Score:</span>
-                                    <span className="font-medium">{Math.round(module.averageScore)}%</span>
+                                <div className="space-y-4">
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Average Score:</span>
+                                    <span className="font-medium text-base">{Math.round(module.averageScore)}%</span>
                                   </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span>Accuracy:</span>
-                                    <span className="font-medium">{Math.round(module.accuracy)}%</span>
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Accuracy:</span>
+                                    <span className="font-medium text-base">{Math.round(module.accuracy)}%</span>
                                   </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span>Sessions:</span>
-                                    <span className="font-medium">{module.sessionCount}</span>
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Sessions:</span>
+                                    <span className="font-medium text-base">{module.sessionCount}</span>
                                   </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span>Trend:</span>
-                                    <span className={`font-medium ${
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Trend:</span>
+                                    <span className={`font-medium text-base ${
                                       module.trend === 'improving' ? 'text-green-600' :
                                       module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
                                     }`}>
-                                      {module.trend === 'improving' ? '↗️' : module.trend === 'declining' ? '↘️' : '→'} {module.trend}
+                                      {module.trend === 'improving' ? '↗' : module.trend === 'declining' ? '↘' : '→'} {module.trend}
                                     </span>
                                   </div>
                                 </div>
@@ -490,7 +526,7 @@ export default function AiAnalytics() {
                       
                       {/* Navigation buttons */}
                       {analytics.modulePerformance.length > 1 && (
-                        <div className="flex justify-center mt-4 space-x-2">
+                        <div className="flex justify-center mt-4 space-x-3">
                           <Button
                             variant="outline"
                             size="sm"
@@ -504,7 +540,7 @@ export default function AiAnalytics() {
                                 carousel.style.transform = `translateX(${newTranslate}%)`;
                               }
                             }}
-                            className="h-8 w-8 p-0"
+                            className="h-9 w-9 p-0"
                           >
                             <ChevronUp className="h-4 w-4 rotate-[-90deg]" />
                           </Button>
@@ -522,10 +558,25 @@ export default function AiAnalytics() {
                                 carousel.style.transform = `translateX(${newTranslate}%)`;
                               }
                             }}
-                            className="h-8 w-8 p-0"
+                            className="h-9 w-9 p-0"
                           >
                             <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
                           </Button>
+                        </div>
+                      )}
+                      
+                      {/* Indicator dots */}
+                      {analytics.modulePerformance.length > 1 && (
+                        <div className="flex justify-center mt-3 space-x-1">
+                          {analytics.modulePerformance.map((_: any, index: number) => (
+                            <div 
+                              key={index} 
+                              className="w-2 h-2 rounded-full bg-muted transition-colors duration-200"
+                              style={{
+                                backgroundColor: index === 0 ? 'hsl(var(--primary))' : undefined
+                              }}
+                            />
+                          ))}
                         </div>
                       )}
                     </div>
