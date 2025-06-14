@@ -1,0 +1,173 @@
+
+# Completion Percentage Logic Refactor - Agent Implementation Prompt
+
+## Project Context
+**Stack**: React TS (client) + Node Express TS (server) + Drizzle ORM + PostgreSQL  
+**Module**: Progress Completion Percentage Calculation System  
+**Goal**: Refactor completion percentage calculations for specific modules to use lesson-based and grade-level progression
+
+## Current State Analysis
+The current completion percentage calculation in `server/utils/data-sync.ts` uses a generic session-based approach:
+- Sessions completed × 20% (5 sessions = 100%)
+- Mastery level bonus (minimum 80%)
+
+## New Requirements
+
+### 1. Measurement Module Completion
+**Source**: `questions_measurementAndData` table  
+**Logic**: Position-based completion using lesson progression
+```sql
+SELECT "GradeLevel", "Lesson"
+FROM "questions_measurementAndData"
+ORDER BY "GradeLevel" ASC, "Lesson" ASC
+```
+- Get total count of unique GradeLevel+Lesson combinations (n)
+- Find user's current position based on `users.hiddenGradeAsset.modules.measurement.grade_level` and `lesson`
+- Completion = `(position / n) * 100`
+
+### 2. Pre-Algebra Module Completion  
+**Source**: `questions_algebra` table (assumed)  
+**Logic**: Same position-based approach as measurement
+```sql
+SELECT "GradeLevel", "Lesson"
+FROM "questions_algebra"
+ORDER BY "GradeLevel" ASC, "Lesson" ASC
+```
+- Get total count of unique GradeLevel+Lesson combinations (n)
+- Find user's current position based on `users.hiddenGradeAsset.modules.algebra.grade_level` and `lesson`
+- Completion = `(position / n) * 100`
+
+### 3. Math Facts Modules Completion
+**Modules**: `addition_facts`, `subtraction_facts`, `multiplication_facts`, `division_facts`  
+**Logic**: Grade-level based completion
+- Source: `users.hiddenGradeAsset.modules.[module_name].grade_level`
+- Completion = `(grade_level / 12) * 100`
+- Maximum grade level is 12, representing 100% completion
+
+### 4. Unchanged Modules
+Keep existing logic for:
+- `ratios_proportions`
+- `fractions_puzzle` 
+- `decimal_defender`
+- `math_rush`
+
+## Implementation Tasks
+
+### Task 1: Update Data Sync Utility
+**File**: `server/utils/data-sync.ts`
+- Modify `calculateModuleCompletion()` function
+- Add module-specific completion calculation logic
+- Implement database queries for lesson progression
+- Handle edge cases (user hasn't started, invalid data)
+
+### Task 2: Database Query Functions
+**File**: `server/utils/data-sync.ts` or new utility file
+- Create `getMeasurementLessonProgression()` function
+- Create `getAlgebraLessonProgression()` function
+- Implement efficient caching for lesson counts
+- Add error handling for missing tables
+
+### Task 3: Progress API Integration
+**File**: `server/routes.ts`
+- Update `/api/progress` endpoint to use new completion logic
+- Ensure backward compatibility
+- Add validation for module types
+- Test with existing user data
+
+### Task 4: Frontend Compatibility
+**File**: `client/src/pages/profile-page.tsx`
+- Verify progress display works with new percentages
+- Update any hardcoded assumptions about completion ranges
+- Test progress bars and visual indicators
+
+## Technical Specifications
+
+### Database Queries Required
+```typescript
+// Get lesson progression for measurement
+const measurementLessons = await db.execute(sql`
+  SELECT DISTINCT "GradeLevel", "Lesson"
+  FROM "questions_measurementAndData"
+  ORDER BY "GradeLevel" ASC, "Lesson" ASC
+`);
+
+// Get lesson progression for algebra
+const algebraLessons = await db.execute(sql`
+  SELECT DISTINCT "GradeLevel", "Lesson"
+  FROM "questions_algebra"
+  ORDER BY "GradeLevel" ASC, "Lesson" ASC
+`);
+```
+
+### Completion Calculation Logic
+```typescript
+function calculateModuleCompletion(moduleKey: string, moduleProgress: any): number {
+  switch (moduleKey) {
+    case 'measurement':
+      return calculateLessonBasedCompletion('questions_measurementAndData', moduleProgress);
+    
+    case 'algebra':
+      return calculateLessonBasedCompletion('questions_algebra', moduleProgress);
+    
+    case 'addition_facts':
+    case 'subtraction_facts':
+    case 'multiplication_facts':
+    case 'division_facts':
+      return calculateGradeLevelCompletion(moduleProgress);
+    
+    case 'ratios_proportions':
+    case 'fractions_puzzle':
+    case 'decimal_defender':
+    case 'math_rush':
+    default:
+      return calculateSessionBasedCompletion(moduleProgress); // Keep existing logic
+  }
+}
+```
+
+### Error Handling Requirements
+- Handle missing database tables gracefully
+- Default to 0% completion for invalid data
+- Log warnings for unexpected module configurations
+- Provide fallback to session-based calculation if needed
+
+## Testing Protocol
+
+### Unit Tests
+1. Test lesson progression queries return correct order
+2. Validate completion percentage calculations
+3. Test edge cases (grade 0, lesson 0, missing data)
+4. Verify math facts grade-level calculations
+
+### Integration Tests
+1. Test `/api/progress` endpoint with new logic
+2. Verify profile page displays updated percentages
+3. Test with real user data across all modules
+4. Confirm backward compatibility
+
+### Performance Tests
+1. Measure query execution time for lesson progression
+2. Test with large datasets (1000+ lessons)
+3. Verify caching effectiveness
+4. Monitor API response times
+
+## Success Criteria
+- ✅ Measurement module uses lesson-based progression (position/total)
+- ✅ Pre-algebra module uses lesson-based progression (position/total)
+- ✅ Math facts modules use grade-level progression (grade/12)
+- ✅ Other modules maintain existing logic
+- ✅ All progress percentages display correctly in UI
+- ✅ API response time remains under 2 seconds
+- ✅ Backward compatibility maintained for existing users
+- ✅ Error handling prevents crashes for edge cases
+
+## Implementation Notes
+- Cache lesson progression counts for performance
+- Use prepared statements for database queries
+- Consider creating a module configuration registry
+- Add logging for completion calculation changes
+- Document the new logic for future maintenance
+
+---
+
+**Execute this refactor to implement the new completion percentage logic while maintaining system stability and performance.**

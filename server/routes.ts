@@ -691,22 +691,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Module progress
-      Object.entries(modules).forEach(([moduleKey, moduleData]: [string, any]) => {
+      // Module progress - now with async completion calculation
+      const moduleProgressPromises = Object.entries(modules).map(async ([moduleKey, moduleData]: [string, any]) => {
         if (moduleData && moduleData.progress) {
           const moduleProgress = moduleData.progress;
-          progress.push({
+          const completion = await calculateModuleCompletion(moduleKey, moduleProgress);
+          return {
             category: moduleKey,
             label: getCategoryLabel(moduleKey),
             score: moduleProgress.tokens_earned || 0,
-            completion: calculateModuleCompletion(moduleProgress),
+            completion,
             questionsAnswered: moduleProgress.total_questions_answered || 0,
             correctAnswers: moduleProgress.correct_answers || 0,
             accuracy: calculateModuleAccuracy(moduleProgress),
             moduleData: moduleProgress
-          });
+          };
         }
+        return null;
       });
+
+      const moduleProgressResults = await Promise.all(moduleProgressPromises);
+      const validModuleProgress = moduleProgressResults.filter(item => item !== null);
+      progress.push(...validModuleProgress);
 
       res.json({
         progress,

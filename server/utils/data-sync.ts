@@ -1,5 +1,7 @@
 import { storage } from '../storage';
 import { User } from '@shared/schema';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 export async function syncUserProgressData(userId: number): Promise<void> {
   const user = await storage.getUser(userId);
@@ -107,7 +109,77 @@ export function getCategoryLabel(moduleKey: string): string {
   return categoryLabels[moduleKey] || moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1);
 }
 
-export function calculateModuleCompletion(moduleProgress: any): number {
+// Cache for lesson progression data to improve performance
+const lessonProgressionCache = new Map<string, any[]>();
+
+async function getLessonProgression(tableName: string): Promise<any[]> {
+  if (lessonProgressionCache.has(tableName)) {
+    return lessonProgressionCache.get(tableName)!;
+  }
+  
+  try {
+    const result = await db.execute(sql`
+      SELECT DISTINCT "GradeLevel", "Lesson"
+      FROM ${sql.identifier(tableName)}
+      ORDER BY "GradeLevel" ASC, "Lesson" ASC
+    `);
+    
+    const progression = result.rows;
+    lessonProgressionCache.set(tableName, progression);
+    return progression;
+  } catch (error) {
+    console.warn(`Failed to get lesson progression for ${tableName}:`, error);
+    return [];
+  }
+}
+
+async function calculateLessonBasedCompletion(tableName: string, moduleProgress: any): Promise<number> {
+  try {
+    const progression = await getLessonProgression(tableName);
+    if (progression.length === 0) {
+      return calculateSessionBasedCompletion(moduleProgress); // Fallback to session-based
+    }
+    
+    const userGradeLevel = moduleProgress.grade_level || 0;
+    const userLesson = moduleProgress.lesson || 0;
+    
+    if (userGradeLevel === 0 || userLesson === 0) {
+      return 0; // User hasn't started
+    }
+    
+    // Find user's position in the progression
+    let userPosition = 0;
+    for (let i = 0; i < progression.length; i++) {
+      const item = progression[i];
+      if (item.GradeLevel < userGradeLevel || 
+          (item.GradeLevel === userGradeLevel && item.Lesson <= userLesson)) {
+        userPosition = i + 1;
+      } else {
+        break;
+      }
+    }
+    
+    const completionPercentage = (userPosition / progression.length) * 100;
+    return Math.round(Math.min(100, completionPercentage));
+  } catch (error) {
+    console.warn(`Error calculating lesson-based completion for ${tableName}:`, error);
+    return calculateSessionBasedCompletion(moduleProgress); // Fallback
+  }
+}
+
+function calculateGradeLevelCompletion(moduleProgress: any): number {
+  const userGradeLevel = moduleProgress.grade_level || 0;
+  const maxGradeLevel = 12; // Maximum grade level representing 100% completion
+  
+  if (userGradeLevel <= 0) {
+    return 0;
+  }
+  
+  const completionPercentage = (userGradeLevel / maxGradeLevel) * 100;
+  return Math.round(Math.min(100, completionPercentage));
+}
+
+function calculateSessionBasedCompletion(moduleProgress: any): number {
   let completionPercentage = 0;
   
   if (moduleProgress.sessions_completed) {
@@ -119,6 +191,30 @@ export function calculateModuleCompletion(moduleProgress: any): number {
   }
   
   return Math.round(completionPercentage);
+}
+
+export async function calculateModuleCompletion(moduleKey: string, moduleProgress: any): Promise<number> {
+  switch (moduleKey) {
+    case 'measurement':
+      return await calculateLessonBasedCompletion('questions_measurementAndData', moduleProgress);
+    
+    case 'algebra':
+      return await calculateLessonBasedCompletion('questions_algebra', moduleProgress);
+    
+    case 'addition_facts':
+    case 'subtraction_facts':
+    case 'multiplication_facts':
+    case 'division_facts':
+      return calculateGradeLevelCompletion(moduleProgress);
+    
+    case 'ratios_proportions':
+    case 'fractions_puzzle':
+    case 'decimal_defender':
+    case 'math_rush':
+    case 'word_race':
+    default:
+      return calculateSessionBasedCompletion(moduleProgress); // Keep existing logic
+  }
 }
 
 export function calculateModuleAccuracy(moduleProgress: any): number {
