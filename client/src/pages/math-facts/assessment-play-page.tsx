@@ -53,6 +53,7 @@ export default function MathFactsAssessmentPlayPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
+  const [transitionAttempts, setTransitionAttempts] = useState(0);
 
   useEffect(() => {
     if (user && operation) {
@@ -244,7 +245,16 @@ export default function MathFactsAssessmentPlayPage() {
 
   const moveToGradeLevel = async (newGrade: string, gradeCache: any) => {
     try {
-      console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade}`);
+      // Prevent infinite loops
+      if (transitionAttempts >= 5) {
+        console.error('Too many transition attempts, completing assessment');
+        await completeAssessment(assessmentState.currentGrade, assessmentState.totalQuestionsAnswered, assessmentState.totalCorrectAnswers);
+        return;
+      }
+      
+      setTransitionAttempts(prev => prev + 1);
+      
+      console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade} (attempt ${transitionAttempts + 1})`);
       const url = `/api/math-facts/assessment/${operation}?grade=${newGrade}`;
       console.log(`Fetching questions from: ${url}`);
       
@@ -265,8 +275,12 @@ export default function MathFactsAssessmentPlayPage() {
           hasQuestions: !!data.questions,
           questionsType: typeof data.questions,
           questionsLength: data.questions?.length,
+          firstQuestion: data.questions?.[0]?.question,
           fullResponse: JSON.stringify(data)
         });
+        
+        // Force a small delay to ensure state update completes
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
@@ -292,6 +306,10 @@ export default function MathFactsAssessmentPlayPage() {
         };
         
         console.log(`✅ STATE UPDATED: Now at grade ${newState.currentGrade}, showing question: ${newState.questions[0]?.question}`);
+        
+        // Reset transition attempts on successful state update
+        setTransitionAttempts(0);
+        
         return newState;
       });
       
