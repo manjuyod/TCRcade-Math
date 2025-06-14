@@ -26,7 +26,9 @@ import {
   ChevronDown,
   BookOpen,
   RotateCw,
-  Lightbulb
+  Lightbulb,
+  Award,
+  Target
 } from 'lucide-react';
 
 // Study plan generator has been moved to a separate file to fix Fast Refresh issues
