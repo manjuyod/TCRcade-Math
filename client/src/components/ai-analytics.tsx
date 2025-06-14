@@ -39,6 +39,7 @@ export default function AiAnalytics() {
   const [activeTab, setActiveTab] = useState('overview');
   const [customStudyPlan, setCustomStudyPlan] = useState<string[]>([]);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
   
   // Fetch user's AI analytics
   const { 
@@ -610,6 +611,7 @@ export default function AiAnalytics() {
                                 const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
                                 const newTranslate = Math.min(0, current + 100);
                                 carousel.style.transform = `translateX(${newTranslate}%)`;
+                                setCurrentModuleIndex(Math.max(0, currentModuleIndex - 1));
                               }
                             }}
                             className="h-9 w-9 p-0"
@@ -628,6 +630,7 @@ export default function AiAnalytics() {
                                 const maxTranslate = -(analytics.modulePerformance.length - 1) * 100;
                                 const newTranslate = Math.max(maxTranslate, current - 100);
                                 carousel.style.transform = `translateX(${newTranslate}%)`;
+                                setCurrentModuleIndex(Math.min(analytics.modulePerformance.length - 1, currentModuleIndex + 1));
                               }
                             }}
                             className="h-9 w-9 p-0"
@@ -645,7 +648,7 @@ export default function AiAnalytics() {
                               key={index} 
                               className="w-2 h-2 rounded-full bg-muted transition-colors duration-200"
                               style={{
-                                backgroundColor: index === 0 ? 'hsl(var(--primary))' : undefined
+                                backgroundColor: index === currentModuleIndex ? 'hsl(var(--primary))' : undefined
                               }}
                             />
                           ))}
