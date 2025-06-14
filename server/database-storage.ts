@@ -8,7 +8,8 @@ import {
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
   leaderboard, type Leaderboard,
-  moduleHistory, type ModuleHistory
+  moduleHistory, type ModuleHistory,
+  conceptMastery, subjectMastery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
