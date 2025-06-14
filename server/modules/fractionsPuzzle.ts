@@ -1,13 +1,38 @@
 import { FRACTIONS_PUZZLE_RULES as R } from "../../shared/fractionsPuzzleRules";
 
-export type Fraction = { num: number; den: number };           // always den>0
+export type Fraction = { num: number; den: number }; // always den>0
 
 export type FPQuestion =
-  | { kind: "define";        bar: Fraction; colorIndex: number; answer: string }
-  | { kind: "simplify";      frac: Fraction; gcd?: number; answer: string; level: number }
-  | { kind: "equivalent";    frac: Fraction; options: string[]; answerSet: string[]; answer: string; level: number }
-  | { kind: "addSub";        left: Fraction; right: Fraction; op: "+"|"-"; answer: string }
-  | { kind: "mulDiv";        left: Fraction; right: Fraction; op: "×"|"÷"; answer: string }
+  | { kind: "define"; bar: Fraction; colorIndex: number; answer: string }
+  | {
+      kind: "simplify";
+      frac: Fraction;
+      gcd?: number;
+      answer: string;
+      level: number;
+    }
+  | {
+      kind: "equivalent";
+      frac: Fraction;
+      options: string[];
+      answerSet: string[];
+      answer: string;
+      level: number;
+    }
+  | {
+      kind: "addSub";
+      left: Fraction;
+      right: Fraction;
+      op: "+" | "-";
+      answer: string;
+    }
+  | {
+      kind: "mulDiv";
+      left: Fraction;
+      right: Fraction;
+      op: "×" | "÷";
+      answer: string;
+    }
   | { kind: "mixedImproper"; given: string; answer: string };
 
 // Utility functions
@@ -48,49 +73,56 @@ function parseToMixed(improper: Fraction): string {
 }
 
 function parseMixedToImproper(mixed: string): Fraction {
-  const parts = mixed.trim().split(' ');
+  const parts = mixed.trim().split(" ");
   if (parts.length === 1) {
     // Just a fraction like "7/3"
-    const [num, den] = parts[0].split('/').map(Number);
+    const [num, den] = parts[0].split("/").map(Number);
     return { num, den };
   } else {
     // Mixed number like "2 1/3"
     const whole = parseInt(parts[0]);
-    const [fracNum, fracDen] = parts[1].split('/').map(Number);
+    const [fracNum, fracDen] = parts[1].split("/").map(Number);
     return { num: whole * fracDen + fracNum, den: fracDen };
   }
 }
 
 export function generateFractionsPuzzle(
-  skill: typeof R.skills[number],
-  idx: number
+  skill: (typeof R.skills)[number],
+  idx: number,
 ): FPQuestion {
-  const levelIndex = Math.min(4, Math.floor(idx / 4));
+  const levelIndex = Math.min(4, Math.floor(idx / 2));
   const level = R.levels[levelIndex];
-  
+
   switch (skill) {
     case "define": {
       const den = randInt(level.minDen, level.maxDen);
-      const maxNum = ('properOnly' in level) ? Math.min(level.maxNum, den - 1) : level.maxNum;
+      const maxNum =
+        "properOnly" in level ? Math.min(level.maxNum, den - 1) : level.maxNum;
       const num = randInt(1, maxNum);
       const colorIndex = randInt(0, R.colors.length - 1);
       return {
         kind: "define",
         bar: { num, den },
         colorIndex,
-        answer: fractionToString({ num, den })
+        answer: fractionToString({ num, den }),
       };
     }
 
     case "simplify": {
       // Generate a non-simplified fraction
       let baseDen = randInt(level.minDen, level.maxDen);
-      let maxNum = ('properOnly' in level) ? Math.min(level.maxNum, baseDen - 1) : level.maxNum;
+      let maxNum =
+        "properOnly" in level
+          ? Math.min(level.maxNum, baseDen - 1)
+          : level.maxNum;
       let baseNum = randInt(1, maxNum);
-      const multiplier = randInt(2, Math.min(4, Math.floor(level.maxDen / baseDen)));
+      const multiplier = randInt(
+        2,
+        Math.min(4, Math.floor(level.maxDen / baseDen)),
+      );
       const frac = { num: baseNum * multiplier, den: baseDen * multiplier };
       const simplified = simplify(frac);
-      
+
       // Levels 1-2: Include GCD for step-by-step simplification
       // Levels 3+: Direct simplification only
       if (levelIndex <= 1) {
@@ -100,14 +132,14 @@ export function generateFractionsPuzzle(
           frac,
           gcd: gcdValue,
           answer: fractionToString(simplified),
-          level: levelIndex
+          level: levelIndex,
         };
       } else {
         return {
           kind: "simplify",
           frac,
           answer: fractionToString(simplified),
-          level: levelIndex
+          level: levelIndex,
         };
       }
     }
@@ -118,7 +150,7 @@ export function generateFractionsPuzzle(
         const baseDen = randInt(2, level.maxDen);
         const baseNum = randInt(1, baseDen - 1);
         const baseFrac = { num: baseNum, den: baseDen };
-        
+
         if (levelIndex === 0) {
           // Level 1: generate equivalent by multiplying both by same factor
           const solvingForNumerator = Math.random() < 0.5;
@@ -133,7 +165,7 @@ export function generateFractionsPuzzle(
               options: [`${baseNum}/${baseDen} = ?/${newDen}`],
               answerSet: [answer.toString()],
               answer: answer.toString(),
-              level: levelIndex
+              level: levelIndex,
             };
           } else {
             // Solve for denominator: a/b = c/x where c = a * factor
@@ -146,7 +178,7 @@ export function generateFractionsPuzzle(
               options: [`${baseNum}/${baseDen} = ${newNum}/?`],
               answerSet: [answer.toString()],
               answer: answer.toString(),
-              level: levelIndex
+              level: levelIndex,
             };
           }
         } else {
@@ -157,7 +189,7 @@ export function generateFractionsPuzzle(
             options: [`${baseNum}/${baseDen} = FRACTION_INPUT`],
             answerSet: [],
             answer: "Any equivalent fraction",
-            level: levelIndex
+            level: levelIndex,
           };
         }
       } else {
@@ -165,18 +197,21 @@ export function generateFractionsPuzzle(
         const baseDen = randInt(2, level.maxDen);
         const baseNum = randInt(1, baseDen - 1);
         const baseFrac = { num: baseNum, den: baseDen };
-        
+
         const correctOptions = new Set<string>();
         const allOptions: string[] = [];
-        
+
         // Add 1-2 correct equivalents
         for (let i = 0; i < 2; i++) {
           const multiplier = randInt(2, 4);
-          const equiv = fractionToString({ num: baseNum * multiplier, den: baseDen * multiplier });
+          const equiv = fractionToString({
+            num: baseNum * multiplier,
+            den: baseDen * multiplier,
+          });
           correctOptions.add(equiv);
           allOptions.push(equiv);
         }
-        
+
         // Add 2-3 incorrect options
         while (allOptions.length < 4) {
           const wrongNum = randInt(1, level.maxDen);
@@ -186,20 +221,20 @@ export function generateFractionsPuzzle(
             allOptions.push(wrong);
           }
         }
-        
+
         // Shuffle options
         for (let i = allOptions.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
         }
-        
+
         return {
           kind: "equivalent",
           frac: baseFrac,
           options: allOptions,
           answerSet: Array.from(correctOptions),
           answer: Array.from(correctOptions).join(", "),
-          level: levelIndex
+          level: levelIndex,
         };
       }
     }
@@ -209,36 +244,40 @@ export function generateFractionsPuzzle(
       const den2 = randInt(2, level.maxDen);
       const num1 = randInt(1, den1 - 1);
       const num2 = randInt(1, den2 - 1);
-      
+
       const left = { num: num1, den: den1 };
       const right = { num: num2, den: den2 };
       const op = Math.random() < 0.5 ? "+" : "-";
-      
+
       const commonDen = lcm(den1, den2);
       const leftAdj = { num: num1 * (commonDen / den1), den: commonDen };
       const rightAdj = { num: num2 * (commonDen / den2), den: commonDen };
-      
-      const resultNum = op === "+" ? leftAdj.num + rightAdj.num : leftAdj.num - rightAdj.num;
-      
+
+      const resultNum =
+        op === "+" ? leftAdj.num + rightAdj.num : leftAdj.num - rightAdj.num;
+
       if (resultNum <= 0) {
         // Retry with addition to avoid negative results
-        const resultFrac = simplify({ num: leftAdj.num + rightAdj.num, den: commonDen });
+        const resultFrac = simplify({
+          num: leftAdj.num + rightAdj.num,
+          den: commonDen,
+        });
         return {
           kind: "addSub",
           left,
           right,
           op: "+",
-          answer: fractionToString(resultFrac)
+          answer: fractionToString(resultFrac),
         };
       }
-      
+
       const resultFrac = simplify({ num: resultNum, den: commonDen });
       return {
         kind: "addSub",
         left,
         right,
         op,
-        answer: fractionToString(resultFrac)
+        answer: fractionToString(resultFrac),
       };
     }
 
@@ -247,11 +286,11 @@ export function generateFractionsPuzzle(
       const den2 = randInt(2, level.maxDen);
       const num1 = randInt(1, den1 - 1);
       const num2 = randInt(1, den2 - 1);
-      
+
       const left = { num: num1, den: den1 };
       const right = { num: num2, den: den2 };
       const op = Math.random() < 0.5 ? "×" : "÷";
-      
+
       let resultFrac: Fraction;
       if (op === "×") {
         resultFrac = simplify({ num: num1 * num2, den: den1 * den2 });
@@ -259,13 +298,13 @@ export function generateFractionsPuzzle(
         // Division: multiply by reciprocal
         resultFrac = simplify({ num: num1 * den2, den: den1 * num2 });
       }
-      
+
       return {
         kind: "mulDiv",
         left,
         right,
         op,
-        answer: fractionToString(resultFrac)
+        answer: fractionToString(resultFrac),
       };
     }
 
@@ -277,11 +316,11 @@ export function generateFractionsPuzzle(
         const num = randInt(1, den - 1);
         const mixed = `${whole} ${num}/${den}`;
         const improper = { num: whole * den + num, den };
-        
+
         return {
           kind: "mixedImproper",
           given: mixed,
-          answer: fractionToString(improper)
+          answer: fractionToString(improper),
         };
       } else {
         // Given improper, find mixed
@@ -290,11 +329,11 @@ export function generateFractionsPuzzle(
         const extra = randInt(1, den - 1);
         const improper = { num: whole * den + extra, den };
         const mixed = parseToMixed(improper);
-        
+
         return {
           kind: "mixedImproper",
           given: fractionToString(improper),
-          answer: mixed
+          answer: mixed,
         };
       }
     }
