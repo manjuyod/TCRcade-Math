@@ -63,6 +63,19 @@ export default function MathFactsAssessmentPlayPage() {
 
     try {
       setIsLoading(true);
+      
+      // Reset all state completely before starting
+      setAssessmentState({
+        currentGrade: '',
+        questions: [],
+        currentQuestionIndex: 0,
+        answers: [],
+        completed: false,
+        results: [],
+        gradeCache: {},
+        maxGradeTested: ''
+      });
+      setSelectedAnswer('');
 
       // Determine starting grade
       const userGrade = user.grade;
@@ -70,10 +83,16 @@ export default function MathFactsAssessmentPlayPage() {
 
       // Generate initial questions
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${startingGrade}`);
-      const data = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate assessment questions');
+        const data = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(data.error || `HTTP ${response.status}: Failed to generate assessment questions`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+        throw new Error('Invalid assessment data received from server');
       }
 
       setAssessmentState({
@@ -89,6 +108,8 @@ export default function MathFactsAssessmentPlayPage() {
 
     } catch (error) {
       console.error('Error initializing assessment:', error);
+      // Show user-friendly error and redirect
+      alert('Failed to load assessment. Redirecting to modules page.');
       setLocation('/modules');
     } finally {
       setIsLoading(false);
@@ -294,6 +315,21 @@ export default function MathFactsAssessmentPlayPage() {
             <div className="text-lg font-medium">Loading Assessment...</div>
             <div className="text-sm text-gray-600 mt-2">Preparing your skill evaluation</div>
           </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Safety check - ensure we have valid assessment state
+  if (!assessmentState.questions.length || !assessmentState.currentGrade) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md p-6 text-center">
+          <div className="text-lg font-medium text-red-600">Assessment Error</div>
+          <div className="text-sm text-gray-600 mt-2">Invalid assessment state. Redirecting...</div>
+          <Button onClick={() => setLocation('/modules')} className="mt-4">
+            Return to Modules
+          </Button>
         </Card>
       </div>
     );
