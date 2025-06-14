@@ -188,62 +188,25 @@ export default function AiAnalytics() {
 
   const recentProgress = processRecentProgressFromAsset(user?.hiddenGradeAsset);
   
-  // Extract concept mastery data from user's hiddenGradeAsset for weighted calculations
-  const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || [];
-  const moduleData = user?.hiddenGradeAsset?.modules || {};
+  // Extract concept mastery data from user's hiddenGradeAsset
+  const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || {};
   
-  // Calculate weighted concept mastery scores
-  const calculateConceptMasteryScore = (concept: any) => {
-    const accuracy = concept.accuracy || 0;
-    const attempts = concept.attempts || 1;
-    const correctAnswers = concept.correctAnswers || 0;
-    const masteryFlag = concept.mastery || false;
-    
-    // Weighted calculation:
-    // - Accuracy: 40% weight
-    // - Consistency (correct/attempts ratio): 30% weight  
-    // - Attempt volume (normalized): 20% weight
-    // - Mastery flag: 10% weight (as specified)
-    
-    const accuracyScore = accuracy * 0.40;
-    const consistencyScore = (correctAnswers / Math.max(attempts, 1)) * 0.30;
-    const volumeScore = Math.min(attempts / 10, 1) * 0.20; // Normalize to max 10 attempts
-    const masteryScore = masteryFlag ? 0.10 : 0;
-    
-    return Math.round((accuracyScore + consistencyScore + volumeScore + masteryScore) * 100);
+  // Process concept mastery data for display
+  const processConceptMasteryData = () => {
+    return Object.entries(conceptMasteryData).map(([concept, data]: [string, any]) => ({
+      concept,
+      weightedScore: data.weightedScore || 0,
+      accuracy: data.accuracy || 0,
+      consistency: data.consistency || 0,
+      practiceVolume: data.practiceVolume || 0,
+      practiceVolumeRatio: data.practiceVolumeRatio || 0,
+      hasMastery: data.hasMastery || false,
+      modules: data.modules || [],
+      breakdown: data.breakdown || {}
+    })).sort((a, b) => b.weightedScore - a.weightedScore);
   };
   
-  // Process module data to extract concept insights
-  const processModuleConceptData = () => {
-    const conceptInsights: any[] = [];
-    
-    Object.entries(moduleData).forEach(([moduleName, moduleInfo]: [string, any]) => {
-      if (moduleInfo?.progress) {
-        const progress = moduleInfo.progress;
-        const concepts = progress.concepts || [];
-        
-        concepts.forEach((concept: any) => {
-          const masteryScore = calculateConceptMasteryScore(concept);
-          
-          conceptInsights.push({
-            module: moduleName,
-            concept: concept.name || concept.concept || 'Unknown',
-            accuracy: concept.accuracy || 0,
-            attempts: concept.attempts || 0,
-            correctAnswers: concept.correctAnswers || 0,
-            mastery: concept.mastery || false,
-            masteryScore,
-            lastAttempt: concept.lastAttempt || null,
-            trend: concept.trend || 'stable'
-          });
-        });
-      }
-    });
-    
-    return conceptInsights.sort((a, b) => b.masteryScore - a.masteryScore);
-  };
-  
-  const conceptInsights = processModuleConceptData();
+  const processedConceptMasteries = processConceptMasteryData();
   
   // Generate new analytics
   const [isGenerating, setIsGenerating] = useState(false);
@@ -786,7 +749,7 @@ export default function AiAnalytics() {
 
           {/* Concept Mastery Tab */}
           <TabsContent value="concepts" className="pt-4">
-            {conceptInsights.length > 0 ? (
+            {conceptMasteries.length > 0 ? (
               <div className="space-y-6">
                 {/* Mastery Overview Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -799,7 +762,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-green-600">
-                        {conceptInsights.filter(c => c.masteryScore >= 80).length}
+                        {conceptMasteries.filter(c => c.weightedScore >= 80).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score ≥ 80%
@@ -816,7 +779,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-blue-600">
-                        {conceptInsights.filter(c => c.masteryScore >= 50 && c.masteryScore < 80).length}
+                        {conceptMasteries.filter(c => c.weightedScore >= 50 && c.weightedScore < 80).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score 50-79%
@@ -833,7 +796,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-red-600">
-                        {conceptInsights.filter(c => c.masteryScore < 50).length}
+                        {conceptMasteries.filter(c => c.weightedScore < 50).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score &lt; 50%
@@ -855,25 +818,32 @@ export default function AiAnalytics() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {conceptInsights.map((concept, index) => (
+                      {conceptMasteries.map((concept, index) => (
                         <div key={index} className="border rounded-lg p-4 space-y-3">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-semibold capitalize">
                                 {concept.concept.replace(/_/g, ' ')}
                               </h4>
-                              <p className="text-sm text-muted-foreground capitalize">
-                                {concept.module.replace(/_/g, ' ')}
+                              <p className="text-sm text-muted-foreground">
+                                Found in {concept.modules.length} module{concept.modules.length > 1 ? 's' : ''}
                               </p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {concept.modules.map((module: string, idx: number) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {module.replace(/_/g, ' ')}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
                             <div className="text-right">
                               <div className={`text-2xl font-bold ${
-                                concept.masteryScore >= 80 ? 'text-green-600' :
-                                concept.masteryScore >= 50 ? 'text-blue-600' : 'text-red-600'
+                                concept.weightedScore >= 80 ? 'text-green-600' :
+                                concept.weightedScore >= 50 ? 'text-blue-600' : 'text-red-600'
                               }`}>
-                                {concept.masteryScore}%
+                                {concept.weightedScore}
                               </div>
-                              {concept.mastery && (
+                              {concept.hasMastery && (
                                 <Badge variant="secondary" className="mt-1">
                                   <Star className="h-3 w-3 mr-1" />
                                   Mastered
@@ -883,7 +853,7 @@ export default function AiAnalytics() {
                           </div>
 
                           <Progress 
-                            value={concept.masteryScore} 
+                            value={concept.weightedScore} 
                             className="h-2"
                           />
 
@@ -891,28 +861,42 @@ export default function AiAnalytics() {
                             <div className="space-y-1">
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Accuracy:</span>
-                                <span className="font-medium">{Math.round(concept.accuracy)}%</span>
+                                <span className="font-medium">{concept.accuracy}%</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Attempts:</span>
-                                <span className="font-medium">{concept.attempts}</span>
+                                <span className="text-muted-foreground">Consistency:</span>
+                                <span className="font-medium">{concept.consistency}%</span>
                               </div>
                             </div>
                             <div className="space-y-1">
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Correct:</span>
-                                <span className="font-medium">{concept.correctAnswers}</span>
+                                <span className="text-muted-foreground">Practice Vol:</span>
+                                <span className="font-medium">{concept.practiceVolume}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Trend:</span>
-                                <span className={`font-medium ${
-                                  concept.trend === 'improving' ? 'text-green-600' :
-                                  concept.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
-                                }`}>
-                                  {concept.trend === 'improving' ? '↗️' : 
-                                   concept.trend === 'declining' ? '↘️' : '→'} {concept.trend}
-                                </span>
+                                <span className="text-muted-foreground">Vol Ratio:</span>
+                                <span className="font-medium">{concept.practiceVolumeRatio}x</span>
                               </div>
+                            </div>
+                          </div>
+
+                          {/* Score Breakdown */}
+                          <div className="text-xs text-muted-foreground">
+                            <div className="flex justify-between">
+                              <span>Accuracy (40%):</span>
+                              <span>{concept.breakdown.accuracyScore}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Consistency (30%):</span>
+                              <span>{concept.breakdown.consistencyScore}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Practice (20%):</span>
+                              <span>{concept.breakdown.practiceVolumeScore}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Mastery (10%):</span>
+                              <span>{concept.breakdown.masteryFlagScore}</span>
                             </div>
                           </div>
                         </div>
@@ -921,58 +905,21 @@ export default function AiAnalytics() {
                   </CardContent>
                 </Card>
 
-                {/* Module Performance Summary */}
+                {/* Concept Summary */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <BarChart className="h-5 w-5 mr-2 text-primary" />
-                      Module Performance Summary
+                      Concept Summary
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {Object.entries(
-                        conceptInsights.reduce((acc: any, concept) => {
-                          if (!acc[concept.module]) {
-                            acc[concept.module] = {
-                              concepts: [],
-                              avgScore: 0,
-                              mastered: 0,
-                              total: 0
-                            };
-                          }
-                          acc[concept.module].concepts.push(concept);
-                          acc[concept.module].total += 1;
-                          if (concept.masteryScore >= 80) acc[concept.module].mastered += 1;
-                          return acc;
-                        }, {})
-                      ).map(([module, data]: [string, any]) => {
-                        const avgScore = Math.round(
-                          data.concepts.reduce((sum: number, c: any) => sum + c.masteryScore, 0) / data.concepts.length
-                        );
-                        
-                        return (
-                          <div key={module} className="border rounded-lg p-4">
-                            <div className="flex justify-between items-center mb-3">
-                              <h4 className="font-semibold capitalize">
-                                {module.replace(/_/g, ' ')}
-                              </h4>
-                              <div className="text-right">
-                                <div className={`text-xl font-bold ${
-                                  avgScore >= 80 ? 'text-green-600' :
-                                  avgScore >= 50 ? 'text-blue-600' : 'text-red-600'
-                                }`}>
-                                  {avgScore}%
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {data.mastered}/{data.total} mastered
-                                </p>
-                              </div>
-                            </div>
-                            <Progress value={avgScore} className="h-2" />
-                          </div>
-                        );
-                      })}
+                    <div className="text-center text-muted-foreground">
+                      {conceptMasteries.length === 0 ? (
+                        <p>Complete more modules to see detailed concept analysis.</p>
+                      ) : (
+                        <p>Showing {conceptMasteries.length} concepts across all modules with weighted mastery scoring.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
