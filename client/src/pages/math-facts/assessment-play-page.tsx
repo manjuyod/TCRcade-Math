@@ -171,16 +171,10 @@ export default function MathFactsAssessmentPlayPage() {
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
 
     if (passedCurrentGrade) {
-      // Passed current grade - try to move up or complete
-      if (currentIndex >= gradeOrder.length - 1) {
-        // Already at highest grade, complete assessment
-        await completeAssessment(assessmentState.currentGrade);
-        return;
-      }
-
-      // Try next grade up
-      const nextGrade = gradeOrder[currentIndex + 1];
-      await moveToGradeLevel(nextGrade, updatedGradeCache);
+      // Passed current grade - this is their final assessed level
+      // Complete assessment at this grade level since they achieved 100%
+      await completeAssessment(assessmentState.currentGrade);
+      return;
     } else {
       // Failed current grade - immediately drop down
       if (currentIndex <= 0) {
