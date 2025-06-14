@@ -178,37 +178,79 @@ export default function SubtractionPlayPage() {
     const updatedAnswers = [...sessionAnswers, answerData];
     setSessionAnswers(updatedAnswers);
 
-    // Check if session should complete (after 10 questions)
-    if (newQuestionCount >= 10) {
+    // Check if session should complete (after 6 questions or when pre-loaded questions are exhausted)
+    const shouldComplete = newQuestionCount >= 6 || (preloadedQuestions.length > 0 && currentQuestionIndex + 1 >= preloadedQuestions.length);
+    
+    if (shouldComplete) {
       try {
-        // Submit all answers from the session
-        for (const answer of updatedAnswers) {
-          const response = await fetch('/api/answers', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(answer),
-          });
+        // Calculate performance metrics
+        const accuracy = newQuestionCount > 0 ? (newCorrectCount / newQuestionCount) * 100 : 0;
+        const tokensEarned = newCorrectCount + (accuracy >= 80 ? 4 : 0); // 1 per correct + 4 bonus if 80%+
+        const isGoodAttempt = accuracy >= 80;
 
-          if (!response.ok) {
-            throw new Error('Failed to submit answer');
-          }
+        // Submit session completion to server
+        const completionData = {
+          operation: 'subtraction',
+          questionsAnswered: newQuestionCount,
+          correctAnswers: newCorrectCount,
+          accuracy: Math.round(accuracy),
+          tokensEarned,
+          isGoodAttempt,
+          sessionAnswers: updatedAnswers
+        };
+
+        const response = await fetch('/api/math-facts/session/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(completionData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to complete session');
         }
 
+        const result = await response.json();
+
+        // Clear sessionStorage
+        sessionStorage.removeItem('mathFactsQuestions');
+        sessionStorage.removeItem('mathFactsOperation');
+        sessionStorage.removeItem('mathFactsGradeLevel');
+
         endSession();
-        setIsComplete(true);
+        
+        // Navigate to completion page with results
+        const params = new URLSearchParams({
+          operation: 'subtraction',
+          score: newCorrectCount.toString(),
+          total: newQuestionCount.toString(),
+          tokens: tokensEarned.toString(),
+          gradeLevel: result.gradeLevel || 'K',
+          levelChanged: result.levelChanged ? 'true' : 'false',
+          levelDirection: result.levelDirection || ''
+        });
+        
+        setLocation(`/math-facts/subtraction/complete?${params.toString()}`);
       } catch (error) {
-        console.error('Error submitting answers:', error);
+        console.error('Error completing session:', error);
         toast({
           title: "Error",
-          description: "Failed to submit answers. Please try again.",
+          description: "Failed to complete session. Please try again.",
           variant: "destructive",
         });
       }
     } else {
-      // Load next question immediately (feedback delay is handled in QuestionCard)
-      loadNextQuestion();
+      // Move to next pre-loaded question or load new one if needed
+      if (preloadedQuestions.length > 0 && currentQuestionIndex + 1 < preloadedQuestions.length) {
+        const nextIndex = currentQuestionIndex + 1;
+        setCurrentQuestionIndex(nextIndex);
+        setCurrentQuestion(preloadedQuestions[nextIndex]);
+        console.log(`Moving to pre-loaded question ${nextIndex + 1}/${preloadedQuestions.length}`);
+      } else {
+        // Fallback to loading new question if no more pre-loaded ones
+        loadNextQuestion();
+      }
     }
 
     setIsSubmitting(false);
