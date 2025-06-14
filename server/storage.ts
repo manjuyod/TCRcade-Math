@@ -70,6 +70,28 @@ export interface IStorage {
   getUserAnalytics(userId: number): Promise<AiAnalytic | undefined>;
   updateLearningStyle(userId: number, learningStyle: string, strengths: string[], weaknesses: string[]): Promise<User>;
 
+  // Adaptive difficulty methods
+  trackSubjectDifficulty(userId: number, subject: string, grade: string, isCorrect: boolean, questionId?: number): Promise<void>;
+  getSubjectDifficulty(userId: number, subject: string, grade: string): Promise<number>;
+  getQuestionsWithAdaptiveDifficulty(userId: number, subject: string, grade: string): Promise<Question[]>;
+
+  // Module history tracking methods
+  recordModuleHistory(data: {
+    userId: number;
+    moduleName: string;
+    runType: 'test' | 'token_run';
+    finalScore: number;
+    questionsTotal: number;
+    questionsCorrect: number;
+    timeSpentSeconds: number;
+    difficultyLevel?: number;
+    gradeLevel?: string;
+    tokensEarned: number;
+  }): Promise<any>;
+  getUserModuleHistory(userId: number, limit?: number): Promise<any[]>;
+  getUserModuleHistoryByModule(userId: number, moduleName: string, limit?: number): Promise<any[]>;
+  getModuleHistoryAnalytics(userId?: number, days?: number): Promise<any[]>;
+
   // Session store
   sessionStore: any; // Using any for sessionStore to avoid type issues
 }
@@ -656,8 +678,7 @@ export class MemStorage implements IStorage {
           const coinTypes = ["penny", "nickel", "dime", "quarter"];
           const coinValues = [1, 5, 10, 25];
 
-          // Randomly select 2-3 types of coins
-          const numCoinTypes = Math.floor(Math.random() * 2) + 2; // 2-3
+          // Randomly select 2-3 types of coins          const numCoinTypes = Math.floor(Math.random() * 2) + 2; // 2-3
           const selectedIndices: number[] = [];
           let totalCents = 0;
           let questionText = "[visual:money] You have ";
@@ -1580,7 +1601,7 @@ export class MemStorage implements IStorage {
     };
 
     const roomCode = generateRoomCode();
-    
+
     const room: MultiplayerRoom = {
       id: roomId,
       hostId,

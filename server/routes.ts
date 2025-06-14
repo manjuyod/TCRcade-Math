@@ -1512,6 +1512,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Token calculation error" });
       }
 
+      // Calculate final score (0-100)
+      const finalScore = Math.round((correct / total) * 100);
+
       // Update user tokens in database if user is authenticated
       if (userId) {
         // Get current user
@@ -1528,6 +1531,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           const newBalance = (user.tokens || 0) + tokens;
+
+          // Record module history
+          await storage.recordModuleHistory({
+            userId,
+            moduleName: `math_rush_${mode}`,
+            runType: 'token_run', // Math Rush is always token-based
+            finalScore,
+            questionsTotal: total,
+            questionsCorrect: correct,
+            timeSpentSeconds: durationSec,
+            gradeLevel: user.grade || undefined,
+            tokensEarned: tokens
+          });
 
           console.log(
             `DATABASE: Updating user ${userId} with data: { tokens: ${newBalance} }`,
@@ -2395,6 +2411,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return questions;
   }
+
+  // Module History API routes
+  app.post("/api/module-history", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { 
+        moduleName, 
+        runType, 
+        finalScore, 
+        questionsTotal, 
+        questionsCorrect, 
+        timeSpentSeconds,
+        difficultyLevel,
+        gradeLevel,
+        tokensEarned 
+      } = req.body;
+
+      // Validate required fields
+      if (!moduleName || !runType || typeof finalScore !== 'number') {
+        return res.status(400).json({ 
+          error: "Missing required fields: moduleName, runType, finalScore" 
+        });
+      }
+
+      // Validate runType
+      if (!['test', 'token_run'].includes(runType)) {
+        return res.status(400).json({ 
+          error: "runType must be either 'test' or 'token_run'" 
+        });
+      }
+
+      // Record the module history
+      const historyEntry = await storage.recordModuleHistory({
+        userId,
+        moduleName,
+        runType,
+        finalScore,
+        questionsTotal: questionsTotal || 0,
+        questionsCorrect: questionsCorrect || 0,
+        timeSpentSeconds: timeSpentSeconds || 0,
+        difficultyLevel,
+        gradeLevel,
+        tokensEarned: tokensEarned || 0
+      });
+
+      res.json({ 
+        success: true, 
+        historyEntry,
+        message: `Module run recorded for ${moduleName}` 
+      });
+    } catch (error) {
+      console.error("Error recording module history:", error);
+      res.status(500).json({ 
+        error: "Failed to record module history",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/module-history", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { moduleName, limit } = req.query;
+
+      let history;
+      if (moduleName) {
+        history = await storage.getUserModuleHistoryByModule(
+          userId, 
+          moduleName as string, 
+          limit ? parseInt(limit as string) : 20
+        );
+      } else {
+        history = await storage.getUserModuleHistory(
+          userId, 
+          limit ? parseInt(limit as string) : 50
+        );
+      }
+
+      res.json({ history });
+    } catch (error) {
+      console.error("Error fetching module history:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch module history",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.get("/api/module-history/analytics", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { days } = req.query;
+
+      const analytics = await storage.getModuleHistoryAnalytics(
+        userId,
+        days ? parseInt(days as string) : undefined
+      );
+
+      // Basic analytics processing
+      const moduleStats = analytics.reduce((acc, entry) => {
+        if (!acc[entry.moduleName]) {
+          acc[entry.moduleName] = {
+            totalRuns: 0,
+            totalScore: 0,
+            averageScore: 0,
+            bestScore: 0,
+            totalTimeSpent: 0,
+            testRuns: 0,
+            tokenRuns: 0
+          };
+        }
+        
+        const module = acc[entry.moduleName];
+        module.totalRuns++;
+        module.totalScore += entry.finalScore;
+        module.bestScore = Math.max(module.bestScore, entry.finalScore);
+        module.totalTimeSpent += entry.timeSpentSeconds;
+        
+        if (entry.runType === 'test') module.testRuns++;
+        if (entry.runType === 'token_run') module.tokenRuns++;
+        
+        module.averageScore = Math.round(module.totalScore / module.totalRuns);
+        
+        return acc;
+      }, {} as Record<string, any>);
+
+      res.json({ 
+        analytics,
+        moduleStats,
+        totalRuns: analytics.length,
+        dateRange: {
+          from: analytics.length > 0 ? analytics[analytics.length - 1].completedAt : null,
+          to: analytics.length > 0 ? analytics[0].completedAt : null
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching module history analytics:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch analytics",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Enhanced progress API endpoint with percentile calculations
   app.get("/api/progress", ensureAuthenticated, async (req, res) => {

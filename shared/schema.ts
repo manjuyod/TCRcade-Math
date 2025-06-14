@@ -239,7 +239,25 @@ export const insertDailyChallengeSchema = createInsertSchema(dailyChallenges);
 export const insertMathStorySchema = createInsertSchema(mathStories);
 export const insertMultiplayerRoomSchema = createInsertSchema(multiplayerRooms);
 export const insertAiAnalyticsSchema = createInsertSchema(aiAnalytics);
+// Historical tracking for module completion sessions
+export const moduleHistory = pgTable("module_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  moduleName: text("module_name").notNull(), // e.g., "math-facts-multiplication", "algebra", "measurement"
+  runType: text("run_type").notNull(), // "test" or "token_run"
+  finalScore: integer("final_score").notNull(), // 0-100 integer score
+  questionsTotal: integer("questions_total").default(0).notNull(),
+  questionsCorrect: integer("questions_correct").default(0).notNull(),
+  timeSpentSeconds: integer("time_spent_seconds").default(0).notNull(),
+  completedAt: timestamp("completed_at").defaultNow().notNull(),
+  // Additional metadata for analytics
+  difficultyLevel: integer("difficulty_level").default(1),
+  gradeLevel: text("grade_level"),
+  tokensEarned: integer("tokens_earned").default(0).notNull(),
+});
+
 export const insertSessionSchema = createInsertSchema(session);
+export const insertModuleHistorySchema = createInsertSchema(moduleHistory);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -252,3 +270,4 @@ export type MathStory = typeof mathStories.$inferSelect;
 export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type Session = typeof session.$inferSelect;
+export type ModuleHistory = typeof moduleHistory.$inferSelect;

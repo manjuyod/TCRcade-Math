@@ -7,7 +7,8 @@ import {
   mathStories, type MathStory,
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
-  leaderboard, type Leaderboard
+  leaderboard, type Leaderboard,
+  moduleHistory, type ModuleHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
@@ -1850,5 +1851,96 @@ export class DatabaseStorage implements IStorage {
     }
 
     return matchingQuestions;
+  }
+
+  // MODULE HISTORY TRACKING METHODS
+  /**
+   * Record a completed module run (test or token run)
+   */
+  async recordModuleHistory(data: {
+    userId: number;
+    moduleName: string;
+    runType: 'test' | 'token_run';
+    finalScore: number; // 0-100 integer
+    questionsTotal: number;
+    questionsCorrect: number;
+    timeSpentSeconds: number;
+    difficultyLevel?: number;
+    gradeLevel?: string;
+    tokensEarned: number;
+  }): Promise<ModuleHistory> {
+    const [moduleHistoryEntry] = await db
+      .insert(moduleHistory)
+      .values({
+        userId: data.userId,
+        moduleName: data.moduleName,
+        runType: data.runType,
+        finalScore: Math.round(Math.max(0, Math.min(100, data.finalScore))), // Ensure 0-100 range
+        questionsTotal: data.questionsTotal,
+        questionsCorrect: data.questionsCorrect,
+        timeSpentSeconds: data.timeSpentSeconds,
+        difficultyLevel: data.difficultyLevel || 1,
+        gradeLevel: data.gradeLevel,
+        tokensEarned: data.tokensEarned,
+        completedAt: new Date()
+      })
+      .returning();
+
+    console.log(`Recorded module history: User ${data.userId} completed ${data.moduleName} (${data.runType}) with score ${data.finalScore}`);
+    return moduleHistoryEntry;
+  }
+
+  /**
+   * Get module history for a specific user
+   */
+  async getUserModuleHistory(userId: number, limit: number = 50): Promise<ModuleHistory[]> {
+    return await db
+      .select()
+      .from(moduleHistory)
+      .where(eq(moduleHistory.userId, userId))
+      .orderBy(desc(moduleHistory.completedAt))
+      .limit(limit);
+  }
+
+  /**
+   * Get module history for a specific user and module
+   */
+  async getUserModuleHistoryByModule(userId: number, moduleName: string, limit: number = 20): Promise<ModuleHistory[]> {
+    return await db
+      .select()
+      .from(moduleHistory)
+      .where(and(
+        eq(moduleHistory.userId, userId),
+        eq(moduleHistory.moduleName, moduleName)
+      ))
+      .orderBy(desc(moduleHistory.completedAt))
+      .limit(limit);
+  }
+
+  /**
+   * Get module history for analytics and reporting
+   */
+  async getModuleHistoryAnalytics(userId?: number, days?: number): Promise<ModuleHistory[]> {
+    let query = db.select().from(moduleHistory);
+
+    const filters = [];
+    
+    if (userId) {
+      filters.push(eq(moduleHistory.userId, userId));
+    }
+
+    if (days) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      filters.push(gte(moduleHistory.completedAt, cutoffDate));
+    }
+
+    if (filters.length > 0) {
+      query = query.where(and(...filters));
+    }
+
+    return await query
+      .orderBy(desc(moduleHistory.completedAt))
+      .limit(1000); // Reasonable limit for analytics
   }
 }
