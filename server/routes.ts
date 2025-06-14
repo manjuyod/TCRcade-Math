@@ -15,6 +15,7 @@ import {
   calculateModuleCompletion,
   calculateModuleAccuracy
 } from "./utils/data-sync";
+import { normalizeGrade } from "@shared/mathFactsRules";
 
 // Player type for multiplayer functionality
 type Player = {
@@ -3190,15 +3191,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use the math facts generation module instead of database lookup
-      const { generateQuestionsForSession, normalizeGrade } = await import("./modules/mathFacts");
+      const { generateQuestionsForSession } = await import("./modules/mathFacts");
       
       if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
         return res.status(400).json({ message: `Invalid operation: ${operation}` });
       }
 
-      // Normalize grade to handle K=0 and validate range
+      // Normalize grade to handle K=0 and auto-cap grades >= 6 to grade 6
       const normalizedGrade = normalizeGrade(grade as string);
-      if (normalizedGrade > 6) {
+      console.log(`API: GET /api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${new URLSearchParams(req.query).get('_t')}`);
+      console.log(`Normalized grade ${grade} to ${normalizedGrade} (auto-capped if >= 6)`);
+      
+      if (isNaN(normalizedGrade)) {
         return res.status(400).json({ message: `Invalid grade: ${grade}. Must be K-6` });
       }
 

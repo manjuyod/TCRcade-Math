@@ -100,13 +100,16 @@ export interface MathFactsProgress {
  */
 
 /**
- * Convert grade to numeric value with K = 0
+ * Convert grade to numeric value with K = 0, capped at grade 6
  */
 export function normalizeGrade(grade: string | number): number {
-  if (typeof grade === 'number') return grade;
+  if (typeof grade === 'number') {
+    return Math.min(Math.max(grade, 0), 6); // Cap between 0 and 6
+  }
   if (grade === 'K' || grade === 'k') return 0;
   const parsed = parseInt(grade);
-  return isNaN(parsed) ? 0 : parsed;
+  if (isNaN(parsed)) return 0;
+  return Math.min(Math.max(parsed, 0), 6); // Cap between 0 and 6
 }
 
 /**

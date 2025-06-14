@@ -1,0 +1,38 @@
+session change event
+addition-play-page.tsx:94 
+            
+            
+           GET https://1d58fbaf-09a3-4f3e-b8e4-dc900631d18f-00-2trx2mytqr7wy.worf.replit.dev/api/questions/math-facts?grade=12&operation=addition&_t=1749885498747 500 (Internal Server Error)
+window.fetch @ Network.js:219
+loadNextQuestion @ addition-play-page.tsx:94
+(anonymous) @ addition-play-page.tsx:78
+commitHookEffectListMount @ chunk-WERSD76P.js?v=6d827054:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=6d827054:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=6d827054:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=6d827054:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=6d827054:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=6d827054:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=6d827054:19447
+commitRootImpl @ chunk-WERSD76P.js?v=6d827054:19416
+commitRoot @ chunk-WERSD76P.js?v=6d827054:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=6d827054:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=6d827054:9119
+(anonymous) @ chunk-WERSD76P.js?v=6d827054:18627
+setTimeout
+generateQuestions @ loading-page.tsx:66
+await in generateQuestions
+(anonymous) @ loading-page.tsx:18
+commitHookEffectListMount @ chunk-WERSD76P.js?v=6d827054:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=6d827054:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=6d827054:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=6d827054:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=6d827054:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=6d827054:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=6d827054:19447
+commitRootImpl @ chunk-WERSD76P.js?v=6d827054:19416
+commitRoot @ chunk-WERSD76P.js?v=6d827054:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=6d827054:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=6d827054:9119
+(anonymous) @ chunk-WERSD76P.js?v=6d827054:18627Understand this error
+Console.js:61 Error loading question: Error: Failed to fetch question: 500
+    at loadNextQuestion (addition-play-page.tsx:102:15)
