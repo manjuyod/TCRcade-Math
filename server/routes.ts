@@ -1760,7 +1760,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             correctAnswers: (user.correctAnswers || 0) + correct,
           });
 
-          // Record module history
+          // Record module history with module-specific grade level
+          const moduleGradeLevel = getModuleGradeLevel(user, `decimal_defender_${skill || 'default'}`);
           await storage.recordModuleHistory({
             userId,
             moduleName: `decimal_defender_${skill || 'default'}`,
@@ -1769,7 +1770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             questionsTotal: total,
             questionsCorrect: correct,
             timeSpentSeconds: 0, // Duration not tracked in current implementation
-            gradeLevel: user.grade || undefined,
+            gradeLevel: moduleGradeLevel,
             tokensEarned
           });
 
@@ -1835,7 +1836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokens: (user.tokens || 0) + tokens,
         });
 
-        // Record module history
+        // Record module history with module-specific grade level
+        const moduleGradeLevel = getModuleGradeLevel(user, 'fractions_puzzle');
         await storage.recordModuleHistory({
           userId,
           moduleName: 'fractions_puzzle',
@@ -1844,7 +1846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsTotal: total,
           questionsCorrect: correct,
           timeSpentSeconds: 0, // Duration not tracked in current implementation
-          gradeLevel: user.grade || undefined,
+          gradeLevel: moduleGradeLevel,
           tokensEarned: tokens
         });
 
@@ -1964,7 +1966,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tokens: (user.tokens || 0) + totalTokens,
         });
 
-        // Record module history
+        // Record module history with module-specific grade level
+        const moduleGradeLevel = getModuleGradeLevel(user, 'ratios_proportions');
         await storage.recordModuleHistory({
           userId,
           moduleName: 'ratios_proportions',
@@ -1973,7 +1976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsTotal: total,
           questionsCorrect: correct,
           timeSpentSeconds: 0, // Duration not tracked in current implementation
-          gradeLevel: user.grade || undefined,
+          gradeLevel: moduleGradeLevel,
           tokensEarned: totalTokens
         });
 
@@ -2059,6 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const questionsCorrect = questions.filter((q: any) => q.isCorrect).length;
         const finalScore = score || Math.round((questionsCorrect / questionsTotal) * 100);
 
+        const moduleGradeLevel = getModuleGradeLevel(user, 'measurement_mastery');
         await storage.recordModuleHistory({
           userId,
           moduleName: 'measurement_mastery',
@@ -2067,7 +2071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsTotal,
           questionsCorrect,
           timeSpentSeconds: totalTime || 0,
-          gradeLevel: user.grade || undefined,
+          gradeLevel: moduleGradeLevel,
           tokensEarned: results.tokensEarned || 0
         });
       }
@@ -2187,8 +2191,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correctAnswers: (user.correctAnswers || 0) + correctCount,
         });
 
-        // Record module history
+        // Record module history with module-specific grade level
         const finalScore = Math.round(sessionScore * 100);
+        const moduleGradeLevel = getModuleGradeLevel(user, 'algebra');
         await storage.recordModuleHistory({
           userId,
           moduleName: 'algebra',
@@ -2197,7 +2202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsTotal: totalCount,
           questionsCorrect: correctCount,
           timeSpentSeconds: totalTime || 0,
-          gradeLevel: user.grade || undefined,
+          gradeLevel: moduleGradeLevel,
           tokensEarned
         });
 
