@@ -1,0 +1,29 @@
+🔄 STATE TRANSITION: Moving from 4 to 3
+Console.js:61 📝 New questions for grade 3: (2) ['150 + 895 = ?', '787 + 956 = ?']
+Console.js:61 🎯 Pre-update state: {currentGrade: '4', currentQuestion: '9470 + 8123 = ?'}
+Console.js:61 Successfully moved to grade 3 with 2 questions
+Console.js:61 ✅ STATE UPDATED: Now at grade 3, showing question: 150 + 895 = ?
+Console.js:61 🎯 Post-update validation: {newGrade: '3', questionsCount: 2, currentIndex: 0, firstQuestion: '150 + 895 = ?', firstAnswer: '1045'}
+Console.js:61 🔍 Post-setState verification: currentGrade should be 3, actually is 4
+Console.js:61 Question: 150 + 895 = ?, Selected: 894, Correct: 1045, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 3
+Console.js:61 Evaluating progression: currentGrade=3, passed=false, currentIndex=3
+Console.js:61 Dropping from grade 3 to grade 2
+Console.js:61 Moving from grade 3 to grade 2 (attempt 1)
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=2
+6Console.js:61 [SessionAwareLink] moduleInProgress = false
+Console.js:61 Question: 150 + 895 = ?, Selected: 1237, Correct: 1045, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 3
+Console.js:61 Evaluating progression: currentGrade=3, passed=false, currentIndex=3
+Console.js:61 Dropping from grade 3 to grade 2
+Console.js:61 Moving from grade 3 to grade 2 (attempt 2)
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=2
+Console.js:61 Question: 150 + 895 = ?, Selected: 894, Correct: 1045, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 3
+Console.js:61 Evaluating progression: currentGrade=3, passed=false, currentIndex=3
+Console.js:61 Dropping from grade 3 to grade 2
+Console.js:61 Moving from grade 3 to grade 2 (attempt 3)
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=2
+3Console.js:61 [SessionAwareLink] moduleInProgress = false
+Console.js:61 Disconnected from token updates namespace
+3Console.js:61 [SessionAwareLink] moduleInProgress = false
