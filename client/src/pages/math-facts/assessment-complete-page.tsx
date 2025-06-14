@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearch } from 'wouter';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +8,11 @@ import { CheckCircle, Award, Coins, Target, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function MathFactsAssessmentCompletePage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { refreshUser } = useAuth();
   
+  const searchParams = new URLSearchParams(searchString);
   const operation = searchParams.get('operation') || 'addition';
   const grade = searchParams.get('grade') || 'K';
   const isAllComplete = searchParams.get('allComplete') === 'true';
@@ -128,13 +129,13 @@ export default function MathFactsAssessmentCompletePage() {
             <Button 
               variant="outline" 
               className="flex-1"
-              onClick={() => navigate(`/math-facts/${operation}/loading`)}
+              onClick={() => setLocation(`/math-facts/${operation}/loading`)}
             >
               Practice Now
             </Button>
             <Button 
               className="flex-1"
-              onClick={() => navigate('/modules')}
+              onClick={() => setLocation('/modules')}
             >
               <ArrowRight className="h-4 w-4 mr-2" />
               Back to Modules

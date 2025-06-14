@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +29,7 @@ export default function MathFactsAssessmentPlayPage() {
   const navigate = useNavigate();
   const { operation } = useParams<{ operation: string }>();
   const { user } = useAuth();
-  
+
   const [assessmentState, setAssessmentState] = useState<AssessmentState>({
     currentGrade: '',
     questions: [],
@@ -39,7 +38,7 @@ export default function MathFactsAssessmentPlayPage() {
     completed: false,
     results: []
   });
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
 
@@ -54,11 +53,11 @@ export default function MathFactsAssessmentPlayPage() {
 
     try {
       setIsLoading(true);
-      
+
       // Determine starting grade
       const userGrade = user.grade;
       const startingGrade = ['6', '7', '8', '9', '10', '11', '12'].includes(userGrade) ? '6' : userGrade;
-      
+
       // Generate initial questions
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${startingGrade}`);
       const data = await response.json();
@@ -120,7 +119,7 @@ export default function MathFactsAssessmentPlayPage() {
   const dropGradeLevel = async () => {
     const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
-    
+
     if (currentIndex <= 0) {
       // Already at lowest grade (K), complete with K
       await completeAssessment('K');
@@ -128,7 +127,7 @@ export default function MathFactsAssessmentPlayPage() {
     }
 
     const newGrade = gradeOrder[currentIndex - 1];
-    
+
     try {
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${newGrade}`);
       const data = await response.json();

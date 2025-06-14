@@ -1,23 +1,22 @@
-
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearch } from 'wouter';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Trophy, Coins, Target, ArrowRight } from 'lucide-react';
 
 export default function MathFactsCompletePage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  
-  const operation = searchParams.get('operation') || 'addition';
-  const score = parseInt(searchParams.get('score') || '0');
-  const total = parseInt(searchParams.get('total') || '6');
-  const tokens = parseInt(searchParams.get('tokens') || '0');
+  const [, setLocation] = useLocation();
+  const [query, setQuery] = useSearch();
+
+  const operation = new URLSearchParams(query).get('operation') || 'addition';
+  const score = parseInt(new URLSearchParams(query).get('score') || '0');
+  const total = parseInt(new URLSearchParams(query).get('total') || '6');
+  const tokens = parseInt(new URLSearchParams(query).get('tokens') || '0');
   const percentage = Math.round((score / total) * 100);
-  const gradeLevel = searchParams.get('gradeLevel') || 'K';
-  const levelChanged = searchParams.get('levelChanged') === 'true';
-  const levelDirection = searchParams.get('levelDirection');
+  const gradeLevel = new URLSearchParams(query).get('gradeLevel') || 'K';
+  const levelChanged = new URLSearchParams(query).get('levelChanged') === 'true';
+  const levelDirection = new URLSearchParams(query).get('levelDirection');
 
   const getOperationDisplay = (op: string) => {
     switch (op) {
@@ -42,6 +41,10 @@ export default function MathFactsCompletePage() {
     if (pct >= 80) return 'Great job! Keep it up!';
     if (pct >= 70) return 'Good work! Practice makes perfect!';
     return 'Keep practicing - you\'ve got this!';
+  };
+
+  const navigate = (path: string) => {
+    setLocation(path);
   };
 
   return (
