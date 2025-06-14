@@ -55,40 +55,7 @@ export default function MathFactsAssessmentPlayPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [transitionAttempts, setTransitionAttempts] = useState(0);
 
-  // Refs to always hold the latest values, avoiding stale closures
-  const gradeRef = React.useRef<string>('');
-  const indexRef = React.useRef<number>(0);
-  const lastActionRef = React.useRef<
-    | { type: 'wrong'; gradeCache: any }
-    | { type: 'gradeDone'; gradeCache: any }
-    | null
-  >(null);
-
-  // Keep refs up-to-date after every render
-  useEffect(() => {
-    gradeRef.current = assessmentState.currentGrade;
-    indexRef.current = assessmentState.currentQuestionIndex;
-  });
-
-  // Centralized progression effect that runs after state commits
-  useEffect(() => {
-    if (!lastActionRef.current) return;
-
-    const { type, gradeCache } = lastActionRef.current;
-    lastActionRef.current = null; // clear it
-
-    if (type === 'wrong') {
-      evaluateGradeLevelProgression(gradeCache, false,
-        assessmentState.totalQuestionsAnswered,
-        assessmentState.totalCorrectAnswers,
-        gradeRef.current); // always fresh
-    } else {
-      evaluateGradeLevelProgression(gradeCache, true,
-        assessmentState.totalQuestionsAnswered,
-        assessmentState.totalCorrectAnswers,
-        gradeRef.current);
-    }
-  }, [assessmentState.currentGrade]); // fires only after commit
+  
 
   useEffect(() => {
     if (user && operation) {
@@ -176,9 +143,9 @@ export default function MathFactsAssessmentPlayPage() {
 
     // If answer is incorrect, drop to lower grade immediately (don't advance question)
     if (!isCorrect) {
-      console.log(`Wrong answer detected - dropping grade from ${gradeRef.current}`);
+      console.log(`Wrong answer detected - dropping grade from ${assessmentState.currentGrade}`);
       
-      // Use functional setState to get fresh state and trigger centralized progression
+      // Use functional setState to get fresh state and handle progression in async callback
       setAssessmentState(prev => {
         const currentGradeCache = prev.gradeCache[prev.currentGrade] || {
           questionsAnswered: 0,
@@ -197,8 +164,10 @@ export default function MathFactsAssessmentPlayPage() {
           }
         };
 
-        // Set lastActionRef to trigger centralized progression effect
-        lastActionRef.current = { type: 'wrong', gradeCache: updatedGradeCache };
+        // Use setTimeout to ensure the progression logic gets the fresh state values
+        setTimeout(() => {
+          evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers, prev.currentGrade);
+        }, 0);
 
         return {
           ...prev,
@@ -228,7 +197,7 @@ export default function MathFactsAssessmentPlayPage() {
       // All questions answered correctly for this grade level
       const correctCount = newAnswers.length; // All must be correct to reach here
 
-      // Use functional setState to get fresh values and trigger centralized progression
+      // Use functional setState to get fresh values and handle progression in async callback
       setAssessmentState(prev => {
         const currentGradeCache = prev.gradeCache[prev.currentGrade] || {
           questionsAnswered: 0,
@@ -247,8 +216,10 @@ export default function MathFactsAssessmentPlayPage() {
           }
         };
 
-        // Set lastActionRef to trigger centralized progression effect
-        lastActionRef.current = { type: 'gradeDone', gradeCache: updatedGradeCache };
+        // Use setTimeout to ensure the progression logic gets the fresh state values
+        setTimeout(() => {
+          evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers, prev.currentGrade);
+        }, 0);
 
         return {
           ...prev,
