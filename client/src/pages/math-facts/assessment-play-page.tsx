@@ -337,7 +337,10 @@ export default function MathFactsAssessmentPlayPage() {
           currentQuestionIndex: 0,
           answers: [],
           gradeCache: gradeCache,
-          maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested
+          maxGradeTested: isHigherGrade(newGrade, prev.maxGradeTested) ? newGrade : prev.maxGradeTested,
+          // Preserve the cumulative totals across grade transitions
+          totalQuestionsAnswered: prev.totalQuestionsAnswered,
+          totalCorrectAnswers: prev.totalCorrectAnswers
         };
         
         console.log(`✅ STATE UPDATED: Now at grade ${newState.currentGrade}, showing question: ${newState.questions[0]?.question}`);
@@ -419,6 +422,7 @@ export default function MathFactsAssessmentPlayPage() {
       if (response.ok) {
         const data = await response.json();
         const tokensEarned = data.tokensEarned || 15;
+
         setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`);
       } else {
         throw new Error('Failed to save assessment results');

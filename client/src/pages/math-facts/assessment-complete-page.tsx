@@ -20,6 +20,8 @@ export default function MathFactsAssessmentCompletePage() {
   const tokensEarned = parseInt(searchParams.get('tokensEarned') || '15');
   const isAllComplete = searchParams.get('allComplete') === 'true';
 
+
+
   useEffect(() => {
     // Refresh user data to get updated assessment status
     refreshUser();
