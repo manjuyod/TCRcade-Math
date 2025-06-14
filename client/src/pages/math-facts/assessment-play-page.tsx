@@ -142,48 +142,38 @@ export default function MathFactsAssessmentPlayPage() {
     // If answer is incorrect, drop to lower grade immediately (don't advance question)
     if (!isCorrect) {
       console.log(`Wrong answer detected - dropping grade from ${assessmentState.currentGrade}`);
-      // Update state with attempt but don't advance question index
-      setAssessmentState(prev => ({
-        ...prev,
-        answers: newAnswers,
-        totalQuestionsAnswered: newTotalQuestionsAnswered,
-        totalCorrectAnswers: newTotalCorrectAnswers
-      }));
-
-      // Update grade cache to record the failure
-      const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
-        questionsAnswered: 0,
-        correctAnswers: 0,
-        attempts: 0,
-        passed: false
-      };
-
-      const updatedGradeCache = {
-        ...assessmentState.gradeCache,
-        [assessmentState.currentGrade]: {
-          questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
-          correctAnswers: currentGradeCache.correctAnswers,
-          attempts: currentGradeCache.attempts + 1,
-          passed: false
-        }
-      };
-
-      // Drop to lower grade immediately after recording the wrong answer
-      // Use callback to ensure we get the updated state
+      
+      // Use functional setState to get fresh state and handle progression in the same update
       setAssessmentState(prev => {
-        const newState = {
-          ...prev,
-          answers: newAnswers,
-          totalQuestionsAnswered: newTotalQuestionsAnswered,
-          totalCorrectAnswers: newTotalCorrectAnswers
+        const currentGradeCache = prev.gradeCache[prev.currentGrade] || {
+          questionsAnswered: 0,
+          correctAnswers: 0,
+          attempts: 0,
+          passed: false
         };
-        
-        // Call progression evaluation with current state after update
+
+        const updatedGradeCache = {
+          ...prev.gradeCache,
+          [prev.currentGrade]: {
+            questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
+            correctAnswers: currentGradeCache.correctAnswers,
+            attempts: currentGradeCache.attempts + 1,
+            passed: false
+          }
+        };
+
+        // Use fresh prev.currentGrade for progression logic
         setTimeout(() => {
           evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers, prev.currentGrade);
         }, 0);
-        
-        return newState;
+
+        return {
+          ...prev,
+          answers: newAnswers,
+          totalQuestionsAnswered: newTotalQuestionsAnswered,
+          totalCorrectAnswers: newTotalCorrectAnswers,
+          gradeCache: updatedGradeCache
+        };
       });
       return;
     }
@@ -205,26 +195,39 @@ export default function MathFactsAssessmentPlayPage() {
       // All questions answered correctly for this grade level
       const correctCount = newAnswers.length; // All must be correct to reach here
 
-      // Update grade cache
-      const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
-        questionsAnswered: 0,
-        correctAnswers: 0,
-        attempts: 0,
-        passed: false
-      };
+      // Use functional setState to get fresh values for the async callback
+      setAssessmentState(prev => {
+        const currentGradeCache = prev.gradeCache[prev.currentGrade] || {
+          questionsAnswered: 0,
+          correctAnswers: 0,
+          attempts: 0,
+          passed: false
+        };
 
-      const updatedGradeCache = {
-        ...assessmentState.gradeCache,
-        [assessmentState.currentGrade]: {
-          questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
-          correctAnswers: currentGradeCache.correctAnswers + correctCount,
-          attempts: currentGradeCache.attempts + 1,
-          passed: true
-        }
-      };
+        const updatedGradeCache = {
+          ...prev.gradeCache,
+          [prev.currentGrade]: {
+            questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
+            correctAnswers: currentGradeCache.correctAnswers + correctCount,
+            attempts: currentGradeCache.attempts + 1,
+            passed: true
+          }
+        };
 
-      // Complete assessment at this grade since we got 100%
-      await evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers, assessmentState.currentGrade);
+        // Use fresh prev.currentGrade for progression logic
+        setTimeout(() => {
+          evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers, prev.currentGrade);
+        }, 0);
+
+        return {
+          ...prev,
+          currentQuestionIndex: newQuestionIndex,
+          answers: newAnswers,
+          totalQuestionsAnswered: newTotalQuestionsAnswered,
+          totalCorrectAnswers: newTotalCorrectAnswers,
+          gradeCache: updatedGradeCache
+        };
+      });
     }
     // If there are more questions and the answer was correct, continue with next question
   };
