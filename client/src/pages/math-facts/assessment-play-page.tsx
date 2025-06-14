@@ -238,13 +238,6 @@ export default function MathFactsAssessmentPlayPage() {
   };
 
   const moveToGradeLevel = async (newGrade: string, gradeCache: any) => {
-    // Check if we've already tested this grade and passed
-    if (gradeCache[newGrade]?.passed) {
-      // Already passed this grade, complete assessment
-      await completeAssessment(newGrade);
-      return;
-    }
-
     try {
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${newGrade}`);
       const data = await response.json();
