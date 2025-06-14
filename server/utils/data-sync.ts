@@ -140,27 +140,52 @@ async function calculateLessonBasedCompletion(tableName: string, moduleProgress:
       return calculateSessionBasedCompletion(moduleProgress); // Fallback to session-based
     }
     
+    // Get grade level from parent module data, not progress
     const userGradeLevel = moduleProgress.grade_level || 0;
     const userLesson = moduleProgress.lesson || 0;
+    
+    console.log(`DEBUG: ${tableName} - User grade: ${userGradeLevel}, lesson: ${userLesson}`, moduleProgress);
     
     if (userGradeLevel === 0 || userLesson === 0) {
       return 0; // User hasn't started
     }
     
-    // Find user's position in the progression
+    // Find user's current position in the progression
     let userPosition = 0;
+    let foundPosition = false;
+    
     for (let i = 0; i < progression.length; i++) {
       const item = progression[i];
-      if (item.GradeLevel < userGradeLevel || 
-          (item.GradeLevel === userGradeLevel && item.Lesson <= userLesson)) {
+      const itemGradeLevel = parseInt(item.GradeLevel);
+      const itemLesson = parseInt(item.Lesson);
+      
+      if (itemGradeLevel < userGradeLevel || 
+          (itemGradeLevel === userGradeLevel && itemLesson <= userLesson)) {
         userPosition = i + 1;
-      } else {
-        break;
+        foundPosition = true;
       }
     }
     
-    const completionPercentage = (userPosition / progression.length) * 100;
-    return Math.round(Math.min(100, completionPercentage));
+    // If user hasn't reached any lesson yet, check if they're at the beginning
+    if (!foundPosition && userGradeLevel > 0 && userLesson > 0) {
+      // User is potentially beyond the available progression or at the start
+      const firstItem = progression[0];
+      const firstGradeLevel = parseInt(firstItem.GradeLevel);
+      const firstLesson = parseInt(firstItem.Lesson);
+      
+      if (userGradeLevel < firstGradeLevel || 
+          (userGradeLevel === firstGradeLevel && userLesson < firstLesson)) {
+        return 5; // Give 5% for being in progress but before first tracked lesson
+      }
+      
+      // User is beyond all tracked lessons
+      userPosition = progression.length;
+    }
+    
+    const completionPercentage = Math.min(100, (userPosition / progression.length) * 100);
+    console.log(`Lesson-based completion for ${tableName}: User at grade ${userGradeLevel}, lesson ${userLesson}, position ${userPosition}/${progression.length} = ${completionPercentage}%`);
+    
+    return Math.round(completionPercentage);
   } catch (error) {
     console.warn(`Error calculating lesson-based completion for ${tableName}:`, error);
     return calculateSessionBasedCompletion(moduleProgress); // Fallback

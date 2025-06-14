@@ -695,7 +695,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const moduleProgressPromises = Object.entries(modules).map(async ([moduleKey, moduleData]: [string, any]) => {
         if (moduleData && moduleData.progress) {
           const moduleProgress = moduleData.progress;
-          const completion = await calculateModuleCompletion(moduleKey, moduleProgress);
+          // Pass the complete module data (including grade_level) to completion calculation
+          const moduleWithGradeLevel = {
+            ...moduleProgress,
+            grade_level: moduleData.grade_level || moduleProgress.grade_level || 0
+          };
+          const completion = await calculateModuleCompletion(moduleKey, moduleWithGradeLevel);
           return {
             category: moduleKey,
             label: getCategoryLabel(moduleKey),
