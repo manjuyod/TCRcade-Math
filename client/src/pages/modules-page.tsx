@@ -326,34 +326,34 @@ export default function ModulesPage() {
 
     // Check if this is a Math Facts module
     const isMathFactsModule = module.id.startsWith('math-facts-');
-    
+
     // Clear question cache and session data for fresh question generation
     // This ensures "Play Again" gives new questions instead of repeating the same ones
     if (isMathFactsModule || ['addition', 'subtraction', 'multiplication', 'division'].includes(module.id)) {
       console.log('Clearing question cache for fresh session');
-      
+
       // Clear React Query cache for questions
       import('@/lib/queryClient').then(({ queryClient, apiRequest }) => {
         queryClient.removeQueries({ queryKey: ['/api/questions/next'] });
         queryClient.removeQueries({ queryKey: ['/api/questions/math-facts'] });
-        
+
         // Clear server session data
         apiRequest('POST', '/api/session/clear').catch(error => {
           console.warn('Failed to clear server session:', error);
         });
       });
-      
+
       // Clear localStorage question history for this user
       const userId = user?.id;
       if (userId) {
         const historyKey = `questionHistory_${userId}`;
         localStorage.removeItem(historyKey);
       }
-      
+
       // Clear global seen questions cache
       localStorage.removeItem('globalSeenQuestions');
     }
-    
+
     // Store the module ID and its game type
     localStorage.setItem('currentModuleId', module.id);
     localStorage.setItem('currentModuleType', module.gameType);
@@ -400,7 +400,7 @@ export default function ModulesPage() {
       setLocation('/algebra/setup');
       return;
     }
-    
+
     // For Math Facts modules, navigate to dedicated play pages
     if (isMathFactsModule) {
       // Extract the operation (e.g., 'addition' from 'math-facts-addition')

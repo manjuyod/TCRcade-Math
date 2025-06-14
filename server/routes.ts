@@ -95,11 +95,11 @@ async function calculateTokenPercentile(userTokens: number): Promise<number> {
              SUM(CASE WHEN tokens < ${userTokens} THEN 1 ELSE 0 END) as users_below
       FROM users
     `);
-    
+
     const row = result.rows[0] as any;
     const totalUsers = parseInt(row.total_users) || 1;
     const usersBelow = parseInt(row.users_below) || 0;
-    
+
     return (usersBelow / totalUsers) * 100;
   } catch (error) {
     console.error("Error calculating token percentile:", error);
@@ -118,11 +118,11 @@ async function calculateAccuracyPercentile(userAccuracy: number): Promise<number
       FROM users
       WHERE questions_answered > 0
     `);
-    
+
     const row = result.rows[0] as any;
     const totalUsers = parseInt(row.total_users) || 1;
     const usersBelow = parseInt(row.users_below) || 0;
-    
+
     return (usersBelow / totalUsers) * 100;
   } catch (error) {
     console.error("Error calculating accuracy percentile:", error);
@@ -482,24 +482,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Math Facts endpoint - uses our efficient O(1) algorithm
-  app.get("/api/questions/math-facts", async (req, res) => {
-    try {
-      const { grade = "3", operation = "addition" } = req.query;
+// Math Facts routes - updated for new assessment and practice flow
 
-      // Generate an efficient math fact question
-      const question = getNextMathFact(
+  // Generate practice questions for a session
+  app.get("/api/math-facts/:operation/questions", async (req, res) => {
+    try {
+      const { operation } = req.params;
+      const { grade, count = "6" } = req.query;
+
+      if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
+        return res.status(400).json({ error: "Invalid operation" });
+      }
+
+      if (!grade) {
+        return res.status(400).json({ error: "Missing grade parameter" });
+      }
+
+      const { generateQuestionsForSession } = await import("./modules/mathFacts");
+      const questions = generateQuestionsForSession(
+        operation as any,
         grade as string,
-        operation as MathOperation,
+        parseInt(count as string)
       );
 
-      res.json(question);
+      res.json({ questions });
     } catch (error) {
-      console.error("Error generating math facts question:", error);
-      res.status(500).json({
-        message: "Failed to generate math facts question",
-        error: error instanceof Error ? error.message : String(error),
+      console.error("Math Facts practice questions error:", error);
+      res.status(500).json({ error: "Failed to generate practice questions" });
+    }
+  });
+
+  // Generate assessment questions
+  app.get("/api/math-facts/assessment/:operation", async (req, res) => {
+    try {
+      const { operation } = req.params;
+      const { grade } = req.query;
+
+      if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
+        return res.status(400).json({ error: "Invalid operation" });
+      }
+
+      if (!grade) {
+        return res.status(400).json({ error: "Missing grade parameter" });
+      }
+
+      const { generateAssessmentQuestions } = await import("./modules/mathFacts");
+      const questions = generateAssessmentQuestions(
+        operation as any,
+        grade as string,
+        2 // Always 2 questions per grade in assessment
+      );
+
+      res.json({ questions });
+    } catch (error) {
+      console.error("Math Facts assessment questions error:", error);
+      res.status(500).json({ error: "Failed to generate assessment questions" });
+    }
+  });
+
+  // Complete assessment
+  app.post("/api/math-facts/assessment/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const { operation, finalGrade, questionsAnswered } = req.body;
+      const userId = (req.user as any).id;
+
+      if (!operation || !finalGrade || !userId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update user's hidden grade asset
+      const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
+      const modules = hiddenGradeAsset.modules || {};
+      const operationKey = `${operation}_facts`;
+
+      modules[operationKey] = {
+        ...modules[operationKey],
+        progress: {
+          ...modules[operationKey]?.progress,
+          test_taken: true,
+          grade_level: finalGrade,
+          attempt_good: 0,
+          attempt_bad: 0,
+          tokens_earned: (modules[operationKey]?.progress?.tokens_earned || 0) + 15,
+          total_questions_answered: (modules[operationKey]?.progress?.total_questions_answered || 0) + questionsAnswered,
+          assessment_completed_date: new Date().toISOString()
+        }
+      };
+
+      await storage.updateUser(userId, {
+        tokens: user.tokens + 15,
+        hiddenGradeAsset: {
+          ...hiddenGradeAsset,
+          modules
+        }
       });
+
+      // Add to module history
+      await storage.recordModuleCompletion(userId, 'math-facts', {
+        operation,
+        type: 'assessment',
+        grade_level: finalGrade,
+        questions_answered: questionsAnswered,
+        tokens_earned: 15,
+        completed_at: new Date().toISOString()
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Assessment completed successfully",
+        tokensEarned: 15,
+        gradeLevel: finalGrade
+      });
+
+    } catch (error) {
+      console.error("Math Facts assessment completion error:", error);
+      res.status(500).json({ error: "Failed to complete assessment" });
+    }
+  });
+
+// Math Facts practice session completion route
+  app.post("/api/math-facts/session/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const { operation, answers, questions, timeSpent } = req.body;
+      const userId = (req.user as any).id;
+
+      if (!operation || !answers || !questions || !userId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { calculateSessionScore, determineGradeLevelChange } = await import("./modules/mathFacts");
+      const { getNextGradeLevel } = await import("../shared/mathFactsRules");
+
+      // Calculate score using the new module functions
+      let correctAnswers = 0;
+      for (let i = 0; i < questions.length; i++) {
+        if (answers[i] === questions[i].answer) {
+          correctAnswers++;
+        }
+      }
+
+      const sessionResult = calculateSessionScore(correctAnswers, questions.length);
+
+      // Update user progress
+      const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
+      const modules = hiddenGradeAsset.modules || {};
+      const operationKey = `${operation}_facts`;
+      const currentProgress = modules[operationKey]?.progress || {};
+
+      // Grade level management using new logic
+      const levelChangeResult = determineGradeLevelChange(
+        currentProgress.attempt_good || 0,
+        currentProgress.attempt_bad || 0,
+        sessionResult.passed
+      );
+
+      let currentGradeLevel = currentProgress.grade_level || user.grade;
+      if (levelChangeResult.shouldChangeLevel && levelChangeResult.direction) {
+        const newGrade = getNextGradeLevel(currentGradeLevel, levelChangeResult.direction);
+        if (newGrade !== currentGradeLevel) {
+          currentGradeLevel = newGrade;
+        }
+      }
+
+      modules[operationKey] = {
+        ...modules[operationKey],
+        progress: {
+          ...currentProgress,
+          grade_level: currentGradeLevel,
+          attempt_good: levelChangeResult.newAttemptGood,
+          attempt_bad: levelChangeResult.newAttemptBad,
+          tokens_earned: (currentProgress.tokens_earned || 0) + sessionResult.tokensEarned,
+          total_questions_answered: (currentProgress.total_questions_answered || 0) + questions.length,
+          correct_answers: (currentProgress.correct_answers || 0) + correctAnswers,
+          sessions_completed: (currentProgress.sessions_completed || 0) + 1,
+          last_session_date: new Date().toISOString()
+        }
+      };
+
+      await storage.updateUser(userId, {
+        tokens: user.tokens + sessionResult.tokensEarned,
+        questionsAnswered: user.questionsAnswered + questions.length,
+        correctAnswers: user.correctAnswers + correctAnswers,
+        hiddenGradeAsset: {
+          ...hiddenGradeAsset,
+          modules
+        }
+      });
+
+      // Add to module history
+      await storage.recordModuleCompletion(userId, 'math-facts', {
+        operation,
+        type: 'practice',
+        grade_level: currentGradeLevel,
+        questions_answered: questions.length,
+        correct_answers: correctAnswers,
+        percentage: Math.round(sessionResult.percentage * 100),
+        tokens_earned: sessionResult.tokensEarned,
+        time_spent: timeSpent,
+        level_changed: levelChangeResult.shouldChangeLevel,
+        level_direction: levelChangeResult.direction,
+        completed_at: new Date().toISOString()
+      });
+
+      res.json({
+        success: true,
+        score: correctAnswers,
+        total: questions.length,
+        percentage: Math.round(sessionResult.percentage * 100),
+        tokensEarned: sessionResult.tokensEarned,
+        passed: sessionResult.passed,
+        gradeLevel: currentGradeLevel,
+        levelChanged: levelChangeResult.shouldChangeLevel,
+        levelDirection: levelChangeResult.direction,
+        newAttemptGood: levelChangeResult.newAttemptGood,
+        newAttemptBad: levelChangeResult.newAttemptBad
+      });
+
+    } catch (error) {
+      console.error("Math Facts session completion error:", error);
+      res.status(500).json({ error: "Failed to complete session" });
     }
   });
 
@@ -648,10 +859,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/progress", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
-      
+
       // Sync data before returning progress to ensure consistency
       await syncUserProgressData(userId);
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -738,12 +949,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       errorResponse(res, 500, "Failed to fetch user progress", error);
     }
-  });
-
+  });```tool_code
+This commit refactors the Math Facts module by adding new assessment and practice routes, and session completion logic.
   // Helper function to calculate percentile
   function calculatePercentile(value: number, allValues: number[]): number {
     if (allValues.length === 0) return 50;
-    
+
     const sortedValues = allValues.sort((a, b) => a - b);
     const rank = sortedValues.filter(v => v < value).length;
     return Math.round((rank / sortedValues.length) * 100);
@@ -753,7 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/sync-user-data", ensureAuthenticated, async (req, res) => {
     try {
       const { userId } = req.body;
-      
+
       if (userId) {
         await syncUserProgressData(userId);
         res.json({ success: true, message: `User ${userId} synchronized` });
@@ -775,7 +986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { moduleName } = req.params;
       const userId = getUserId(req);
-      
+
       const history = await storage.getUserModuleHistoryByModule(userId, moduleName);
       res.json({ count: history.length });
     } catch (error) {
@@ -787,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { moduleName } = req.params;
       const userId = getUserId(req);
-      
+
       const count = await storage.getModuleHistoryCount(userId, moduleName);
       res.json({ count });
     } catch (error) {
@@ -799,10 +1010,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { moduleName } = req.params;
       const userId = getUserId(req);
-      
+
       const history = await storage.getUserModuleHistoryByModule(userId, moduleName, 1);
       const latest = history.length > 0 ? history[0] : null;
-      
+
       if (latest) {
         res.json(latest);
       } else {
@@ -818,14 +1029,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { module: moduleName, days } = req.query;
       const userId = getUserId(req);
-      
+
       let history;
       if (moduleName) {
         history = await storage.getUserModuleHistoryByModule(userId, moduleName as string);
       } else {
         history = await storage.getUserModuleHistory(userId);
       }
-      
+
       res.json(history);
     } catch (error) {
       errorResponse(res, 500, "Failed to get module history", error);
@@ -1664,8 +1875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Record module history with module-specific grade level
           const moduleGradeLevel = getModuleGradeLevel(user, `math_rush_${mode}`);
-          await storage.recordModuleHistory({
-            userId,
+          await storage.recordModuleHistory({            userId,
             moduleName: `math_rush_${mode}`,
             runType: 'token_run', // Math Rush is always token-based
             finalScore,
@@ -2229,7 +2439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to submit session" });
     }
   });
-  
+
   // Helper function to populate player data from user IDs
   async function populatePlayersData(participants: number[]): Promise<Player[]> {
     const players: Player[] = [];
@@ -2255,7 +2465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { grade } = req.query;
       const rooms = await storage.listActiveMultiplayerRooms(grade?.toString());
-      
+
       // Populate player data for each room
       const roomsWithPlayers = await Promise.all(
         rooms.map(async (room) => {
@@ -2263,14 +2473,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Mark the host
           const hostPlayer = players.find(p => p.id === room.hostId);
           if (hostPlayer) hostPlayer.isHost = true;
-          
+
           return {
             ...room,
             players
           };
         })
       );
-      
+
       res.json(roomsWithPlayers);
     } catch (error) {
       console.error("Error fetching rooms:", error);
@@ -2284,46 +2494,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const roomId = Number(req.params.id);
       console.log("API: GET /api/multiplayer/rooms/" + roomId);
       console.log("Fetching room with ID:", roomId);
-      
+
       const room = await storage.getMultiplayerRoom(roomId); 
       if (!room) {
         console.log("Room not found:", roomId);
         return res.status(404).json({ error: 'Room not found' });
       }
-      
+
       console.log("Room found:", room);
-      
+
       // Populate player data
       const players = await populatePlayersData(room.participants || []);
       // Mark the host
       const hostPlayer = players.find(p => p.id === room.hostId);
       if (hostPlayer) hostPlayer.isHost = true;
-      
+
       const roomWithPlayers = {
         ...room,
         players
       };
-      
+
       res.json(roomWithPlayers);
     } catch (error) {
       console.error("Error fetching room:", error);
       res.status(500).json({ error: "Failed to fetch room" });
     }
   });
-  
+
   // Create a multiplayer room
   app.post("/api/multiplayer/rooms", ensureAuthenticated, async (req, res) => {
     try {
       const { name, grade, category, maxPlayers, gameType, settings } = req.body;
       console.log("API: POST /api/multiplayer/rooms");
       console.log("Creating room with data:", { name, grade, category, maxPlayers, gameType, settings });
-      
+
       if (!name || !grade || !category || !maxPlayers || !gameType || !settings) {
         return res.status(400).json({ message: "Missing required fields" });
       }
-      
+
       const hostId = req.user!.id;
-      
+
       const room = await storage.createMultiplayerRoom(hostId, {
         name, 
         grade, 
@@ -2356,7 +2566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { roomId, roomCode } = req.body;
       const userId = req.user!.id;
-      
+
       console.log("API: POST /api/multiplayer/join");
       console.log("Join request:", { roomId, roomCode, userId });
 
@@ -2391,7 +2601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { roomId } = req.body;
       const userId = req.user!.id;
-      
+
       console.log("API: POST /api/multiplayer/leave");
       console.log("Leave request:", { roomId, userId });
 
@@ -2412,7 +2622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { roomId } = req.body;
       const userId = req.user!.id;
-      
+
       console.log("API: POST /api/multiplayer/start");
       console.log("Start game request:", { roomId, userId });
 
@@ -2468,7 +2678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { roomId, answer } = req.body;
       const userId = req.user!.id;
-      
+
       console.log("API: POST /api/multiplayer/answer");
       console.log("Answer submission:", { roomId, userId, answer });
 
@@ -2483,7 +2693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const gameState = room.gameState as any;
       const currentQuestion = gameState?.questions?.[gameState.currentQuestionIndex];
-      
+
       if (!currentQuestion) {
         return res.status(400).json({ error: "No current question" });
       }
@@ -2495,7 +2705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update player answers
       if (!gameState.playerAnswers) gameState.playerAnswers = {};
       if (!gameState.playerAnswers[userId]) gameState.playerAnswers[userId] = [];
-      
+
       gameState.playerAnswers[userId].push({
         questionIndex: gameState.currentQuestionIndex,
         answer,
@@ -2517,7 +2727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (allAnswered) {
         // Move to next question or end game
         gameState.currentQuestionIndex += 1;
-        
+
         if (gameState.currentQuestionIndex >= gameState.questions.length) {
           // Game over
           gameOver = true;
@@ -2562,7 +2772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to generate questions for multiplayer games
   async function generateGameQuestions(grade: string, category: string, count: number) {
     const questions = [];
-    
+
     for (let i = 0; i < count; i++) {
       try {
         // Generate basic arithmetic questions for multiplayer
@@ -2594,7 +2804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const num2 = Math.floor(Math.random() * 10) + 1;
           const operations = ['+', '-', '×'];
           const op = operations[Math.floor(Math.random() * operations.length)];
-          
+
           let answer;
           switch (op) {
             case '+': answer = num1 + num2; break;
@@ -2602,7 +2812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             case '×': answer = num1 * num2; break;
             default: answer = num1 + num2;
           }
-          
+
           questions.push({
             id: `gen-${i}`,
             questionText: `${Math.max(num1, num2)} ${op} ${Math.min(num1, num2)} = ?`,
@@ -2625,7 +2835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     }
-    
+
     return questions;
   }
 
@@ -2739,18 +2949,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tokenRuns: 0
           };
         }
-        
+
         const module = acc[entry.moduleName];
         module.totalRuns++;
         module.totalScore += entry.finalScore;
         module.bestScore = Math.max(module.bestScore, entry.finalScore);
         module.totalTimeSpent += entry.timeSpentSeconds;
-        
+
         if (entry.runType === 'test') module.testRuns++;
         if (entry.runType === 'token_run') module.tokenRuns++;
-        
+
         module.averageScore = Math.round(module.totalScore / module.totalRuns);
-        
+
         return acc;
       }, {} as Record<string, any>);
 
@@ -2777,7 +2987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -2834,7 +3044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const questions = progress_data.total_questions_answered || 0;
           const correct = progress_data.correct_answers || 0;
           const moduleAccuracy = questions > 0 ? (correct / questions) * 100 : 0;
-          
+
           // Calculate completion based on sessions and mastery
           let completion = 0;
           if (progress_data.sessions_completed) {
