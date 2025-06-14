@@ -85,7 +85,7 @@ const NUMBER_RANGES = {
  * Generates math fact questions without AI/OpenAI dependency
  */
 
-export function generateQuestionsForSession(
+function generateQuestionsForSession(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
   grade: string | number,
   count: number = MATH_FACTS_CONFIG.PRACTICE_QUESTIONS_PER_SESSION
@@ -110,7 +110,7 @@ export function generateQuestionsForSession(
   return questions;
 }
 
-export function generateAssessmentQuestions(
+function generateAssessmentQuestions(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
   grade: string | number,
   count: number = MATH_FACTS_CONFIG.ASSESSMENT_QUESTIONS_PER_GRADE
@@ -119,7 +119,7 @@ export function generateAssessmentQuestions(
   return generateQuestionsForSession(operation, normalizedGrade, count);
 }
 
-export function calculateSessionScore(correctAnswers: number, totalQuestions: number): {
+function calculateSessionScore(correctAnswers: number, totalQuestions: number): {
   score: number;
   percentage: number;
   passed: boolean;
@@ -141,7 +141,7 @@ export function calculateSessionScore(correctAnswers: number, totalQuestions: nu
   };
 }
 
-export function determineGradeLevelChange(
+function determineGradeLevelChange(
   currentAttemptGood: number,
   currentAttemptBad: number,
   sessionPassed: boolean
@@ -188,7 +188,7 @@ export function determineGradeLevelChange(
   };
 }
 
-export function runAssessmentForOperation(
+function runAssessmentForOperation(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
   userGrade: string,
   answerCallback: (questions: MathFactQuestion[]) => Promise<string[]>
@@ -242,12 +242,12 @@ export function runAssessmentForOperation(
   });
 }
 
-export function validateMathFactAnswer(userAnswer: string, correctAnswer: string): boolean {
+function validateMathFactAnswer(userAnswer: string, correctAnswer: string): boolean {
   return userAnswer.trim() === correctAnswer.trim();
 }
 
 // Performance benchmarking for algorithmic generation
-export function runPerformanceBenchmark(iterations: number = 1000): {
+function runPerformanceBenchmark(iterations: number = 1000): {
   averageTimeMs: number;
   questionsPerSecond: number;
   totalQuestions: number;

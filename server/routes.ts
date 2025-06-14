@@ -639,7 +639,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { calculateSessionScore, determineGradeLevelChange } = await import("./modules/mathFacts");
-      const { getNextGradeLevel } = await import("../shared/mathFactsRules");
 
       // Calculate score using the new module functions
       let correctAnswers = 0;
