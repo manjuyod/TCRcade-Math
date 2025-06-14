@@ -1,0 +1,93 @@
+Loading standard module: math-facts-addition
+Console.js:61 Clearing question cache for fresh session
+Console.js:61 Loading Math Facts with grade=12, operation=addition
+Console.js:61 Question: 25403 + 81438 = ?, Selected: 98826, Correct: 106841, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 6
+Console.js:61 Evaluating progression: currentGrade=6, passed=false, currentIndex=6
+Console.js:61 Dropping from grade 6 to grade 5
+Console.js:61 Moving from grade 6 to grade 5 (attempt 1)
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=5
+Console.js:61 📡 API Response status for grade 5: 200 OK
+Console.js:61 📋 Full API Response for grade 5: {
+  "questions": [
+    {
+      "id": "mathfact_addition_1749879389100_a3kp95l0m",
+      "question": "38254 + 51000 = ?",
+      "answer": "89254",
+      "options": [
+        "80731",
+        "72081",
+        "103282",
+        "89254"
+      ],
+      "operation": "addition",
+      "gradeLevel": "5"
+    },
+    {
+      "id": "mathfact_addition_1749879389100_3clup129x",
+      "question": "60816 + 58390 = ?",
+      "answer": "119206",
+      "options": [
+        "119206",
+        "108255",
+        "124677",
+        "124167"
+      ],
+      "operation": "addition",
+      "gradeLevel": "5"
+    }
+  ]
+}
+Console.js:61 🔄 STATE TRANSITION: Moving from 6 to 5
+Console.js:61 📝 New questions for grade 5: (2) ['38254 + 51000 = ?', '60816 + 58390 = ?']
+Console.js:61 🎯 Pre-update state: {currentGrade: '6', currentQuestion: '25403 + 81438 = ?'}
+Console.js:61 Successfully moved to grade 5 with 2 questions
+Console.js:61 ✅ STATE UPDATED: Now at grade 5, showing question: 38254 + 51000 = ?
+Console.js:61 🎯 Post-update validation: {newGrade: '5', questionsCount: 2, currentIndex: 0, firstQuestion: '38254 + 51000 = ?', firstAnswer: '89254'}
+Console.js:61 🔍 Post-setState verification: currentGrade should be 5, actually is 6
+6Console.js:61 [SessionAwareLink] moduleInProgress = false
+Console.js:61 Question: 38254 + 51000 = ?, Selected: 72081, Correct: 89254, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 5
+Console.js:61 Evaluating progression: currentGrade=5, passed=false, currentIndex=5
+Console.js:61 Dropping from grade 5 to grade 4
+Console.js:61 Moving from grade 5 to grade 4 (attempt 1)
+Console.js:61 Fetching questions from: /api/math-facts/assessment/addition?grade=4
+Console.js:61 📡 API Response status for grade 4: 200 OK
+Console.js:61 📋 Full API Response for grade 4: {
+  "questions": [
+    {
+      "id": "mathfact_addition_1749879402906_8opz546p5",
+      "question": "8476 + 8596 = ?",
+      "answer": "17072",
+      "options": [
+        "17072",
+        "17286",
+        "15094",
+        "15333"
+      ],
+      "operation": "addition",
+      "gradeLevel": "4"
+    },
+    {
+      "id": "mathfact_addition_1749879402906_wz1yoi351",
+      "question": "5458 + 2273 = ?",
+      "answer": "7731",
+      "options": [
+        "8251",
+        "8924",
+        "6202",
+        "7731"
+      ],
+      "operation": "addition",
+      "gradeLevel": "4"
+    }
+  ]
+}
+Console.js:61 🔄 STATE TRANSITION: Moving from 5 to 4
+Console.js:61 📝 New questions for grade 4: (2) ['8476 + 8596 = ?', '5458 + 2273 = ?']
+Console.js:61 🎯 Pre-update state: {currentGrade: '5', currentQuestion: '38254 + 51000 = ?'}
+Console.js:61 Successfully moved to grade 4 with 2 questions
+Console.js:61 ✅ STATE UPDATED: Now at grade 4, showing question: 8476 + 8596 = ?
+Console.js:61 🎯 Post-update validation: {newGrade: '4', questionsCount: 2, currentIndex: 0, firstQuestion: '8476 + 8596 = ?', firstAnswer: '17072'}
+Console.js:61 🔍 Post-setState verification: currentGrade should be 4, actually is 5
+21Console.js:61 [SessionAwareLink] moduleInProgress = false
