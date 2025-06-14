@@ -32,6 +32,8 @@ interface AssessmentState {
     };
   };
   maxGradeTested: string;
+  totalQuestionsAnswered: number;
+  totalCorrectAnswers: number;
 }
 
 export default function MathFactsAssessmentPlayPage() {
@@ -73,7 +75,9 @@ export default function MathFactsAssessmentPlayPage() {
         completed: false,
         results: [],
         gradeCache: {},
-        maxGradeTested: ''
+        maxGradeTested: '',
+        totalQuestionsAnswered: 0,
+        totalCorrectAnswers: 0
       });
       setSelectedAnswer('');
 
@@ -103,7 +107,9 @@ export default function MathFactsAssessmentPlayPage() {
         completed: false,
         results: [],
         gradeCache: {},
-        maxGradeTested: startingGrade
+        maxGradeTested: startingGrade,
+        totalQuestionsAnswered: 0,
+        totalCorrectAnswers: 0
       });
 
     } catch (error) {
@@ -122,6 +128,10 @@ export default function MathFactsAssessmentPlayPage() {
     const currentQuestion = assessmentState.questions[assessmentState.currentQuestionIndex];
     const isCorrect = selectedAnswer === currentQuestion.answer;
     const newAnswers = [...assessmentState.answers, selectedAnswer];
+
+    // Update tracking data
+    const newTotalQuestionsAnswered = assessmentState.totalQuestionsAnswered + 1;
+    const newTotalCorrectAnswers = assessmentState.totalCorrectAnswers + (isCorrect ? 1 : 0);
 
     // If answer is incorrect, immediately drop to lower grade
     if (!isCorrect) {
@@ -143,8 +153,15 @@ export default function MathFactsAssessmentPlayPage() {
         }
       };
 
+      // Update state with tracking data before dropping grade
+      setAssessmentState(prev => ({
+        ...prev,
+        totalQuestionsAnswered: newTotalQuestionsAnswered,
+        totalCorrectAnswers: newTotalCorrectAnswers
+      }));
+
       // Immediately drop to lower grade
-      await evaluateGradeLevelProgression(updatedGradeCache, false);
+      await evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers);
       return;
     }
 
@@ -174,34 +191,43 @@ export default function MathFactsAssessmentPlayPage() {
         }
       };
 
+      // Update state with tracking data
+      setAssessmentState(prev => ({
+        ...prev,
+        totalQuestionsAnswered: newTotalQuestionsAnswered,
+        totalCorrectAnswers: newTotalCorrectAnswers
+      }));
+
       // Move up to next grade or complete
-      await evaluateGradeLevelProgression(updatedGradeCache, true);
+      await evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers);
     } else {
       // Move to next question at same grade
       setAssessmentState(prev => ({
         ...prev,
         currentQuestionIndex: newQuestionIndex,
-        answers: newAnswers
+        answers: newAnswers,
+        totalQuestionsAnswered: newTotalQuestionsAnswered,
+        totalCorrectAnswers: newTotalCorrectAnswers
       }));
       setSelectedAnswer('');
     }
   };
 
-  const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean) => {
+  const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number) => {
     const gradeOrder = ['K', '1', '2', '3', '4', '5', '6'];
     const currentIndex = gradeOrder.indexOf(assessmentState.currentGrade);
 
     if (passedCurrentGrade) {
       // Passed current grade - this is their final assessed level
       // Complete assessment at this grade level since they achieved 100%
-      await completeAssessment(assessmentState.currentGrade);
+      await completeAssessment(assessmentState.currentGrade, totalQuestionsAnswered, totalCorrectAnswers);
       return;
     } else {
       // Failed current grade - immediately drop down
       if (currentIndex <= 0) {
         // At lowest grade (K), find highest passed grade or default to K
         const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
-        await completeAssessment(highestPassedGrade);
+        await completeAssessment(highestPassedGrade, totalQuestionsAnswered, totalCorrectAnswers);
         return;
       }
 
@@ -235,7 +261,7 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
     } catch (error) {
       console.error('Error getting questions for grade:', newGrade, error);
-      await completeAssessment(assessmentState.currentGrade);
+      await completeAssessment(assessmentState.currentGrade, assessmentState.totalQuestionsAnswered, assessmentState.totalCorrectAnswers);
     }
   };
 
@@ -254,7 +280,7 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
     } catch (error) {
       console.error('Error retrying grade:', error);
-      await completeAssessment(assessmentState.currentGrade);
+      await completeAssessment(assessmentState.currentGrade, assessmentState.totalQuestionsAnswered, assessmentState.totalCorrectAnswers);
     }
   };
 
@@ -273,21 +299,25 @@ export default function MathFactsAssessmentPlayPage() {
     return gradeOrder.indexOf(grade1) > gradeOrder.indexOf(grade2);
   };
 
-  const completeAssessment = async (finalGrade: string) => {
+  const completeAssessment = async (finalGrade: string, totalQuestions?: number, totalCorrect?: number) => {
     try {
+      const questionsAnswered = totalQuestions || assessmentState.totalQuestionsAnswered;
+      const correctAnswers = totalCorrect || assessmentState.totalCorrectAnswers;
+      
       const response = await fetch('/api/math-facts/assessment/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operation,
           finalGrade,
-          questionsAnswered: assessmentState.answers.length + 1,
+          questionsAnswered,
+          correctAnswers,
           userId: user?.id
         })
       });
 
       if (response.ok) {
-        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}`);
+        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}`);
       } else {
         throw new Error('Failed to save assessment results');
       }

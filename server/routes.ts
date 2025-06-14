@@ -546,14 +546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete assessment
-  app.post("/api/math-facts/assessment/complete", ensureAuthenticated, async (req, res) => {
-    try {
-      const { operation, finalGrade, questionsAnswered } = req.body;
-      const userId = (req.user as any).id;
+  app.post('/api/math-facts/assessment/complete', async (req, res) => {
+      try {
+        const { operation, finalGrade, questionsAnswered, correctAnswers, userId } = req.body;
 
-      if (!operation || !finalGrade || !userId) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+        if (!operation || !finalGrade || !userId) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
 
       const user = await storage.getUser(userId);
       if (!user) {
@@ -566,18 +565,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const operationKey = `${operation}_facts`;
 
       modules[operationKey] = {
-        ...modules[operationKey],
-        progress: {
-          ...modules[operationKey]?.progress,
-          test_taken: true,
-          grade_level: finalGrade,
-          attempt_good: 0,
-          attempt_bad: 0,
-          tokens_earned: (modules[operationKey]?.progress?.tokens_earned || 0) + 15,
-          total_questions_answered: (modules[operationKey]?.progress?.total_questions_answered || 0) + questionsAnswered,
-          assessment_completed_date: new Date().toISOString()
-        }
-      };
+          ...modules[operationKey],
+          progress: {
+            ...modules[operationKey]?.progress,
+            test_taken: true,
+            grade_level: finalGrade,
+            attempt_good: 0,
+            attempt_bad: 0,
+            tokens_earned: (modules[operationKey]?.progress?.tokens_earned || 0) + 15,
+            total_questions_answered: (modules[operationKey]?.progress?.total_questions_answered || 0) + (questionsAnswered || 0),
+            correct_answers: (modules[operationKey]?.progress?.correct_answers || 0) + (correctAnswers || 0),
+            assessment_completed_date: new Date().toISOString()
+          }
+        };
 
       await storage.updateUser(userId, {
         tokens: user.tokens + 15,
@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         runType: 'test',
         finalScore: 100, // Assessment completion is considered 100% success
         questionsTotal: questionsAnswered,
-        questionsCorrect: questionsAnswered, // Assessment questions answered to determine grade
+        questionsCorrect: correctAnswers, // Assessment questions answered to determine grade
         timeSpentSeconds: 0, // Assessment doesn't track time
         difficultyLevel: 1,
         gradeLevel: finalGrade,
@@ -947,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalQuestions,
           totalCorrect,
           accuracy: Math.round(accuracy * 100) / 100,
-          tokenPercentile: Math.round(tokenPercentile * 100) / 100,
+          tokenPercentile: Math.round(tokenPercentile * 100) / 10,
           accuracyPercentile: Math.round(accuracyPercentile * 100) / 100,
           synced: true,
           streak: user.streakDays || 0,
@@ -1545,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : (a as any).date
               ? new Date((a as any).date).getTime()
               : 0;
-          const dateB = (a as any).updatedAt
+          const dateB = (b as any).updatedAt
             ? new Date((a as any).updatedAt).getTime()
             : (a as any).date
               ? new Date((a as any).date).getTime()
@@ -1876,7 +1876,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ["questions_answered" as keyof typeof user]:
               ((user as any).questions_answered || 0) + total,
             ["correct_answers" as keyof typeof user]:
-              ((user as any).correct_answers || 0) + correct,
+              ((user as any).correct_answers || 0)<previous_generation>```text
+,
           });
 
           const newBalance = (user.tokens || 0) + tokens;

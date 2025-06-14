@@ -15,6 +15,8 @@ export default function MathFactsAssessmentCompletePage() {
   const searchParams = new URLSearchParams(searchString);
   const operation = searchParams.get('operation') || 'addition';
   const grade = searchParams.get('grade') || 'K';
+  const questionsAnswered = parseInt(searchParams.get('questionsAnswered') || '0');
+  const correctAnswers = parseInt(searchParams.get('correctAnswers') || '0');
   const isAllComplete = searchParams.get('allComplete') === 'true';
 
   useEffect(() => {
@@ -86,6 +88,21 @@ export default function MathFactsAssessmentCompletePage() {
               <div className="text-sm text-gray-600 max-w-md mx-auto">
                 {getGradeMessage(grade)}
               </div>
+            </div>
+
+            {/* Performance Stats */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-center mb-3">
+                <div className="text-2xl font-bold text-green-600">
+                  {correctAnswers}/{questionsAnswered}
+                </div>
+                <div className="text-sm text-gray-600">Questions Correct</div>
+              </div>
+              {questionsAnswered > 0 && (
+                <div className="text-center text-sm text-gray-600">
+                  {Math.round((correctAnswers / questionsAnswered) * 100)}% Accuracy
+                </div>
+              )}
             </div>
 
             {/* Tokens Earned */}
