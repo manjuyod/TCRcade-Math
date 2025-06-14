@@ -31,6 +31,7 @@ import {
   calcTokensFacts,
   validateTokenAmount,
 } from "./utils/token";
+import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -1508,7 +1509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           correctAnswers: (user.correctAnswers || 0) + correct,
         });
 
-        // Record module history
+        // Record module history with module-specific grade level
+        const moduleGradeLevel = getModuleGradeLevel(user, `math_facts_${operation || 'mixed'}`);
         await storage.recordModuleHistory({
           userId,
           moduleName: `math_facts_${operation || 'mixed'}`,
@@ -1517,7 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsTotal: total,
           questionsCorrect: correct,
           timeSpentSeconds: 0, // Duration not tracked in current implementation
-          gradeLevel: grade || user.grade || undefined,
+          gradeLevel: moduleGradeLevel,
           tokensEarned
         });
 
@@ -1660,7 +1662,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const newBalance = (user.tokens || 0) + tokens;
 
-          // Record module history
+          // Record module history with module-specific grade level
+          const moduleGradeLevel = getModuleGradeLevel(user, `math_rush_${mode}`);
           await storage.recordModuleHistory({
             userId,
             moduleName: `math_rush_${mode}`,
@@ -1669,7 +1672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             questionsTotal: total,
             questionsCorrect: correct,
             timeSpentSeconds: durationSec,
-            gradeLevel: user.grade || undefined,
+            gradeLevel: moduleGradeLevel,
             tokensEarned: tokens
           });
 
