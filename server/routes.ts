@@ -769,6 +769,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Module history testing endpoints
+  app.get("/api/module-history/count/:moduleName", ensureAuthenticated, async (req, res) => {
+    try {
+      const { moduleName } = req.params;
+      const userId = getUserId(req);
+      
+      const history = await storage.getUserModuleHistoryByModule(userId, moduleName);
+      res.json({ count: history.length });
+    } catch (error) {
+      errorResponse(res, 500, "Failed to get module history count", error);
+    }
+  });
+
+  app.get("/api/module-history/latest/:moduleName", ensureAuthenticated, async (req, res) => {
+    try {
+      const { moduleName } = req.params;
+      const userId = getUserId(req);
+      
+      const history = await storage.getUserModuleHistoryByModule(userId, moduleName, 1);
+      const latest = history.length > 0 ? history[0] : null;
+      
+      if (latest) {
+        res.json(latest);
+      } else {
+        res.status(404).json({ message: "No history found for this module" });
+      }
+    } catch (error) {
+      errorResponse(res, 500, "Failed to get latest module history", error);
+    }
+  });
+
+  // Get all module history for admin/testing
+  app.get("/api/admin/module-history", ensureAuthenticated, async (req, res) => {
+    try {
+      const { module: moduleName, days } = req.query;
+      const userId = getUserId(req);
+      
+      let history;
+      if (moduleName) {
+        history = await storage.getUserModuleHistoryByModule(userId, moduleName as string);
+      } else {
+        history = await storage.getUserModuleHistory(userId);
+      }
+      
+      res.json(history);
+    } catch (error) {
+      errorResponse(res, 500, "Failed to get module history", error);
+    }
+  });
+
   app.get("/api/leaderboard", ensureAuthenticated, async (req, res) => {
     try {
       console.log("Fetching leaderboard data...");
