@@ -71,7 +71,7 @@ export interface MathFactQuestion {
   answer: string;
   options: string[];
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division';
-  gradeLevel: string;
+  gradeLevel: number;
 }
 
 export interface AssessmentResult {
@@ -85,7 +85,7 @@ export interface AssessmentResult {
 
 export interface MathFactsProgress {
   test_taken: boolean;
-  grade_level: string;
+  grade_level: number;  // Changed to number for consistency (K=0)
   attempt_good: number;
   attempt_bad: number;
   tokens_earned: number;
@@ -145,19 +145,20 @@ export const MATH_FACTS_CONFIG = {
   MIN_GRADE_LEVEL: '0'
 };
 
-export function getGradeForAssessment(userGrade: string): string {
-  const gradeNum = userGrade === 'K' ? 0 : parseInt(userGrade);
-  if (gradeNum >= 6) return '6';
-  if (gradeNum <= 0) return '0';  // Return '0' instead of 'K' for server compatibility
-  return userGrade;
+export function getGradeForAssessment(userGrade: string | number): number {
+  const gradeNum = normalizeGrade(userGrade);
+  if (gradeNum >= 6) return 6;
+  if (gradeNum <= 0) return 0;
+  return gradeNum;
 }
 
 export function generateMathFactQuestion(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
-  gradeLevel: string
+  gradeLevel: string | number
 ): MathFactQuestion {
   const ranges = NUMBER_RANGES[operation];
-  const range = ranges[gradeLevel as keyof typeof ranges] || ranges.default;
+  const normalizedGrade = normalizeGrade(gradeLevel);
+  const range = ranges[normalizedGrade as keyof typeof ranges] || ranges.default;
 
   let question: string;
   let answer: string;
@@ -173,8 +174,9 @@ export function generateMathFactQuestion(
       break;
 
     case 'subtraction':
-      const minuend = Math.floor(Math.random() * (range.maxDiff - range.minDiff + 1)) + range.minDiff + range.min2;
-      num2 = Math.floor(Math.random() * (Math.min(range.max2, minuend) - range.min2 + 1)) + range.min2;
+      const subRange = range as any; // Type assertion for subtraction specific properties
+      const minuend = Math.floor(Math.random() * (subRange.maxDiff - subRange.minDiff + 1)) + subRange.minDiff + subRange.min2;
+      num2 = Math.floor(Math.random() * (Math.min(subRange.max2, minuend) - subRange.min2 + 1)) + subRange.min2;
       result = minuend - num2;
       question = `${minuend} - ${num2} = ?`;
       answer = result.toString();
@@ -189,8 +191,9 @@ export function generateMathFactQuestion(
       break;
 
     case 'division':
-      const quotient = Math.floor(Math.random() * (range.maxQuotient - range.minQuotient + 1)) + range.minQuotient;
-      const divisor = Math.floor(Math.random() * (range.maxDivisor - range.minDivisor + 1)) + range.minDivisor;
+      const divRange = range as any; // Type assertion for division specific properties
+      const quotient = Math.floor(Math.random() * (divRange.maxQuotient - divRange.minQuotient + 1)) + divRange.minQuotient;
+      const divisor = Math.floor(Math.random() * (divRange.maxDivisor - divRange.minDivisor + 1)) + divRange.minDivisor;
       const dividend = quotient * divisor;
       question = `${dividend} ÷ ${divisor} = ?`;
       answer = quotient.toString();
