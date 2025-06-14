@@ -827,58 +827,7 @@ export default function AiAnalytics() {
             </Card>
           </TabsContent>
           
-          {/* Mastery Tab */}
-          <TabsContent value="mastery" className="pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center">
-                  <Star className="h-4 w-4 mr-2 text-primary" /> 
-                  Concept Mastery
-                </CardTitle>
-                <CardDescription>
-                  Track your progress across mathematical concepts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {conceptMasteries && conceptMasteries.length > 0 ? (
-                  <div className="space-y-4">
-                    {conceptMasteries
-                      .filter(mastery => 
-                        mastery.concept && 
-                        mastery.concept.toLowerCase() !== 'general' && 
-                        mastery.attempts > 0
-                      )
-                      .sort((a, b) => b.masteryLevel - a.masteryLevel)
-                      .map((mastery, index) => (
-                        <div key={index} className="concept-mastery-item">
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="font-medium">{mastery.concept}</div>
-                            <div className="text-sm">
-                              <Badge variant={mastery.masteryLevel >= 80 ? "default" : "outline"}>
-                                {mastery.masteryLevel}% Mastery
-                              </Badge>
-                            </div>
-                          </div>
-                          <Progress value={mastery.masteryLevel} className="h-2" />
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>{mastery.totalAttempts || 0} attempts</span>
-                            <span>{mastery.correctAttempts || 0} correct</span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <h3 className="font-medium mb-2">No Mastery Data Yet</h3>
-                    <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                      Complete more questions across different mathematical concepts to see your mastery levels.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+
           
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="pt-4">
