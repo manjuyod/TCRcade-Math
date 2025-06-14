@@ -169,7 +169,22 @@ export default function MathFactsAssessmentPlayPage() {
       };
 
       // Drop to lower grade immediately after recording the wrong answer
-      await evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers, assessmentState.currentGrade);
+      // Use callback to ensure we get the updated state
+      setAssessmentState(prev => {
+        const newState = {
+          ...prev,
+          answers: newAnswers,
+          totalQuestionsAnswered: newTotalQuestionsAnswered,
+          totalCorrectAnswers: newTotalCorrectAnswers
+        };
+        
+        // Call progression evaluation with current state after update
+        setTimeout(() => {
+          evaluateGradeLevelProgression(updatedGradeCache, false, newTotalQuestionsAnswered, newTotalCorrectAnswers, prev.currentGrade);
+        }, 0);
+        
+        return newState;
+      });
       return;
     }
 
