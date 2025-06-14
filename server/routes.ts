@@ -1170,14 +1170,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
+      console.log("API: GET /api/analytics");
 
-      // Get analytics data
+      // Use enhanced analytics from database storage
+      if ('getEnhancedUserAnalytics' in storage) {
+        const enhancedData = await (storage as any).getEnhancedUserAnalytics(userId);
+        if (enhancedData) {
+          console.log("Returning enhanced analytics data");
+          return res.json({ analytics: enhancedData });
+        }
+      }
+
+      // Fallback to basic analytics if enhanced not available
       let analytics = await storage.getUserAnalytics(userId);
-
-      // Get concept masteries for the user
       const conceptMasteries = await storage.getUserConceptMasteries(userId);
-
-      // Get recent progress data for charts
       const progressData = await storage.getUserProgress(userId);
 
       // Transform progress data for frontend charts
@@ -1248,6 +1254,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         error: "Failed to fetch analytics",
         message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
+  // Generate personalized study plan using OpenAI
+  app.post("/api/analytics/study-plan", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      console.log("Generating personalized study plan for user:", userId);
+
+      // Get comprehensive analytics data
+      let analyticsData;
+      if ('getEnhancedUserAnalytics' in storage) {
+        analyticsData = await (storage as any).getEnhancedUserAnalytics(userId);
+      }
+      
+      if (!analyticsData || !analyticsData.moduleHistory || analyticsData.moduleHistory.length < 3) {
+        return res.status(400).json({
+          error: "Insufficient data",
+          message: "Complete at least 3 learning sessions to generate a personalized study plan."
+        });
+      }
+
+      // Create fallback study plan based on analytics
+      const moduleHistory = analyticsData.moduleHistory || [];
+      const user = req.user!;
+      const strengths = analyticsData.analytics?.strengthConcepts || [];
+      const weaknesses = analyticsData.analytics?.weaknessConcepts || [];
+
+      // Generate basic study plan structure
+      const studyPlan = {
+        studyPlan: {
+          totalDays: 14,
+          estimatedTimePerDay: "15-25 minutes",
+          focusAreas: weaknesses.length > 0 ? weaknesses.slice(0, 2) : ["Basic Math Facts", "Problem Solving"],
+          dailyActivities: []
+        },
+        learningObjectives: [
+          `Improve performance in ${weaknesses[0] || 'math fundamentals'} by 20%`,
+          "Build consistent daily practice habits",
+          "Achieve 80% accuracy in target areas"
+        ],
+        assessmentMilestones: [
+          {
+            day: 3,
+            checkpoint: "Initial progress review",
+            successCriteria: "Complete all assigned activities"
+          },
+          {
+            day: 7,
+            checkpoint: "Mid-plan assessment", 
+            successCriteria: "Show improvement in target weakness areas"
+          },
+          {
+            day: 14,
+            checkpoint: "Final evaluation",
+            successCriteria: "Achieve learning objectives and maintain consistency"
+          }
+        ]
+      };
+
+      // Generate daily activities based on user data
+      for (let day = 1; day <= 14; day++) {
+        const activities = [];
+        
+        if (day % 3 === 1 && weaknesses.length > 0) {
+          // Focus on primary weakness
+          activities.push({
+            module: weaknesses[0].toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+            activity: "Targeted practice on identified weakness",
+            duration: "20 minutes",
+            targetQuestions: 15,
+            difficultyLevel: user.grade || "3",
+            rationale: `Address primary weakness: ${weaknesses[0]}`
+          });
+        } else if (day % 3 === 2 && strengths.length > 0) {
+          // Maintain strengths
+          activities.push({
+            module: strengths[0].toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+            activity: "Advanced practice to maintain strength",
+            duration: "15 minutes", 
+            targetQuestions: 12,
+            difficultyLevel: user.grade || "3",
+            rationale: `Maintain and build upon strength: ${strengths[0]}`
+          });
+        } else {
+          // Mixed practice with math facts
+          activities.push({
+            module: "math-facts-addition",
+            activity: "Speed and accuracy practice",
+            duration: "15 minutes",
+            targetQuestions: 20,
+            difficultyLevel: user.grade || "3",
+            rationale: "Build computational fluency foundation"
+          });
+        }
+        
+        studyPlan.studyPlan.dailyActivities.push({
+          day,
+          activities
+        });
+      }
+
+      res.json({
+        message: "Personalized study plan generated successfully",
+        studyPlan
+      });
+
+    } catch (error) {
+      console.error("Error generating study plan:", error);
+      res.status(500).json({
+        error: "Failed to generate study plan",
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

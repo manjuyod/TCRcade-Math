@@ -1958,4 +1958,349 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(moduleHistory.completedAt))
       .limit(1000); // Reasonable limit for analytics
   }
+
+  /**
+   * Get user progress data for analytics - combines historical and current data
+   */
+  async getUserProgress(userId: number): Promise<any[]> {
+    try {
+      // Get historical data from module_history
+      const moduleHistoryData = await this.getUserModuleHistory(userId, 50);
+      
+      // Get current progress from user's hiddenGradeAsset
+      const user = await this.getUser(userId);
+      const currentProgress = user?.hiddenGradeAsset || {};
+
+      // Transform historical data into progress format
+      const progressEntries = moduleHistoryData.map(session => ({
+        id: session.id,
+        userId: session.userId,
+        score: session.finalScore,
+        completedQuestions: session.questionsTotal,
+        questionsAnswered: session.questionsTotal,
+        correctAnswers: session.questionsCorrect,
+        timeSpent: session.timeSpentSeconds,
+        date: session.completedAt,
+        updatedAt: session.completedAt,
+        moduleName: session.moduleName,
+        difficulty: session.difficultyLevel || 1,
+        gradeLevel: session.gradeLevel || user?.grade || 'Unknown'
+      }));
+
+      // Add current module progress from hiddenGradeAsset if available
+      if (currentProgress.modules) {
+        for (const [moduleName, moduleData] of Object.entries(currentProgress.modules)) {
+          if (typeof moduleData === 'object' && moduleData !== null) {
+            const moduleInfo = moduleData as any;
+            if (moduleInfo.progress) {
+              progressEntries.push({
+                id: `current-${moduleName}`,
+                userId,
+                score: moduleInfo.progress.currentScore || 0,
+                completedQuestions: moduleInfo.progress.questionsAnswered || 0,
+                questionsAnswered: moduleInfo.progress.questionsAnswered || 0,
+                correctAnswers: moduleInfo.progress.correctAnswers || 0,
+                timeSpent: moduleInfo.progress.timeSpent || 0,
+                date: new Date(),
+                updatedAt: new Date(),
+                moduleName,
+                difficulty: moduleInfo.progress.currentDifficulty || 1,
+                gradeLevel: moduleInfo.progress.currentGrade || user?.grade || 'Unknown'
+              });
+            }
+          }
+        }
+      }
+
+      return progressEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (error) {
+      console.error('Error getting user progress:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user concept masteries from current progress data
+   */
+  async getUserConceptMasteries(userId: number): Promise<any[]> {
+    try {
+      const user = await this.getUser(userId);
+      const currentProgress = user?.hiddenGradeAsset || {};
+      const masteries: any[] = [];
+
+      // Extract concept masteries from module progress
+      if (currentProgress.modules) {
+        for (const [moduleName, moduleData] of Object.entries(currentProgress.modules)) {
+          if (typeof moduleData === 'object' && moduleData !== null) {
+            const moduleInfo = moduleData as any;
+            if (moduleInfo.progress && moduleInfo.progress.conceptMastery) {
+              for (const [concept, masteryData] of Object.entries(moduleInfo.progress.conceptMastery)) {
+                if (typeof masteryData === 'object' && masteryData !== null) {
+                  const mastery = masteryData as any;
+                  masteries.push({
+                    id: `${moduleName}-${concept}`,
+                    userId,
+                    concept,
+                    moduleName,
+                    masteryLevel: mastery.level || 0,
+                    attempts: mastery.attempts || 0,
+                    successRate: mastery.successRate || 0,
+                    lastAttempt: mastery.lastAttempt ? new Date(mastery.lastAttempt) : new Date(),
+                    timeToMastery: mastery.timeToMastery || 0
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // If no specific concept masteries, create general ones based on module performance
+      if (masteries.length === 0) {
+        const moduleHistoryData = await this.getUserModuleHistory(userId, 20);
+        const moduleGroups = moduleHistoryData.reduce((groups, session) => {
+          if (!groups[session.moduleName]) groups[session.moduleName] = [];
+          groups[session.moduleName].push(session);
+          return groups;
+        }, {} as Record<string, ModuleHistory[]>);
+
+        for (const [moduleName, sessions] of Object.entries(moduleGroups)) {
+          const avgScore = sessions.reduce((sum, s) => sum + s.finalScore, 0) / sessions.length;
+          const totalQuestions = sessions.reduce((sum, s) => sum + s.questionsTotal, 0);
+          const totalCorrect = sessions.reduce((sum, s) => sum + s.questionsCorrect, 0);
+          const successRate = totalQuestions > 0 ? totalCorrect / totalQuestions : 0;
+
+          masteries.push({
+            id: `general-${moduleName}`,
+            userId,
+            concept: this.formatModuleName(moduleName),
+            moduleName,
+            masteryLevel: Math.min(100, avgScore),
+            attempts: sessions.length,
+            successRate: successRate * 100,
+            lastAttempt: new Date(sessions[0].completedAt),
+            timeToMastery: 0
+          });
+        }
+      }
+
+      return masteries;
+    } catch (error) {
+      console.error('Error getting user concept masteries:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Enhanced analytics method that combines historical and current data
+   */
+  async getEnhancedUserAnalytics(userId: number): Promise<any> {
+    try {
+      // Get the existing analytics if available
+      const existingAnalytics = await this.getUserAnalytics(userId);
+      
+      // Get comprehensive data for enhanced analytics
+      const moduleHistoryData = await this.getUserModuleHistory(userId, 100);
+      const progressData = await this.getUserProgress(userId);
+      const conceptMasteries = await this.getUserConceptMasteries(userId);
+      const user = await this.getUser(userId);
+
+      // Calculate enhanced metrics
+      const totalSessions = moduleHistoryData.length;
+      const overallAccuracy = totalSessions > 0 
+        ? (moduleHistoryData.reduce((sum, h) => sum + h.questionsCorrect, 0) / 
+           moduleHistoryData.reduce((sum, h) => sum + h.questionsTotal, 0)) * 100
+        : 0;
+
+      const questionsPerSession = totalSessions > 0 
+        ? moduleHistoryData.reduce((sum, h) => sum + h.questionsTotal, 0) / totalSessions
+        : 0;
+
+      // Module performance analysis
+      const moduleGroups = moduleHistoryData.reduce((groups, session) => {
+        if (!groups[session.moduleName]) groups[session.moduleName] = [];
+        groups[session.moduleName].push(session);
+        return groups;
+      }, {} as Record<string, ModuleHistory[]>);
+
+      const strengths: string[] = [];
+      const weaknesses: string[] = [];
+
+      for (const [moduleName, sessions] of Object.entries(moduleGroups)) {
+        const avgAccuracy = sessions.reduce((sum, s) => sum + (s.questionsCorrect / Math.max(1, s.questionsTotal)), 0) / sessions.length;
+        const avgScore = sessions.reduce((sum, s) => sum + s.finalScore, 0) / sessions.length;
+        
+        if (avgAccuracy > 0.8 && avgScore > 75) {
+          strengths.push(this.formatModuleName(moduleName));
+        } else if (avgAccuracy < 0.6 || avgScore < 50) {
+          weaknesses.push(this.formatModuleName(moduleName));
+        }
+      }
+
+      // Enhanced analytics object
+      const enhancedAnalytics = {
+        id: existingAnalytics?.id || 0,
+        userId,
+        analysisDate: new Date(),
+        learningPatterns: {
+          correctAnswerRate: overallAccuracy / 100,
+          averageTimePerQuestion: totalSessions > 0 
+            ? moduleHistoryData.reduce((sum, h) => sum + h.timeSpentSeconds, 0) / 
+              moduleHistoryData.reduce((sum, h) => sum + h.questionsTotal, 0)
+            : 0,
+          preferredCategories: Object.keys(moduleGroups).slice(0, 3),
+          questionsPerSession,
+          totalSessions,
+          performanceTrend: this.calculatePerformanceTrend(moduleHistoryData)
+        },
+        strengths: strengths.slice(0, 5),
+        areasForImprovement: weaknesses.slice(0, 5),
+        engagementAnalysis: {
+          totalSessionTime: moduleHistoryData.reduce((sum, h) => sum + h.timeSpentSeconds, 0),
+          averageSessionTime: totalSessions > 0 
+            ? moduleHistoryData.reduce((sum, h) => sum + h.timeSpentSeconds, 0) / totalSessions
+            : 0,
+          activityBreakdown: this.calculateActivityBreakdown(moduleGroups)
+        },
+        suggestedActivities: this.generateSuggestedActivities(strengths, weaknesses),
+        learningStyle: user?.learningStyle || 'Visual',
+        strengthConcepts: strengths,
+        weaknessConcepts: weaknesses,
+        recommendedActivities: this.generateRecommendedActivities(weaknesses),
+        generatedAt: new Date(),
+        // Enhanced metrics
+        performanceMetrics: {
+          overallPerformanceScore: totalSessions > 0 
+            ? moduleHistoryData.reduce((sum, h) => sum + h.finalScore, 0) / totalSessions
+            : 0,
+          learningVelocity: questionsPerSession,
+          consistencyIndex: this.calculateConsistencyIndex(moduleHistoryData),
+          retentionRate: this.calculateRetentionRate(moduleHistoryData)
+        },
+        modulePerformance: Object.entries(moduleGroups).map(([moduleName, sessions]) => ({
+          moduleName,
+          averageScore: sessions.reduce((sum, s) => sum + s.finalScore, 0) / sessions.length,
+          accuracy: sessions.reduce((sum, s) => sum + (s.questionsCorrect / Math.max(1, s.questionsTotal)), 0) / sessions.length * 100,
+          sessionCount: sessions.length,
+          lastSession: sessions[0].completedAt,
+          trend: this.calculateModuleTrend(sessions)
+        }))
+      };
+
+      return {
+        analytics: enhancedAnalytics,
+        conceptMasteries,
+        recentProgress: progressData.slice(0, 10),
+        moduleHistory: moduleHistoryData.slice(0, 20)
+      };
+
+    } catch (error) {
+      console.error('Error getting enhanced user analytics:', error);
+      return null;
+    }
+  }
+
+  // Helper methods for analytics calculations
+  private formatModuleName(moduleName: string): string {
+    return moduleName
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace('Math Facts', 'Math Facts:')
+      .replace('_', ' ');
+  }
+
+  private calculatePerformanceTrend(sessions: ModuleHistory[]): string {
+    if (sessions.length < 4) return 'stable';
+    
+    const recentSessions = sessions.slice(0, Math.floor(sessions.length / 2));
+    const olderSessions = sessions.slice(Math.floor(sessions.length / 2));
+    
+    const recentAvg = recentSessions.reduce((sum, s) => sum + s.finalScore, 0) / recentSessions.length;
+    const olderAvg = olderSessions.reduce((sum, s) => sum + s.finalScore, 0) / olderSessions.length;
+    
+    return recentAvg > olderAvg + 5 ? 'improving' : 
+           recentAvg < olderAvg - 5 ? 'declining' : 'stable';
+  }
+
+  private calculateActivityBreakdown(moduleGroups: Record<string, ModuleHistory[]>): Record<string, number> {
+    const breakdown: Record<string, number> = {};
+    let totalTime = 0;
+    
+    for (const [moduleName, sessions] of Object.entries(moduleGroups)) {
+      const moduleTime = sessions.reduce((sum, s) => sum + s.timeSpentSeconds, 0);
+      breakdown[moduleName] = moduleTime;
+      totalTime += moduleTime;
+    }
+    
+    // Convert to percentages
+    for (const moduleName in breakdown) {
+      breakdown[moduleName] = totalTime > 0 ? (breakdown[moduleName] / totalTime) * 100 : 0;
+    }
+    
+    return breakdown;
+  }
+
+  private generateSuggestedActivities(strengths: string[], weaknesses: string[]): string[] {
+    const activities: string[] = [];
+    
+    weaknesses.forEach(weakness => {
+      activities.push(`Practice ${weakness.toLowerCase()}`);
+    });
+    
+    activities.push('flashcards', 'wordProblems', 'conceptMapping', 'realWorldApplications');
+    
+    return activities.slice(0, 6);
+  }
+
+  private generateRecommendedActivities(weaknesses: string[]): string[] {
+    return weaknesses.map(w => `Review ${w.toLowerCase()} fundamentals`);
+  }
+
+  private calculateConsistencyIndex(sessions: ModuleHistory[]): number {
+    if (sessions.length < 2) return 100;
+    
+    const scores = sessions.map(s => s.finalScore);
+    const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    return Math.max(0, 100 - standardDeviation);
+  }
+
+  private calculateRetentionRate(sessions: ModuleHistory[]): number {
+    if (sessions.length < 2) return 100;
+    
+    const sortedSessions = [...sessions].sort((a, b) => 
+      new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+    );
+    
+    let retentionSum = 0;
+    let comparisons = 0;
+    
+    for (let i = 1; i < sortedSessions.length; i++) {
+      const current = sortedSessions[i];
+      const previous = sortedSessions[i - 1];
+      const daysBetween = (new Date(current.completedAt).getTime() - new Date(previous.completedAt).getTime()) / (1000 * 60 * 60 * 24);
+      
+      if (daysBetween > 1) {
+        const retention = Math.min(100, (current.finalScore / Math.max(1, previous.finalScore)) * 100);
+        retentionSum += retention;
+        comparisons++;
+      }
+    }
+    
+    return comparisons > 0 ? retentionSum / comparisons : 100;
+  }
+
+  private calculateModuleTrend(sessions: ModuleHistory[]): string {
+    if (sessions.length < 3) return 'stable';
+    
+    const recentAvg = sessions.slice(0, Math.floor(sessions.length / 2))
+      .reduce((sum, s) => sum + s.finalScore, 0) / Math.floor(sessions.length / 2);
+    const olderAvg = sessions.slice(Math.floor(sessions.length / 2))
+      .reduce((sum, s) => sum + s.finalScore, 0) / Math.ceil(sessions.length / 2);
+    
+    return recentAvg > olderAvg + 10 ? 'improving' : 
+           recentAvg < olderAvg - 10 ? 'declining' : 'stable';
+  }
 }

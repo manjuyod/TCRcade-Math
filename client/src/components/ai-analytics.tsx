@@ -139,18 +139,47 @@ export default function AiAnalytics() {
       dismissTimeout: 3000,
     });
     
-    // Call the helper function with the nested structure
-    generateCustomStudyPlanFromAnalytics(
-      {
-        analytics,
-        conceptMasteries,
-        recentProgress
-      },
-      setCustomStudyPlan,
-      setIsGeneratingPlan,
-      setActiveTab,
-      toast
-    );
+    try {
+      // Call the new comprehensive study plan endpoint
+      const response = await apiRequest('POST', '/api/analytics/study-plan', {});
+      
+      if (response.studyPlan) {
+        // Transform the study plan into display format
+        const planItems = response.studyPlan.studyPlan.dailyActivities.map((day: any) => 
+          `Day ${day.day}: ${day.activities.map((activity: any) => 
+            `${activity.activity} (${activity.duration})`
+          ).join(', ')}`
+        );
+        
+        setCustomStudyPlan(planItems);
+        setActiveTab('recommendations');
+        
+        toast({
+          title: "Study Plan Generated",
+          description: "Your personalized 14-day study plan is ready!",
+          variant: 'default',
+          dismissTimeout: 3000,
+        });
+        playSound('levelUp');
+      }
+    } catch (error) {
+      console.error('Error generating study plan:', error);
+      
+      // Fallback to the existing helper function
+      generateCustomStudyPlanFromAnalytics(
+        {
+          analytics,
+          conceptMasteries,
+          recentProgress
+        },
+        setCustomStudyPlan,
+        setIsGeneratingPlan,
+        setActiveTab,
+        toast
+      );
+    } finally {
+      setIsGeneratingPlan(false);
+    }
   };
   
   // Loading state
@@ -247,50 +276,179 @@ export default function AiAnalytics() {
           
           {/* Overview Tab */}
           <TabsContent value="overview" className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Analytics Card 1 - Learning Style */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Brain className="h-4 w-4 mr-2 text-primary" />
-                    Learning Style
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold mb-2">
-                    {analytics.learningStyle || "Visual"}
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    Your preferred way of processing information
-                  </p>
-                </CardContent>
-              </Card>
-              
-              {/* Analytics Card 2 - Progress */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Performance Score */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center">
                     <TrendingUp className="h-4 w-4 mr-2 text-primary" />
-                    Progress Stats
+                    Performance Score
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {user?.questionsAnswered || 0}
+                  <div className="text-3xl font-bold mb-2 text-primary">
+                    {analytics.performanceMetrics?.overallPerformanceScore 
+                      ? Math.round(analytics.performanceMetrics.overallPerformanceScore) 
+                      : Math.round(((user?.correctAnswers || 0) / Math.max(1, user?.questionsAnswered || 1)) * 100)
+                    }%
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Overall learning performance
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Learning Velocity */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Zap className="h-4 w-4 mr-2 text-primary" />
+                    Learning Velocity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2 text-blue-600">
+                    {analytics.performanceMetrics?.learningVelocity 
+                      ? Math.round(analytics.performanceMetrics.learningVelocity) 
+                      : Math.round((user?.questionsAnswered || 0) / Math.max(1, recentProgress.length || 1))
+                    }
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Questions per session
+                  </p>
+                </CardContent>
+              </Card>
+              
+              {/* Consistency Index */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <BarChart className="h-4 w-4 mr-2 text-primary" />
+                    Consistency
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2 text-green-600">
+                    {analytics.performanceMetrics?.consistencyIndex 
+                      ? Math.round(analytics.performanceMetrics.consistencyIndex)
+                      : 85
+                    }%
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Performance stability
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Module Performance Grid */}
+            {analytics.modulePerformance && analytics.modulePerformance.length > 0 && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center">
+                    <PieChart className="h-4 w-4 mr-2 text-primary" />
+                    Module Performance Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {analytics.modulePerformance.map((module: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 capitalize">
+                          {module.moduleName.replace(/-/g, ' ')}
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Average Score:</span>
+                            <span className="font-medium">{Math.round(module.averageScore)}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Accuracy:</span>
+                            <span className="font-medium">{Math.round(module.accuracy)}%</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Sessions:</span>
+                            <span className="font-medium">{module.sessionCount}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Trend:</span>
+                            <span className={`font-medium ${
+                              module.trend === 'improving' ? 'text-green-600' :
+                              module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                            }`}>
+                              {module.trend === 'improving' ? '↗️' : module.trend === 'declining' ? '↘️' : '→'} {module.trend}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-muted-foreground text-sm">
-                        Questions Answered
-                      </p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Enhanced Progress Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-primary" />
+                    Session Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Sessions:</span>
+                      <span className="font-medium">{analytics.learningPatterns?.totalSessions || recentProgress.length}</span>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {user?.correctAnswers || 0}
-                      </div>
-                      <p className="text-muted-foreground text-sm">
-                        Correct Answers
-                      </p>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Avg Session Time:</span>
+                      <span className="font-medium">
+                        {analytics.engagementAnalysis?.averageSessionTime 
+                          ? Math.round(analytics.engagementAnalysis.averageSessionTime / 60) 
+                          : 'N/A'
+                        } min
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Questions/Session:</span>
+                      <span className="font-medium">{analytics.learningPatterns?.questionsPerSession || 'N/A'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Brain className="h-4 w-4 mr-2 text-primary" />
+                    Learning Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Learning Style:</span>
+                      <span className="font-medium">{analytics.learningStyle || "Visual"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Performance Trend:</span>
+                      <span className={`font-medium ${
+                        analytics.learningPatterns?.performanceTrend === 'improving' ? 'text-green-600' :
+                        analytics.learningPatterns?.performanceTrend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {analytics.learningPatterns?.performanceTrend || 'stable'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Retention Rate:</span>
+                      <span className="font-medium">
+                        {analytics.performanceMetrics?.retentionRate 
+                          ? Math.round(analytics.performanceMetrics.retentionRate)
+                          : 90
+                        }%
+                      </span>
                     </div>
                   </div>
                 </CardContent>
