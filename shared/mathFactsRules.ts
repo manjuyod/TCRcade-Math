@@ -239,4 +239,5 @@ export function generateMathFactQuestion(
   };
 }
 
+export { NUMBER_RANGES };
 export default NUMBER_RANGES;
