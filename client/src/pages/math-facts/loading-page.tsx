@@ -1,13 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, Calculator, Brain, Target } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function MathFactsLoadingPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { operation } = useParams<{ operation: string }>();
   const { user } = useAuth();
   const [progress, setProgress] = useState(0);
@@ -29,7 +29,7 @@ export default function MathFactsLoadingPage() {
         setStatus('Assessment required...');
         setProgress(100);
         setTimeout(() => {
-          navigate(`/math-facts/${operation}/assessment`);
+          setLocation(`/math-facts/${operation}/assessment`);
         }, 1000);
         return;
       }
@@ -64,14 +64,14 @@ export default function MathFactsLoadingPage() {
 
       // Navigate to play page
       setTimeout(() => {
-        navigate(`/math-facts/${operation}/play`);
+        setLocation(`/math-facts/${operation}/play`);
       }, 500);
 
     } catch (error) {
       console.error('Error generating questions:', error);
       setStatus('Error loading questions. Please try again.');
       setTimeout(() => {
-        navigate('/modules');
+        setLocation('/modules');
       }, 2000);
     }
   };
