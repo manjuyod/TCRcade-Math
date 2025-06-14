@@ -749,7 +749,7 @@ export default function AiAnalytics() {
 
           {/* Concept Mastery Tab */}
           <TabsContent value="concepts" className="pt-4">
-            {conceptMasteries.length > 0 ? (
+            {processedConceptMasteries.length > 0 ? (
               <div className="space-y-6">
                 {/* Mastery Overview Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -762,7 +762,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-green-600">
-                        {conceptMasteries.filter(c => c.weightedScore >= 80).length}
+                        {processedConceptMasteries.filter(c => c.weightedScore >= 80).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score ≥ 80%
@@ -779,7 +779,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-blue-600">
-                        {conceptMasteries.filter(c => c.weightedScore >= 50 && c.weightedScore < 80).length}
+                        {processedConceptMasteries.filter(c => c.weightedScore >= 50 && c.weightedScore < 80).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score 50-79%
@@ -796,7 +796,7 @@ export default function AiAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-red-600">
-                        {conceptMasteries.filter(c => c.weightedScore < 50).length}
+                        {processedConceptMasteries.filter(c => c.weightedScore < 50).length}
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Score &lt; 50%
@@ -818,7 +818,7 @@ export default function AiAnalytics() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {conceptMasteries.map((concept, index) => (
+                      {processedConceptMasteries.map((concept, index) => (
                         <div key={index} className="border rounded-lg p-4 space-y-3">
                           <div className="flex justify-between items-start">
                             <div>
@@ -915,10 +915,10 @@ export default function AiAnalytics() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center text-muted-foreground">
-                      {conceptMasteries.length === 0 ? (
+                      {processedConceptMasteries.length === 0 ? (
                         <p>Complete more modules to see detailed concept analysis.</p>
                       ) : (
-                        <p>Showing {conceptMasteries.length} concepts across all modules with weighted mastery scoring.</p>
+                        <p>Showing {processedConceptMasteries.length} concepts across all modules with weighted mastery scoring.</p>
                       )}
                     </div>
                   </CardContent>
