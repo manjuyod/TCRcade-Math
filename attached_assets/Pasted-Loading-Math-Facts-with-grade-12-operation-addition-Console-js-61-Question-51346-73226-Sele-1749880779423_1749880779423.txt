@@ -1,0 +1,55 @@
+Loading Math Facts with grade=12, operation=addition
+Console.js:61 Question: 51346 + 73226 = ?, Selected: 127429, Correct: 124572, Is Correct: false
+Console.js:61 Wrong answer detected - dropping grade from 6
+Console.js:61 Evaluating progression: currentGrade=6, passed=false, currentIndex=6
+Console.js:61 Dropping from grade 6 to grade 5
+Console.js:61 Critical error moving to grade 5: ReferenceError: gradeRef is not defined
+    at moveToGradeLevel (assessment-play-page.tsx:278:40)
+    at evaluateGradeLevelProgression (assessment-play-page.tsx:263:13)
+    at assessment-play-page.tsx:169:11
+Mt.forEach.n.<computed> @ Console.js:61
+moveToGradeLevel @ assessment-play-page.tsx:362
+evaluateGradeLevelProgression @ assessment-play-page.tsx:263
+(anonymous) @ assessment-play-page.tsx:169
+setTimeout
+(anonymous) @ assessment-play-page.tsx:168
+basicStateReducer @ chunk-WERSD76P.js?v=6d827054:11703
+updateReducer @ chunk-WERSD76P.js?v=6d827054:11794
+updateState @ chunk-WERSD76P.js?v=6d827054:12021
+useState @ chunk-WERSD76P.js?v=6d827054:12753
+useState @ chunk-3TFVT2CW.js?v=6d827054:1066
+MathFactsAssessmentPlayPage @ assessment-play-page.tsx:45
+renderWithHooks @ chunk-WERSD76P.js?v=6d827054:11548
+updateFunctionComponent @ chunk-WERSD76P.js?v=6d827054:14582
+beginWork @ chunk-WERSD76P.js?v=6d827054:15924
+beginWork$1 @ chunk-WERSD76P.js?v=6d827054:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=6d827054:19198
+workLoopSync @ chunk-WERSD76P.js?v=6d827054:19137
+renderRootSync @ chunk-WERSD76P.js?v=6d827054:19116
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=6d827054:18874
+flushSyncCallbacks @ chunk-WERSD76P.js?v=6d827054:9119
+(anonymous) @ chunk-WERSD76P.js?v=6d827054:18627Understand this error
+Console.js:61 Completing assessment due to grade transition failure
+Mt.forEach.n.<computed> @ Console.js:61
+moveToGradeLevel @ assessment-play-page.tsx:363
+evaluateGradeLevelProgression @ assessment-play-page.tsx:263
+(anonymous) @ assessment-play-page.tsx:169
+setTimeout
+(anonymous) @ assessment-play-page.tsx:168
+basicStateReducer @ chunk-WERSD76P.js?v=6d827054:11703
+updateReducer @ chunk-WERSD76P.js?v=6d827054:11794
+updateState @ chunk-WERSD76P.js?v=6d827054:12021
+useState @ chunk-WERSD76P.js?v=6d827054:12753
+useState @ chunk-3TFVT2CW.js?v=6d827054:1066
+MathFactsAssessmentPlayPage @ assessment-play-page.tsx:45
+renderWithHooks @ chunk-WERSD76P.js?v=6d827054:11548
+updateFunctionComponent @ chunk-WERSD76P.js?v=6d827054:14582
+beginWork @ chunk-WERSD76P.js?v=6d827054:15924
+beginWork$1 @ chunk-WERSD76P.js?v=6d827054:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=6d827054:19198
+workLoopSync @ chunk-WERSD76P.js?v=6d827054:19137
+renderRootSync @ chunk-WERSD76P.js?v=6d827054:19116
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=6d827054:18874
+flushSyncCallbacks @ chunk-WERSD76P.js?v=6d827054:9119
+(anonymous) @ chunk-WERSD76P.js?v=6d827054:18627Understand this error
+6Console.js:61 [SessionAwareLink] moduleInProgress = false
