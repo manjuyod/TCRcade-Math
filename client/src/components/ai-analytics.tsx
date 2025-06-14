@@ -400,51 +400,139 @@ export default function AiAnalytics() {
               </Card>
             </div>
 
-            {/* Module Performance Grid */}
-            {analytics.modulePerformance && analytics.modulePerformance.length > 0 && (
-              <Card className="mb-6">
-                <CardHeader>
+            {/* Recent Progress and Module Performance Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Recent Progress Chart */}
+              <Card>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center">
-                    <PieChart className="h-4 w-4 mr-2 text-primary" />
-                    Module Performance Analysis
+                    <LineChart className="h-4 w-4 mr-2 text-primary" />
+                    Recent Progress
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {analytics.modulePerformance.map((module: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <h4 className="font-semibold mb-2 capitalize">
-                          {module.moduleName.replace(/-/g, ' ')}
-                        </h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Average Score:</span>
-                            <span className="font-medium">{Math.round(module.averageScore)}%</span>
+                  {recentProgress && recentProgress.length > 0 ? (
+                    <div className="h-64">
+                      <div className="relative h-full flex items-end">
+                        {recentProgress.map((entry, index) => (
+                          <div 
+                            key={index} 
+                            className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
+                            style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
+                          >
+                            <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
+                              <div className="font-medium">{entry.date}</div>
+                              <div className="text-primary">{entry.score} points</div>
+                              <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
+                            </div>
+                            <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Accuracy:</span>
-                            <span className="font-medium">{Math.round(module.accuracy)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Sessions:</span>
-                            <span className="font-medium">{module.sessionCount}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Trend:</span>
-                            <span className={`font-medium ${
-                              module.trend === 'improving' ? 'text-green-600' :
-                              module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
-                            }`}>
-                              {module.trend === 'improving' ? '↗️' : module.trend === 'declining' ? '↘️' : '→'} {module.trend}
-                            </span>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-center p-4">
+                      <p className="text-muted-foreground">
+                        Not enough data to display progress chart yet.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
+
+              {/* Module Performance Carousel */}
+              {analytics.modulePerformance && analytics.modulePerformance.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center">
+                      <PieChart className="h-4 w-4 mr-2 text-primary" />
+                      Module Performance Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative">
+                      <div className="overflow-hidden">
+                        <div className="flex transition-transform duration-300 ease-in-out" id="module-carousel">
+                          {analytics.modulePerformance.map((module: any, index: number) => (
+                            <div key={index} className="w-full flex-shrink-0 px-2">
+                              <div className="border rounded-lg p-4 h-64">
+                                <h4 className="font-semibold mb-4 text-center capitalize text-lg">
+                                  {module.moduleName.replace(/-/g, ' ').replace(/_/g, ' ')}
+                                </h4>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between text-sm">
+                                    <span>Average Score:</span>
+                                    <span className="font-medium">{Math.round(module.averageScore)}%</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span>Accuracy:</span>
+                                    <span className="font-medium">{Math.round(module.accuracy)}%</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span>Sessions:</span>
+                                    <span className="font-medium">{module.sessionCount}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span>Trend:</span>
+                                    <span className={`font-medium ${
+                                      module.trend === 'improving' ? 'text-green-600' :
+                                      module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                                    }`}>
+                                      {module.trend === 'improving' ? '↗️' : module.trend === 'declining' ? '↘️' : '→'} {module.trend}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Navigation buttons */}
+                      {analytics.modulePerformance.length > 1 && (
+                        <div className="flex justify-center mt-4 space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const carousel = document.getElementById('module-carousel');
+                              if (carousel) {
+                                const currentTransform = carousel.style.transform;
+                                const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
+                                const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
+                                const newTranslate = Math.min(0, current + 100);
+                                carousel.style.transform = `translateX(${newTranslate}%)`;
+                              }
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ChevronUp className="h-4 w-4 rotate-[-90deg]" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const carousel = document.getElementById('module-carousel');
+                              if (carousel) {
+                                const currentTransform = carousel.style.transform;
+                                const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
+                                const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
+                                const maxTranslate = -(analytics.modulePerformance.length - 1) * 100;
+                                const newTranslate = Math.max(maxTranslate, current - 100);
+                                carousel.style.transform = `translateX(${newTranslate}%)`;
+                              }
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
             {/* Enhanced Progress Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -571,43 +659,7 @@ export default function AiAnalytics() {
               </Card>
             </div>
 
-            {/* Recent Progress Chart */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <LineChart className="h-4 w-4 mr-2 text-primary" />
-                  Recent Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentProgress && recentProgress.length > 0 ? (
-                  <div className="h-64">
-                    <div className="relative h-full flex items-end">
-                      {recentProgress.map((entry, index) => (
-                        <div 
-                          key={index} 
-                          className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
-                          style={{ height: `${Math.max(10, Math.min(100, (entry.score / 10) * 100))}%` }}
-                        >
-                          <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-28 text-center">
-                            <div className="font-medium">{entry.date}</div>
-                            <div className="text-primary">{entry.score} points</div>
-                            <div className="text-xs text-muted-foreground">{entry.questionsAnswered} questions</div>
-                          </div>
-                          <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center p-4">
-                    <p className="text-muted-foreground">
-                      Not enough data to display progress chart yet.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
           </TabsContent>
 
           {/* Concept Mastery Tab */}
