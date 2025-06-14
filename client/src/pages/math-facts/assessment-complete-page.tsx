@@ -29,6 +29,16 @@ export default function MathFactsAssessmentCompletePage() {
     tokensEarned,
     allSearchParams: Object.fromEntries(searchParams.entries())
   });
+  
+  // Force display the actual data in browser console
+  console.error('🚨 ASSESSMENT COMPLETE PAGE DATA:', {
+    searchString,
+    operation,
+    grade,
+    questionsAnswered,
+    correctAnswers,
+    tokensEarned
+  });
 
 
 
