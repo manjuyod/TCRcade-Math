@@ -487,4 +487,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-module.exports = ComprehensiveProgressTestSuite;
+export default ComprehensiveProgressTestSuite;

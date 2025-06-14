@@ -140,11 +140,8 @@ async function calculateLessonBasedCompletion(tableName: string, moduleProgress:
       return calculateSessionBasedCompletion(moduleProgress); // Fallback to session-based
     }
     
-    // Get grade level from parent module data, not progress
     const userGradeLevel = moduleProgress.grade_level || 0;
     const userLesson = moduleProgress.lesson || 0;
-    
-    console.log(`DEBUG: ${tableName} - User grade: ${userGradeLevel}, lesson: ${userLesson}`, moduleProgress);
     
     if (userGradeLevel === 0 || userLesson === 0) {
       return 0; // User hasn't started
@@ -183,8 +180,6 @@ async function calculateLessonBasedCompletion(tableName: string, moduleProgress:
     }
     
     const completionPercentage = Math.min(100, (userPosition / progression.length) * 100);
-    console.log(`Lesson-based completion for ${tableName}: User at grade ${userGradeLevel}, lesson ${userLesson}, position ${userPosition}/${progression.length} = ${completionPercentage}%`);
-    
     return Math.round(completionPercentage);
   } catch (error) {
     console.warn(`Error calculating lesson-based completion for ${tableName}:`, error);
