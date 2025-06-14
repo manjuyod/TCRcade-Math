@@ -516,7 +516,7 @@ export default function AiAnalytics() {
                         {recentProgress.map((entry: any, index: number) => (
                           <div 
                             key={index} 
-                            className="flex-1 mx-1 bg-primary-foreground hover:bg-primary/10 transition-colors relative group"
+                            className="flex-1 mx-1 bg-blue-200 hover:bg-blue-300 transition-colors relative group border border-blue-300"
                             style={{ height: `${Math.max(15, Math.min(100, (entry.totalScore / 20) * 100))}%` }}
                           >
                             <div className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-background border border-input rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-md w-32 text-center z-10">
@@ -525,7 +525,7 @@ export default function AiAnalytics() {
                               <div className="text-xs text-muted-foreground">{entry.totalQuestions} questions</div>
                               <div className="text-xs text-muted-foreground">{entry.sessions} sessions</div>
                             </div>
-                            <div className="absolute bottom-0 inset-x-0 h-1 bg-primary"></div>
+                            <div className="absolute bottom-0 inset-x-0 h-2 bg-blue-500"></div>
                             {/* Date labels on x-axis */}
                             <div className="absolute top-full mt-1 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
                               {new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })}
