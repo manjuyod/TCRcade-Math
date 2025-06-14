@@ -1,0 +1,306 @@
+
+# Data Synchronization Agent: Fix User Progress Data Inconsistencies
+
+## Objective
+Fix the critical data synchronization issue where user table fields (`tokens`, `questionsAnswered`, `correctAnswers`) don't match the totals in the `hiddenGradeAsset` JSON structure, causing inconsistent progress displays.
+
+## Problem Analysis
+The current system has two sources of truth:
+1. **User table fields**: `tokens`, `questionsAnswered`, `correctAnswers` 
+2. **JSON data**: `hiddenGradeAsset.global_stats` and module-specific progress
+
+These sources are not synchronized, leading to:
+- Incorrect progress percentages
+- Mismatched token counts in UI
+- Inaccurate percentile calculations
+- Broken analytics displays
+
+## Required Tasks
+
+### Phase 1: Data Audit & Analysis
+```sql
+-- Create comprehensive audit query to identify discrepancies
+SELECT 
+  id,
+  username,
+  tokens as table_tokens,
+  questions_answered as table_questions,
+  correct_answers as table_correct,
+  
+  -- Extract JSON totals
+  COALESCE((hidden_grade_asset #>> '{global_stats,total_tokens_earned}')::integer, 0) as json_tokens,
+  COALESCE((hidden_grade_asset #>> '{global_stats,total_questions_answered}')::integer, 0) as json_questions,
+  COALESCE((hidden_grade_asset #>> '{global_stats,total_correct_answers}')::integer, 0) as json_correct,
+  
+  -- Calculate differences
+  tokens - COALESCE((hidden_grade_asset #>> '{global_stats,total_tokens_earned}')::integer, 0) as token_diff,
+  questions_answered - COALESCE((hidden_grade_asset #>> '{global_stats,total_questions_answered}')::integer, 0) as question_diff,
+  correct_answers - COALESCE((hidden_grade_asset #>> '{global_stats,total_correct_answers}')::integer, 0) as correct_diff
+  
+FROM users 
+WHERE hidden_grade_asset IS NOT NULL
+ORDER BY ABS(tokens - COALESCE((hidden_grade_asset #>> '{global_stats,total_tokens_earned}')::integer, 0)) DESC;
+```
+
+### Phase 2: Create Synchronization Functions
+
+**File: `server/utils/data-sync.ts`**
+```typescript
+export async function syncUserProgressData(userId: number): Promise<void> {
+  const user = await storage.getUser(userId);
+  if (!user) throw new Error('User not found');
+
+  const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
+  const modules = hiddenGradeAsset.modules || {};
+  
+  // Calculate totals from modules
+  let totalTokens = 0;
+  let totalQuestions = 0;
+  let totalCorrect = 0;
+  
+  Object.values(modules).forEach((moduleData: any) => {
+    const progress = moduleData.progress || {};
+    totalTokens += progress.tokens_earned || 0;
+    totalQuestions += progress.total_questions_answered || 0;
+    totalCorrect += progress.correct_answers || 0;
+  });
+  
+  // Update both table fields AND JSON global_stats
+  const updatedGlobalStats = {
+    ...hiddenGradeAsset.global_stats,
+    total_tokens_earned: totalTokens,
+    total_questions_answered: totalQuestions,
+    total_correct_answers: totalCorrect,
+    last_sync: new Date().toISOString()
+  };
+  
+  await storage.updateUser(userId, {
+    tokens: totalTokens,
+    questionsAnswered: totalQuestions,
+    correctAnswers: totalCorrect,
+    hiddenGradeAsset: {
+      ...hiddenGradeAsset,
+      global_stats: updatedGlobalStats
+    }
+  });
+}
+
+export async function syncAllUsers(): Promise<number> {
+  const users = await storage.getAllUsers();
+  let syncedCount = 0;
+  
+  for (const user of users) {
+    try {
+      await syncUserProgressData(user.id);
+      syncedCount++;
+    } catch (error) {
+      console.error(`Failed to sync user ${user.id}:`, error);
+    }
+  }
+  
+  return syncedCount;
+}
+```
+
+### Phase 3: Update Progress API to Use Single Source of Truth
+
+**File: `server/routes.ts` - Update `/api/progress` endpoint**
+```typescript
+app.get("/api/progress", ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    
+    // Sync data before returning progress
+    await syncUserProgressData(userId);
+    
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
+    const globalStats = hiddenGradeAsset.global_stats || {};
+    const modules = hiddenGradeAsset.modules || {};
+
+    // Use table fields as primary source (now synced)
+    const totalTokens = user.tokens || 0;
+    const totalQuestions = user.questionsAnswered || 0;
+    const totalCorrect = user.correctAnswers || 0;
+    const accuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
+
+    // Calculate percentiles with synced data
+    const [tokenPercentile, accuracyPercentile] = await Promise.all([
+      calculateTokenPercentile(totalTokens),
+      calculateAccuracyPercentile(accuracy)
+    ]);
+
+    // Build progress array with consistent data
+    const progress = [];
+
+    // Global progress using synced data
+    progress.push({
+      category: 'overall',
+      label: 'Overall Progress',
+      score: totalTokens,
+      completion: Math.min(100, (totalTokens / 1000) * 100),
+      questionsAnswered: totalQuestions,
+      correctAnswers: totalCorrect,
+      accuracy: Math.round(accuracy * 100) / 100,
+      moduleData: {
+        ...globalStats,
+        synced: true,
+        lastSync: new Date().toISOString()
+      }
+    });
+
+    // Module progress
+    Object.entries(modules).forEach(([moduleKey, moduleData]: [string, any]) => {
+      if (moduleData && moduleData.progress) {
+        const moduleProgress = moduleData.progress;
+        progress.push({
+          category: moduleKey,
+          label: getCategoryLabel(moduleKey),
+          score: moduleProgress.tokens_earned || 0,
+          completion: calculateModuleCompletion(moduleProgress),
+          questionsAnswered: moduleProgress.total_questions_answered || 0,
+          correctAnswers: moduleProgress.correct_answers || 0,
+          accuracy: calculateModuleAccuracy(moduleProgress),
+          moduleData: moduleProgress
+        });
+      }
+    });
+
+    res.json({
+      progress,
+      globalStats: {
+        totalTokens,
+        totalQuestions,
+        totalCorrect,
+        accuracy: Math.round(accuracy * 100) / 100,
+        tokenPercentile: Math.round(tokenPercentile * 100) / 100,
+        accuracyPercentile: Math.round(accuracyPercentile * 100) / 100,
+        synced: true
+      }
+    });
+
+  } catch (error) {
+    errorResponse(res, 500, "Failed to fetch user progress", error);
+  }
+});
+```
+
+### Phase 4: Update Answer Submission to Maintain Sync
+
+**File: `server/routes.ts` - Update `/api/answer` endpoint**
+```typescript
+// In the answer submission endpoint, ensure both sources are updated
+if (userId && req.user) {
+  const user = req.user;
+  
+  // Update table fields
+  const newQuestionsAnswered = (user.questionsAnswered || 0) + 1;
+  const newCorrectAnswers = (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
+  const newTokens = (user.tokens || 0) + totalTokensToAdd;
+  
+  // Update JSON data simultaneously
+  const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
+  const globalStats = hiddenGradeAsset.global_stats || {};
+  
+  const updatedGlobalStats = {
+    ...globalStats,
+    total_tokens_earned: newTokens,
+    total_questions_answered: newQuestionsAnswered,
+    total_correct_answers: newCorrectAnswers,
+    last_updated: new Date().toISOString()
+  };
+  
+  const userUpdate: Partial<User> = {
+    tokens: newTokens,
+    questionsAnswered: newQuestionsAnswered,
+    correctAnswers: newCorrectAnswers,
+    hiddenGradeAsset: {
+      ...hiddenGradeAsset,
+      global_stats: updatedGlobalStats
+    }
+  };
+  
+  await storage.updateUser(userId, userUpdate);
+}
+```
+
+### Phase 5: Add Synchronization API Endpoint
+
+**File: `server/routes.ts` - Add sync endpoint**
+```typescript
+// Admin endpoint to manually trigger synchronization
+app.post("/api/admin/sync-user-data", ensureAuthenticated, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (userId) {
+      await syncUserProgressData(userId);
+      res.json({ success: true, message: `User ${userId} synchronized` });
+    } else {
+      const syncedCount = await syncAllUsers();
+      res.json({ 
+        success: true, 
+        message: `Synchronized ${syncedCount} users`,
+        syncedCount 
+      });
+    }
+  } catch (error) {
+    errorResponse(res, 500, "Failed to synchronize user data", error);
+  }
+});
+```
+
+### Phase 6: Testing & Validation
+
+**File: `test-data-sync.js`**
+```javascript
+// Comprehensive test suite for data synchronization
+class DataSyncTester {
+  async testUserDataConsistency() {
+    const response = await fetch('/api/progress');
+    const data = await response.json();
+    
+    // Verify consistency between sources
+    const globalProgress = data.progress.find(p => p.category === 'overall');
+    
+    assert(
+      globalProgress.score === data.globalStats.totalTokens,
+      "Global progress tokens should match global stats"
+    );
+    
+    assert(
+      globalProgress.questionsAnswered === data.globalStats.totalQuestions,
+      "Question counts should be consistent"
+    );
+  }
+
+  async testSynchronizationEndpoint() {
+    const response = await fetch('/api/admin/sync-user-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const result = await response.json();
+    assert(result.success, "Sync operation should succeed");
+  }
+}
+```
+
+## Success Criteria
+1. ✅ All user table fields match JSON global_stats
+2. ✅ Progress displays show consistent data
+3. ✅ Percentile calculations use accurate totals
+4. ✅ Real-time updates maintain synchronization
+5. ✅ No discrepancies in token/question counts
+
+## Rollback Plan
+If issues occur:
+1. Backup current data before sync
+2. Use table fields as authoritative source
+3. Rebuild JSON from table data if needed
+
+Execute this comprehensive fix to ensure data consistency across the entire user progress system.
