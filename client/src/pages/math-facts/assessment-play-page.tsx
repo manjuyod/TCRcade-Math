@@ -133,23 +133,19 @@ export default function MathFactsAssessmentPlayPage() {
     const newTotalQuestionsAnswered = assessmentState.totalQuestionsAnswered + 1;
     const newTotalCorrectAnswers = assessmentState.totalCorrectAnswers + (isCorrect ? 1 : 0);
 
-    // Always update state with the new answer first
-    const newQuestionIndex = assessmentState.currentQuestionIndex + 1;
-    
-    // Update state immediately with the current attempt
-    setAssessmentState(prev => ({
-      ...prev,
-      currentQuestionIndex: newQuestionIndex,
-      answers: newAnswers,
-      totalQuestionsAnswered: newTotalQuestionsAnswered,
-      totalCorrectAnswers: newTotalCorrectAnswers
-    }));
-
     // Clear selected answer immediately
     setSelectedAnswer('');
 
-    // If answer is incorrect, drop to lower grade after recording the attempt
+    // If answer is incorrect, drop to lower grade immediately (don't advance question)
     if (!isCorrect) {
+      // Update state with attempt but don't advance question index
+      setAssessmentState(prev => ({
+        ...prev,
+        answers: newAnswers,
+        totalQuestionsAnswered: newTotalQuestionsAnswered,
+        totalCorrectAnswers: newTotalCorrectAnswers
+      }));
+
       // Update grade cache to record the failure
       const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
         questionsAnswered: 0,
@@ -173,7 +169,19 @@ export default function MathFactsAssessmentPlayPage() {
       return;
     }
 
-    // Check if we've completed ALL questions for this grade (only if answer was correct)
+    // Answer is correct - advance to next question
+    const newQuestionIndex = assessmentState.currentQuestionIndex + 1;
+    
+    // Update state with correct answer and advance question
+    setAssessmentState(prev => ({
+      ...prev,
+      currentQuestionIndex: newQuestionIndex,
+      answers: newAnswers,
+      totalQuestionsAnswered: newTotalQuestionsAnswered,
+      totalCorrectAnswers: newTotalCorrectAnswers
+    }));
+
+    // Check if we've completed ALL questions for this grade
     if (newQuestionIndex >= assessmentState.questions.length) {
       // All questions answered correctly for this grade level
       const correctCount = newAnswers.length; // All must be correct to reach here
@@ -199,7 +207,7 @@ export default function MathFactsAssessmentPlayPage() {
       // Complete assessment at this grade since we got 100%
       await evaluateGradeLevelProgression(updatedGradeCache, true, newTotalQuestionsAnswered, newTotalCorrectAnswers);
     }
-    // If there are more questions and the answer was correct, we just continue (state already updated above)
+    // If there are more questions and the answer was correct, continue with next question
   };
 
   const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number) => {
