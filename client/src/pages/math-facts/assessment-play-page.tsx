@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useRoute } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -26,8 +26,9 @@ interface AssessmentState {
 }
 
 export default function MathFactsAssessmentPlayPage() {
-  const navigate = useNavigate();
-  const { operation } = useParams<{ operation: string }>();
+  const [, setLocation] = useLocation();
+  const [match, params] = useRoute('/math-facts/:operation/assessment');
+  const operation = params?.operation || '';
   const { user } = useAuth();
 
   const [assessmentState, setAssessmentState] = useState<AssessmentState>({
@@ -77,7 +78,7 @@ export default function MathFactsAssessmentPlayPage() {
 
     } catch (error) {
       console.error('Error initializing assessment:', error);
-      navigate('/modules');
+      setLocation('/modules');
     } finally {
       setIsLoading(false);
     }
@@ -160,13 +161,13 @@ export default function MathFactsAssessmentPlayPage() {
       });
 
       if (response.ok) {
-        navigate(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}`);
+        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}`);
       } else {
         throw new Error('Failed to save assessment results');
       }
     } catch (error) {
       console.error('Error completing assessment:', error);
-      navigate('/modules');
+      setLocation('/modules');
     }
   };
 

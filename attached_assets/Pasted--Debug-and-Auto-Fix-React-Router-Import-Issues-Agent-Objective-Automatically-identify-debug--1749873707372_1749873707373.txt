@@ -1,0 +1,172 @@
+
+# Debug and Auto-Fix React Router Import Issues Agent
+
+## Objective
+Automatically identify, debug, and fix all React Router DOM import issues that are preventing the application from running. The app should start without any import errors and all math facts functionality should work properly.
+
+## Context
+- **Stack**: React TS client + Node Express TS server + Drizzle ORM + PostgreSQL
+- **Router Library**: This project uses `wouter` for routing, NOT `react-router-dom`
+- **Current Issue**: Multiple files still have `react-router-dom` imports causing build failures
+- **Target**: Get the dev server running and math facts module working end-to-end
+
+## Error Pattern Detected
+```
+Pre-transform error: Failed to resolve import "react-router-dom" from "client/src/pages/math-facts/assessment-play-page.tsx". Does the file exist?
+```
+
+## Required Tasks
+
+### 1. **Automated Import Scanner & Fixer**
+Run the existing fix script and enhance it:
+```bash
+node shared_assets/fix-react-router-imports.js
+```
+
+If issues persist, manually scan and fix these patterns:
+
+**Find and Replace Patterns:**
+- `import { useNavigate, useParams } from 'react-router-dom'` → `import { useLocation, useParams } from 'wouter'`
+- `import { useNavigate } from 'react-router-dom'` → `import { useLocation } from 'wouter'`
+- `const navigate = useNavigate()` → `const [, setLocation] = useLocation()`
+- `navigate(` → `setLocation(`
+- `import { useSearchParams } from 'react-router-dom'` → `import { useSearch } from 'wouter'`
+- `const [searchParams] = useSearchParams()` → `const searchString = useSearch(); const searchParams = new URLSearchParams(searchString)`
+
+### 2. **Specific Files to Check and Fix**
+Scan these files for react-router-dom imports:
+- `client/src/pages/math-facts/assessment-play-page.tsx`
+- `client/src/pages/math-facts/assessment-complete-page.tsx`
+- `client/src/pages/math-facts/complete-page.tsx`
+- `client/src/pages/math-facts/loading-page.tsx`
+- Any other files in `client/src/pages/` directories
+
+### 3. **Missing Route Registration**
+Check if math facts routes are properly registered in `client/src/App.tsx`:
+```tsx
+{/* Math Facts Module Routes */}
+<Route path="/math-facts/:operation/loading" component={MathFactsLoadingPage} />
+<Route path="/math-facts/:operation/play" component={MathFactsPlayPage} />
+<Route path="/math-facts/:operation/complete" component={MathFactsCompletePage} />
+<Route path="/math-facts/:operation/assessment" component={MathFactsAssessmentPlayPage} />
+<Route path="/math-facts/assessment/complete" component={MathFactsAssessmentCompletePage} />
+```
+
+### 4. **Import Path Verification**
+Ensure all math facts page imports exist in App.tsx:
+```tsx
+import MathFactsLoadingPage from '@/pages/math-facts/loading-page';
+import MathFactsAssessmentPlayPage from '@/pages/math-facts/assessment-play-page';
+import MathFactsAssessmentCompletePage from '@/pages/math-facts/assessment-complete-page';
+import MathFactsCompletePage from '@/pages/math-facts/complete-page';
+// ... other math facts imports
+```
+
+### 5. **Server Route Validation**
+Verify that these API endpoints exist and work in `server/routes.ts`:
+- `GET /api/math-facts/:operation/questions`
+- `GET /api/math-facts/assessment/:operation`
+- `POST /api/math-facts/assessment/complete`
+- `POST /api/math-facts/complete`
+
+### 6. **Navigation Flow Testing**
+After fixing imports, test this flow:
+1. Start from `/modules`
+2. Click a math facts module (addition, subtraction, etc.)
+3. Should navigate to `/math-facts/{operation}/loading`
+4. Should then go to either assessment or play page
+5. Should complete successfully
+
+## Debugging Workflow
+
+### Step 1: Run Auto-Fix Script
+```bash
+node shared_assets/fix-react-router-imports.js
+```
+
+### Step 2: Manual File Inspection
+If auto-fix doesn't catch everything:
+```bash
+grep -r "react-router-dom" client/src/pages/
+grep -r "useNavigate" client/src/pages/
+grep -r "navigate(" client/src/pages/
+```
+
+### Step 3: Start Dev Server Test
+```bash
+npm run dev
+```
+Check console for any remaining import errors.
+
+### Step 4: Test Math Facts Flow
+1. Navigate to `/modules`
+2. Click "Math Facts - Addition"
+3. Verify it loads without errors
+4. Complete a full session
+
+### Step 5: Run E2E Test
+```bash
+node shared_assets/test-math-facts-e2e.js
+```
+
+## Expected Outcomes
+
+✅ **Success Criteria:**
+- Dev server starts without import errors
+- All math facts pages load properly
+- Navigation between pages works
+- Assessment flow completes successfully
+- E2E tests pass
+
+❌ **Fix These Errors:**
+- `Failed to resolve import "react-router-dom"`
+- `useNavigate is not a function`
+- `navigate is not defined`
+- `Cannot read properties of undefined (reading 'push')`
+
+## Validation Commands
+
+After implementing fixes:
+
+```bash
+# 1. Check for remaining react-router-dom references
+grep -r "react-router-dom" client/src/ || echo "✅ No react-router-dom imports found"
+
+# 2. Start dev server
+npm run dev
+
+# 3. Test math facts module
+curl http://localhost:5000/api/math-facts/addition/questions?grade=1
+
+# 4. Run comprehensive test
+node shared_assets/test-math-facts-e2e.js
+```
+
+## Emergency Recovery
+
+If fixes break something:
+1. Restore from auto-generated backups in the fix script
+2. Check git history: `git log --oneline`
+3. Revert specific changes: `git checkout HEAD~1 -- client/src/pages/math-facts/`
+
+## Report Template
+
+After completing fixes, report:
+```
+🔧 REACT ROUTER FIX REPORT
+✅ Files Fixed: [count]
+✅ Routes Registered: [count]  
+✅ Dev Server: [WORKING/FAILED]
+✅ Math Facts Flow: [WORKING/FAILED]
+✅ E2E Tests: [PASSED/FAILED]
+
+Next Steps: [Any remaining issues]
+```
+
+## Auto-Execute Priority
+
+1. **High Priority**: Fix all react-router-dom imports immediately
+2. **Medium Priority**: Verify route registration and navigation
+3. **Low Priority**: Run comprehensive E2E tests
+
+This agent should resolve all routing-related startup issues and get the math facts module fully functional.
