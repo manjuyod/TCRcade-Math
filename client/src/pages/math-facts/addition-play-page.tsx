@@ -92,7 +92,7 @@ export default function AdditionPlayPage() {
       queryClient.removeQueries({ queryKey: ['/api/questions/math-facts'] });
 
       const response = await fetch(
-        `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
+        `/api/math-facts/question?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
         {
           cache: "no-store",
         }
