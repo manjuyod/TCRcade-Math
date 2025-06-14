@@ -17,6 +17,7 @@ export default function MathFactsAssessmentCompletePage() {
   const grade = searchParams.get('grade') || 'K';
   const questionsAnswered = parseInt(searchParams.get('questionsAnswered') || '0');
   const correctAnswers = parseInt(searchParams.get('correctAnswers') || '0');
+  const tokensEarned = parseInt(searchParams.get('tokensEarned') || '15');
   const isAllComplete = searchParams.get('allComplete') === 'true';
 
   useEffect(() => {
@@ -109,7 +110,7 @@ export default function MathFactsAssessmentCompletePage() {
             <div className="flex justify-center">
               <div className="flex items-center bg-yellow-100 text-yellow-800 px-6 py-3 rounded-lg">
                 <Coins className="h-6 w-6 mr-2" />
-                <span className="font-semibold text-lg">15 tokens earned!</span>
+                <span className="font-semibold text-lg">{tokensEarned} tokens earned!</span>
               </div>
             </div>
 

@@ -417,7 +417,9 @@ export default function MathFactsAssessmentPlayPage() {
       });
 
       if (response.ok) {
-        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}`);
+        const data = await response.json();
+        const tokensEarned = data.tokensEarned || 15;
+        setLocation(`/math-facts/assessment/complete?operation=${operation}&grade=${finalGrade}&questionsAnswered=${questionsAnswered}&correctAnswers=${correctAnswers}&tokensEarned=${tokensEarned}`);
       } else {
         throw new Error('Failed to save assessment results');
       }
