@@ -102,15 +102,38 @@ export default function MathFactsAssessmentPlayPage() {
     const isCorrect = selectedAnswer === currentQuestion.answer;
     const newAnswers = [...assessmentState.answers, selectedAnswer];
 
+    // If answer is incorrect, immediately drop to lower grade
+    if (!isCorrect) {
+      // Update grade cache to record the failure
+      const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        attempts: 0,
+        passed: false
+      };
+
+      const updatedGradeCache = {
+        ...assessmentState.gradeCache,
+        [assessmentState.currentGrade]: {
+          questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
+          correctAnswers: currentGradeCache.correctAnswers,
+          attempts: currentGradeCache.attempts + 1,
+          passed: false
+        }
+      };
+
+      // Immediately drop to lower grade
+      await evaluateGradeLevelProgression(updatedGradeCache, false);
+      return;
+    }
+
     // Update state with new answer first
     const newQuestionIndex = assessmentState.currentQuestionIndex + 1;
 
     // Check if we've completed ALL questions for this grade
     if (newQuestionIndex >= assessmentState.questions.length) {
-      // All questions answered for this grade level, evaluate performance
-      const correctCount = newAnswers.reduce((count, answer, index) => {
-        return count + (answer === assessmentState.questions[index].answer ? 1 : 0);
-      }, 0);
+      // All questions answered correctly for this grade level
+      const correctCount = newAnswers.length; // All must be correct to reach here
 
       // Update grade cache
       const currentGradeCache = assessmentState.gradeCache[assessmentState.currentGrade] || {
@@ -126,12 +149,12 @@ export default function MathFactsAssessmentPlayPage() {
           questionsAnswered: currentGradeCache.questionsAnswered + newAnswers.length,
           correctAnswers: currentGradeCache.correctAnswers + correctCount,
           attempts: currentGradeCache.attempts + 1,
-          passed: correctCount === assessmentState.questions.length
+          passed: true
         }
       };
 
-      // Determine next action based on performance and cache
-      await evaluateGradeLevelProgression(updatedGradeCache, correctCount === assessmentState.questions.length);
+      // Move up to next grade or complete
+      await evaluateGradeLevelProgression(updatedGradeCache, true);
     } else {
       // Move to next question at same grade
       setAssessmentState(prev => ({
@@ -159,26 +182,17 @@ export default function MathFactsAssessmentPlayPage() {
       const nextGrade = gradeOrder[currentIndex + 1];
       await moveToGradeLevel(nextGrade, updatedGradeCache);
     } else {
-      // Failed current grade
-      const currentGradeData = updatedGradeCache[assessmentState.currentGrade];
-      
-      // Check if we should give another chance (max 2 attempts per grade)
-      if (currentGradeData.attempts < 2) {
-        // Give another chance at same grade
-        await retryCurrentGrade(updatedGradeCache);
-      } else {
-        // Failed twice, drop down or complete if at lowest
-        if (currentIndex <= 0) {
-          // At lowest grade, find highest passed grade or default to K
-          const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
-          await completeAssessment(highestPassedGrade);
-          return;
-        }
-
-        // Drop to lower grade
-        const lowerGrade = gradeOrder[currentIndex - 1];
-        await moveToGradeLevel(lowerGrade, updatedGradeCache);
+      // Failed current grade - immediately drop down
+      if (currentIndex <= 0) {
+        // At lowest grade (K), find highest passed grade or default to K
+        const highestPassedGrade = findHighestPassedGrade(updatedGradeCache) || 'K';
+        await completeAssessment(highestPassedGrade);
+        return;
       }
+
+      // Drop to next lower grade immediately
+      const lowerGrade = gradeOrder[currentIndex - 1];
+      await moveToGradeLevel(lowerGrade, updatedGradeCache);
     }
   };
 
