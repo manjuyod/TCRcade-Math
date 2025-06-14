@@ -632,10 +632,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Math Facts practice session completion route
   app.post("/api/math-facts/session/complete", ensureAuthenticated, async (req, res) => {
     try {
-      const { operation, answers, questions, timeSpent } = req.body;
+      const { 
+        operation, 
+        questionsAnswered, 
+        correctAnswers, 
+        accuracy, 
+        tokensEarned, 
+        isGoodAttempt, 
+        sessionAnswers 
+      } = req.body;
       const userId = (req.user as any).id;
 
-      if (!operation || !answers || !questions || !userId) {
+      if (!operation || questionsAnswered === undefined || correctAnswers === undefined || !userId) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -644,35 +652,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      const { calculateSessionScore, determineGradeLevelChange } = await import("./modules/mathFacts");
-
-      // Calculate score using the new module functions
-      let correctAnswers = 0;
-      for (let i = 0; i < questions.length; i++) {
-        if (answers[i] === questions[i].answer) {
-          correctAnswers++;
+      // Submit individual answers to the answers table
+      if (sessionAnswers && Array.isArray(sessionAnswers)) {
+        for (const answerData of sessionAnswers) {
+          try {
+            await storage.recordAnswer(answerData);
+          } catch (answerError) {
+            console.error('Error recording individual answer:', answerError);
+            // Continue with other answers even if one fails
+          }
         }
       }
 
-      const sessionResult = calculateSessionScore(correctAnswers, questions.length);
+      const { determineGradeLevelChange } = await import("./modules/mathFacts");
 
-      // Update user progress
+      // Update user progress in hiddenGradeAsset
       const hiddenGradeAsset = user.hiddenGradeAsset as any || {};
       const modules = hiddenGradeAsset.modules || {};
       const operationKey = `${operation}_facts`;
-      const currentProgress = modules[operationKey]?.progress || {};
+      const currentModule = modules[operationKey] || {};
 
       // Import grade conversion functions
       const { normalizeGrade, gradeToString, getNextGradeLevel } = await import("../shared/mathFactsRules");
 
-      // Grade level management using new logic
+      // Get current grade level from the module
+      let currentGradeLevel = currentModule.grade_level !== undefined ? 
+        currentModule.grade_level : 
+        normalizeGrade(user.grade || 'K');
+
+      // Update attempt counters based on session performance
+      const currentAttemptGood = currentModule.attempt_good || 0;
+      const currentAttemptBad = currentModule.attempt_bad || 0;
+
+      // Grade level management: if 80%+ accuracy, increment attempt_good
       const levelChangeResult = determineGradeLevelChange(
-        currentProgress.attempt_good || 0,
-        currentProgress.attempt_bad || 0,
-        sessionResult.passed
+        currentAttemptGood,
+        currentAttemptBad,
+        isGoodAttempt
       );
 
-      let currentGradeLevel = currentProgress.grade_level !== undefined ? currentProgress.grade_level : normalizeGrade(user.grade || 'K');
+      // Apply grade level changes if needed
       if (levelChangeResult.shouldChangeLevel && levelChangeResult.direction) {
         const newGradeString = getNextGradeLevel(currentGradeLevel, levelChangeResult.direction);
         const newGradeNum = normalizeGrade(newGradeString);
@@ -681,25 +700,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Update the module data
       modules[operationKey] = {
-        ...modules[operationKey],
-        progress: {
-          ...currentProgress,
-          grade_level: currentGradeLevel,
-          attempt_good: levelChangeResult.newAttemptGood,
-          attempt_bad: levelChangeResult.newAttemptBad,
-          tokens_earned: (currentProgress.tokens_earned || 0) + sessionResult.tokensEarned,
-          total_questions_answered: (currentProgress.total_questions_answered || 0) + questions.length,
-          correct_answers: (currentProgress.correct_answers || 0) + correctAnswers,
-          sessions_completed: (currentProgress.sessions_completed || 0) + 1,
-          last_session_date: new Date().toISOString()
-        }
+        ...currentModule,
+        grade_level: currentGradeLevel,
+        attempt_good: levelChangeResult.newAttemptGood,
+        attempt_bad: levelChangeResult.newAttemptBad,
+        tokens_earned: (currentModule.tokens_earned || 0) + tokensEarned,
+        total_questions_answered: (currentModule.total_questions_answered || 0) + questionsAnswered,
+        correct_answers: (currentModule.correct_answers || 0) + correctAnswers,
+        sessions_completed: (currentModule.sessions_completed || 0) + 1,
+        last_session_date: new Date().toISOString()
       };
 
+      // Update user tokens and stats
       await storage.updateUser(userId, {
-        tokens: user.tokens + sessionResult.tokensEarned,
-        questionsAnswered: user.questionsAnswered + questions.length,
-        correctAnswers: user.correctAnswers + correctAnswers,
+        tokens: (user.tokens || 0) + tokensEarned,
+        questionsAnswered: (user.questionsAnswered || 0) + questionsAnswered,
+        correctAnswers: (user.correctAnswers || 0) + correctAnswers,
         hiddenGradeAsset: {
           ...hiddenGradeAsset,
           modules
@@ -711,23 +729,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         moduleName: `math-facts-${operation}`,
         runType: 'token_run',
-        finalScore: Math.round(sessionResult.percentage * 100),
-        questionsTotal: questions.length,
+        finalScore: accuracy,
+        questionsTotal: questionsAnswered,
         questionsCorrect: correctAnswers,
-        timeSpentSeconds: timeSpent || 0,
+        timeSpentSeconds: 0, // Time tracking not implemented yet
         difficultyLevel: 1,
-        gradeLevel: currentGradeLevel,
-        tokensEarned: sessionResult.tokensEarned
+        gradeLevel: gradeToString(currentGradeLevel),
+        tokensEarned: tokensEarned
       });
 
       res.json({
         success: true,
         score: correctAnswers,
-        total: questions.length,
-        percentage: Math.round(sessionResult.percentage * 100),
-        tokensEarned: sessionResult.tokensEarned,
-        passed: sessionResult.passed,
-        gradeLevel: currentGradeLevel,
+        total: questionsAnswered,
+        percentage: accuracy,
+        tokensEarned: tokensEarned,
+        passed: isGoodAttempt,
+        gradeLevel: gradeToString(currentGradeLevel),
         levelChanged: levelChangeResult.shouldChangeLevel,
         levelDirection: levelChangeResult.direction,
         newAttemptGood: levelChangeResult.newAttemptGood,

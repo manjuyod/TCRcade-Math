@@ -73,10 +73,37 @@ export default function SubtractionPlayPage() {
     moduleName: "Math Facts Subtraction",
   });
 
-  // Load initial question
+  // Load pre-loaded questions from sessionStorage
   useEffect(() => {
-    loadNextQuestion();
+    loadPreloadedQuestions();
   }, []);
+
+  const loadPreloadedQuestions = () => {
+    try {
+      const questionsData = sessionStorage.getItem('mathFactsQuestions');
+      const operation = sessionStorage.getItem('mathFactsOperation');
+      
+      if (questionsData && operation === 'subtraction') {
+        const questions = JSON.parse(questionsData);
+        setPreloadedQuestions(questions);
+        
+        if (questions.length > 0) {
+          setCurrentQuestion(questions[0]);
+          setCurrentQuestionIndex(0);
+          setIsLoading(false);
+          console.log(`Loaded ${questions.length} pre-loaded subtraction questions`);
+        } else {
+          throw new Error('No questions found in sessionStorage');
+        }
+      } else {
+        throw new Error('No pre-loaded questions found');
+      }
+    } catch (error) {
+      console.error('Error loading pre-loaded questions:', error);
+      // Fallback to single question loading
+      loadNextQuestion();
+    }
+  };
 
   const loadNextQuestion = async () => {
     if (!user) return;
