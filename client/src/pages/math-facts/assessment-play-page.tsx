@@ -245,16 +245,23 @@ export default function MathFactsAssessmentPlayPage() {
   const moveToGradeLevel = async (newGrade: string, gradeCache: any) => {
     try {
       console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade}`);
-      const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${newGrade}`);
+      const url = `/api/math-facts/assessment/${operation}?grade=${newGrade}`;
+      console.log(`Fetching questions from: ${url}`);
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error(`Failed to get questions for grade ${newGrade}: HTTP ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error(`API Error for grade ${newGrade}:`, response.status, errorText);
+        throw new Error(`Failed to get questions for grade ${newGrade}: HTTP ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log(`API Response for grade ${newGrade}:`, data);
       
       if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
-        throw new Error(`Invalid questions received for grade ${newGrade}`);
+        console.error(`Invalid questions data for grade ${newGrade}:`, data);
+        throw new Error(`Invalid questions received for grade ${newGrade} - got ${data.questions?.length || 0} questions`);
       }
 
       // Clear selected answer before updating state
@@ -272,7 +279,8 @@ export default function MathFactsAssessmentPlayPage() {
       
       console.log(`Successfully moved to grade ${newGrade} with ${data.questions.length} questions`);
     } catch (error) {
-      console.error('Error getting questions for grade:', newGrade, error);
+      console.error(`Critical error moving to grade ${newGrade}:`, error);
+      console.error('Completing assessment due to grade transition failure');
       await completeAssessment(assessmentState.currentGrade, assessmentState.totalQuestionsAnswered, assessmentState.totalCorrectAnswers);
     }
   };
