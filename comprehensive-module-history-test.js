@@ -480,4 +480,10 @@ if (typeof window === 'undefined') {
   });
 }
 
-module.exports = ComprehensiveModuleHistoryTest;
+// Run the test if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const tester = new ComprehensiveModuleHistoryTest();
+  tester.runComprehensiveTest();
+}
+
+export default ComprehensiveModuleHistoryTest;

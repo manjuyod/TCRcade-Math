@@ -1481,6 +1481,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Math Facts completion endpoint for module history tracking
+  app.post("/api/math-facts/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const { correct, total, operation, grade } = req.body;
+      const userId = getUserId(req);
+
+      if (typeof correct !== "number" || typeof total !== "number") {
+        return res.status(400).json({ error: "Invalid request data" });
+      }
+
+      // Calculate tokens based on performance
+      const baseTokens = correct * 5; // 5 tokens per correct answer
+      const bonusTokens = correct === total ? 20 : 0; // 20 bonus tokens for perfect score
+      const tokensEarned = baseTokens + bonusTokens;
+
+      // Calculate final score
+      const finalScore = Math.round((correct / total) * 100);
+
+      // Update user tokens
+      const user = await storage.getUser(userId);
+      if (user) {
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: (user.tokens || 0) + tokensEarned,
+          questionsAnswered: (user.questionsAnswered || 0) + total,
+          correctAnswers: (user.correctAnswers || 0) + correct,
+        });
+
+        // Record module history
+        await storage.recordModuleHistory({
+          userId,
+          moduleName: `math_facts_${operation || 'mixed'}`,
+          runType: 'token_run',
+          finalScore,
+          questionsTotal: total,
+          questionsCorrect: correct,
+          timeSpentSeconds: 0, // Duration not tracked in current implementation
+          gradeLevel: grade || user.grade || undefined,
+          tokensEarned
+        });
+
+        // Emit real-time token update
+        const tokenNamespace = (global as any).tokenNamespace;
+        if (tokenNamespace) {
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", updatedUser?.tokens || 0);
+        }
+
+        console.log(
+          `User ${userId} completed Math Facts ${operation} with ${correct}/${total} correct. Earned ${tokensEarned} tokens.`,
+        );
+      }
+
+      res.json({
+        success: true,
+        tokens: tokensEarned,
+        totalTokens: (user?.tokens || 0) + tokensEarned,
+        correct,
+        total,
+      });
+    } catch (error) {
+      console.error("Error completing math facts session:", error);
+      res.status(500).json({ error: "Failed to complete session" });
+    }
+  });
+
   // Math Rush routes
   app.get("/api/rush/types", async (req, res) => {
     try {
