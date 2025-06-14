@@ -1876,15 +1876,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ["questions_answered" as keyof typeof user]:
               ((user as any).questions_answered || 0) + total,
             ["correct_answers" as keyof typeof user]:
-              ((user as any).correct_answers || 0)<previous_generation>```text
-,
+              ((user as any).correct_answers || 0) + correct
           });
 
           const newBalance = (user.tokens || 0) + tokens;
 
           // Record module history with module-specific grade level
           const moduleGradeLevel = getModuleGradeLevel(user, `math_rush_${mode}`);
-          await storage.recordModuleHistory({            userId,
+          await storage.recordModuleHistory({
+            userId,
             moduleName: `math_rush_${mode}`,
             runType: 'token_run', // Math Rush is always token-based
             finalScore,
