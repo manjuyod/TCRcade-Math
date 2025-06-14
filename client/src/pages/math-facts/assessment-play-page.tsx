@@ -50,7 +50,7 @@ export default function MathFactsAssessmentPlayPage() {
   }, [user, operation]);
 
   const initializeAssessment = async () => {
-    if (!user || !operation) return;
+    if (!user || !operation || operation === '') return;
 
     try {
       setIsLoading(true);
