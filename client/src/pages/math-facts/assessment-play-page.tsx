@@ -13,7 +13,7 @@ interface Question {
   answer: string;
   options: string[];
   operation: string;
-  gradeLevel: string;
+  gradeLevel: number;
 }
 
 interface AssessmentState {

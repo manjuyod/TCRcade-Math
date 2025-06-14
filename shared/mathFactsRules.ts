@@ -232,7 +232,7 @@ export function generateMathFactQuestion(
     answer,
     options,
     operation,
-    gradeLevel
+    gradeLevel: normalizedGrade
   };
 }
 

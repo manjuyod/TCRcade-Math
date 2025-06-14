@@ -490,10 +490,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Math Facts routes - updated for new assessment and practice flow
 
   // Generate practice questions for a session
-  app.get("/api/math-facts/:operation/questions", async (req, res) => {
+  app.get("/api/math-facts/:operation/questions", ensureAuthenticated, async (req, res) => {
     try {
       const { operation } = req.params;
       const { grade, count = "6" } = req.query;
+      const userId = req.user!.id;
+
+      console.log(`Getting adaptive question: grade=${grade}, category=${operation}, excludeIds=[]`);
 
       if (!['addition', 'subtraction', 'multiplication', 'division'].includes(operation as string)) {
         return res.status(400).json({ error: "Invalid operation" });
@@ -546,15 +549,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete assessment
-  app.post('/api/math-facts/assessment/complete', async (req, res) => {
+  app.post('/api/math-facts/assessment/complete', ensureAuthenticated, async (req, res) => {
       try {
-        const { operation, finalGrade, questionsAnswered, correctAnswers, userId } = req.body;
+        const { operation, finalGrade, questionsAnswered, correctAnswers } = req.body;
+        const userId = req.user!.id;
 
-        if (!operation || finalGrade === undefined || !userId) {
+        if (!operation || finalGrade === undefined) {
           return res.status(400).json({ error: "Missing required fields" });
         }
 
-      const user = await storage.getUser(userId);
+        console.log(`Assessment complete for user ${userId}: operation=${operation}, finalGrade=${finalGrade}, correct=${correctAnswers}/${questionsAnswered}`);
+
+        const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
