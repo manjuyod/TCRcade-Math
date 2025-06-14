@@ -134,7 +134,7 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
           const operation = category.split('-').pop();
 
           // Directly fetch from our specialized non-authenticated endpoint
-          const url = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
+          const url = `/api/math-facts/question?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
           console.log(`Fetching Math Facts directly from: ${url}`);
 
           const response = await fetch(url, {

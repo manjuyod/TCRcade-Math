@@ -321,7 +321,7 @@ export default function HomePage() {
 
           // Use our non-authenticated endpoint for Math Facts
           fetch(
-            `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
+            `/api/math-facts/question?grade=${grade}&operation=${operation}&_t=${Date.now()}`,
             {
               cache: "no-store",
             },

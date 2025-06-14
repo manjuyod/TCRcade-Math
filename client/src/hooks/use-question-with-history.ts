@@ -230,7 +230,7 @@ export function useQuestionWithHistory(
         const operation = category!.split('-').pop();
         
         // Use the non-authenticated endpoint for Math Facts
-        const mathFactsUrl = `/api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
+        const mathFactsUrl = `/api/math-facts/question?grade=${grade}&operation=${operation}&_t=${Date.now()}`;
         console.log(`HOOK: Using direct Math Facts endpoint: ${mathFactsUrl}`);
         
         try {

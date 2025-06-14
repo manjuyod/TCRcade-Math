@@ -3180,11 +3180,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Math Facts question endpoint - validates operation
-  app.get('/api/questions/math-facts', async (req, res) => {
+  // Math Facts question endpoint - non-authenticated for direct access
+  app.get('/api/math-facts/question', async (req, res) => {
     try {
       const { grade, operation } = req.query;
-      console.log(`API: GET /api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${req.query._t}`);
+      console.log(`API: GET /api/math-facts/question?grade=${grade}&operation=${operation}&_t=${req.query._t}`);
 
       if (!grade || !operation) {
         return res.status(400).json({ message: 'Missing required parameters: grade and operation' });
