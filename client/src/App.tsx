@@ -32,6 +32,10 @@ import AdditionPlayPage from "@/pages/math-facts/addition-play-page";
 import SubtractionPlayPage from "@/pages/math-facts/subtraction-play-page";
 import MultiplicationPlayPage from "@/pages/math-facts/multiplication-play-page";
 import DivisionPlayPage from "@/pages/math-facts/division-play-page";
+import MathFactsLoadingPage from "@/pages/math-facts/loading-page";
+import MathFactsCompletePage from "@/pages/math-facts/complete-page";
+import MathFactsAssessmentPlayPage from "@/pages/math-facts/assessment-play-page";
+import MathFactsAssessmentCompletePage from "@/pages/math-facts/assessment-complete-page";
 import AlgebraSetupPage from "@/pages/algebra/setup-page";
 import AlgebraLoadingPage from "@/pages/algebra/loading-page";
 import AlgebraPlayPage from "@/pages/algebra/play-page";
@@ -123,6 +127,12 @@ function Router() {
       <Route path="/math-facts/subtraction/play" component={SubtractionPlayPage} />
       <Route path="/math-facts/multiplication/play" component={MultiplicationPlayPage} />
       <Route path="/math-facts/division/play" component={DivisionPlayPage} />
+      
+      {/* Math Facts Loading and Complete Pages */}
+      <Route path="/math-facts/:operation/loading" component={MathFactsLoadingPage} />
+      <Route path="/math-facts/:operation/complete" component={MathFactsCompletePage} />
+      <Route path="/math-facts/:operation/assessment" component={MathFactsAssessmentPlayPage} />
+      <Route path="/math-facts/:operation/assessment/complete" component={MathFactsAssessmentCompletePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
