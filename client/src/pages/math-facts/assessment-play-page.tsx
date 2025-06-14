@@ -275,7 +275,7 @@ export default function MathFactsAssessmentPlayPage() {
       
       setTransitionAttempts(prev => prev + 1);
       
-      console.log(`Moving from grade ${gradeRef.current} to grade ${newGrade} (attempt ${transitionAttempts + 1})`);
+      console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade} (attempt ${transitionAttempts + 1})`);
       const url = `/api/math-facts/assessment/${operation}?grade=${newGrade}`;
       console.log(`Fetching questions from: ${url}`);
       
