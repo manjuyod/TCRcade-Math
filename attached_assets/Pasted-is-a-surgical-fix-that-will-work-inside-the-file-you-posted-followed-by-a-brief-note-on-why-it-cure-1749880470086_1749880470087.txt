@@ -1,0 +1,128 @@
+is a surgical fix that will work inside the file you posted, followed by a brief note on why it cures the “should be 5, actually 6” loop.
+(If you have time, the reducer I sent earlier is the long-term answer; this patch lets you move on today.)
+
+1 ⃝ Add two refs that always hold the latest values
+ts
+Copy
+Edit
+// 👇 put these just after your useState declarations
+const gradeRef   = React.useRef<string>('');
+const indexRef   = React.useRef<number>(0);
+ts
+Copy
+Edit
+// 👇 keep the refs up-to-date after every render
+useEffect(() => {
+  gradeRef.current = assessmentState.currentGrade;
+  indexRef.current = assessmentState.currentQuestionIndex;
+});
+2 ⃝ Replace every stale read inside async work
+Where	Replace assessmentState.… with
+evaluateGradeLevelProgression (default branch)	const actualCurrentGrade = currentGradeOverride ?? gradeRef.current;
+moveToGradeLevel (logs & checks after the fetch)	use gradeRef.current instead of assessmentState.currentGrade
+The “post-setState verification” setTimeout	delete it – it always prints the pre-render snapshot
+Any other fetch / timeout / setTimeout callback	read gradeRef.current / indexRef.current
+
+That gives every callback the live, post-render value without waiting for the next render.
+
+Example change in moveToGradeLevel
+diff
+Copy
+Edit
+- console.log(`Moving from grade ${assessmentState.currentGrade} to grade ${newGrade} (attempt ${transitionAttempts + 1})`);
++ console.log(`Moving from grade ${gradeRef.current} to grade ${newGrade} (attempt ${transitionAttempts + 1})`);
+…
+-setTimeout(() => {
+-  console.log(`🔍 Post-setState verification: currentGrade should be ${newGrade}, actually is ${assessmentState.currentGrade}`);
+-}, 100);
++// no need – gradeRef will be up to date on next effect tick
+3 ⃝ Run progression logic in a useEffect, not setTimeout
+setTimeout(() => evaluate…) fires before React commits the state
+(batch scheduling ensures the timer runs in the same tick).
+Swap the timeout for an effect that reacts to the state change:
+
+ts
+Copy
+Edit
+const lastActionRef = React.useRef<
+  | { type: 'wrong'  ; gradeCache: any }
+  | { type: 'gradeDone'; gradeCache: any }
+  | null
+>(null);
+
+/* --- when you record an answer ------------------------------------ */
+if (!isCorrect) {
+  lastActionRef.current = { type: 'wrong', gradeCache: updatedGradeCache };
+} else if (doneWithGrade) {
+  lastActionRef.current = { type: 'gradeDone', gradeCache: updatedGradeCache };
+}
+/* ------------------------------------------------------------------ */
+
+/* --- centralised progression effect ------------------------------- */
+useEffect(() => {
+  if (!lastActionRef.current) return;
+
+  const { type, gradeCache } = lastActionRef.current;
+  lastActionRef.current = null;               // clear it
+
+  if (type === 'wrong') {
+    evaluateGradeLevelProgression(gradeCache, false,
+      assessmentState.totalQuestionsAnswered,
+      assessmentState.totalCorrectAnswers,
+      gradeRef.current);                      // ← always fresh
+  } else {
+    evaluateGradeLevelProgression(gradeCache, true,
+      assessmentState.totalQuestionsAnswered,
+      assessmentState.totalCorrectAnswers,
+      gradeRef.current);
+  }
+}, [assessmentState.currentGrade]);            // ← fires only after commit
+/* ------------------------------------------------------------------ */
+No more setTimeout, no stale closures, and no double grade-drops.
+
+4 ⃝ Remove the transition-attempt counter
+Because progression now runs only after a successful commit, the only way
+you’d loop is a genuine logic bug (e.g. the API returns bad data).
+You can delete the transitionAttempts guard or keep it as a last-ditch bailout;
+either way it will never fire in normal use.
+
+Why this stops the “actually is 6” problem
+Refs bypass the closure trap – they hold the current value even inside an
+already-created callback.
+
+Effect ≫ timeout – a useEffect scheduled on
+[assessmentState.currentGrade] runs after React writes the new grade, so
+gradeRef.current is correct when you call evaluateGradeLevelProgression.
+
+Because evaluate… now sees the correct grade, it asks for the next lower
+level once, not twice, so you no longer free-fall 6→5→4… in the same turn.
+
+Two-minute test
+Add the refs + syncing effect.
+
+Replace every stale read in the async code with gradeRef.current.
+
+Move the progression calls into the useEffect shown above.
+
+Delete the debug setTimeout.
+
+Run the assessment, miss the first question, and watch the logs:
+
+yaml
+Copy
+Edit
+… STATE UPDATED: Now at grade 5 …
+Evaluating progression: currentGrade=6 → lower=5
+(state commits)
+✅ STATE UPDATED: Now at grade 5 …
+(no “actually is 6” message, no extra drop)
+If that looks good, you can refactor to a reducer later without the pressure of
+a broken production flow.
+
+
+
+
+
+
+
+
