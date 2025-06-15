@@ -44,6 +44,8 @@ export default function AlgebraPlayPage() {
   
   // Get run type from URL params
   const runType = new URLSearchParams(window.location.search).get('runType') || 'practice';
+
+  // console.log("search", window.location.search, "runType", runType);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
@@ -55,7 +57,9 @@ export default function AlgebraPlayPage() {
 
   // Load questions
   const { data: questions, isLoading } = useQuery({
-    queryKey: ['/api/algebra/questions', { runType }],
+    queryKey: ['/api/algebra/questions', runType],
+    queryFn: () =>
+      fetch(`/api/algebra/questions?runType=${runType}`).then(res => res.json()),
   });
 
   // Submit session mutation

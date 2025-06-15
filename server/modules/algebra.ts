@@ -31,7 +31,7 @@ export async function getPracticeQuestions(params: { grade_level: number; lesson
     FROM "questions_algebra"
     WHERE "GradeLevel" = ${params.grade_level}
       AND "Lesson" = ${params.lesson}
-      AND "Section" ILIKE '%tryit%'
+      AND "Section" = 'TryIt'
     ORDER BY id
   `);
 
@@ -45,11 +45,10 @@ export async function getTokenQuestions(params: { grade_level: number; lesson: n
     FROM "questions_algebra"
     WHERE "GradeLevel" = ${params.grade_level}
       AND "Lesson" = ${params.lesson}
-      AND "Section" NOT ILIKE '%tryit%'
-      AND "Section" NOT ILIKE '%challenge%'
+      AND "Section" LIKE 'Rep%'
     ORDER BY id
   `);
-
+  console.log('getTokenQuestions result: ', result.rows, 'params: ', params);
   return result.rows as unknown as AlgebraQuestion[];
 }
 
@@ -60,7 +59,7 @@ export async function getChallengeQuestions(params: { grade_level: number; lesso
     FROM "questions_algebra"
     WHERE "GradeLevel" = ${params.grade_level}
       AND "Lesson" = ${params.lesson}
-      AND "Section" ILIKE '%challenge%'
+      AND "Section" = '%Challenge%'
     ORDER BY id
   `);
 

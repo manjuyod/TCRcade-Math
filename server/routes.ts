@@ -2485,9 +2485,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/algebra/questions", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const runType = req.query.runType as string || 'practice';
+      // console.log("query: ", req.query)
+      const runType = req.query.runType as string
 
       if (!runType || !['practice', 'token'].includes(runType)) {
+         console.log("run type: ", runType)
         return res.status(400).json({ error: "Invalid run type" });
       }
 
@@ -2519,7 +2521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         options: q.AnswerBank?.options || [],
         correctAnswers: parseAlgebraAnswer(q.CorrectAnswer)
       }));
-
+      // console.log('Processed algebra questions:', processedQuestions, "run type: ", runType);
       res.json(processedQuestions);
     } catch (error) {
       console.error("Error loading algebra questions:", error);
