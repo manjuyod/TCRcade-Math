@@ -50,19 +50,20 @@ router.get('/recommendations', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const analytics = await storage.getEnhancedUserAnalytics(req.user.id);
     const moduleHistory = await storage.getUserModuleHistory(req.user.id, 50);
     
-    // Transform to monolith format
-    const userProfile = analyticsIntegration.transformUserToProfile(user, analytics, moduleHistory);
+    // Parse hidden_grade_asset for comprehensive user data
+    const hiddenGradeAsset = typeof user.hiddenGradeAsset === 'string' 
+      ? JSON.parse(user.hiddenGradeAsset) 
+      : user.hiddenGradeAsset;
 
-    // Get available questions based on user grade and preferences
+    // Get available questions based on user's actual learning profile
     const availableQuestions = await getAvailableQuestions(user, requestData);
     console.log(`Available questions count: ${availableQuestions.length}`);
     console.log('Sample question:', availableQuestions[0]);
 
-    // Build user learning profile for OpenAI analysis
-    const openaiUserProfile = await buildUserLearningProfile(user, analytics, moduleHistory);
+    // Build user learning profile for OpenAI analysis using hidden_grade_asset
+    const openaiUserProfile = await buildUserLearningProfile(user, hiddenGradeAsset, moduleHistory);
     console.log('User profile grade:', openaiUserProfile.currentGrade);
     console.log('User profile strengths:', openaiUserProfile.strengths);
     
@@ -250,57 +251,69 @@ router.get('/status', async (req, res) => {
 });
 
 /**
- * Build user learning profile for OpenAI analysis
+ * Build user learning profile for OpenAI analysis using hidden_grade_asset
  */
-async function buildUserLearningProfile(user: any, analytics: any, moduleHistory: any[]): Promise<any> {
-  // Extract recent performance from analytics
+async function buildUserLearningProfile(user: any, hiddenGradeAsset: any, moduleHistory: any[]): Promise<any> {
+  console.log('Building user learning profile from hidden_grade_asset...');
+  
+  // Extract performance data from module history
   const recentPerformance = moduleHistory.slice(-20).map(session => ({
+    sessionId: session.id.toString(),
+    accuracy: session.score / 100,
+    timeToComplete: session.timeSpent || 60,
     concept: session.moduleId,
-    accuracy: session.score / 100, // Convert percentage to decimal
-    timeSpent: session.timeSpent || 120, // Default 2 minutes if not available
-    difficulty: session.difficulty || 2,
-    timestamp: new Date(session.completedAt)
+    difficulty: session.difficulty || 3
   }));
 
-  // Build concept mastery from analytics
-  const conceptMastery: Record<string, number> = {};
-  if (analytics?.conceptMastery) {
-    Object.entries(analytics.conceptMastery).forEach(([concept, data]: [string, any]) => {
-      conceptMastery[concept] = data.masteryLevel || 0;
+  // Extract concept mastery from hidden_grade_asset
+  const conceptMastery = hiddenGradeAsset?.concept_mastery || {};
+  
+  // Calculate current grade from module grade levels
+  const moduleGrades = [];
+  if (hiddenGradeAsset?.modules) {
+    Object.values(hiddenGradeAsset.modules).forEach((moduleData: any) => {
+      if (moduleData?.grade_level) {
+        moduleGrades.push(moduleData.grade_level);
+      }
     });
   }
-
-  // Determine learning velocity from recent sessions
-  const learningVelocity = recentPerformance.length > 0 
-    ? recentPerformance.reduce((sum, p) => sum + p.accuracy, 0) / recentPerformance.length
-    : 0.5;
-
-  // Identify strength and weakness concepts
-  const strengthConcepts = Object.entries(conceptMastery)
-    .filter(([_, mastery]) => mastery > 0.7)
-    .map(([concept, _]) => concept);
   
-  const weaknessConcepts = Object.entries(conceptMastery)
-    .filter(([_, mastery]) => mastery < 0.4)
-    .map(([concept, _]) => concept);
+  const currentGrade = moduleGrades.length > 0 
+    ? Math.round(moduleGrades.reduce((sum, grade) => sum + grade, 0) / moduleGrades.length)
+    : 3;
+  
+  // Extract strengths and weaknesses from AI analytics
+  const strengthConcepts = hiddenGradeAsset?.ai_analytics?.strengths || [];
+  const weaknessConcepts = hiddenGradeAsset?.ai_analytics?.weaknesses || [];
+  
+  // Calculate learning velocity from global stats
+  const globalStats = hiddenGradeAsset?.global_stats || {};
+  const learningVelocity = globalStats.total_questions_answered > 0 
+    ? globalStats.total_correct_answers / globalStats.total_questions_answered
+    : 0;
 
-  // Build session history
+  // Build session history from module history
   const sessionHistory = moduleHistory.slice(-10).map(session => ({
     sessionId: session.id.toString(),
     performance: session.score / 100,
-    engagement: session.timeSpent > 60 ? 0.8 : 0.5, // Simple engagement metric
+    engagement: session.timeSpent > 60 ? 0.8 : 0.5,
     concepts: [session.moduleId]
   }));
 
+  console.log(`Profile built - currentGrade: ${currentGrade}, strengths: ${strengthConcepts.length}, weaknesses: ${weaknessConcepts.length}`);
+
   return {
     userId: user.id,
+    currentGrade,
     recentPerformance,
     conceptMastery,
     learningVelocity,
-    preferredDifficulty: parseInt(user.grade) || 2,
+    preferredDifficulty: currentGrade,
     weaknessConcepts,
     strengthConcepts,
-    sessionHistory
+    sessionHistory,
+    strengths: strengthConcepts,
+    weaknesses: weaknessConcepts
   };
 }
 
@@ -310,27 +323,79 @@ async function buildUserLearningProfile(user: any, analytics: any, moduleHistory
 
 async function getAvailableQuestions(user: any, request: RecommendationRequestType) {
   try {
-    // Get questions appropriate for user's grade and difficulty level
-    const userGrade = user.grade || 'K';
-    const targetDifficulty = request.targetDifficulty || parseInt(userGrade) || 1;
+    // Parse user's hidden_grade_asset to get actual learning data
+    const hiddenGradeAsset = typeof user.hiddenGradeAsset === 'string' 
+      ? JSON.parse(user.hiddenGradeAsset) 
+      : user.hiddenGradeAsset;
     
-    // Determine difficulty range (±1 from target)
+    console.log('User hidden_grade_asset parsed successfully');
+    
+    // Extract user's strengths and current grade levels from multiple modules
+    const moduleGrades = [];
+    const userStrengths = [];
+    const userWeaknesses = [];
+    
+    if (hiddenGradeAsset?.modules) {
+      Object.entries(hiddenGradeAsset.modules).forEach(([moduleId, moduleData]: [string, any]) => {
+        if (moduleData?.grade_level) {
+          moduleGrades.push(moduleData.grade_level);
+        }
+      });
+    }
+    
+    if (hiddenGradeAsset?.ai_analytics?.strengths) {
+      userStrengths.push(...hiddenGradeAsset.ai_analytics.strengths);
+    }
+    
+    if (hiddenGradeAsset?.ai_analytics?.weaknesses) {
+      userWeaknesses.push(...hiddenGradeAsset.ai_analytics.weaknesses);
+    }
+    
+    // Calculate user's average grade level
+    const avgGrade = moduleGrades.length > 0 
+      ? Math.round(moduleGrades.reduce((sum, grade) => sum + grade, 0) / moduleGrades.length)
+      : 3; // Default to grade 3
+    
+    console.log(`User analysis - avgGrade: ${avgGrade}, strengths: ${userStrengths.join(', ')}, weaknesses: ${userWeaknesses.join(', ')}`);
+    
+    // Query all question tables for comprehensive question pool
+    const [baseQuestions, additionQuestions, multiplicationQuestions, measurementQuestions, algebraQuestions] = await Promise.all([
+      storage.getQuestions(),
+      storage.getQuestionsByCategory('addition'),
+      storage.getQuestionsByCategory('multiplication'), 
+      storage.getQuestionsByCategory('measurement'),
+      storage.getQuestionsByCategory('algebra')
+    ]);
+    
+    // Combine all questions with source tracking
+    const allQuestions = [
+      ...baseQuestions.map(q => ({ ...q, source: 'base' })),
+      ...additionQuestions.map(q => ({ ...q, source: 'addition' })),
+      ...multiplicationQuestions.map(q => ({ ...q, source: 'multiplication' })),
+      ...measurementQuestions.map(q => ({ ...q, source: 'measurement' })),
+      ...algebraQuestions.map(q => ({ ...q, source: 'algebra' }))
+    ];
+    
+    console.log(`Combined question pool: ${allQuestions.length} total questions`);
+    console.log('Question sources:', {
+      base: baseQuestions.length,
+      addition: additionQuestions.length,
+      multiplication: multiplicationQuestions.length,
+      measurement: measurementQuestions.length,
+      algebra: algebraQuestions.length
+    });
+    
+    // Smart filtering based on user's actual learning profile
+    const targetDifficulty = request.targetDifficulty || Math.min(5, Math.max(1, avgGrade - 1));
     const minDifficulty = Math.max(1, targetDifficulty - 1);
-    const maxDifficulty = Math.min(5, targetDifficulty + 1);
+    const maxDifficulty = Math.min(5, targetDifficulty + 2);
     
-    // Get questions from database - use existing method
-    const allQuestions = await storage.getQuestions();
-    console.log(`Database returned ${allQuestions.length} total questions`);
-    console.log('Sample raw question:', allQuestions[0]);
-    
-    console.log(`Filtering questions - userGrade: ${userGrade}, targetDifficulty: ${targetDifficulty}`);
-    console.log(`Filter ranges - minDifficulty: ${minDifficulty}, maxDifficulty: ${maxDifficulty}`);
+    console.log(`Smart filtering - targetDifficulty: ${targetDifficulty}, range: ${minDifficulty}-${maxDifficulty}`);
     
     const filteredQuestions = allQuestions.filter((question, index) => {
-      // Grade appropriateness - handle grade conversion properly
+      // Grade appropriateness using user's actual learning levels
       const questionGrade = question.grade === 'K' ? 0 : parseInt(question.grade) || 1;
-      const userGradeNum = userGrade === 'K' ? 0 : parseInt(userGrade) || 1;
-      const gradeMatch = Math.abs(questionGrade - userGradeNum) <= 2;
+      const gradeMatch = Math.abs(questionGrade - avgGrade) <= 2;
       
       // Difficulty range
       const difficultyMatch = question.difficulty >= minDifficulty && 
@@ -339,42 +404,43 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
       // Exclude specific questions if requested
       const notExcluded = !request.excludeQuestionIds?.includes(question.id);
       
-      // Focus concepts if specified
+      // Prioritize user's focus areas or weaknesses
       const conceptMatch = !request.focusConcepts || 
         request.focusConcepts.some(concept => 
           question.concepts?.includes(concept)
+        ) || 
+        userWeaknesses.some(weakness => 
+          question.concepts?.includes(weakness)
         );
       
       // Debug first few questions
       if (index < 3) {
-        console.log(`Question ${question.id}: grade=${question.grade}(${questionGrade}), difficulty=${question.difficulty}, gradeMatch=${gradeMatch}, difficultyMatch=${difficultyMatch}, notExcluded=${notExcluded}, conceptMatch=${conceptMatch}`);
+        console.log(`Question ${question.id}: grade=${question.grade}(${questionGrade}), difficulty=${question.difficulty}, source=${question.source}, gradeMatch=${gradeMatch}, difficultyMatch=${difficultyMatch}, conceptMatch=${conceptMatch}`);
       }
       
       return gradeMatch && difficultyMatch && notExcluded && conceptMatch;
     });
     
-    console.log(`After filtering: ${filteredQuestions.length} questions remain`);
+    console.log(`After smart filtering: ${filteredQuestions.length} questions remain`);
 
-    // If not enough questions, broaden the search
+    // If still not enough questions, broaden the search progressively
     if (filteredQuestions.length < 20) {
+      console.log('Broadening search criteria...');
       const broadenedQuestions = allQuestions.filter(question => {
-        const questionGrade = parseInt(question.grade) || 1;
-        const userGradeNum = parseInt(userGrade) || 1;
-        const gradeMatch = Math.abs(questionGrade - userGradeNum) <= 3;
-        const notExcluded = !request.excludeQuestionIds?.includes(question.id);
-        
-        return gradeMatch && notExcluded;
+        const questionGrade = question.grade === 'K' ? 0 : parseInt(question.grade) || 1;
+        return Math.abs(questionGrade - avgGrade) <= 3 && 
+               question.difficulty >= 1 && question.difficulty <= 5;
       });
       
-      return broadenedQuestions;
+      console.log(`Broadened search yielded: ${broadenedQuestions.length} questions`);
+      return broadenedQuestions.slice(0, Math.max(50, request.maxQuestions * 3));
     }
-    
-    return filteredQuestions;
 
+    return filteredQuestions.slice(0, Math.max(50, request.maxQuestions * 3));
+    
   } catch (error) {
-    console.error('Error fetching available questions:', error);
-    // Return fallback questions
-    return await storage.getQuestions();
+    console.error('Error in getAvailableQuestions:', error);
+    return [];
   }
 }
 
