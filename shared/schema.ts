@@ -106,6 +106,8 @@ export const questionsAddition = pgTable("questions_addition", {
   int1: integer("int1").notNull(),
   int2: integer("int2").notNull(),
   int3: integer("int3").notNull(),
+  type: text("type"),
+  facts_type: text("facts_type"),
 });
 
 export const questionsMultiplication = pgTable("questions_multiplication", {
@@ -113,6 +115,8 @@ export const questionsMultiplication = pgTable("questions_multiplication", {
   int1: integer("int1").notNull(),
   int2: integer("int2").notNull(),
   int3: integer("int3").notNull(),
+  type: text("type"),
+  facts_type: text("facts_type"),
 });
 
 export const questionsAlgebra = pgTable("questions_algebra", {
@@ -120,6 +124,8 @@ export const questionsAlgebra = pgTable("questions_algebra", {
   int1: integer("int1").notNull(),
   int2: integer("int2").notNull(),
   int3: integer("int3").notNull(),
+  type: text("type"),
+  facts_type: text("facts_type"),
 });
 
 export const questionsMeasurementAndData = pgTable("questions_measurementAndData", {
@@ -127,6 +133,8 @@ export const questionsMeasurementAndData = pgTable("questions_measurementAndData
   int1: integer("int1").notNull(),
   int2: integer("int2").notNull(),
   int3: integer("int3").notNull(),
+  type: text("type"),
+  facts_type: text("facts_type"),
 });
 
 // Math stories for narrative learning
