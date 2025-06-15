@@ -1,0 +1,236 @@
+Try It! Write expressions for these statements. Then, simplify those expressions.
+#1 30 divided by the sum
+of 7 and a number.
+
+#2 14 added to the
+dierence of 8 and a
+number.
+
+#3 The quotient of a number
+and 80 subtracted from
+15.
+
+#4 The quotient of 24 and
+4 added to a number.
+
+#5 6 times t added to a
+number minus 3.
+
+#6 16 added to the quotient
+of a number and 15.
+
+Level 7: Algebra
+Lesson 4: Write Expressions
+
+Level 7: Algebra, Lesson 4:Write Expressions 2 of 3
+Example 2: Starting with 18 shirts, a family gave away 4 bags with 3 shirts
+
+each. Afterward, they bought a number of shirts. Write an ex-
+pression for how many shirts there are left after shopping.
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+Encourage students to think of the word problem in chronological order, and deal with one event at a time.
+Step 1: Read the problem and rewrite the
+information as mathematical statements.
+Always ask “what am I looking for in
+the answer?”
+We are looking for how many shirts we
+have after these events.
+
+What information happened first?
+They started with 18 shirts, then gave
+some of those shirts away.
+
+Step 2: They gave away 4 bags with 3 shirts each.
+That must be taking from the 18 shirts we
+had originally.
+
+Each bag, in this case, subtracts
+3 from our shirt pile. With 4 bags,
+that’s 3 x 4 shirts gone.
+18 - (3 * 4)
+
+Step 3: Ok, now the last section of our word
+problem.
+“Afterward, they bought a number of shirts.”
+
+The shirts they bought will add to
+our total, so let’s add “a number”.
+
+18 - (3 * 4) + x
+
+Step 4: Simplify when you have your final
+expression!
+The parenthesis around 3x4 are not
+necessary. GEMDAS will tell us to multiply
+that anyway.
+
+Use GEMDAS now to simplify.
+
+18 - 3 * 4 + x
+18 - 12 + x
+6 + x
+
+Since CLT is finished, we have
+written and simplified our
+expression!
+
+Try It! Write expressions for these statements. Simplify those expressions.
+#1 A queen bee can
+produce 1,500 bees
+per day. After x
+days, how many
+bees would a hive
+have?
+
+#2 If Socrates had written down
+his work, some of it would
+be 2,400 years old. The Great
+Pyramid of Giza was built
+2,178 years before that. If
+Tommy is x years old, write
+an expression in terms of
+x, for how much older the
+pyramids are than Tommy.
+
+#3 Archaeologists have
+found honey in Egypt
+that is 5,500 years old.
+If there have been a
+certain number of full
+moons per year since
+then, how many full
+moons have there been?
+
+Level 7: Algebra, Lesson 4:Write Expressions 3 of 3
+Challenge Write a word problem that translates to the expression given. Score:
+/3
+
+#1 7 + g
+#2 $22,000c - $20,000
+#3 12,000x + 650,900
+Rep 2 Write expressions for these word problems. Simplify those expressions.
+Score:
+/3
+
+#1 Tanya had x salads
+delivered to her
+house for her Earth
+Day party. If 2 of the
+salads were eaten by
+her and her brother,
+and then 3 more
+were delivered. How
+many are there
+now?
+
+#2 Trisha watched 6 of her
+little brother’s soccer
+games. Each game after
+Game 1 had the same
+number of first-time
+players. In Game 1 there
+were 4 more first-time
+players than normal.
+How many first-time
+players were in those six
+games?
+
+#3 Henry started to eat 6 cups
+of sliced cucumber (3
+cucumbers) a week, over
+x weeks, after he heard
+they would help him lose
+weight. He also ate 2 whole
+spaghetti squashes (8 cups
+of strands) in that time.
+Write an expression for his
+vegetable consumption, in
+cups.
+Rep 1 Write expressions for these statements. Simplify those expressions.
+
+Score:
+/6
+
+#1 Divide 16 by 2t, then add 4. #2 16 times a number
+multiplied by 1⁄2.
+
+#3 8 minus the quotient
+of a number and 18
+multiplied by 9.
+
+#4 A number multiplied by 15
+divided by 3, then added
+to 16 more than the same
+number.
+
+#5 A number subtracted
+from 15 all multiplied by
+3.
+
+#6 7 added to 2, then all
+divided by 3x.
+
+Rep 3 Write expressions for these word problems. Simplify those expressions.
+
+Score:
+/3
+
+#1 Over 3 days, a number of
+birds and 14 times as many
+insects migrate from south
+to north.. If over the same
+amount of time, 1,500 deer
+went north as well, write an
+expression for how many
+animals migrated.
+
+#2 If certain monkeys
+harvest 3 mangos
+and x coconuts
+every day, how
+much have they
+harvested over 4
+days?
+
+#3 A hitchhiker travels
+d miles one day, 125
+miles more than that
+on the second day, then
+twice the second day’s
+distance on the last day.
+How many miles has he
+travelled?
+
+Algebra Level 7
+Lesson 4: Write Expressions
+
+Try It! #1
+1 30 ÷ (7 + x)
+
+Rep 1
+1 (8 ÷ t) + 4
+
+Rep 3
+1 15x + 1500
+2 22 - x 2 8x 2 12 + 4x
+3 15 - (x ÷ 80) 3 8 - (9x ÷ 18) 3 4d + 375
+4 x + 6 4 6x + 16 4 N/A
+5 6t + (x - 3) 5 45 - 3x 5 N/A
+6 (x ÷ 15) + 16 6 3 ÷ x 6 N/A
+Try It! #2
+1 1,500x bees
+
+Rep 2
+1 x + 1
+
+Challenge
+
+1 Answers will vary. 2 4,578 - x 2 6x + 4
+3 5,500x 3 14x 2 Answers will vary. 4 N/A 4 N/A
+5 N/A 5 N/A 3 Answers will vary.
