@@ -21,6 +21,7 @@ export interface IStorage {
 
   // Question methods
   getQuestion(id: number): Promise<Question | undefined>;
+  getQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]>;
   getQuestionsByGrade(grade: string, category?: string): Promise<Question[]>;
   getQuestionsByConcept(grade: string, concept: string): Promise<Question[]>;
   getAdaptiveQuestion(userId: number, grade: string, forceDynamic?: boolean, category?: string): Promise<Question | undefined>;
@@ -278,6 +279,26 @@ export class MemStorage implements IStorage {
 
   async getQuestion(id: number): Promise<Question | undefined> {
     return this.questions.get(id);
+  }
+
+  async getQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
+    let questions = Array.from(this.questions.values());
+
+    if (filters) {
+      if (filters.category) {
+        questions = questions.filter(q => q.category === filters.category);
+      }
+      if (filters.difficulty !== undefined) {
+        questions = questions.filter(q => q.difficulty === filters.difficulty);
+      }
+      if (filters.concepts && filters.concepts.length > 0) {
+        questions = questions.filter(q => 
+          q.concepts && filters.concepts!.some(concept => q.concepts!.includes(concept))
+        );
+      }
+    }
+
+    return questions;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
