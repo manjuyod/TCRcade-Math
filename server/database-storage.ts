@@ -214,6 +214,40 @@ export class DatabaseStorage implements IStorage {
     return question ? shuffleAnswerOptions(question) : question;
   }
 
+  async getQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
+    let query = db.select().from(questions);
+
+    // Build filters array
+    const whereConditions = [];
+
+    if (filters?.category) {
+      whereConditions.push(eq(questions.category, filters.category));
+    }
+
+    if (filters?.difficulty !== undefined) {
+      whereConditions.push(eq(questions.difficulty, filters.difficulty));
+    }
+
+    if (filters?.concepts && filters.concepts.length > 0) {
+      // For concepts, we need to check if any of the filter concepts are in the question's concepts array
+      // This is a simple approach - in production you might want a more sophisticated search
+      const conceptConditions = filters.concepts.map(concept => 
+        sql`${questions.concepts} @> ${JSON.stringify([concept])}`
+      );
+      whereConditions.push(or(...conceptConditions));
+    }
+
+    // Apply filters if any exist
+    if (whereConditions.length > 0) {
+      query = query.where(and(...whereConditions));
+    }
+
+    const result = await query;
+
+    // Shuffle answer options for each question
+    return result.map(question => shuffleAnswerOptions(question));
+  }
+
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
     // Build filters first to make sure they're all applied correctly
     const filters = [eq(questions.grade, grade)];
