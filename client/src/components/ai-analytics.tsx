@@ -380,7 +380,7 @@ export default function AiAnalytics() {
       </CardHeader>
       
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
+        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">
               <LineChart className="h-4 w-4 mr-2" />
