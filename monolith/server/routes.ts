@@ -8,6 +8,7 @@ import {
   FeedbackDataType 
 } from '../shared/types';
 import { storage } from '../../server/storage';
+import { openaiRecommendationEngine } from './openai-recommendation-engine';
 
 const router = Router();
 const recommendationEngine = new RecommendationEngine();
@@ -58,11 +59,25 @@ router.get('/recommendations', async (req, res) => {
     // Get available questions based on user grade and preferences
     const availableQuestions = await getAvailableQuestions(user, requestData);
 
-    // Generate recommendations
-    const recommendations = await recommendationEngine.generateRecommendations(
+    // Build user learning profile for OpenAI analysis
+    const openaiUserProfile = await buildUserLearningProfile(user, analytics, moduleHistory);
+    
+    // Format questions for OpenAI engine
+    const formattedQuestions = availableQuestions.map(q => ({
+      id: q.id,
+      concept: q.concepts?.[0] || q.category,
+      difficulty: q.difficulty,
+      category: q.category,
+      prerequisites: [], // Enhanced with actual prerequisites later
+      averageTimeToComplete: 60, // Default estimate
+      successRate: 0.7 // Default estimate
+    }));
+
+    // Generate recommendations using OpenAI hybrid approach
+    const recommendations = await openaiRecommendationEngine.generateRecommendations(
       requestData,
-      userProfile,
-      availableQuestions
+      openaiUserProfile,
+      formattedQuestions
     );
 
     // Log recommendation request for analytics
@@ -210,6 +225,61 @@ router.get('/status', async (req, res) => {
 });
 
 /**
+ * Build user learning profile for OpenAI analysis
+ */
+async function buildUserLearningProfile(user: any, analytics: any, moduleHistory: any[]): Promise<any> {
+  // Extract recent performance from analytics
+  const recentPerformance = moduleHistory.slice(-20).map(session => ({
+    concept: session.moduleId,
+    accuracy: session.score / 100, // Convert percentage to decimal
+    timeSpent: session.timeSpent || 120, // Default 2 minutes if not available
+    difficulty: session.difficulty || 2,
+    timestamp: new Date(session.completedAt)
+  }));
+
+  // Build concept mastery from analytics
+  const conceptMastery: Record<string, number> = {};
+  if (analytics?.conceptMastery) {
+    Object.entries(analytics.conceptMastery).forEach(([concept, data]: [string, any]) => {
+      conceptMastery[concept] = data.masteryLevel || 0;
+    });
+  }
+
+  // Determine learning velocity from recent sessions
+  const learningVelocity = recentPerformance.length > 0 
+    ? recentPerformance.reduce((sum, p) => sum + p.accuracy, 0) / recentPerformance.length
+    : 0.5;
+
+  // Identify strength and weakness concepts
+  const strengthConcepts = Object.entries(conceptMastery)
+    .filter(([_, mastery]) => mastery > 0.7)
+    .map(([concept, _]) => concept);
+  
+  const weaknessConcepts = Object.entries(conceptMastery)
+    .filter(([_, mastery]) => mastery < 0.4)
+    .map(([concept, _]) => concept);
+
+  // Build session history
+  const sessionHistory = moduleHistory.slice(-10).map(session => ({
+    sessionId: session.id.toString(),
+    performance: session.score / 100,
+    engagement: session.timeSpent > 60 ? 0.8 : 0.5, // Simple engagement metric
+    concepts: [session.moduleId]
+  }));
+
+  return {
+    userId: user.id,
+    recentPerformance,
+    conceptMastery,
+    learningVelocity,
+    preferredDifficulty: parseInt(user.grade) || 2,
+    weaknessConcepts,
+    strengthConcepts,
+    sessionHistory
+  };
+}
+
+/**
  * Helper functions
  */
 
@@ -223,8 +293,8 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
     const minDifficulty = Math.max(1, targetDifficulty - 1);
     const maxDifficulty = Math.min(5, targetDifficulty + 1);
     
-    // Get questions from database
-    const allQuestions = await storage.getQuestions();
+    // Get questions from database - use all questions for broader selection
+    const allQuestions = await storage.getAllQuestions();
     
     const filteredQuestions = allQuestions.filter(question => {
       // Grade appropriateness
