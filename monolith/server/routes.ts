@@ -320,6 +320,8 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
     
     // Get questions from database - use existing method
     const allQuestions = await storage.getQuestions();
+    console.log(`Database returned ${allQuestions.length} total questions`);
+    console.log('Sample raw question:', allQuestions[0]);
     
     const filteredQuestions = allQuestions.filter(question => {
       // Grade appropriateness

@@ -215,6 +215,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
+    console.log('[DatabaseStorage] getQuestions called with filters:', filters);
+    
     let query = db.select().from(questions);
 
     // Build filters array
@@ -222,10 +224,12 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.category) {
       whereConditions.push(eq(questions.category, filters.category));
+      console.log('[DatabaseStorage] Added category filter:', filters.category);
     }
 
     if (filters?.difficulty !== undefined) {
       whereConditions.push(eq(questions.difficulty, filters.difficulty));
+      console.log('[DatabaseStorage] Added difficulty filter:', filters.difficulty);
     }
 
     if (filters?.concepts && filters.concepts.length > 0) {
@@ -235,17 +239,25 @@ export class DatabaseStorage implements IStorage {
         sql`${questions.concepts} @> ${JSON.stringify([concept])}`
       );
       whereConditions.push(or(...conceptConditions));
+      console.log('[DatabaseStorage] Added concepts filter:', filters.concepts);
     }
 
     // Apply filters if any exist
     if (whereConditions.length > 0) {
       query = query.where(and(...whereConditions));
+      console.log('[DatabaseStorage] Applied', whereConditions.length, 'filters');
+    } else {
+      console.log('[DatabaseStorage] No filters applied - fetching all questions');
     }
 
     const result = await query;
+    console.log('[DatabaseStorage] Query returned', result.length, 'questions');
 
     // Shuffle answer options for each question
-    return result.map(question => shuffleAnswerOptions(question));
+    const shuffledResult = result.map(question => shuffleAnswerOptions(question));
+    console.log('[DatabaseStorage] Returning', shuffledResult.length, 'shuffled questions');
+    
+    return shuffledResult;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
