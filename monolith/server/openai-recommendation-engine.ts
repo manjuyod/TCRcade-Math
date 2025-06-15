@@ -205,10 +205,24 @@ Consider their strengths, weaknesses, learning velocity, and engagement patterns
     const questionMap = new Map(availableQuestions.map(q => [q.id, q]));
     const recommendations: QuestionRecommendation[] = [];
 
-    for (const rec of aiRecommendations) {
-      const question = questionMap.get(rec.questionId);
-      if (!question) continue;
+    console.log(`Validating ${aiRecommendations?.length || 0} AI recommendations against ${availableQuestions.length} available questions`);
 
+    if (!Array.isArray(aiRecommendations)) {
+      console.log('AI recommendations is not an array:', typeof aiRecommendations);
+      return [];
+    }
+
+    for (const rec of aiRecommendations) {
+      // Handle both string and number IDs from OpenAI
+      const questionId = parseInt(rec.questionId) || rec.questionId;
+      const question = questionMap.get(questionId);
+      
+      if (!question) {
+        console.log(`Question ID ${rec.questionId} not found in available questions`);
+        continue;
+      }
+
+      console.log(`Valid recommendation found for question ${questionId}`);
       recommendations.push({
         questionId: rec.questionId,
         score: Math.max(0, Math.min(1, rec.score || 0.5)),
@@ -216,8 +230,8 @@ Consider their strengths, weaknesses, learning velocity, and engagement patterns
         category: question.category,
         difficulty: question.difficulty,
         concepts: [question.concept],
-        recommendationType: 'mastery' as any,
-        priority: 'medium' as any
+        recommendationType: rec.recommendationType || 'mastery' as any,
+        priority: rec.priority || 'medium' as any
       });
     }
 

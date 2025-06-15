@@ -67,9 +67,9 @@ router.get('/recommendations', async (req, res) => {
     console.log('User profile grade:', openaiUserProfile.currentGrade);
     console.log('User profile strengths:', openaiUserProfile.strengths);
     
-    // Format questions for OpenAI engine
+    // Format questions for OpenAI engine with proper ID conversion
     const formattedQuestions = availableQuestions.map(q => ({
-      id: q.id,
+      id: parseInt(q.id) || q.id, // Convert string IDs to numbers for OpenAI compatibility
       concept: q.concepts?.[0] || q.category,
       difficulty: q.difficulty,
       category: q.category,
