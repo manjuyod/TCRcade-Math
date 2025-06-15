@@ -351,7 +351,7 @@ async function logRecommendationRequest(
       userId,
       requestType: request.sessionType,
       requestedQuestions: request.maxQuestions,
-      providedRecommendations: response.recommendations.length,
+      providedRecommendations: response.recommendations?.length || 0,
       targetDifficulty: request.targetDifficulty,
       focusConcepts: request.focusConcepts,
       timestamp: new Date(),

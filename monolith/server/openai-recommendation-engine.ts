@@ -133,19 +133,21 @@ RECOMMENDATION TYPES:
 - "challenge": Stretch capable learners
 - "remediate": Address fundamental gaps
 
-RESPONSE FORMAT: Return a JSON array of recommended questions with this structure:
-[
-  {
-    "questionId": number,
-    "score": number (0-1, confidence in recommendation),
-    "reasoning": "Clear educational rationale",
-    "recommendationType": "review|advance|reinforce|challenge|remediate",
-    "priority": "high|medium|low",
-    "estimatedSuccessProbability": number (0-1),
-    "expectedLearningGain": number (0-1),
-    "cognitiveLoadRating": number (1-5)
-  }
-]
+RESPONSE FORMAT: Return a JSON object with recommendations array:
+{
+  "recommendations": [
+    {
+      "questionId": number,
+      "score": number (0-1, confidence in recommendation),
+      "reasoning": "Clear educational rationale",
+      "recommendationType": "review|advance|reinforce|challenge|remediate",
+      "priority": "high|medium|low",
+      "estimatedSuccessProbability": number (0-1),
+      "expectedLearningGain": number (0-1),
+      "cognitiveLoadRating": number (1-5)
+    }
+  ]
+}
 
 Analyze the educational context and provide thoughtful, evidence-based recommendations.`;
 
@@ -166,7 +168,9 @@ Consider their strengths, weaknesses, learning velocity, and engagement patterns
       max_tokens: 2000
     });
 
-    return JSON.parse(response.choices[0].message.content || '[]');
+    const responseContent = response.choices[0].message.content || '{"recommendations": []}';
+    const parsedResponse = JSON.parse(responseContent);
+    return parsedResponse.recommendations || [];
   }
 
   /**
