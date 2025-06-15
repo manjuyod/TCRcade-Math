@@ -100,6 +100,35 @@ export const questions = pgTable("questions", {
   storyImage: text("story_image"),
 });
 
+// Additional question tables with raw numeric data
+export const questionsAddition = pgTable("questions_addition", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  int1: integer("int1").notNull(),
+  int2: integer("int2").notNull(),
+  int3: integer("int3").notNull(),
+});
+
+export const questionsMultiplication = pgTable("questions_multiplication", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  int1: integer("int1").notNull(),
+  int2: integer("int2").notNull(),
+  int3: integer("int3").notNull(),
+});
+
+export const questionsAlgebra = pgTable("questions_algebra", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  int1: integer("int1").notNull(),
+  int2: integer("int2").notNull(),
+  int3: integer("int3").notNull(),
+});
+
+export const questionsMeasurementAndData = pgTable("questions_measurementAndData", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  int1: integer("int1").notNull(),
+  int2: integer("int2").notNull(),
+  int3: integer("int3").notNull(),
+});
+
 // Math stories for narrative learning
 export const mathStories = pgTable("math_stories", {
   id: serial("id").primaryKey(),
@@ -205,19 +234,6 @@ export const session = pgTable("session", {
 // These tables from original schema.ts are kept for compatibility but marked as
 // "virtual tables" - they will not be created or modified in the database
 // but are kept for code compatibility
-export const questionsAddition = pgTable("questions_addition", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  int1: integer("int1").notNull(),
-  int2: integer("int2").notNull(),
-  int3: integer("int3").notNull(),
-});
-
-export const questionsMultiplication = pgTable("questions_multiplication", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  int1: integer("int1").notNull(),
-  int2: integer("int2").notNull(),
-  int3: integer("int3").notNull(),
-});
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,

@@ -1,6 +1,7 @@
 import { 
   users, type User, type InsertUser, 
   questions, type Question,
+  questionsAddition, questionsMultiplication, questionsAlgebra, questionsMeasurementAndData,
   recommendations, type Recommendation,
   avatarItems, type AvatarItem,
   dailyChallenges, type DailyChallenge,
@@ -217,47 +218,232 @@ export class DatabaseStorage implements IStorage {
   async getQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
     console.log('[DatabaseStorage] getQuestions called with filters:', filters);
     
+    // Query all 5 question tables in parallel
+    const [
+      baseQuestions,
+      additionRawQuestions,
+      multiplicationRawQuestions,
+      algebraRawQuestions,
+      measurementRawQuestions
+    ] = await Promise.all([
+      this.getBaseQuestions(filters),
+      db.select().from(questionsAddition),
+      db.select().from(questionsMultiplication),
+      db.select().from(questionsAlgebra),
+      db.select().from(questionsMeasurementAndData)
+    ]);
+
+    console.log('[DatabaseStorage] Retrieved questions from all tables:', {
+      base: baseQuestions.length,
+      addition: additionRawQuestions.length,
+      multiplication: multiplicationRawQuestions.length,
+      algebra: algebraRawQuestions.length,
+      measurement: measurementRawQuestions.length
+    });
+
+    // Convert raw integer questions to proper Question format
+    const additionQuestions = this.convertRawToQuestions(additionRawQuestions, 'addition');
+    const multiplicationQuestions = this.convertRawToQuestions(multiplicationRawQuestions, 'multiplication');
+    const algebraQuestions = this.convertRawToQuestions(algebraRawQuestions, 'algebra');
+    const measurementQuestions = this.convertRawToQuestions(measurementRawQuestions, 'measurement');
+
+    // Combine all questions
+    const allQuestions = [
+      ...baseQuestions,
+      ...additionQuestions,
+      ...multiplicationQuestions,
+      ...algebraQuestions,
+      ...measurementQuestions
+    ];
+
+    console.log('[DatabaseStorage] Combined total questions:', allQuestions.length);
+
+    // Apply additional filters if needed
+    let filteredQuestions = allQuestions;
+    
+    if (filters?.category) {
+      filteredQuestions = allQuestions.filter(q => q.category === filters.category);
+      console.log('[DatabaseStorage] After category filter:', filteredQuestions.length);
+    }
+
+    if (filters?.difficulty !== undefined) {
+      filteredQuestions = filteredQuestions.filter(q => q.difficulty === filters.difficulty);
+      console.log('[DatabaseStorage] After difficulty filter:', filteredQuestions.length);
+    }
+
+    if (filters?.concepts && filters.concepts.length > 0) {
+      filteredQuestions = filteredQuestions.filter(q => 
+        q.concepts && q.concepts.some(concept => filters.concepts!.includes(concept))
+      );
+      console.log('[DatabaseStorage] After concepts filter:', filteredQuestions.length);
+    }
+
+    // Shuffle answer options for each question
+    const shuffledResult = filteredQuestions.map(question => shuffleAnswerOptions(question));
+    console.log('[DatabaseStorage] Returning', shuffledResult.length, 'shuffled questions');
+    
+    return shuffledResult;
+  }
+
+  private async getBaseQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
     let query = db.select().from(questions);
 
-    // Build filters array
+    // Build filters array for base questions table
     const whereConditions = [];
 
     if (filters?.category) {
       whereConditions.push(eq(questions.category, filters.category));
-      console.log('[DatabaseStorage] Added category filter:', filters.category);
     }
 
     if (filters?.difficulty !== undefined) {
       whereConditions.push(eq(questions.difficulty, filters.difficulty));
-      console.log('[DatabaseStorage] Added difficulty filter:', filters.difficulty);
     }
 
     if (filters?.concepts && filters.concepts.length > 0) {
-      // For concepts, we need to check if any of the filter concepts are in the question's concepts array
-      // This is a simple approach - in production you might want a more sophisticated search
       const conceptConditions = filters.concepts.map(concept => 
         sql`${questions.concepts} @> ${JSON.stringify([concept])}`
       );
       whereConditions.push(or(...conceptConditions));
-      console.log('[DatabaseStorage] Added concepts filter:', filters.concepts);
     }
 
     // Apply filters if any exist
     if (whereConditions.length > 0) {
       query = query.where(and(...whereConditions));
-      console.log('[DatabaseStorage] Applied', whereConditions.length, 'filters');
-    } else {
-      console.log('[DatabaseStorage] No filters applied - fetching all questions');
     }
 
-    const result = await query;
-    console.log('[DatabaseStorage] Query returned', result.length, 'questions');
+    return await query;
+  }
 
-    // Shuffle answer options for each question
-    const shuffledResult = result.map(question => shuffleAnswerOptions(question));
-    console.log('[DatabaseStorage] Returning', shuffledResult.length, 'shuffled questions');
+  private convertRawToQuestions(rawQuestions: any[], category: string): Question[] {
+    return rawQuestions.map(raw => {
+      const question = this.generateQuestionFromIntegers(raw.int1, raw.int2, raw.int3, category);
+      return {
+        id: raw.id,
+        category: category,
+        grade: this.determineGradeLevel(raw.int1, raw.int2, raw.int3, category),
+        difficulty: this.determineDifficulty(raw.int1, raw.int2, raw.int3, category),
+        question: question.text,
+        answer: question.answer,
+        options: question.options,
+        concepts: question.concepts,
+        storyId: null,
+        storyNode: null,
+        storyText: null,
+        storyImage: null
+      };
+    });
+  }
+
+  private generateQuestionFromIntegers(int1: number, int2: number, int3: number, category: string): {
+    text: string;
+    answer: string;
+    options: string[];
+    concepts: string[];
+  } {
+    switch (category) {
+      case 'addition':
+        const addAnswer = int1 + int2;
+        return {
+          text: `What is ${int1} + ${int2}?`,
+          answer: addAnswer.toString(),
+          options: this.generateMathOptions(addAnswer),
+          concepts: ['addition', int1 > 10 || int2 > 10 ? 'multi_digit_addition' : 'single_digit_addition']
+        };
+
+      case 'multiplication':
+        const multAnswer = int1 * int2;
+        return {
+          text: `What is ${int1} × ${int2}?`,
+          answer: multAnswer.toString(),
+          options: this.generateMathOptions(multAnswer),
+          concepts: ['multiplication', 'times_tables']
+        };
+
+      case 'algebra':
+        // Use int3 as the missing value, int1 and int2 for the equation
+        const algebraAnswer = int3;
+        return {
+          text: `If x + ${int1} = ${int2}, what is x?`,
+          answer: (int2 - int1).toString(),
+          options: this.generateMathOptions(int2 - int1),
+          concepts: ['algebra', 'solving_equations', 'variables']
+        };
+
+      case 'measurement':
+        // Generate measurement questions using the integers
+        const measurementTypes = ['length', 'weight', 'volume'];
+        const measurementType = measurementTypes[int1 % 3];
+        return {
+          text: `A container holds ${int1} liters. If you add ${int2} more liters, how many liters total?`,
+          answer: (int1 + int2).toString(),
+          options: this.generateMathOptions(int1 + int2),
+          concepts: ['measurement', 'volume', 'addition']
+        };
+
+      default:
+        return {
+          text: `What is ${int1} + ${int2}?`,
+          answer: (int1 + int2).toString(),
+          options: this.generateMathOptions(int1 + int2),
+          concepts: ['basic_math']
+        };
+    }
+  }
+
+  private generateMathOptions(correctAnswer: number): string[] {
+    const options = [correctAnswer.toString()];
     
-    return shuffledResult;
+    // Generate 3 incorrect options
+    const incorrectOptions = [
+      (correctAnswer + Math.floor(Math.random() * 5) + 1).toString(),
+      (correctAnswer - Math.floor(Math.random() * 5) - 1).toString(),
+      (correctAnswer + Math.floor(Math.random() * 10) + 5).toString()
+    ];
+
+    // Add incorrect options, ensuring no duplicates
+    incorrectOptions.forEach(option => {
+      if (!options.includes(option) && parseInt(option) > 0) {
+        options.push(option);
+      }
+    });
+
+    // Ensure we have 4 options
+    while (options.length < 4) {
+      const randomOption = (correctAnswer + Math.floor(Math.random() * 20) - 10).toString();
+      if (!options.includes(randomOption) && parseInt(randomOption) > 0) {
+        options.push(randomOption);
+      }
+    }
+
+    // Shuffle the options
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    return options.slice(0, 4);
+  }
+
+  private determineGradeLevel(int1: number, int2: number, int3: number, category: string): string {
+    const maxValue = Math.max(int1, int2, int3);
+    
+    if (maxValue <= 10) return 'K';
+    if (maxValue <= 20) return '1';
+    if (maxValue <= 50) return '2';
+    if (maxValue <= 100) return '3';
+    if (maxValue <= 500) return '4';
+    if (maxValue <= 1000) return '5';
+    return '6';
+  }
+
+  private determineDifficulty(int1: number, int2: number, int3: number, category: string): number {
+    const maxValue = Math.max(int1, int2, int3);
+    
+    if (maxValue <= 10) return 1;
+    if (maxValue <= 50) return 2;
+    if (maxValue <= 100) return 3;
+    if (maxValue <= 500) return 4;
+    return 5;
   }
 
   async getQuestionsByGrade(grade: string, category?: string): Promise<Question[]> {
