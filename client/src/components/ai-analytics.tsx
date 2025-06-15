@@ -237,12 +237,12 @@ export default function AiAnalytics() {
   // Automatically generate a study plan when analytics data changes
   useEffect(() => {
     if (analyticsData && customStudyPlan.length === 0) {
-      // Only auto-generate if we don't already have a plan
+      // Only auto-generate if we don't already have a plan, but don't change the active tab
       generateCustomStudyPlanFromAnalytics(
         analyticsData.analytics, 
         setCustomStudyPlan, 
         setIsGeneratingPlan, 
-        setActiveTab,
+        () => {}, // Don't change active tab
         toast
       );
     }
