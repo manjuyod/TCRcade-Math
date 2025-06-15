@@ -358,32 +358,11 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
     
     console.log(`User analysis - avgGrade: ${avgGrade}, strengths: ${userStrengths.join(', ')}, weaknesses: ${userWeaknesses.join(', ')}`);
     
-    // Query all question tables for comprehensive question pool
-    const [baseQuestions, additionQuestions, multiplicationQuestions, measurementQuestions, algebraQuestions] = await Promise.all([
-      storage.getQuestions(),
-      storage.getQuestionsByCategory('addition'),
-      storage.getQuestionsByCategory('multiplication'), 
-      storage.getQuestionsByCategory('measurement'),
-      storage.getQuestionsByCategory('algebra')
-    ]);
-    
-    // Combine all questions with source tracking
-    const allQuestions = [
-      ...baseQuestions.map(q => ({ ...q, source: 'base' })),
-      ...additionQuestions.map(q => ({ ...q, source: 'addition' })),
-      ...multiplicationQuestions.map(q => ({ ...q, source: 'multiplication' })),
-      ...measurementQuestions.map(q => ({ ...q, source: 'measurement' })),
-      ...algebraQuestions.map(q => ({ ...q, source: 'algebra' }))
-    ];
+    // Query all available questions from database
+    const allQuestions = await storage.getQuestions();
+    console.log(`Retrieved ${allQuestions.length} total questions from database`);
     
     console.log(`Combined question pool: ${allQuestions.length} total questions`);
-    console.log('Question sources:', {
-      base: baseQuestions.length,
-      addition: additionQuestions.length,
-      multiplication: multiplicationQuestions.length,
-      measurement: measurementQuestions.length,
-      algebra: algebraQuestions.length
-    });
     
     // Smart filtering based on user's actual learning profile
     const targetDifficulty = request.targetDifficulty || Math.min(5, Math.max(1, avgGrade - 1));
