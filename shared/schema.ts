@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -120,21 +120,27 @@ export const questionsMultiplication = pgTable("questions_multiplication", {
 });
 
 export const questionsAlgebra = pgTable("questions_algebra", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  int1: integer("int1").notNull(),
-  int2: integer("int2").notNull(),
-  int3: integer("int3").notNull(),
-  type: text("type"),
-  facts_type: text("facts_type"),
+  id: integer("id").primaryKey(),
+  GradeLevel: integer("GradeLevel"),
+  Lesson: integer("Lesson"),
+  Title: text("Title"),
+  Section: text("Section"),
+  Type: text("Type"),
+  AnswerBank: json("AnswerBank"),
+  CorrectAnswer: text("CorrectAnswer"),
+  category: varchar("category"),
 });
 
 export const questionsMeasurementAndData = pgTable("questions_measurementAndData", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  int1: integer("int1").notNull(),
-  int2: integer("int2").notNull(),
-  int3: integer("int3").notNull(),
-  type: text("type"),
-  facts_type: text("facts_type"),
+  id: integer("id").primaryKey(),
+  GradeLevel: integer("GradeLevel"),
+  Lesson: integer("Lesson"),
+  Title: text("Title"),
+  Section: text("Section"),
+  Type: text("Type"),
+  AnswerBank: json("AnswerBank"),
+  CorrectAnswer: text("CorrectAnswer"),
+  category: varchar("category"),
 });
 
 // Math stories for narrative learning

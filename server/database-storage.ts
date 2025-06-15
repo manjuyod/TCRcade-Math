@@ -241,11 +241,11 @@ export class DatabaseStorage implements IStorage {
       measurement: measurementRawQuestions.length
     });
 
-    // Convert raw integer questions to proper Question format
+    // Convert questions to proper Question format - different logic for different table structures
     const additionQuestions = this.convertRawToQuestions(additionRawQuestions, 'addition');
     const multiplicationQuestions = this.convertRawToQuestions(multiplicationRawQuestions, 'multiplication');
-    const algebraQuestions = this.convertRawToQuestions(algebraRawQuestions, 'algebra');
-    const measurementQuestions = this.convertRawToQuestions(measurementRawQuestions, 'measurement');
+    const algebraQuestions = this.convertStructuredToQuestions(algebraRawQuestions, 'algebra');
+    const measurementQuestions = this.convertStructuredToQuestions(measurementRawQuestions, 'measurement');
 
     // Combine all questions
     const allQuestions = [
@@ -332,6 +332,94 @@ export class DatabaseStorage implements IStorage {
         storyImage: null
       };
     });
+  }
+
+  private convertStructuredToQuestions(structuredQuestions: any[], category: string): Question[] {
+    return structuredQuestions.map(structured => {
+      // Parse the AnswerBank JSON to extract question and answer data
+      let questionText = '';
+      let correctAnswer = '';
+      let options: string[] = [];
+      
+      try {
+        const answerBank = structured.AnswerBank;
+        if (answerBank && answerBank.question) {
+          questionText = answerBank.question.text || structured.Title || 'Question';
+        } else {
+          questionText = structured.Title || 'Question';
+        }
+        
+        // Parse CorrectAnswer - can be JSON array or simple string
+        if (structured.CorrectAnswer) {
+          try {
+            const correctAnswers = JSON.parse(structured.CorrectAnswer);
+            if (Array.isArray(correctAnswers) && correctAnswers.length > 0) {
+              correctAnswer = correctAnswers[0];
+              // Use all correct answers as options and add some distractors
+              options = [...correctAnswers];
+            } else {
+              correctAnswer = structured.CorrectAnswer;
+            }
+          } catch {
+            correctAnswer = structured.CorrectAnswer;
+          }
+        }
+        
+        // Generate additional options if we don't have enough
+        while (options.length < 4) {
+          options.push(`Option ${options.length + 1}`);
+        }
+        
+      } catch (error) {
+        console.error('Error parsing structured question:', error);
+        questionText = structured.Title || 'Question';
+        correctAnswer = 'Answer';
+        options = ['Answer', 'Option 2', 'Option 3', 'Option 4'];
+      }
+
+      return {
+        id: structured.id,
+        category: category,
+        grade: structured.GradeLevel?.toString() || '6',
+        difficulty: this.mapGradeToDifficulty(structured.GradeLevel || 6),
+        question: questionText,
+        answer: correctAnswer,
+        options: options.slice(0, 4),
+        concepts: this.extractConceptsFromStructured(structured, category),
+        storyId: null,
+        storyNode: null,
+        storyText: null,
+        storyImage: null
+      };
+    });
+  }
+
+  private mapGradeToDifficulty(gradeLevel: number): number {
+    if (gradeLevel <= 1) return 1;
+    if (gradeLevel <= 2) return 2;
+    if (gradeLevel <= 4) return 3;
+    if (gradeLevel <= 5) return 4;
+    return 5;
+  }
+
+  private extractConceptsFromStructured(structured: any, category: string): string[] {
+    const concepts = [category];
+    
+    if (structured.Title) {
+      const title = structured.Title.toLowerCase();
+      if (title.includes('equation')) concepts.push('equations');
+      if (title.includes('expression')) concepts.push('expressions');
+      if (title.includes('variable')) concepts.push('variables');
+      if (title.includes('solve')) concepts.push('solving');
+      if (title.includes('measurement')) concepts.push('measurement');
+      if (title.includes('data')) concepts.push('data_analysis');
+    }
+    
+    if (structured.Section) {
+      concepts.push(structured.Section.toLowerCase().replace(/\s+/g, '_'));
+    }
+    
+    return concepts;
   }
 
   private generateQuestionFromIntegers(int1: number, int2: number, int3: number, category: string): {
