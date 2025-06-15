@@ -293,8 +293,8 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
     const minDifficulty = Math.max(1, targetDifficulty - 1);
     const maxDifficulty = Math.min(5, targetDifficulty + 1);
     
-    // Get questions from database - use all questions for broader selection
-    const allQuestions = await storage.getAllQuestions();
+    // Get questions from database - use existing method
+    const allQuestions = await storage.getQuestions();
     
     const filteredQuestions = allQuestions.filter(question => {
       // Grade appropriateness

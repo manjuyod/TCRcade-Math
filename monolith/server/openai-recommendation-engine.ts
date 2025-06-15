@@ -93,9 +93,8 @@ export class OpenAIRecommendationEngine {
       sessionContext: {
         maxQuestions: request.maxQuestions,
         sessionType: request.sessionType,
-        targetConcepts: request.targetConcepts,
-        difficultyRange: request.difficultyRange,
-        timeConstraint: request.estimatedDuration
+        targetDifficulty: request.targetDifficulty,
+        excludeQuestionIds: request.excludeQuestionIds || []
       },
       availableContent: {
         totalQuestions: questions.length,
@@ -191,14 +190,8 @@ Consider their strengths, weaknesses, learning velocity, and engagement patterns
         category: question.category,
         difficulty: question.difficulty,
         concepts: [question.concept],
-        recommendationType: rec.recommendationType || 'review',
-        priority: rec.priority || 'medium',
-        metadata: {
-          aiGenerated: true,
-          successProbability: rec.estimatedSuccessProbability,
-          learningGain: rec.expectedLearningGain,
-          cognitiveLoad: rec.cognitiveLoadRating
-        }
+        recommendationType: 'mastery' as any,
+        priority: 'medium' as any
       });
     }
 
@@ -224,8 +217,8 @@ Consider their strengths, weaknesses, learning velocity, and engagement patterns
         category: q.category,
         difficulty: q.difficulty,
         concepts: [q.concept],
-        recommendationType: 'review' as const,
-        priority: 'medium' as const
+        recommendationType: 'mastery' as any,
+        priority: 'medium' as any
       }));
   }
 
