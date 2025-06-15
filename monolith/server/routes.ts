@@ -58,9 +58,13 @@ router.get('/recommendations', async (req, res) => {
 
     // Get available questions based on user grade and preferences
     const availableQuestions = await getAvailableQuestions(user, requestData);
+    console.log(`Available questions count: ${availableQuestions.length}`);
+    console.log('Sample question:', availableQuestions[0]);
 
     // Build user learning profile for OpenAI analysis
     const openaiUserProfile = await buildUserLearningProfile(user, analytics, moduleHistory);
+    console.log('User profile grade:', openaiUserProfile.currentGrade);
+    console.log('User profile strengths:', openaiUserProfile.strengths);
     
     // Format questions for OpenAI engine
     const formattedQuestions = availableQuestions.map(q => ({
@@ -72,6 +76,7 @@ router.get('/recommendations', async (req, res) => {
       averageTimeToComplete: 60, // Default estimate
       successRate: 0.7 // Default estimate
     }));
+    console.log(`Formatted questions count: ${formattedQuestions.length}`);
 
     // Generate recommendations using OpenAI hybrid approach
     const recommendations = await openaiRecommendationEngine.generateRecommendations(
@@ -80,10 +85,30 @@ router.get('/recommendations', async (req, res) => {
       formattedQuestions
     );
 
-    // Log recommendation request for analytics
-    await logRecommendationRequest(req.user.id, requestData, recommendations);
+    // Add debugging info
+    console.log(`Generated ${recommendations.length} recommendations for user ${req.user.id}`);
+    console.log('Recommendations sample:', recommendations.slice(0, 2));
 
-    res.json(recommendations);
+    // Create proper response format expected by frontend
+    const response = {
+      recommendations,
+      sessionMetadata: {
+        sessionId: `rec_${Date.now()}_${req.user.id}`,
+        timestamp: new Date().toISOString(),
+        userId: req.user.id
+      },
+      totalQuestions: recommendations.length,
+      requestMetadata: {
+        maxQuestions: requestData.maxQuestions,
+        sessionType: requestData.sessionType,
+        targetDifficulty: requestData.targetDifficulty
+      }
+    };
+
+    // Log recommendation request for analytics
+    await logRecommendationRequest(req.user.id, requestData, response);
+
+    res.json(response);
 
   } catch (error) {
     console.error('Error generating recommendations:', error);
@@ -355,7 +380,7 @@ async function logRecommendationRequest(
       targetDifficulty: request.targetDifficulty,
       focusConcepts: request.focusConcepts,
       timestamp: new Date(),
-      sessionId: response.sessionMetadata.sessionId
+      sessionId: response.sessionMetadata?.sessionId || 'unknown'
     };
 
     // This could be stored in a dedicated recommendations log table

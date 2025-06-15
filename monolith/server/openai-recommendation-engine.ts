@@ -53,15 +53,37 @@ export class OpenAIRecommendationEngine {
     availableQuestions: AvailableQuestion[]
   ): Promise<QuestionRecommendation[]> {
     
+    console.log('Starting OpenAI recommendation generation...');
+    console.log(`Available questions: ${availableQuestions.length}`);
+    console.log(`User grade: ${userProfile.currentGrade}`);
+    console.log(`Request max questions: ${request.maxQuestions}`);
+    
+    // If no questions available, return empty array
+    if (availableQuestions.length === 0) {
+      console.log('No questions available - returning empty recommendations');
+      return [];
+    }
+    
     try {
       // Prepare the educational context for OpenAI analysis
       const educationalContext = this.buildEducationalContext(userProfile, availableQuestions, request);
+      console.log('Educational context built successfully');
       
       // Use OpenAI to analyze and recommend questions
       const recommendations = await this.getIntelligentRecommendations(educationalContext);
+      console.log(`OpenAI returned ${recommendations?.length || 0} raw recommendations`);
       
       // Validate and format recommendations
-      return this.validateAndFormatRecommendations(recommendations, availableQuestions);
+      const formattedRecommendations = this.validateAndFormatRecommendations(recommendations, availableQuestions);
+      console.log(`Formatted recommendations: ${formattedRecommendations.length}`);
+      
+      // If OpenAI didn't provide enough recommendations, use fallback
+      if (formattedRecommendations.length === 0) {
+        console.log('OpenAI provided no valid recommendations, using fallback');
+        return this.fallbackAlgorithmicRecommendations(userProfile, availableQuestions, request);
+      }
+      
+      return formattedRecommendations;
       
     } catch (error) {
       console.error('OpenAI recommendation generation failed:', error);
