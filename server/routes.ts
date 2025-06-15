@@ -33,6 +33,7 @@ import {
   validateTokenAmount,
 } from "./utils/token";
 import { getModuleGradeLevel } from "./utils/module-grade-extractor";
+import { monolithRoutes } from "../monolith/server/routes";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -3360,6 +3361,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch question' });
     }
   });
+
+  // Integrate monolith recommendation system routes
+  app.use("/api/monolith", monolithRoutes);
 
   const httpServer = createServer(app);
 
