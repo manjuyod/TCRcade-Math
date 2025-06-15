@@ -1,0 +1,254 @@
+Try It! Write expressions for these statements. Solve the word problem if possible.
+#1 The Royal Library of
+Alexandria contained
+approximately 40,000
+scrolls when it was first
+built. The number of
+scrolls increased by a
+factor of x before the
+library was destroyed.
+How many scrolls did it
+end up with in terms of x?
+
+#2 Koko, the gorilla, had
+learned 600 words in
+sign language by 10
+years old. If she learned
+50% more words since
+then, how many words
+does she know?
+
+#3 You went grocery
+shopping for your
+favorite fruits and
+snacks and found
+the price would be x
+dollars. If a coupon
+decreased the cost by
+a factor of 20%, what is
+the total in terms of x?
+
+Level 7: Algebra
+Lesson 5:Understand Relationships in Expressions
+
+Level 7: Algebra, Lesson 5:Understand Relationships in Expressions 2 of 4
+Example 2: Between 1990 and 2014, the chimpanzee population reduced
+
+to 1
+5 of its original value. If there were x chimpanzees in 1990,
+write an expression for how many chimpanzees were left in
+2014.
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+Encourage students to think of the word problem in chronological order.
+Step 1: Identify our starting point. Well, the problem is starting with the 1990
+
+population:
+x
+
+Step 2: Now, identify the important vocab
+terms. “reduced to 1
+
+5 of its original value”
+
+Notice that instead of “reduced by”, it is ex-
+pressed as “reduced to”. This means that the
+
+later value is 1/5 of its starting size. But what
+mathematical operation do we use?
+
+Step 3: Fractions work in much the same
+way as percentages. To find a fraction
+of some amount, multiply.
+So we just use multiplication here.
+
+“Reduced to” shows that we don’t need to
+add anything, only multiply the original by
+
+the reduction.
+1
+5 * x = x
+5
+
+Step 4: Vocabulary and Shortcuts:
+Most of the vocabulary that is important comes down to whether “to” or “by” is used.
+Reduced/Decreased by: value-(reduction) * value
+Reduced/Decreased to: (reduction) * value
+Grown/Increased by: value+(growth) * value
+Grown/Increased to: (growth) * value
+Reductions and growths tend to be given as fractions or percentages.
+
+Shortcuts:
+
+Increased by: (1+growth) * value
+Decreased by: (1-reduction) * value
+
+Level 7: Algebra, Lesson 5:Understand Relationships in Expressions 3 of 4
+Rep 1 Write expressions for these statements.
+
+Score:
+/3
+
+#1 A professor wrote
+3 books by the year
+2016. Since then he
+has increased his book
+count by a factor of x.
+Write an expression for
+the number of books
+he has written.
+
+#2 A number of children in
+a classroom started to
+study a math problem.
+If 95% of the class
+understands the problem
+after the study session.
+Write an expression in
+terms of x for the number
+who understand.
+
+#3 One year ago, some money
+was loaned to a couple for
+a house. The interest rate
+on the loan is 4.3% per year.
+Write an expression for how
+much is owed for the loan
+now.
+
+Rep 2 Write expressions for these statements.
+
+Score:
+/3
+
+#1 America’s population
+reached 300 million
+people in the year 2006.
+The population of
+America has increased by
+a factor of x since then.
+Write an expression for
+the current population.
+
+#2 American football’s
+revenue has increased
+by 200% over the course
+of a few decades. Write
+an expression in terms
+of x if it was making x
+revenue already.
+
+#3 Colleges in America,
+from 1980 to 2018 have
+increased their costs
+to 3 times the original
+amount, even accounting
+for inflation! Write an
+expression for the 2018
+costs.
+
+Try It! Write expressions for these statements.
+#1 Gary received a
+$15,000 loan from a
+bank. If the money
+he owes to the bank
+is increased by x%
+every year, how much
+money would he owe
+after one year in terms
+of x?
+
+#2 The Model T averaged 21
+miles per gallon. If cars have
+increased in average miles
+per gallon by a factor of x,
+write an expression for how
+many miles per gallon the
+average modern car would
+get.
+
+#3 The coral reefs were
+quite numerous 200
+years ago. As of 2013,
+the population was
+reduced to 8% of it’s
+original size. Write an
+expression in terms of
+x.
+
+Level 7: Algebra, Lesson 5:Understand Relationships in Expressions 4 of 4
+Challenge Write expressions for the given problems.
+
+Score:
+/2
+
+#1 Tammy bought $6.50 worth of pumpkins before tax, and the tax rate is 2x. Write an ex-
+pression for the total cost in terms of x.
+
+#2 A dragon’s fire breath starts at 600 degrees centigrade. Each second the dragon holds
+the flame, the temperature is decreased by 5% of its original value. Write an expression
+describing the temperature after x seconds.
+Rep 3 Write expressions for these statements. Solve the word
+
+problem if possible.
+
+Score:
+/3
+
+#1 25 students were in a
+class at the start of the
+year. Since then, the
+number of students
+increased by 20%. How
+many students are in the
+class now?
+
+#2 On a tropical island,
+there are 1,500
+coconuts. If x percent
+of the coconuts
+disappeared overnight,
+how many are left in
+terms of x?
+
+#3 If Klo’s garage was filled
+with x cars last week, and
+she brought in 38% more,
+how many cars does she
+have in her garage in terms
+of x?
+
+Algebra Level 7
+
+Lesson 5: Understand Relationships in Expressions
+
+Try It! #1
+1 40,000x
+
+Rep 1
+1 3x
+
+Rep 3
+1 30 students
+2 900 words 2 .95x 2 1,500 - 1,500x
+3 .80x 3 1.043x 3 1.38x
+4 N/A 4 N/A 4 N/A
+5 N/A 5 N/A 5 N/A
+6 N/A 6 N/A 6 N/A
+Try It! #2
+1 15,000 + 15,000x
+
+Rep 2
+1 300,000,000x
+
+Challenge
+
+1 6.50 + 13x 2 21 + 21x 2 2x
+3 .08x 3 3x 2 t = 600 - 30x
+4 N/A 4 N/A
+5 N/A 5 N/A 3 N/A 6 N/A 6 N/A
