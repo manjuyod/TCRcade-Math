@@ -48,6 +48,7 @@ import MultiplayerMode from "@/components/multiplayer-mode";
 import AiAnalytics from "@/components/ai-analytics";
 import CreateAQuiz from "@/components/create-a-quiz";
 import Navigation from "@/components/navigation";
+import RecommendationQuizPage from "@/pages/RecommendationQuizPage";
 import ScrollToTop from "@/components/scroll-to-top";
 import { sessionManager } from "@/lib/session-manager";
 
@@ -97,6 +98,7 @@ function Router() {
       <ProtectedRoute path="/multiplayer" component={MultiplayerPage} />
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
       <ProtectedRoute path="/practice" component={CreateQuizPage} />
+      <ProtectedRoute path="/recquiz" component={RecommendationQuizPage} />
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
       <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
