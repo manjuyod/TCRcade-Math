@@ -323,10 +323,13 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
     console.log(`Database returned ${allQuestions.length} total questions`);
     console.log('Sample raw question:', allQuestions[0]);
     
-    const filteredQuestions = allQuestions.filter(question => {
-      // Grade appropriateness
-      const questionGrade = parseInt(question.grade) || 1;
-      const userGradeNum = parseInt(userGrade) || 1;
+    console.log(`Filtering questions - userGrade: ${userGrade}, targetDifficulty: ${targetDifficulty}`);
+    console.log(`Filter ranges - minDifficulty: ${minDifficulty}, maxDifficulty: ${maxDifficulty}`);
+    
+    const filteredQuestions = allQuestions.filter((question, index) => {
+      // Grade appropriateness - handle grade conversion properly
+      const questionGrade = question.grade === 'K' ? 0 : parseInt(question.grade) || 1;
+      const userGradeNum = userGrade === 'K' ? 0 : parseInt(userGrade) || 1;
       const gradeMatch = Math.abs(questionGrade - userGradeNum) <= 2;
       
       // Difficulty range
@@ -342,8 +345,15 @@ async function getAvailableQuestions(user: any, request: RecommendationRequestTy
           question.concepts?.includes(concept)
         );
       
+      // Debug first few questions
+      if (index < 3) {
+        console.log(`Question ${question.id}: grade=${question.grade}(${questionGrade}), difficulty=${question.difficulty}, gradeMatch=${gradeMatch}, difficultyMatch=${difficultyMatch}, notExcluded=${notExcluded}, conceptMatch=${conceptMatch}`);
+      }
+      
       return gradeMatch && difficultyMatch && notExcluded && conceptMatch;
     });
+    
+    console.log(`After filtering: ${filteredQuestions.length} questions remain`);
 
     // If not enough questions, broaden the search
     if (filteredQuestions.length < 20) {
