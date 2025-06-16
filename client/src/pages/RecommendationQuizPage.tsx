@@ -99,12 +99,29 @@ export default function RecommendationQuizPage() {
 
   // Validate modules based on total_questions_answered in hidden_grade_asset
   const validateModuleEligibility = (hiddenGradeAsset: any): string[] => {
+    console.log('=== Module Validation Debug ===');
+    console.log('hiddenGradeAsset:', hiddenGradeAsset);
+    console.log('Type:', typeof hiddenGradeAsset);
+    
     if (!hiddenGradeAsset || typeof hiddenGradeAsset !== 'object') {
+      console.log('No hiddenGradeAsset or not an object');
       return [];
     }
 
-    const validModules = Object.keys(hiddenGradeAsset).filter(moduleKey => {
+    const allKeys = Object.keys(hiddenGradeAsset);
+    console.log('All module keys:', allKeys);
+
+    const validModules = allKeys.filter(moduleKey => {
       const moduleData = hiddenGradeAsset[moduleKey];
+      console.log(`Module ${moduleKey}:`, {
+        data: moduleData,
+        hasData: !!moduleData,
+        isObject: typeof moduleData === 'object',
+        totalQuestions: moduleData?.total_questions_answered,
+        isNumber: typeof moduleData?.total_questions_answered === 'number',
+        isPositive: moduleData?.total_questions_answered > 0
+      });
+      
       return moduleData && 
              typeof moduleData === 'object' && 
              typeof moduleData.total_questions_answered === 'number' &&

@@ -1,0 +1,105 @@
+7609-a35131061246e4d2.js:1 Replit version 24542786, pid2 version 0.0.1417
+_app-97041bd3d755667c.js:38 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-97041bd3d755667c.js:38 [LaunchDarkly] LaunchDarkly client initialized
+2injected.js:5 [USO] Button detection aborting due to timeout.
+tcRCADE-Math:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+31Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'battery'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+framework-531bdbdb16708096.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-531bdbdb16708096.js:1Understand this warning
+41injected.js:5 [USO] Button detection aborting due to timeout.
+stallwart.build.js:1 stallwart: failed ping 1
+24injected.js:5 [USO] Button detection aborting due to timeout.
+5376-58bc7d48a087cbd7.js:1 WARNING: Too many active WebGL contexts. Oldest context will be lost.
+(anonymous) @ 5376-58bc7d48a087cbd7.js:1Understand this warning
+1836.7e1cb7056bcb25e9.js:15 WARNING: Too many active WebGL contexts. Oldest context will be lost.
+C @ 1836.7e1cb7056bcb25e9.js:15Understand this warning
+40injected.js:5 [USO] Button detection aborting due to timeout.
+tcRCADE-Math:1 Access to fetch at 'https://sp.replit.com/v1/t' from origin 'https://replit.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this error
+sp.replit.com/v1/t:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this error
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
