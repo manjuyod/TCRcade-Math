@@ -191,7 +191,20 @@ export default function RecommendationQuizPage() {
       console.log('Recommendation API response:', response);
       return response;
     },
-    enabled: !!analyticsData?.analytics && !isGeneratingAnalytics,
+    enabled: (() => {
+      const hasAnalytics = !!analyticsData?.analytics;
+      const notGenerating = !isGeneratingAnalytics;
+      const enabledResult = hasAnalytics && notGenerating;
+      
+      console.log('=== QUERY ENABLED CHECK ===');
+      console.log('analyticsData:', analyticsData);
+      console.log('hasAnalytics:', hasAnalytics);
+      console.log('isGeneratingAnalytics:', isGeneratingAnalytics);
+      console.log('notGenerating:', notGenerating);
+      console.log('Final enabled result:', enabledResult);
+      
+      return enabledResult;
+    })(),
     retry: 1
   });
 
