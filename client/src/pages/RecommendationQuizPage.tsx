@@ -185,8 +185,8 @@ export default function RecommendationQuizPage() {
       }
     };
 
-    fetchQuestions();
-  }, [recommendationData, user, toast]);
+    processRecommendationData();
+  }, [recommendationData, toast]);
 
   // Submit feedback mutation
   const feedbackMutation = useMutation({
