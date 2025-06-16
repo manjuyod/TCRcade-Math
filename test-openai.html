@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenAI Test</title>
+</head>
+<body>
+    <h1>Testing OpenAI Direct Output</h1>
+    <button onclick="testOpenAI()">Test OpenAI</button>
+    <div id="output"></div>
+
+    <script>
+        async function testOpenAI() {
+            try {
+                const response = await fetch('/api/test-openai');
+                const data = await response.json();
+                document.getElementById('output').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('output').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

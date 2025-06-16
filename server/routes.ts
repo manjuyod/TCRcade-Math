@@ -1822,6 +1822,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Test endpoint to debug OpenAI output directly
+  app.get("/api/test-openai", async (req, res) => {
+    try {
+      // Create test user data
+      const testUser = {
+        id: 1,
+        username: 'testuser',
+        grade: 'grade-3',
+        password: '',
+        tokens: 100,
+        hiddenGradeAsset: {},
+        progress: {}
+      };
+
+      // Force test data for debugging
+      const testAnalytics = {
+        weaknessConcepts: ['addition', 'subtraction', 'fractions'],
+        strengthConcepts: ['multiplication', 'division'],
+        areasForImprovement: ['basic arithmetic', 'word problems']
+      };
+
+      const testModuleHistory = [
+        { moduleName: 'math-facts', finalScore: 75, questionsCorrect: 15, questionsTotal: 20 }
+      ];
+
+      console.log('=== TESTING OPENAI DIRECTLY ===');
+      const questions = await generatePersonalizedQuestions({
+        user: testUser,
+        analytics: testAnalytics,
+        moduleHistory: testModuleHistory,
+        validModules: ['math-facts', 'fractions'],
+        weakConcepts: ['addition', 'subtraction'],
+        maxQuestions: 5
+      });
+
+      res.json({
+        testMode: true,
+        questions,
+        debugInfo: {
+          userId: testUser.id,
+          userGrade: testUser.grade,
+          testAnalytics,
+          testModuleHistory
+        }
+      });
+
+    } catch (error) {
+      console.error("Error in OpenAI test:", error);
+      res.status(500).json({
+        error: "OpenAI test failed",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // New streamlined recommendation endpoint
   app.get("/api/recommendations", ensureAuthenticated, async (req, res) => {
     try {
