@@ -7,10 +7,20 @@ import { queryClient } from '@/lib/queryClient';
  * Custom hook for real-time token updates via Socket.IO
  */
 export function useTokenSocket() {
-  const { user } = useAuth();
+  // Use try-catch to handle cases where auth context might not be ready
+  let user = null;
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+  } catch (error) {
+    console.log('Auth context not ready, skipping token socket initialization');
+    return null;
+  }
+  
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    // Don't proceed if user is not authenticated
     if (!user) {
       // Disconnect if user is not authenticated
       if (socketRef.current) {

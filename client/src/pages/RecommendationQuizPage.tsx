@@ -72,14 +72,14 @@ export default function RecommendationQuizPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Check if user has analytics data and generate if needed
-  const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery({
+  // Check if user has analytics data - REQUIRED prerequisite
+  const { data: analyticsData, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery({
     queryKey: ['/api/analytics'],
     queryFn: () => apiRequest('GET', '/api/analytics'),
     enabled: !!user
   });
 
-  // Generate analytics if needed
+  // Generate analytics if needed - REQUIRED before accessing recommendations
   const generateAnalyticsMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/analytics/generate'),
     onSuccess: () => {
@@ -90,26 +90,52 @@ export default function RecommendationQuizPage() {
       console.error('Failed to generate analytics:', error);
       setIsGeneratingAnalytics(false);
       toast({
-        title: "Analytics Error",
-        description: "Could not generate analytics. Using fallback recommendations.",
+        title: "Analytics Generation Failed",
+        description: "Unable to generate analytics. Please try again.",
         variant: "destructive"
       });
     }
   });
 
-  // Fetch recommendations based on user's weak concepts
+  // Validate modules based on total_questions_answered in hidden_grade_asset
+  const validateModuleEligibility = (hiddenGradeAsset: any): string[] => {
+    if (!hiddenGradeAsset || typeof hiddenGradeAsset !== 'object') {
+      return [];
+    }
+
+    const validModules = Object.keys(hiddenGradeAsset).filter(moduleKey => {
+      const moduleData = hiddenGradeAsset[moduleKey];
+      return moduleData && 
+             typeof moduleData === 'object' && 
+             typeof moduleData.total_questions_answered === 'number' &&
+             moduleData.total_questions_answered > 0;
+    });
+
+    console.log('Valid modules with questions answered:', validModules);
+    return validModules;
+  };
+
+  // Fetch recommendations based on analytics and module validation
   const { data: recommendationData, isLoading: isLoadingRecommendations, error: recommendationError } = useQuery({
-    queryKey: ['/api/monolith/recommendations', analyticsData],
+    queryKey: ['/api/recommendations', user?.id, analyticsData],
     queryFn: async () => {
       console.log('Fetching recommendations with analytics data:', analyticsData);
       
-      // Check if we have analytics data
-      if (!analyticsData?.analytics) {
-        throw new Error('No analytics data available');
+      // ANALYTICS PREREQUISITE CHECK - Block access if no analytics
+      if (!analyticsData?.analytics?.analytics) {
+        throw new Error('Analytics data required before accessing recommendations');
       }
 
-      const weakConcepts = analyticsData.analytics.weaknessConcepts || 
-                          analyticsData.analytics.areasForImprovement || 
+      // MODULE VALIDATION - Only recommend modules with prior attempts
+      const validModules = validateModuleEligibility(user?.hiddenGradeAsset);
+      if (validModules.length === 0) {
+        throw new Error('No modules with question attempts found');
+      }
+
+      // Extract weak concepts from analytics
+      const analytics = analyticsData.analytics.analytics;
+      const weakConcepts = analytics.weaknessConcepts || 
+                          analytics.areasForImprovement || 
                           [];
 
       const requestData = {

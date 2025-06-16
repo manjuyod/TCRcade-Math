@@ -1821,6 +1821,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // New streamlined recommendation endpoint
+  app.get("/api/recommendations", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // ANALYTICS PREREQUISITE CHECK
+      const analytics = await storage.getUserAnalytics(userId);
+      if (!analytics) {
+        return res.status(400).json({ 
+          error: "Analytics required",
+          message: "Please generate analytics before accessing recommendations"
+        });
+      }
+
+      // MODULE VALIDATION - Check hidden_grade_asset for modules with attempts
+      const hiddenGradeAsset = user.hiddenGradeAsset || {};
+      const validModules = Object.keys(hiddenGradeAsset).filter(moduleKey => {
+        const moduleData = hiddenGradeAsset[moduleKey];
+        return moduleData && 
+               typeof moduleData === 'object' && 
+               typeof moduleData.total_questions_answered === 'number' &&
+               moduleData.total_questions_answered > 0;
+      });
+
+      if (validModules.length === 0) {
+        return res.status(400).json({
+          error: "No eligible modules",
+          message: "Complete questions in at least one module before accessing recommendations"
+        });
+      }
+
+      // Get both data sources
+      const moduleHistory = await storage.getModuleHistory(userId);
+      const weakConcepts = analytics.weaknessConcepts || analytics.areasForImprovement || [];
+      
+      console.log(`Generating recommendations for user ${userId}`);
+      console.log(`Valid modules: ${validModules.join(', ')}`);
+      console.log(`Weak concepts: ${weakConcepts.join(', ')}`);
+
+      // Generate personalized questions using OpenAI
+      const questions = await generatePersonalizedQuestions(
+        user,
+        analytics,
+        moduleHistory,
+        validModules,
+        weakConcepts
+      );
+
+      res.json({
+        questions,
+        sessionMetadata: {
+          sessionId: `rec_${userId}_${Date.now()}`,
+          userId,
+          startTime: new Date().toISOString(),
+          targetConcepts: weakConcepts,
+          validModules
+        }
+      });
+
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+      res.status(500).json({
+        error: "Failed to generate recommendations",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // AI-driven adaptive question endpoint
   app.get("/api/questions/adaptive", ensureAuthenticated, async (req, res) => {
     try {
