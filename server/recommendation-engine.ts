@@ -251,6 +251,12 @@ export async function generatePersonalizedQuestions({
     };
 
     console.log('User context for recommendations:', userContext);
+    console.log('Making OpenAI request with parameters:', {
+      maxQuestions,
+      weakConcepts: weakConcepts.slice(0, 3),
+      validModules: validModules.slice(0, 3),
+      userGrade: user.grade
+    });
 
     // Generate questions using OpenAI
     const openaiResponse = await openai.chat.completions.create({
@@ -290,17 +296,50 @@ Return a JSON array of questions.`
     });
 
     const aiContent = openaiResponse.choices[0]?.message?.content;
+    console.log('=== OpenAI Response Debug ===');
+    console.log('OpenAI raw response:', {
+      choices: openaiResponse.choices?.length,
+      content: aiContent?.substring(0, 500) + '...',
+      contentLength: aiContent?.length,
+      model: openaiResponse.model,
+      usage: openaiResponse.usage
+    });
+
     if (!aiContent) {
+      console.error('No content from OpenAI response');
       throw new Error('No response from OpenAI');
     }
 
     // Parse OpenAI response
     let generatedQuestions: Question[] = [];
     try {
-      const parsed = JSON.parse(aiContent);
+      // Try to extract JSON array from response
+      let jsonString = aiContent;
+      
+      // Look for JSON array pattern
+      const arrayMatch = aiContent.match(/\[.*\]/s);
+      if (arrayMatch) {
+        jsonString = arrayMatch[0];
+        console.log('Extracted JSON array from response');
+      }
+      
+      console.log('Attempting to parse JSON:', jsonString.substring(0, 200) + '...');
+      const parsed = JSON.parse(jsonString);
       generatedQuestions = Array.isArray(parsed) ? parsed : [parsed];
+      console.log(`Successfully parsed ${generatedQuestions.length} questions`);
+      
+      if (generatedQuestions.length > 0) {
+        console.log('Sample question structure:', {
+          hasQuestion: !!generatedQuestions[0].question,
+          hasAnswer: !!generatedQuestions[0].answer,
+          hasOptions: !!generatedQuestions[0].options,
+          optionsCount: generatedQuestions[0].options?.length,
+          sampleQuestion: generatedQuestions[0].question?.substring(0, 100) + '...'
+        });
+      }
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response, using fallback');
+      console.error('Failed to parse OpenAI response:', parseError);
+      console.error('Raw content that failed:', aiContent);
       throw parseError;
     }
 
@@ -323,7 +362,19 @@ Return a JSON array of questions.`
       }))
       .slice(0, maxQuestions);
 
-    console.log(`Generated ${validQuestions.length} personalized questions`);
+    console.log(`=== Final Question Validation ===`);
+    console.log(`Generated ${validQuestions.length} personalized questions from ${generatedQuestions.length} raw questions`);
+    
+    if (validQuestions.length > 0) {
+      console.log('Sample valid question:', {
+        id: validQuestions[0].id,
+        question: validQuestions[0].question?.substring(0, 50) + '...',
+        hasAnswer: !!validQuestions[0].answer,
+        optionsCount: validQuestions[0].options?.length,
+        category: validQuestions[0].category
+      });
+    }
+    
     return validQuestions;
 
   } catch (error) {
@@ -343,7 +394,13 @@ async function generateFallbackQuestions(
   validModules: string[], 
   maxQuestions: number
 ): Promise<Question[]> {
-  console.log('Using fallback question generation');
+  console.log('=== Fallback Question Generation ===');
+  console.log('Fallback parameters:', {
+    userGrade: user.grade,
+    weakConcepts: weakConcepts.slice(0, 3),
+    validModules: validModules.slice(0, 3),
+    maxQuestions
+  });
   
   const questions: Question[] = [];
   const grade = user.grade || 'K';
@@ -351,9 +408,13 @@ async function generateFallbackQuestions(
   // Try to get questions for weak concepts from database
   for (const concept of weakConcepts.slice(0, 3)) {
     try {
+      console.log(`Searching for questions with concept: ${concept}, grade: ${grade}`);
       const conceptQuestions = await storage.getQuestionsByConcept(grade, concept);
+      console.log(`Found ${conceptQuestions.length} questions for concept ${concept}`);
+      
       if (conceptQuestions.length > 0) {
         questions.push(...conceptQuestions.slice(0, 3));
+        console.log(`Added ${Math.min(conceptQuestions.length, 3)} questions for concept ${concept}`);
       }
     } catch (error) {
       console.error(`Failed to get questions for concept ${concept}:`, error);
