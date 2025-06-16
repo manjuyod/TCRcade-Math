@@ -193,84 +193,40 @@ export default function RecommendationQuizPage() {
       // Use the new streamlined recommendation endpoint
       const response = await apiRequest('GET', '/api/recommendations');
       
-      console.log('Raw response status:', response.status);
-      console.log('Raw response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const text = await response.text();
-      console.log('Raw response text:', text);
-      
-      try {
-        const data = JSON.parse(text);
-        console.log('Recommendation API response parsed:', data);
-        return data;
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        console.error('Attempted to parse:', text);
-        throw parseError;
-      }
+      const data = await response.json();
+      return data;
     },
-    enabled: (() => {
-      const hasAnalytics = !!analyticsData?.analytics;
-      const notGenerating = !isGeneratingAnalytics;
-      const enabledResult = hasAnalytics && notGenerating;
-      
-      console.log('=== QUERY ENABLED CHECK ===');
-      console.log('analyticsData:', analyticsData);
-      console.log('hasAnalytics:', hasAnalytics);
-      console.log('isGeneratingAnalytics:', isGeneratingAnalytics);
-      console.log('notGenerating:', notGenerating);
-      console.log('Final enabled result:', enabledResult);
-      
-      return enabledResult;
-    })(),
+    enabled: !!analyticsData?.analytics && !isGeneratingAnalytics,
     retry: 1
   });
 
   // Handle new API response format
   useEffect(() => {
     const processRecommendationData = async () => {
-      console.log('=== PROCESSING RECOMMENDATION DATA ===');
-      console.log('Full recommendationData:', recommendationData);
-      console.log('Has questions?', !!recommendationData?.questions);
-      console.log('Questions array:', recommendationData?.questions);
-      console.log('Array length:', recommendationData?.questions?.length);
-      
       if (!recommendationData) {
-        console.log('No recommendation data available');
         return;
       }
 
       try {
         // Check if we have questions in the response
         if (recommendationData.questions && Array.isArray(recommendationData.questions)) {
-          console.log('Processing personalized questions:', recommendationData.questions);
-          
           // Questions are already provided in the new format
           const validQuestions = recommendationData.questions.filter((q: any) => q && q.question);
           
-          console.log('Valid questions filtered:', validQuestions.length);
-          console.log('Sample question:', validQuestions[0]);
           setQuestions(validQuestions);
           
-          // Set session metadata
+          // Set session metadata if available
           if (recommendationData.sessionMetadata) {
-            console.log('Setting session metadata:', recommendationData.sessionMetadata.sessionId);
             setSessionId(recommendationData.sessionMetadata.sessionId);
           }
           
           if (validQuestions.length === 0) {
-            console.log('No valid questions after filtering');
             toast({
               title: "No Questions Available",
               description: "Unable to load questions. Please try again.",
               variant: "destructive"
             });
-          } else {
-            console.log(`Successfully loaded ${validQuestions.length} personalized questions!`);
           }
-        } else {
-          console.log('No questions found in recommendation data');
-          console.log('Available keys:', Object.keys(recommendationData));
         }
       } catch (error) {
         console.error('Error processing questions:', error);
@@ -503,11 +459,11 @@ export default function RecommendationQuizPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {recommendationData?.recommendations.slice(0, userAnswers.length).map((rec, index) => (
-                    <div key={rec.questionId} className="flex items-center gap-2">
-                      <Badge className={getRecommendationTypeColor(rec.recommendationType)}>
-                        {getRecommendationTypeIcon(rec.recommendationType)}
-                        {rec.recommendationType}
+                  {recommendationData?.questions.slice(0, userAnswers.length).map((rec, index) => (
+                    <div key={rec.id} className="flex items-center gap-2">
+                      <Badge className={getRecommendationTypeColor(rec.category)}>
+                        {getRecommendationTypeIcon(rec.category)}
+                        {rec.category}
                       </Badge>
                       <span className="text-sm text-gray-600">
                         {userAnswers[index]?.correct ? '✓' : '✗'}
