@@ -1,0 +1,174 @@
+Try It! Solve for the variable using the Multiplication Property of Equality.
+
+Check your solution using substitution.
+
+#1 y ÷ 6 = 31
+y ÷ 6 × 6 = 31 × 6
+
+#2 r
+2 = 7
+10
+r
+2 × 2 = 7
+10 × 2
+
+#3 x ÷ 12 = 72
+
+#4 x ÷ 7.5 = 3.2 #5 t
+
+3 = 16 #6 x
+27 = 102
+
+Level 6: Algebra
+Lesson 10: Solve One-Variable Equations using Multiplication and Division
+
+Level 6: Algebra, Lesson 10: Solve One-Variable Equations using Multiplication and Division 2 of 3
+Example 2: Determine the value of y in the equation, y × 5 = 35,
+using the Division Property of Equality.
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Step 1: Starting o, let’s ask ourselves
+
+“What is happening to y?”. y × 5 = 35 or
+5y = 35
+
+y is being multiplied
+by 5. This can also be
+expressed as 5y
+
+Step 2: Since y is being multiplied by 5,
+we must divided by that same
+value on both sides. This is called
+the Division Property of Equality.
+
+y × 5 ÷ 5 = 35 ÷ 5
+or 5y ÷ 5 = 35 ÷ y
+y × 1 = 7
+or 1y = 7
+
+Dividing by any value
+on both sides of the
+equation always
+keeps the equality of
+both sides!
+
+Step 3: We can determine the value of y
+
+now! y = 7
+
+Try It! Solve for the variable using the Division Property of Equality.
+
+Check your solution using substitution.
+
+#1 y × 16 = 48
+y × 16 ÷ 16 = 48 ÷ 16
+
+#2 6.4r = 22.4
+6.4r ÷ 6.4 = 22.4 ÷ 6.4
+
+#3 17x = 85
+
+#4 3.7x = 14.8 #5 t × 43= 225.75 #6 14a = 168
+
+Rep 1 Determine if the Multiplication Property of Equality or Division
+Property of Equality should be used to solve for the variable.
+
+Score:
+/6
+
+#1 2g = 16
+Multiplication Property
+or Division Property
+
+#2 y
+8 = 17
+Multiplication Property
+or Division Property
+
+#3 j × 35 = 98
+Multiplication Property
+or Division Property
+
+#4 r ÷ 26 = 97.5 #5 11.3r = 843.7 #6 8
+3 = q
+16
+
+Level 6: Algebra, Lesson 10: Solve One-Variable Equations using Multiplication and Division 3 of 3
+Challenge Solve the following problems. You may have to use Addition
+Property of Equality, or Subtraction property of Equality
+from the last lesson.
+
+Score:
+/3
+#1 Daniel has spent $24 at the grocery store. All he got from the store is some packages of
+blueberries and pie crust. The pie crust costs $3.95, and the 3 packages of blueberries
+cost him x dollars each. How much money did the blueberries cost each? Check your
+solution using substitution
+Set up an equation 24 = 3.95 + 3x
+#2 There are three people to finish a project and they want to split up the remaining work
+evenly. It takes a total of 20 hours to do the project, and 5 hours of work has already been
+completed. How many more hours will each person work? Check your solution using
+substitution.
+Rep 2 Solve for the variable using whichever property is necessary.
+
+Check your solution using substitution.
+
+Score:
+/6
+
+#1 3r = 63 #2 w
+11 = 5
+2
+
+#3 12r = 66
+
+#4 101.2 = 25.3t #5 e ÷ 65 = 10 #6 1.4 = r
+16
+
+Rep 3 Solve for the variable using whichever property is necessary.
+
+Check your solution using substitution. Score:
+/6
+
+#1 18 = e ÷ 25 #2 78.9 = 26.3t #3 14 = f
+9
+
+#4 21.6 = w
+3
+
+#5 44.6 = 32.8a #6 75 = 10h
+
+Algebra Level 6
+
+Lesson 10: Solve One-Variable Equations Using Multiplication and Division Try It! #1
+1 y = 186
+
+Rep 1
+1 Division
+
+Rep 3
+1 e = 450
+2 r = 14⁄10 2 Multiplication 2 t = 3
+3 x = 864 3 Division 3 f = 126
+4 x = 24 4 Multiplication 4 w = 64.8
+5 t = 48 5 Division 5 a = 1.36
+6 x = 2,754 6 Multiplication 6 h = 7.5
+Try It! #2
+1 y = 3
+
+Rep 2
+1 r = 21
+
+Challenge1 $6.68 2 r = 3.5 2 w = 55⁄2
+3 x = 5 3 r = 11⁄2
+
+2 5 hours
+
+4 x = 4 4 t = 4
+5 t = 5.25 5 e = 650
+3 N/A 6 a = 12 6 r = 22.4
+Notes:

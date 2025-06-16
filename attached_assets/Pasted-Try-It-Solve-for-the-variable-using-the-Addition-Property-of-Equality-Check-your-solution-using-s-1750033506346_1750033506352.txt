@@ -1,0 +1,163 @@
+Try It! Solve for the variable using the Addition Property of Equality.
+
+Check your solution using substitution!
+
+#1 y - 22 = 35
+y - 22 + 22 = 35 + 22
+
+#2 r - 1
+2 = 6
+10
+r - 1
+2 + 1
+2 = 6
+10 + 1
+2
+#3 x - 10 = 14
+
+#4 x - 2.5 = 8.4 #5 t - 3 = 16 #6 x - 89 = 101
+Level 6: Algebra
+Lesson 9: Solve One-Variable Equations using Addition and Subtraction
+
+Level 6: Algebra, Lesson 9: Solve One-Variable Equations using Addition and Subtraction 2 of 3
+Example 2: Determine the value of x in the equation, x + 25 = 28,
+using the Subtraction Property of Equality.
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+Students may notice that we do the opposite of what is happening to our variable.
+Step 1: Starting o, let’s ask ourselves
+
+“What is happening to x?”. x + 25 = 28 25 is being added to x.
+
+Step 2: Since 25 is being added to x, we
+must subtract that same value
+from both sides. This is called the
+Subtraction Property of Equality.
+
+x + 25 = 28
+x – 25 – 25
+x + 0 = 3
+
+Subtracting byany value to
+both sides of the equation
+always keeps the equality
+of both sides!
+
+Step 3: We can determine the value of x
+
+now! x = 3
+
+Try It! Solve for the variable using the Subtraction Property of Equality.
+
+Check your solution using substitution!
+
+#1 y + 65 = 77
+y + 65 - 65 = 77 - 65
+
+#2 4
+7 + r = 3
+2
+4
+7 + r - 4
+7 = 3
+2 - 4
+7
+#3 x + 29 = 65
+
+#4 6.3 + x = 12.6 #5 t + 6 = 7 #6 x + 89 = 178
+
+Rep 1 Determine if the Addition Property of Equality or Subtraction Property
+
+of Equality should be used to solve for the variable.
+
+Score:
+/6
+
+#1 4 + g = 13
+Addition Property or
+Subtraction Property
+
+#2 y - 6 = 10
+Addition Property or
+Subtraction Property
+
+#3 j - 35 = 98
+Addition Property or
+Subtraction Property
+
+#4 34 + r = 40.5 #5 r + 78.3 = 342.7 #6 6
+5 = q - 1
+2
+
+Level 6: Algebra, Lesson 9: Solve One-Variable Equations using Addition and Subtraction 3 of 3
+Challenge Solve the following problems.
+
+Score:
+/3
+#1 Daniel has spent $12 at the grocery store. All he got from the store is pie crust, and a bag
+of apples. The pie crust costs $3.95, and the bag of apples will cost him x dollars. How
+much money did the bag of apples cost? Check your solution.
+Set up an equation 12 = 3.95 + x
+#1 Josh’s parents told him to be home in an hour.Since then, he has been playing soccer
+with his friends for 35 minutes. How many minutes does he have left? Set up an
+equation, solve it and check your solution.
+Rep 2 Solve for the variable using whichever property is necessary.
+
+Check your solution using substitution.
+
+Score:
+/6
+
+#1 r + 8 = 17 #2 w - 4
+11 = 1
+2
+
+#3 72 + r = 56
+
+#4 47.3 = 31.3 + t #5 e - 65 = 42 #6 7.3 = r - 5
+
+Rep 3 Solve for the variable using whichever property is necessary.
+
+Check your solution using substitution.
+
+Score:
+/6
+
+#1 32 = 26 + e #2 25.74 = t - 16.73 #3 3 = 2
+9 + f
+#4 21.7 = w + 6.2 #5 16.3 = 12.1 + a #6 50 = h - 100
+
+Algebra Level 6
+
+Lesson 9: Solve One-Variable Equations Using Addition and Subtraction
+
+Try It! #1
+1 y = 57
+
+Rep 1
+1 Subtraction
+
+Rep 3
+1 e = 6
+2 r = 11⁄10 2 Addition 2 t = 42.47
+3 x = 24 3 Addition 3 f = 25⁄9
+4 x = 10.9 4 Subtraction 4 w = 15.5
+5 t = 19 5 Subtraction 5 a = 4.2
+6 x = 190 6 Addition 6 h = 150
+Try It! #2
+1 y = 12
+
+Rep 2
+1 r = 9
+
+Challenge
+
+1 x = $8.05 2 r = 13⁄14 2 w = 19⁄22
+3 x = 36 3 r = 7 2 60 = 35 + x
+4 x = 6.3 4 t = 16 x = 25 minutes
+5 t = 1 5 e = 107 3 N/A 6 x = 89 6 r = 12.3

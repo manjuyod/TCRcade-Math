@@ -1,0 +1,217 @@
+Try It! Determine if the value given for the variable is a solution to the equation.
+#1 13y - 22 = 17
+y = 2
+Does 13(2) - 22 = 17?
+
+#2 1
+2 + r =
+6
+10
+r =
+1
+10
+1
+2 +
+1
+10 =
+6
+10
+
+#3 10 + x2 = 14
+x = 2
+
+#4 0.3 + 2x = 8.4
+x = 4
+
+#5 40 - 3t = 16
+t = 8
+
+#6 x3-15 = 100
+x = 5
+
+Level 6: Algebra
+Lesson 8: Verify Solutions to One- Variable Equations and Inequalities
+
+Does ?
+
+Level 6: Algebra, Lesson 8: Verify Solutions to One- Variable Equations and Inequalities 2 of 3
+Example 2: Use substitution to determine which of the following are in the
+
+solution set to the inequality 6x - 10 ≥ 8.
+a. x = 2 b. x = 3 c. x = 4
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+Remind them that an inequality can have a set of numbers as the solution (called a solution set).
+Step 1: a. x = 2
+
+Substitute 2 in for x and simplify.
+
+6x - 10 ≥ 8,
+Is 6(2) - 10 ≥ 8?
+12 - 10 ≥ 8
+2 ≥ 8
+
+Step 2: b. x = 3
+
+Substitute 3 in for x and simplify. 6x - 10 ≥ 8,
+Is 6(3) - 10 ≥ 8?
+18 - 10 ≥ 8
+8 ≥ 8
+
+Step 3: c. x = 4
+
+Substitute 4 in for x and simplify. 6x - 10 ≥ 8,
+Is 6(4) 10 ≥ 8?
+24 - 10 ≥ 8
+14 ≥ 8
+
+Step 4: Summarize your conclusions. x = 3 and x = 4 are in the solution set of
+
+6x - 10 ≥ 8
+
+Try It! Determine if the value given for the variable is a solution to the inequality.
+#1 4 + t < 6; t = 4
+4 + 4 < 6
+True/False
+
+#2 3
+4 - e ≥
+1
+2 ; e = 1
+4
+
+3
+4 - 1
+4 ≥ 1
+2
+True/False
+
+#3 0.64 < y + 0.53; y = 0.34
+0.64 < 0.34 + ___
+True/False
+
+#4 14 - 2k ≤ 5; k = 2 #5 0.25 > 1
+2 - j; j =
+1
+4
+#6 42 ÷ b < 6; b = 2
+
+Level 6: Algebra, Lesson 8: Verify Solutions to One- Variable Equations and Inequalities 3 of 3
+Challenge Solve the following problems.
+
+Score:
+/3
+#1 Jamie only has $50 to spend at the grocery store. All she needs from the store is cookies.
+Each pack of cookies costs $3.50. She needs 15 packs total. Can she get enough cookie
+packs with her budget?
+Create an Inequality: 3.50p ≤ 50
+#2 Chloe runs for 15 minutes. She gets tired and starts walking. She finishes her workout
+after 1 hour. Use substitution to determine if she walked for half an hour.
+Rep 2 Determine if the value given for the variable is a solution to the equation.
+Score:
+/6
+
+#1 0.5(r) + 12 = 15
+r = 3
+
+#2 w- 3
+15 =
+10
+15
+w =
+1
+5
+
+#3 72 + r = 56
+r = 7
+
+#4 17.3 = 55.2 - t
+t = 37.9
+
+#5 12 + e + e = 42
+e = 13
+
+#6 7.3 = 42 ÷ r + 5
+r = 2
+
+Rep 3 Determine if the value given for the variable is a solution to the inequality.
+Score:
+/6
+
+#1 34 < 13 + e
+e = 16
+34 < 13 + ___
+True/False
+
+#2 13.7 ≥ t - 4.23,
+t = 15.3
+13.7 ≥ ___ - 4.23
+True/False
+
+#3 6 < 6
+7 + f
+f =
+44
+49
+
+#4 43 > w + 3.4
+w = 8.7
+
+#5 15.5 ≤ 14.5 + a
+a =
+1
+2
+
+#6 50 > 100 ÷ h
+h = 4
+
+Rep 1 Determine if the value given for the variable is a solution to the equation.
+
+Score:
+/6
+
+#1 4 + g(2) = 13; g = 4
+4 + ___ (2) = 13
+True/False
+
+#2 2(3) + y = 10; y = 4
+6 + ____ = 10
+True/False
+
+#3 18 ÷ j = 3; j = 6
+18 ÷ ___ = 3
+True/False
+
+#4 34 - r = 19.5; r = 12 #5 10 + r = 13.6; r = 3.2 #6 6 = q + 10 - 3; q = 2
+
+Algebra Level 6
+
+Lesson 8: Verify Solutions to One-Variable Equations and Inequalities Try It! #1
+1 No
+
+Rep 1
+1 False
+
+Rep 3
+1 False
+2 Yes 2 True 2 True
+3 Yes 3 True 3 False
+4 No 4 False 4 True
+5 Yes 5 False 5 False
+6 No 6 False 6 True
+Try It! #2
+1 False
+
+Rep 2
+1 No
+
+Challenge
+1 No 2 True 2 No
+3 True 3 Yes 2 No; She walked for 45
+4 False 4 Yes minutes
+5 False 5 No 3 N/A 6 False 6 No
