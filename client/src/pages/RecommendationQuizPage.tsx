@@ -198,31 +198,51 @@ export default function RecommendationQuizPage() {
   // Handle new API response format
   useEffect(() => {
     const processRecommendationData = async () => {
-      if (!recommendationData?.questions) return;
+      console.log('=== PROCESSING RECOMMENDATION DATA ===');
+      console.log('Full recommendationData:', recommendationData);
+      console.log('Has questions?', !!recommendationData?.questions);
+      console.log('Questions array:', recommendationData?.questions);
+      console.log('Array length:', recommendationData?.questions?.length);
+      
+      if (!recommendationData) {
+        console.log('No recommendation data available');
+        return;
+      }
 
       try {
-        console.log('Processing personalized questions:', recommendationData.questions);
-        
-        // Questions are already provided in the new format
-        const validQuestions = recommendationData.questions.filter((q: any) => q && q.question);
-        
-        console.log('Valid questions:', validQuestions);
-        setQuestions(validQuestions);
-        
-        // Set session metadata
-        if (recommendationData.sessionMetadata) {
-          setSessionId(recommendationData.sessionMetadata.sessionId);
-        }
-        
-        if (validQuestions.length === 0) {
-          toast({
-            title: "No Questions Available",
-            description: "Unable to load questions. Please try again.",
-            variant: "destructive"
-          });
+        // Check if we have questions in the response
+        if (recommendationData.questions && Array.isArray(recommendationData.questions)) {
+          console.log('Processing personalized questions:', recommendationData.questions);
+          
+          // Questions are already provided in the new format
+          const validQuestions = recommendationData.questions.filter((q: any) => q && q.question);
+          
+          console.log('Valid questions filtered:', validQuestions.length);
+          console.log('Sample question:', validQuestions[0]);
+          setQuestions(validQuestions);
+          
+          // Set session metadata
+          if (recommendationData.sessionMetadata) {
+            console.log('Setting session metadata:', recommendationData.sessionMetadata.sessionId);
+            setSessionId(recommendationData.sessionMetadata.sessionId);
+          }
+          
+          if (validQuestions.length === 0) {
+            console.log('No valid questions after filtering');
+            toast({
+              title: "No Questions Available",
+              description: "Unable to load questions. Please try again.",
+              variant: "destructive"
+            });
+          } else {
+            console.log(`Successfully loaded ${validQuestions.length} personalized questions!`);
+          }
+        } else {
+          console.log('No questions found in recommendation data');
+          console.log('Available keys:', Object.keys(recommendationData));
         }
       } catch (error) {
-        console.error('Error fetching questions:', error);
+        console.error('Error processing questions:', error);
         toast({
           title: "Question Loading Error",
           description: "Failed to load questions. Please try again.",
