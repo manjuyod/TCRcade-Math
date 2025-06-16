@@ -75,7 +75,12 @@ export default function RecommendationQuizPage() {
   // Check if user has analytics data - REQUIRED prerequisite
   const { data: analyticsData, isLoading: isLoadingAnalytics, error: analyticsError } = useQuery({
     queryKey: ['/api/analytics'],
-    queryFn: () => apiRequest('GET', '/api/analytics'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/analytics');
+      const data = await response.json();
+      console.log('Analytics data parsed:', data);
+      return data;
+    },
     enabled: !!user
   });
 
@@ -188,8 +193,21 @@ export default function RecommendationQuizPage() {
       // Use the new streamlined recommendation endpoint
       const response = await apiRequest('GET', '/api/recommendations');
       
-      console.log('Recommendation API response:', response);
-      return response;
+      console.log('Raw response status:', response.status);
+      console.log('Raw response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const text = await response.text();
+      console.log('Raw response text:', text);
+      
+      try {
+        const data = JSON.parse(text);
+        console.log('Recommendation API response parsed:', data);
+        return data;
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Attempted to parse:', text);
+        throw parseError;
+      }
     },
     enabled: (() => {
       const hasAnalytics = !!analyticsData?.analytics;
