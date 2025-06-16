@@ -199,14 +199,14 @@ export default function RecommendationQuizPage() {
     }
   });
 
-  // Auto-generate analytics if needed
-  useEffect(() => {
-    if (!isLoadingAnalytics && !analyticsData?.analytics && !isGeneratingAnalytics) {
-      console.log('No analytics data found, generating...');
-      setIsGeneratingAnalytics(true);
-      generateAnalyticsMutation.mutate();
-    }
-  }, [analyticsData, isLoadingAnalytics, isGeneratingAnalytics]);
+  // Auto-generate analytics if needed (disabled to prevent loops)
+  // useEffect(() => {
+  //   if (!isLoadingAnalytics && !analyticsData?.analytics && !isGeneratingAnalytics && !generateAnalyticsMutation.isPending) {
+  //     console.log('No analytics data found, generating...');
+  //     setIsGeneratingAnalytics(true);
+  //     generateAnalyticsMutation.mutate();
+  //   }
+  // }, [analyticsData, isLoadingAnalytics, isGeneratingAnalytics, generateAnalyticsMutation.isPending]);
 
   // Set session ID when recommendation data is available
   useEffect(() => {
