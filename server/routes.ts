@@ -34,6 +34,7 @@ import {
 } from "./utils/token";
 import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 import { monolithRoutes } from "../monolith/server/routes";
+import { generatePersonalizedQuestions } from "./recommendation-engine";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -1858,7 +1859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get both data sources
-      const moduleHistory = await storage.getModuleHistory(userId);
+      const moduleHistory = await storage.getUserModuleHistory(userId);
       const weakConcepts = analytics.weaknessConcepts || analytics.areasForImprovement || [];
       
       console.log(`Generating recommendations for user ${userId}`);
@@ -1866,13 +1867,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Weak concepts: ${weakConcepts.join(', ')}`);
 
       // Generate personalized questions using OpenAI
-      const questions = await generatePersonalizedQuestions(
+      const questions = await generatePersonalizedQuestions({
         user,
         analytics,
         moduleHistory,
         validModules,
-        weakConcepts
-      );
+        weakConcepts,
+        maxQuestions: 10
+      });
 
       res.json({
         questions,

@@ -13,6 +13,8 @@ if (!process.env.OPENAI_API_KEY) {
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+export { openai };
+
 // Interface for Adaptive Question Parameters
 export interface AdaptiveQuestionParams {
   userId?: number;

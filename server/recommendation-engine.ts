@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { Question, Recommendation, ConceptMastery } from "@shared/schema";
+import { openai } from "./openai";
 
 /**
  * Updates the concept mastery tracking when a user answers a question
@@ -211,4 +212,159 @@ export async function generateRecommendations(userId: number): Promise<Recommend
       }))
     }
   });
+}
+
+/**
+ * Generate personalized questions using OpenAI based on analytics and module history
+ */
+export async function generatePersonalizedQuestions({
+  user,
+  analytics,
+  moduleHistory,
+  validModules,
+  weakConcepts,
+  maxQuestions = 10
+}: {
+  user: any;
+  analytics: any;
+  moduleHistory: any[];
+  validModules: string[];
+  weakConcepts: string[];
+  maxQuestions?: number;
+}): Promise<Question[]> {
+  console.log('Starting personalized question generation');
+  
+  try {
+    // Create context for OpenAI from both data sources
+    const userContext = {
+      grade: user.grade || 'K',
+      weakConcepts: weakConcepts.slice(0, 5), // Limit to top 5 weak concepts
+      validModules: validModules.slice(0, 3), // Limit to top 3 modules
+      recentPerformance: moduleHistory.slice(0, 5).map(h => ({
+        module: h.moduleName,
+        score: h.finalScore,
+        questionsCorrect: h.questionsCorrect,
+        questionsTotal: h.questionsTotal
+      })),
+      strengths: analytics.strengthConcepts || [],
+      learningStyle: analytics.learningStyle || 'Visual'
+    };
+
+    console.log('User context for recommendations:', userContext);
+
+    // Generate questions using OpenAI
+    const openaiResponse = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert math educator creating personalized quiz questions for a ${userContext.grade} grade student. 
+
+IMPORTANT: Only create questions for concepts the student has attempted before (valid modules: ${validModules.join(', ')}).
+
+Student Profile:
+- Grade: ${userContext.grade}
+- Weak Concepts: ${weakConcepts.join(', ')}
+- Learning Style: ${userContext.learningStyle}
+- Recent Performance: ${JSON.stringify(userContext.recentPerformance)}
+
+Create ${maxQuestions} questions that:
+1. Focus on weak concepts but are achievable
+2. Match the student's grade level
+3. Use their learning style (${userContext.learningStyle})
+4. Build confidence while addressing gaps
+
+Format each question as JSON with: question, answer, options (4 choices), category, difficulty (1-5), concepts (array).`
+        },
+        {
+          role: "user",
+          content: `Generate ${maxQuestions} personalized math questions focusing on these weak concepts: ${weakConcepts.join(', ')}. 
+
+Only include concepts from modules the student has attempted: ${validModules.join(', ')}.
+
+Return a JSON array of questions.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
+
+    const aiContent = openaiResponse.choices[0]?.message?.content;
+    if (!aiContent) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse OpenAI response
+    let generatedQuestions: Question[] = [];
+    try {
+      const parsed = JSON.parse(aiContent);
+      generatedQuestions = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response, using fallback');
+      throw parseError;
+    }
+
+    // Validate and enhance questions
+    const validQuestions = generatedQuestions
+      .filter(q => q.question && q.answer && q.options && q.options.length >= 4)
+      .map((q, index) => ({
+        id: Date.now() + index, // Temporary ID
+        question: q.question,
+        answer: q.answer,
+        options: q.options,
+        category: q.category || 'general',
+        difficulty: q.difficulty || 3,
+        concepts: q.concepts || weakConcepts.slice(0, 2),
+        grade: user.grade || 'K'
+      }))
+      .slice(0, maxQuestions);
+
+    console.log(`Generated ${validQuestions.length} personalized questions`);
+    return validQuestions;
+
+  } catch (error) {
+    console.error('OpenAI question generation failed, using fallback:', error);
+    
+    // Fallback: Generate questions from existing database
+    return generateFallbackQuestions(user, weakConcepts, validModules, maxQuestions);
+  }
+}
+
+/**
+ * Fallback question generation when OpenAI is unavailable
+ */
+async function generateFallbackQuestions(
+  user: any, 
+  weakConcepts: string[], 
+  validModules: string[], 
+  maxQuestions: number
+): Promise<Question[]> {
+  console.log('Using fallback question generation');
+  
+  const questions: Question[] = [];
+  const grade = user.grade || 'K';
+  
+  // Try to get questions for weak concepts from database
+  for (const concept of weakConcepts.slice(0, 3)) {
+    try {
+      const conceptQuestions = await storage.getQuestionsByGradeAndConcept(grade, concept);
+      if (conceptQuestions.length > 0) {
+        questions.push(...conceptQuestions.slice(0, 3));
+      }
+    } catch (error) {
+      console.error(`Failed to get questions for concept ${concept}:`, error);
+    }
+  }
+  
+  // If we don't have enough questions, get general questions for the grade
+  if (questions.length < maxQuestions) {
+    try {
+      const generalQuestions = await storage.getQuestionsByGrade(grade);
+      questions.push(...generalQuestions.slice(0, maxQuestions - questions.length));
+    } catch (error) {
+      console.error('Failed to get general questions:', error);
+    }
+  }
+  
+  return questions.slice(0, maxQuestions);
 }
