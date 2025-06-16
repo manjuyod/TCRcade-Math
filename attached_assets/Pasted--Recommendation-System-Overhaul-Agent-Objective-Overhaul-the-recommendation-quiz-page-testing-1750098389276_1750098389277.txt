@@ -1,0 +1,126 @@
+
+# Recommendation System Overhaul Agent
+
+## Objective
+Overhaul the recommendation quiz page (testing in recquiz) to implement the new streamlined data flow architecture, ensuring proper analytics prerequisites and module-specific question validation.
+
+## Project Context
+**Stack**: React TS (client) + Node Express TS (server) + Drizzle ORM + PostgreSQL  
+**Directory Change**: Rename `monolith` to `recommendation` (complete replacement)  
+**Goal**: Generate personalized questions based on user's weak concepts with proper data validation
+
+## Data Flow Architecture
+
+```
+flowchart TD
+  user([User])
+  quiz([Quiz Page])
+  hist["Module History"]
+  curr["Current State"]
+  analytics["AI Analytics"]
+  qdb["Question Tables"]
+  openai["OpenAI Recommender"]
+
+  user --|Start / play|--> quiz
+  quiz --|Answers & UI|--> user
+  user --|Play Games|--> hist
+  user --|Play Games|--> curr
+  hist --> analytics
+  curr --> analytics
+  analytics --|Skill gaps|--> quiz
+  quiz --|Call recommender|--> openai
+  qdb --> openai
+  openai --|10 Qs|--> quiz
+  quiz --|Update progress|--> curr
+  quiz --|Update mastery|--> analytics
+  quiz --|New-Q feedback|--> qdb
+```
+
+## Key Requirements
+
+### 1. Data Sources (Pull from Both)
+- **Module History**: Historical data from `module_history` table
+- **Current State**: Real-time data from `users.hidden_grade_asset` (JSONB)
+- **Strategy**: Use both data sources to maximize available information and reduce AI hallucination
+
+### 2. Module Question Validation
+Check each individual module in `hidden_grade_asset` for the key `total_questions_answered`:
+- Only recommend modules where `total_questions_answered > 0`
+- This ensures users have attempted questions in each module before recommending it
+- Prevents recommendations for untouched modules
+
+### 3. Analytics Prerequisite
+- Users MUST run analytics before accessing recommendations
+- No analytics data = no recommendation quiz access
+- Analytics must be predicated on an analysis run before anything else
+
+## Implementation Tasks
+
+### Phase 1: Directory Restructure
+- [ ] Rename `monolith` directory to `recommendation`
+- [ ] Keep working components, discard non-functional ones
+- [ ] Focus on question generation as primary objective
+
+### Phase 2: Data Integration
+- [ ] Modify `RecommendationQuizPage.tsx` to pull from both data sources:
+  - Module history from database
+  - Current progress from `users.hidden_grade_asset`
+- [ ] Implement module validation logic checking `total_questions_answered`
+- [ ] Add analytics prerequisite check
+
+### Phase 3: OpenAI Integration
+- [ ] Attempt to use existing OpenAI recommendation engine
+- [ ] If errors occur, implement simplified fallback version
+- [ ] Focus on concept weakness identification from analytics
+
+### Phase 4: Question Selection
+- [ ] Pull questions from concepts marked as weak in analytics
+- [ ] Validate module eligibility using `total_questions_answered`
+- [ ] Generate 10 personalized questions maximum
+
+## Critical Implementation Points
+
+### Analytics Check
+```typescript
+// Must verify analytics exist before allowing quiz access
+const analyticsData = await getAnalytics(userId);
+if (!analyticsData?.analytics) {
+  // Redirect to generate analytics first
+  return <AnalyticsRequired />;
+}
+```
+
+### Module Validation
+```typescript
+// Check each module's question attempt history
+const hiddenGradeAsset = user.hiddenGradeAsset || {};
+const validModules = Object.keys(hiddenGradeAsset).filter(moduleKey => {
+  const moduleData = hiddenGradeAsset[moduleKey];
+  return moduleData?.total_questions_answered > 0;
+});
+```
+
+### Weak Concepts Extraction
+```typescript
+// Extract weak concepts from analytics
+const weakConcepts = analyticsData.analytics.weaknessConcepts || 
+                    analyticsData.analytics.areasForImprovement || 
+                    [];
+```
+
+## Expected Outcome
+A fully functional recommendation quiz that:
+1. Requires analytics generation before access
+2. Uses comprehensive data from both sources
+3. Only recommends modules with prior question attempts
+4. Generates personalized questions based on identified weaknesses
+5. Maintains the same UI/UX but with proper underlying data flow
+
+## Testing Validation
+- [ ] Analytics prerequisite blocking works
+- [ ] Module validation prevents untouched module recommendations
+- [ ] Question generation succeeds with available data
+- [ ] Fallback systems work when OpenAI integration fails
+- [ ] Progress updates correctly to both data sources
+
+Focus on functionality over complexity - the goal is reliable question generation with proper data validation.
