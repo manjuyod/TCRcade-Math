@@ -99,6 +99,7 @@ function Router() {
       <ProtectedRoute path="/analytics" component={AnalyticsPage} />
       <ProtectedRoute path="/practice" component={CreateQuizPage} />
       <ProtectedRoute path="/recquiz" component={RecommendationQuizPage} />
+      <ProtectedRoute path="/recommendations" component={RecommendationQuizPage} />
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
       <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
