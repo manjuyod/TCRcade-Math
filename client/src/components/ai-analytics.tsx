@@ -219,7 +219,7 @@ export default function AiAnalytics() {
         title: 'Analytics Generated',
         description: 'Your personalized learning insights are ready to view.',
         variant: 'default',
-        dismissTimeout: 3000,
+        dismisstimeout: 3000,
       });
       playSound('levelUp');
     } catch (error) {
@@ -227,7 +227,7 @@ export default function AiAnalytics() {
         title: 'Error generating analytics',
         description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
-        dismissTimeout: 3000,
+        dismisstimeout: 3000,
       });
     } finally {
       setIsGenerating(false);
@@ -264,10 +264,11 @@ export default function AiAnalytics() {
     try {
       // Call the new comprehensive study plan endpoint
       const response = await apiRequest('POST', '/api/analytics/study-plan', {});
+      const data = await response.json();
       
-      if (response.studyPlan) {
+      if (data.studyPlan) {
         // Transform the study plan into display format
-        const planItems = response.studyPlan.studyPlan.dailyActivities.map((day: any) => 
+        const planItems = data.studyPlan.studyPlan.dailyActivities.map((day: any) => 
           `Day ${day.day}: ${day.activities.map((activity: any) => 
             `${activity.activity} (${activity.duration})`
           ).join(', ')}`
