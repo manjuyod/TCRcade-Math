@@ -1,0 +1,248 @@
+Try It! Write an inequality for each real-world situation.
+#1 Jerry has a tree in his
+backyard that grows
+over the fence. Show an
+inequality for keeping
+the branches shorter
+than 5 meters.
+c < _____
+
+#2 A self-service coee
+machine will pour
+anywhere from 6 fl oz.
+to 20 fl oz. How much
+coee can you pour?
+
+#3 Fran tries to put a fourth
+cereal box in her cabinet
+but it won’t fit. How
+many cereal boxes can
+she fit in the cabinet?
+
+#4 You need between 1,750
+and 2,250 Calories per
+day: no more, no less.
+Make an inequality
+expressing this range.
+
+#5 Joey shaved his head
+yesterday and doesn’t
+want to cut his hair until
+it is at least 4 inches long.
+Use an inequality to show
+how long his hair will be
+when he cuts it.
+
+#6 If you have $10 to spend
+on a piece of jewelry,
+what price can the jewelry
+be?
+
+Level 6: Algebra, Lesson 11: Write and Plot Inequalities 2 of 4
+Example 2: James and Karen are a team for the dougnut eating contest.
+James can eat twice as many doughnuts as Karen. To win the
+contest, together they need to eat at least 20 doughnuts. Write
+
+an ineqality that illustrates the situation.
+
+Solved?
+Y / N
+Correct?
+Y / N
+
+Tutor Tip:
+Students should focus on key words such as “at least” and “less than” to determine the sign in the inequality.
+Step 1: Highlight important information.
+
+James can eat twice as many doughnuts as
+Karen can. Together they need to eat at least
+
+20.
+
+Step 2: Choose a variable and write the rela-
+tionship between James and Karen. James = 2 times Karen = 2K
+
+Step 3: “Together” tells you to add. James + Karen = 2K + K = 3K
+Step 4: The sum needs to be at least 20. 3K ≥ 20
+
+Try It! Write an inequality that illustrates the situation.
+#1 The most I can pay for 2
+movie rentals is $7. What
+price range can I look at?
+
+#2 Rob has half as many
+cookies as Anna does.
+Together they have at
+most 2 dozen.
+
+#3 Kim has $3 less than Ava.
+Together they have more
+than $25.
+
+#4 Kelsie has 14 bagels
+and needs to buy more
+so that she will have
+between 60 and 70 for a
+club breakfast.
+
+#5 Checked luggage
+can weigh at most 50
+pounds. If your bag
+weighs 38 pounds now,
+how much more can
+you put in?
+
+#6 An online store oers
+free delivery if you spend
+at least $49. If your total
+now is $43.50, how much
+more do you need to
+spend?
+
+Level 6: Algebra, Lesson 11: Write and Plot Inequalities 3 of 4
+Score: Rep 1 Write an inequality that illustrates the situation. /4
+#1 Pythagoras and Alcmaeon started arguing
+at 3:00pm, but Pythagoras made it home
+before dinner at 10:00pm. Set up an
+inequality for when the philosophers
+possibly finished arguing.
+
+#2 Socrates has gone at least 21 days
+without showering. Set up an
+inequality for Socrates’ days without a
+shower.
+
+#3 The Greek philosophers had no less than
+3 students each, yet some had up to 20
+students.
+
+#4 A Mad Greek restaurant serves more
+than a thousand people per day, but
+no more than five thousand.
+
+Rep 2 Write an inequality to represent the situation.
+#1 Joe found 13 seashells.
+After he gave some of
+them to John, he wanted
+to have at least 4 left.
+
+#2 Sam has 4.5 pounds of
+dirt. He needs to get
+enough pounds of dirt to
+have at least 8.6 pounds
+of dirt.
+
+#3 Last week you had y
+dollars. After making
+$16.50 this week you still
+have less than $32.75.
+
+#4 CJ has 8 carrots in his
+lunch. He eats some for
+a snack before lunch. He
+wants to have fewer than
+2 left for lunch.
+
+#5 Misty danced for 3
+minutes and 2 seconds.
+She danced for 2 more
+songs that were each
+m minutes. She danced
+for sometime between
+15 minutes and half an
+hour.
+
+#6 Emily swam 5 1/3 miles
+yesterday. Today she
+swam at least 1 1/2 miles
+further than yesterday.
+Score:
+/6
+
+Rep 3 Write an inequality for each situation.
+#1 After my food cookes
+for 2 minutes in the
+microwave, I checked
+it and cooked it some
+more. My food cooked
+less than 4.5 minutes
+altogether.
+
+#2 I have some money
+in my pocket. If I take
+$3 out, then I’ll have
+between $5 and $10 left.
+
+#3 Lucas watched 3 episodes
+on Netflix this morning.
+He watched some more
+this afternoon. Today he
+watched more than 13
+episodes.
+
+#4 Allie has 900 jellybeans.
+How many can she eat
+and have enough left
+to give 25 each to 25
+classmates?
+
+#5 Allie wants some friends
+to help make the 25 bags
+of jellybeans so that they
+each need to make at
+most 8.
+
+#6 This morning it rained
+2.07 inches. This
+afternoon it rained some
+more. Altogether today it
+rained at least 2.87 inches.
+Score:
+/6
+
+Level 6: Algebra, Lesson 11: Write and Plot Inequalities 4 of 4
+Challenge Using the properties of equality, solve an inequality.
+
+Score:
+/3
+
+#1 What values of i work for the following inequality?
+3i < 90
+#2 What value can you divide 90 by to help find the values of i that work?
+#3 Graph the resulting inequality on the number line below
+
+Algebra Level 6
+
+Lesson 11: Write Real World Inequalities
+
+Try It! #1
+1 c < 5
+
+Rep 1
+1 3pm <t < 10pm
+
+Rep 3
+1 2 + m < 4.5
+2 6 ≤ x ≤ 20 2 s ≥ 21 2 5 < m - 3 < 10
+3 x < 4 3 3 ≤ s ≤ 20 3 3 + e > 13
+4 1,750 ≤ x ≤ 2,250 4 1,000 < p < 5,000 4 j ≤ 900 - 25 • 25
+5 x ≥ 4 5 N/A 5 f < 4
+6 x ≤ 10 6 N/A 6 2.07 + r ≥ 2.87
+
+Try It! #2
+1 2x ≤ 7
+
+Rep 2
+1 13 - s ≥ 4
+
+Challenge
+
+1 i < 30 2 3⁄2 x ≤ 2 2 4.5 + d ≥ 8.6
+3 2a-3 > 25 3 y + 16.5 < 32.75 2 3
+4 60 ≤ 14 + x ≤ 70 4 8 - c > 2
+5 38 + x ≤ 50 5 15 mins < 3 min 2 sec
+
++ 2m < 30 mins 3 Verify graph shows
+
+i < 30 6 43.50 + x ≥ 49 6 s > 51⁄3 + 11⁄2
+Notes:

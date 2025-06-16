@@ -59,7 +59,7 @@ export async function getChallengeQuestions(params: { grade_level: number; lesso
     FROM "questions_algebra"
     WHERE "GradeLevel" = ${params.grade_level}
       AND "Lesson" = ${params.lesson}
-      AND "Section" = '%Challenge%'
+      AND "Section" = 'Challenge'
     ORDER BY id
   `);
 
