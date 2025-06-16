@@ -258,17 +258,16 @@ export default function AiAnalytics() {
     toast({
       title: "Generating Study Plan",
       description: "Creating your personalized study plan based on your progress...",
-      dismissTimeout: 3000,
+      dismisstimeout: 3000,
     });
     
     try {
       // Call the new comprehensive study plan endpoint
       const response = await apiRequest('POST', '/api/analytics/study-plan', {});
-      const data = await response.json();
       
-      if (data.studyPlan) {
+      if (response.studyPlan) {
         // Transform the study plan into display format
-        const planItems = data.studyPlan.studyPlan.dailyActivities.map((day: any) => 
+        const planItems = response.studyPlan.studyPlan.dailyActivities.map((day: any) => 
           `Day ${day.day}: ${day.activities.map((activity: any) => 
             `${activity.activity} (${activity.duration})`
           ).join(', ')}`
@@ -281,7 +280,7 @@ export default function AiAnalytics() {
           title: "Study Plan Generated",
           description: "Your personalized 14-day study plan is ready!",
           variant: 'default',
-          dismissTimeout: 3000,
+          dismisstimeout: 3000,
         });
         playSound('levelUp');
       }
