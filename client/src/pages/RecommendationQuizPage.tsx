@@ -138,20 +138,10 @@ export default function RecommendationQuizPage() {
                           analytics.areasForImprovement || 
                           [];
 
-      const requestData = {
-        maxQuestions: 10,
-        sessionType: 'practice',
-        targetDifficulty: 3,
-        focusConcepts: weakConcepts.slice(0, 3) // Focus on top 3 weak concepts
-      };
-
-      console.log('Recommendation request:', requestData);
+      console.log('Fetching personalized recommendations...');
       
-      const response = await apiRequest('GET', `/api/monolith/recommendations?${new URLSearchParams({
-        maxQuestions: '10',
-        sessionType: 'practice',
-        focusConcepts: JSON.stringify(requestData.focusConcepts)
-      })}`);
+      // Use the new streamlined recommendation endpoint
+      const response = await apiRequest('GET', '/api/recommendations');
       
       return response;
     },
@@ -159,42 +149,24 @@ export default function RecommendationQuizPage() {
     retry: 1
   });
 
-  // Fetch actual questions based on recommendations
+  // Handle new API response format
   useEffect(() => {
-    const fetchQuestions = async () => {
-      if (!recommendationData?.recommendations) return;
+    const processRecommendationData = async () => {
+      if (!recommendationData?.questions) return;
 
       try {
-        console.log('Fetching questions for recommendations:', recommendationData.recommendations);
+        console.log('Processing personalized questions:', recommendationData.questions);
         
-        const questionPromises = recommendationData.recommendations.map(async (rec: QuestionRecommendation) => {
-          try {
-            // Try to get specific question first
-            const question = await apiRequest('GET', `/api/questions/${rec.questionId}`);
-            return question;
-          } catch (error) {
-            console.warn(`Failed to fetch question ${rec.questionId}, getting fallback question`);
-            
-            // Fallback: get an adaptive question for the category/concepts
-            const fallbackQuestion = await apiRequest('GET', `/api/questions/next?${new URLSearchParams({
-              grade: user?.grade || '3',
-              category: rec.category || 'general',
-              forceDynamic: 'true'
-            })}`);
-            
-            return {
-              ...fallbackQuestion,
-              id: fallbackQuestion.id || rec.questionId,
-              concepts: rec.concepts
-            };
-          }
-        });
-
-        const fetchedQuestions = await Promise.all(questionPromises);
-        const validQuestions = fetchedQuestions.filter(q => q && q.question);
+        // Questions are already provided in the new format
+        const validQuestions = recommendationData.questions.filter((q: any) => q && q.question);
         
-        console.log('Fetched questions:', validQuestions);
+        console.log('Valid questions:', validQuestions);
         setQuestions(validQuestions);
+        
+        // Set session metadata
+        if (recommendationData.sessionMetadata) {
+          setSessionId(recommendationData.sessionMetadata.sessionId);
+        }
         
         if (validQuestions.length === 0) {
           toast({

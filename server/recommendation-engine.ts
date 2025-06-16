@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { Question, Recommendation, ConceptMastery } from "@shared/schema";
+import { Question, Recommendation } from "@shared/schema";
 import { openai } from "./openai";
 
 /**
@@ -309,13 +309,17 @@ Return a JSON array of questions.`
       .filter(q => q.question && q.answer && q.options && q.options.length >= 4)
       .map((q, index) => ({
         id: Date.now() + index, // Temporary ID
+        grade: user.grade || 'K',
+        category: q.category || 'general',
+        difficulty: q.difficulty || 3,
         question: q.question,
         answer: q.answer,
         options: q.options,
-        category: q.category || 'general',
-        difficulty: q.difficulty || 3,
         concepts: q.concepts || weakConcepts.slice(0, 2),
-        grade: user.grade || 'K'
+        storyId: null,
+        storyNode: null,
+        storyText: null,
+        storyImage: null
       }))
       .slice(0, maxQuestions);
 
@@ -347,7 +351,7 @@ async function generateFallbackQuestions(
   // Try to get questions for weak concepts from database
   for (const concept of weakConcepts.slice(0, 3)) {
     try {
-      const conceptQuestions = await storage.getQuestionsByGradeAndConcept(grade, concept);
+      const conceptQuestions = await storage.getQuestionsByConcept(grade, concept);
       if (conceptQuestions.length > 0) {
         questions.push(...conceptQuestions.slice(0, 3));
       }
@@ -359,8 +363,19 @@ async function generateFallbackQuestions(
   // If we don't have enough questions, get general questions for the grade
   if (questions.length < maxQuestions) {
     try {
-      const generalQuestions = await storage.getQuestionsByGrade(grade);
-      questions.push(...generalQuestions.slice(0, maxQuestions - questions.length));
+      // Use adaptive questions as fallback
+      const additionalQuestions = [];
+      for (let i = 0; i < maxQuestions - questions.length; i++) {
+        try {
+          const adaptiveQuestion = await storage.getAdaptiveQuestion(1, grade, true);
+          if (adaptiveQuestion) {
+            additionalQuestions.push(adaptiveQuestion);
+          }
+        } catch (error) {
+          console.error('Failed to get adaptive question:', error);
+        }
+      }
+      questions.push(...additionalQuestions);
     } catch (error) {
       console.error('Failed to get general questions:', error);
     }
