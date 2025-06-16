@@ -1824,6 +1824,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Test endpoint to debug OpenAI output directly
   app.get("/api/test-openai", async (req, res) => {
+    console.log('=== TEST OPENAI ENDPOINT HIT ===');
+    res.setHeader('Content-Type', 'application/json');
+    
     try {
       // Create test user data
       const testUser = {
@@ -1848,6 +1851,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       console.log('=== TESTING OPENAI DIRECTLY ===');
+      console.log('Test user:', testUser);
+      console.log('Test analytics:', testAnalytics);
+      console.log('About to call generatePersonalizedQuestions...');
+      
       const questions = await generatePersonalizedQuestions({
         user: testUser,
         analytics: testAnalytics,
@@ -1857,8 +1864,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxQuestions: 5
       });
 
+      console.log('=== OPENAI RESULT ===');
+      console.log('Questions generated:', questions?.length || 0);
+      if (questions && questions.length > 0) {
+        console.log('Sample question:', questions[0]);
+      }
+
       res.json({
         testMode: true,
+        success: true,
+        questionsCount: questions?.length || 0,
         questions,
         debugInfo: {
           userId: testUser.id,
@@ -1869,10 +1884,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
-      console.error("Error in OpenAI test:", error);
+      console.error("=== ERROR IN OPENAI TEST ===", error);
       res.status(500).json({
+        testMode: true,
+        success: false,
         error: "OpenAI test failed",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined
       });
     }
   });
