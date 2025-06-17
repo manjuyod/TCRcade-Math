@@ -15,7 +15,7 @@ export default function Header() {
                                    refetchOnMount: true,
                                    refetchOnWindowFocus: true,
                                    enabled: !!authUser, // wait until the auth user is available
-                                 });)
+                                 });
   if (!user) return null;
   
   return (
