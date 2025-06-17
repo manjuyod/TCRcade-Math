@@ -61,7 +61,12 @@ export function useTokenSocket() {
     };
 
     socket.on('token_updated', handleTokenUpdate);
-
+    
+    // Force refetch when a real-time update comes in
+    queryClient.invalidateQueries({
+      queryKey: ['/api/user'],
+      exact: true,
+    });
     // Reconcile token balance every 30 seconds
     const intervalId = setInterval(() => {
       queryClient.invalidateQueries({

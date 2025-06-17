@@ -1,12 +1,21 @@
 import { useAuth } from '@/hooks/use-auth';
+import { useQuery} from '@tanstack/react-query';
+import axios from 'axios';
 import { StreakBadge } from './streak-badge';
 import { Link } from 'wouter';
 import { Coins } from 'lucide-react';
 import tcLogo from '../assets/tc-logo.png';
 
+
 export default function Header() {
-  const { user } = useAuth();
-  
+  const { user: authUser } = useAuth();
+  const { data: user } = useQuery({
+                                   queryKey: ['/api/user'],
+                                   queryFn: () => axios.get('/api/user').then((res) => res.data),
+                                   refetchOnMount: true,
+                                   refetchOnWindowFocus: true,
+                                   enabled: !!authUser, // wait until the auth user is available
+                                 });)
   if (!user) return null;
   
   return (
