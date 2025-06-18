@@ -1544,8 +1544,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Prepare the update with required fields using increment pattern
             const userUpdate = {
-              questionsAnswered: { increment: 1 },
-              correctAnswers: { increment: isCorrect ? 1 : 0 },
+              questionsAnswered: (user.questionsAnswered || 0) + 1,
+              correctAnswers: (user.correctAnswers || 0) + (isCorrect ? 1 : 0),
             };
 
             // Calculate total tokens to add (question tokens + any batch bonus)
@@ -1559,7 +1559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Add tokens only if earned
             if (totalTokensToAdd > 0) {
-              userUpdate.tokens = { increment: totalTokensToAdd };
+              userUpdate.tokens = (user.tokens || 0) + totalTokensToAdd;
 
               // Update the user object in the request to reflect the token change
               user.tokens = (user.tokens || 0) + totalTokensToAdd;
@@ -2024,9 +2024,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: { increment: tokensEarned },
-          questionsAnswered: { increment: total },
-          correctAnswers: { increment: correct },
+          tokens: (user.tokens || 0) + tokensEarned,
+          questionsAnswered: (user.questionsAnswered || 0) + total,
+          correctAnswers: (user.correctAnswers || 0) + correct,
         });
 
         // Record module history with module-specific grade level
@@ -2172,9 +2172,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (user) {
           // Update user's tokens and track statistics using increment pattern
           const updatedUser = await storage.updateUser(userId, {
-            tokens: { increment: tokens },
-            questionsAnswered: { increment: total },
-            correctAnswers: { increment: correct }
+            tokens: (user.tokens || 0) + tokens,
+            questionsAnswered: (user.questionsAnswered || 0) + total,
+            correctAnswers: (user.correctAnswers || 0) + correct
           });
 
                     const newBalance = (user.tokens || 0) + tokens;
@@ -2441,7 +2441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(userId);
         if (user) {
           const updatedUser = await storage.updateUser(userId, {
-            tokens: { increment: tokensEarned },
+            tokens: (user.tokens || 0) + tokensEarned,
           });
 
           // Emit real-time token update
@@ -2482,7 +2482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: { increment: totalTokens },
+          tokens: (user.tokens || 0) + totalTokens,
         });
 
         // Record module history with module-specific grade level
