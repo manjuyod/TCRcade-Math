@@ -9,6 +9,11 @@ import createMemoryStore from "memorystore";
 // Import the DatabaseStorage implementation
 import { DatabaseStorage } from './database-storage';
 
+// Since we can't use dynamic imports easily with the circular dependency,
+// let's just export both implementations and let the consumer decide which to use
+
+// Use PostgreSQL database storage for persistence instead of in-memory storage
+export const storage = new DatabaseStorage();
 const MemoryStore = createMemoryStore(session);
 
 // Type for increment operations
