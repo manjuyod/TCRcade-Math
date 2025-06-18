@@ -1,0 +1,276 @@
+
+# AI Tutor Creation Agent
+
+## Project Overview
+Create a conversational AI tutor page at `/rectutor` that leverages our existing recommendation system to provide hyper-specific, one-question-at-a-time tutoring with long-term memory and session quality tracking.
+
+## Technical Architecture
+
+### Core Integration
+- **Endpoint Reuse**: Use existing `/api/recommendations` endpoint for question generation
+- **AI Model**: Utilize GPT-4o-mini for accuracy and conversational flow
+- **Memory System**: Implement persistent tutor session memory with quality weighting
+- **Analytics Integration**: Feed sessions back into recommendation system as a new module type
+
+### Database Schema Requirements
+
+#### 1. Tutor Sessions Table
+```sql
+CREATE TABLE tutor_sessions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  session_start TIMESTAMP DEFAULT NOW(),
+  session_end TIMESTAMP,
+  questions_covered INTEGER DEFAULT 0,
+  concepts_practiced TEXT[] DEFAULT '{}',
+  session_type TEXT DEFAULT 'guided', -- 'guided', 'practice', 'review'
+  ai_conversation_log JSON DEFAULT '{}',
+  session_quality_rating INTEGER, -- 1-10 scale, set post-session
+  helpfulness_rating INTEGER, -- 1-10 scale
+  clarity_rating INTEGER, -- 1-10 scale
+  difficulty_rating INTEGER, -- 1-10 scale
+  session_weight DECIMAL DEFAULT 1.0, -- Calculated from ratings for memory influence
+  total_time_seconds INTEGER DEFAULT 0,
+  completion_status TEXT DEFAULT 'in_progress' -- 'completed', 'abandoned', 'interrupted'
+);
+```
+
+#### 2. Update hiddenGradeAsset Structure
+Add new module entry for tutor sessions:
+```json
+{
+  "modules": {
+    "ai_tutor": {
+      "module_name": "AI Tutor Sessions",
+      "total_sessions": 0,
+      "total_questions_answered": 0,
+      "average_session_rating": 0,
+      "preferred_concepts": [],
+      "session_history": []
+    }
+  }
+}
+```
+
+## Implementation Requirements
+
+### 1. Frontend Components
+
+#### `/client/src/pages/RecTutorPage.tsx`
+- **Question Display**: Single question presentation with conversational AI interface
+- **AI Chat Interface**: Real-time conversation with step-by-step guidance
+- **Session Options**: User-selectable session length (5, 10, 15 questions or time-based)
+- **Progress Tracking**: Visual progress indicator within session
+- **Session Controls**: Pause, resume, end session early options
+
+#### Session Flow Interface
+```typescript
+interface TutorSession {
+  id: number;
+  currentQuestion: Question;
+  chatHistory: ChatMessage[];
+  conceptsFocused: string[];
+  questionsAnswered: number;
+  sessionTarget: number | 'unlimited';
+  startTime: Date;
+  isActive: boolean;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  questionContext?: Question;
+}
+```
+
+### 2. Backend Implementation
+
+#### `/server/routes.ts` - New Endpoints
+```typescript
+// Start new tutor session
+POST /api/tutor/session/start
+// Get current session state
+GET /api/tutor/session/current
+// Submit answer with AI feedback
+POST /api/tutor/session/answer
+// Get AI hint/explanation
+POST /api/tutor/session/chat
+// End session and get summary
+POST /api/tutor/session/complete
+// Submit session ratings
+POST /api/tutor/session/rate
+```
+
+#### AI Tutor Engine (`/server/ai-tutor-engine.ts`)
+```typescript
+class AITutorEngine {
+  // Generate contextual response based on student answer
+  async generateTutorResponse(question: Question, userAnswer: string, isCorrect: boolean, chatHistory: ChatMessage[]): Promise<string>
+  
+  // Provide step-by-step hints without giving away answer
+  async generateHint(question: Question, previousHints: string[]): Promise<string>
+  
+  // Explain concept after correct/incorrect answer
+  async explainConcept(question: Question, userAnswer: string, isCorrect: boolean): Promise<string>
+  
+  // Determine next question based on performance and conversation
+  async selectNextQuestion(userId: number, currentSession: TutorSession, previousQuestions: Question[]): Promise<Question>
+}
+```
+
+### 3. Memory and Weighting System
+
+#### Session Quality Calculation
+```typescript
+function calculateSessionWeight(ratings: {
+  helpfulness: number;  // 1-10
+  clarity: number;      // 1-10  
+  difficulty: number;   // 1-10
+}): number {
+  const averageRating = (ratings.helpfulness + ratings.clarity + ratings.difficulty) / 3;
+  
+  // Convert 1-10 scale to weight multiplier
+  // Poor sessions (1-4): 0.1-0.4x weight
+  // Average sessions (5-6): 0.5-0.6x weight  
+  // Good sessions (7-8): 0.7-0.8x weight
+  // Excellent sessions (9-10): 0.9-1.0x weight
+  return Math.max(0.1, averageRating / 10);
+}
+```
+
+#### Memory Integration
+- **Question Selection**: Weight recent tutor sessions based on quality ratings
+- **Concept Reinforcement**: Prioritize concepts from highly-rated sessions
+- **Avoid Repetition**: Track questions used in recent sessions to ensure variety
+- **Adaptive Difficulty**: Adjust question difficulty based on tutoring effectiveness
+
+### 4. Conversational AI Features
+
+#### Natural Language Processing
+- **Answer Analysis**: Understand partial answers, common mistakes, misconceptions
+- **Adaptive Responses**: Adjust language complexity based on user grade level
+- **Encouragement System**: Provide motivational feedback and celebrate progress
+- **Error Pattern Recognition**: Identify recurring mistakes for targeted intervention
+
+#### Conversation Flow
+1. **Question Introduction**: Present problem with context and encouragement
+2. **Student Attempt**: Allow multiple attempts with progressive hints
+3. **AI Guidance**: Provide step-by-step assistance without giving answers
+4. **Solution Discussion**: Explain approach and verify understanding
+5. **Concept Reinforcement**: Connect to broader mathematical concepts
+6. **Transition**: Smooth segue to next question based on performance
+
+### 5. Session Management
+
+#### Session Types
+- **Guided Practice**: Full AI assistance with explanations
+- **Independent Practice**: Minimal hints, focus on self-solving
+- **Concept Review**: Target specific weak areas identified by recommendation system
+- **Mixed Practice**: Combine multiple concepts for comprehensive understanding
+
+#### Session Options UI
+```typescript
+interface SessionOptions {
+  sessionType: 'guided' | 'independent' | 'review' | 'mixed';
+  duration: 'questions_5' | 'questions_10' | 'questions_15' | 'time_15min' | 'time_30min' | 'unlimited';
+  conceptFocus?: string[]; // Optional specific concepts to practice
+  difficultyPreference: 'adaptive' | 'easy' | 'medium' | 'hard';
+}
+```
+
+### 6. Post-Session Features
+
+#### Session Summary Page
+- **Performance Overview**: Questions answered, concepts practiced, time spent
+- **Progress Highlights**: Improvements noted, concepts mastered
+- **Recommendation Integration**: How session affects future recommendations
+- **Next Steps**: Suggested follow-up activities or concepts to explore
+
+#### Multi-Dimensional Rating System
+```typescript
+interface SessionRating {
+  helpfulness: number;     // How helpful was the AI guidance? (1-10)
+  clarity: number;         // How clear were the explanations? (1-10)
+  difficulty: number;      // Was the difficulty level appropriate? (1-10)
+  engagement: number;      // How engaging was the session? (1-10)
+  overallSatisfaction: number; // Overall session quality (1-10)
+  feedback?: string;       // Optional text feedback
+}
+```
+
+## Testing Requirements
+
+### End-to-End Testing Scenarios
+
+#### 1. Basic Session Flow
+- Start tutor session with recommendation integration
+- Answer questions with AI feedback
+- Complete session and provide ratings
+- Verify session data storage and weighting
+
+#### 2. Memory Integration Testing
+- Complete multiple sessions with different rating qualities
+- Verify that highly-rated sessions influence future question selection
+- Test that poorly-rated sessions have reduced impact on recommendations
+
+#### 3. Conversational AI Testing
+- Test natural language understanding of student responses
+- Verify appropriate hint generation without giving away answers
+- Ensure explanations match user's grade level and understanding
+
+#### 4. Analytics Integration Testing
+- Verify tutor sessions appear in user analytics
+- Test that session data feeds into recommendation algorithm
+- Confirm progress tracking includes tutor session performance
+
+### 5. Cross-Module Integration Testing
+- Test that tutor sessions affect `/recquiz` recommendations
+- Verify module history tracking includes tutor sessions
+- Ensure user progress reflects tutor session achievements
+
+## Quality Assurance
+
+### Performance Metrics
+- **Response Time**: AI responses under 3 seconds
+- **Session Completion Rate**: Track percentage of completed vs abandoned sessions
+- **Learning Effectiveness**: Measure improvement in subsequent quiz performance
+- **User Satisfaction**: Average session ratings above 7/10
+
+### Error Handling
+- **AI Failure Graceful Degradation**: Fallback to standard tutoring without AI
+- **Session Recovery**: Ability to resume interrupted sessions
+- **Rate Limiting**: Prevent AI API abuse while maintaining smooth experience
+- **Content Filtering**: Ensure all AI responses are appropriate and educational
+
+## Success Criteria
+
+### Technical Success
+- [ ] Tutor sessions successfully leverage existing recommendation algorithm
+- [ ] AI provides contextual, grade-appropriate tutoring
+- [ ] Session memory system influences future question selection
+- [ ] Multi-dimensional rating system captures user feedback
+- [ ] Integration with existing analytics and progress tracking
+
+### User Experience Success
+- [ ] Conversational flow feels natural and supportive
+- [ ] Questions are appropriately challenging based on user history
+- [ ] Session options provide flexibility for different learning needs
+- [ ] Post-session summary provides clear value and next steps
+- [ ] Overall system enhances learning outcomes measurably
+
+### Integration Success
+- [ ] Seamless integration with existing `/recquiz` system
+- [ ] Tutor sessions appear in user analytics and recommendations
+- [ ] Module history tracking includes tutor session data
+- [ ] Cross-module learning insights improve overall platform effectiveness
+
+## Implementation Priority
+
+1. **Phase 1**: Basic tutor session structure and recommendation integration
+2. **Phase 2**: AI conversational engine with GPT-4o-mini integration  
+3. **Phase 3**: Session memory system and quality weighting
+4. **Phase 4**: Advanced features (session types, comprehensive analytics)
+5. **Phase 5**: Polish, optimization, and comprehensive testing
+
+This system should provide a sophisticated, personalized tutoring experience that enhances the existing recommendation system while maintaining modularity for future expansion.
