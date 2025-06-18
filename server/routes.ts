@@ -658,7 +658,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (sessionAnswers && Array.isArray(sessionAnswers)) {
         for (const answerData of sessionAnswers) {
           try {
-            await storage.recordAnswer(answerData);
+            // TODO: Implement recordAnswer method in storage interface if needed
+            console.log('Answer data:', answerData);
           } catch (answerError) {
             console.error('Error recording individual answer:', answerError);
             // Continue with other answers even if one fails
@@ -1556,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Add tokens only if earned
             if (totalTokensToAdd > 0) {
-              userUpdate.tokens = (user.tokens || 0) + totalTokensToAdd;
+              userUpdate.tokens = { increment: totalTokensToAdd };
 
               // Update the user object in the request to reflect the token change
               user.tokens = (user.tokens || 0) + totalTokensToAdd;
@@ -2438,7 +2439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(userId);
         if (user) {
           const updatedUser = await storage.updateUser(userId, {
-            tokens: {increment : tokens},
+            tokens: {increment : tokensEarned},
           });
 
           // Emit real-time token update

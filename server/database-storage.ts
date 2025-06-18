@@ -147,25 +147,33 @@ export class DatabaseStorage implements IStorage {
         }
 
         // 🔧 Safely calculate incremented fields manually
-        const updatedFields = {
-          tokens:
-            typeof data.tokens === 'object' && 'increment' in data.tokens
-              ? (currentUser.tokens || 0) + (data.tokens as any).increment
-              : data.tokens ?? currentUser.tokens,
+        const updatedFields: any = {};
+        
+        // Handle increment fields
+        if (typeof data.tokens === 'object' && 'increment' in data.tokens) {
+          updatedFields.tokens = (currentUser.tokens || 0) + (data.tokens as any).increment;
+        } else if (data.tokens !== undefined) {
+          updatedFields.tokens = data.tokens;
+        }
 
-          questionsAnswered:
-            typeof data.questionsAnswered === 'object' && 'increment' in data.questionsAnswered
-              ? (currentUser.questionsAnswered || 0) + (data.questionsAnswered as any).increment
-              : data.questionsAnswered ?? currentUser.questionsAnswered,
+        if (typeof data.questionsAnswered === 'object' && 'increment' in data.questionsAnswered) {
+          updatedFields.questionsAnswered = (currentUser.questionsAnswered || 0) + (data.questionsAnswered as any).increment;
+        } else if (data.questionsAnswered !== undefined) {
+          updatedFields.questionsAnswered = data.questionsAnswered;
+        }
 
-          correctAnswers:
-            typeof data.correctAnswers === 'object' && 'increment' in data.correctAnswers
-              ? (currentUser.correctAnswers || 0) + (data.correctAnswers as any).increment
-              : data.correctAnswers ?? currentUser.correctAnswers,
+        if (typeof data.correctAnswers === 'object' && 'increment' in data.correctAnswers) {
+          updatedFields.correctAnswers = (currentUser.correctAnswers || 0) + (data.correctAnswers as any).increment;
+        } else if (data.correctAnswers !== undefined) {
+          updatedFields.correctAnswers = data.correctAnswers;
+        }
 
-          // ⚠️ Include any other non-increment fields passed in `data` last
-          ...data,
-        };
+        // Add other non-increment fields
+        Object.keys(data).forEach(key => {
+          if (!['tokens', 'questionsAnswered', 'correctAnswers'].includes(key)) {
+            updatedFields[key] = (data as any)[key];
+          }
+        });
 
 
         const result = await tx
