@@ -286,8 +286,50 @@ export const moduleHistory = pgTable("module_history", {
   tokensEarned: integer("tokens_earned").default(0).notNull(),
 });
 
-export const insertSessionSchema = createInsertSchema(session);
+// Tutor Sessions Table - AI Tutor Creation Agent
+export const tutorSessions = pgTable("tutor_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  sessionStart: timestamp("session_start").defaultNow().notNull(),
+  sessionEnd: timestamp("session_end"),
+  questionsCovered: integer("questions_covered").default(0).notNull(),
+  conceptsPracticed: text("concepts_practiced").array().default([]),
+  sessionType: text("session_type").default("guided").notNull(), // 'guided', 'practice', 'review'
+  aiConversationLog: json("ai_conversation_log").default([]),
+  sessionQualityRating: integer("session_quality_rating"), // 1-10 scale, set post-session
+  helpfulnessRating: integer("helpfulness_rating"), // 1-10 scale
+  clarityRating: integer("clarity_rating"), // 1-10 scale
+  difficultyRating: integer("difficulty_rating"), // 1-10 scale
+  engagementRating: integer("engagement_rating"), // 1-10 scale
+  sessionWeight: integer("session_weight").default(100), // Calculated from ratings for memory influence (0-100)
+  totalTimeSeconds: integer("total_time_seconds").default(0).notNull(),
+  completionStatus: text("completion_status").default("in_progress").notNull(), // 'completed', 'abandoned', 'interrupted'
+  sessionTarget: integer("session_target").default(10), // Number of questions or time-based target
+  targetType: text("target_type").default("questions"), // 'questions' or 'time'
+  questionsAnswered: integer("questions_answered").default(0).notNull(),
+  correctAnswers: integer("correct_answers").default(0).notNull(),
+  hintsUsed: integer("hints_used").default(0).notNull(),
+  averageResponseTime: integer("average_response_time").default(0), // in seconds
+  conceptsFocused: text("concepts_focused").array().default([]),
+  difficultyLevel: integer("difficulty_level").default(1),
+  sessionFeedback: text("session_feedback"), // Optional text feedback
+});
+
+// Chat Messages for AI Tutor Sessions
+export const tutorChatMessages = pgTable("tutor_chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull(),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  questionContext: json("question_context"), // Optional question context
+  messageType: text("message_type").default("chat"), // 'chat', 'hint', 'explanation', 'feedback'
+  isCorrectAnswer: boolean("is_correct_answer"),
+});
+
 export const insertModuleHistorySchema = createInsertSchema(moduleHistory);
+export const insertTutorSessionSchema = createInsertSchema(tutorSessions);
+export const insertTutorChatMessageSchema = createInsertSchema(tutorChatMessages);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -301,3 +343,7 @@ export type MultiplayerRoom = typeof multiplayerRooms.$inferSelect;
 export type AiAnalytic = typeof aiAnalytics.$inferSelect;
 export type Session = typeof session.$inferSelect;
 export type ModuleHistory = typeof moduleHistory.$inferSelect;
+export type TutorSession = typeof tutorSessions.$inferSelect;
+export type TutorChatMessage = typeof tutorChatMessages.$inferSelect;
+export type InsertTutorSession = z.infer<typeof insertTutorSessionSchema>;
+export type InsertTutorChatMessage = z.infer<typeof insertTutorChatMessageSchema>;
