@@ -2707,9 +2707,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: { increment: tokensEarned },
-          questionsAnswered: { increment: totalCount },
-          correctAnswers: { increment: correctCount },
+          tokens: (user.tokens || 0) + tokensEarned,
+          questionsAnswered: (user.questionsAnswered || 0) + totalCount,
+          correctAnswers: (user.correctAnswers || 0) + correctCount,
         });
 
         // Record module history with module-specific grade level
