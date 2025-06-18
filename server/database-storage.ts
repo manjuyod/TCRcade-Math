@@ -9,7 +9,9 @@ import {
   multiplayerRooms, type MultiplayerRoom,
   aiAnalytics, type AiAnalytic,
   leaderboard, type Leaderboard,
-  moduleHistory, type ModuleHistory
+  moduleHistory, type ModuleHistory,
+  tutorSessions, type TutorSession, type InsertTutorSession,
+  tutorChatMessages, type TutorChatMessage, type InsertTutorChatMessage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
@@ -2896,5 +2898,94 @@ export class DatabaseStorage implements IStorage {
     const consistencyScore = (1 - normalizedSD) * mean; // High consistency * performance level
     
     return Math.max(0, Math.min(100, consistencyScore));
+  }
+
+  // AI Tutor Session Methods
+  async createTutorSession(data: InsertTutorSession): Promise<TutorSession> {
+    const [session] = await db.insert(tutorSessions).values(data).returning();
+    return session;
+  }
+
+  async getTutorSession(sessionId: number): Promise<TutorSession | undefined> {
+    const [session] = await db.select().from(tutorSessions).where(eq(tutorSessions.id, sessionId));
+    return session;
+  }
+
+  async updateTutorSession(sessionId: number, data: Partial<TutorSession>): Promise<TutorSession | undefined> {
+    const [session] = await db.update(tutorSessions)
+      .set(data)
+      .where(eq(tutorSessions.id, sessionId))
+      .returning();
+    return session;
+  }
+
+  async endTutorSession(sessionId: number, ratings?: {
+    helpfulness: number;
+    clarity: number;
+    difficulty: number;
+    engagement: number;
+    overallSatisfaction: number;
+    feedback?: string;
+  }): Promise<TutorSession | undefined> {
+    const updateData: any = {
+      sessionEnd: new Date(),
+      completionStatus: 'completed'
+    };
+
+    if (ratings) {
+      updateData.helpfulnessRating = ratings.helpfulness;
+      updateData.clarityRating = ratings.clarity;
+      updateData.difficultyRating = ratings.difficulty;
+      updateData.engagementRating = ratings.engagement;
+      updateData.sessionQualityRating = ratings.overallSatisfaction;
+      updateData.sessionFeedback = ratings.feedback;
+
+      // Calculate session weight based on ratings
+      const averageRating = (
+        ratings.helpfulness + 
+        ratings.clarity + 
+        ratings.difficulty + 
+        ratings.engagement + 
+        ratings.overallSatisfaction
+      ) / 5;
+      updateData.sessionWeight = Math.max(10, Math.round(averageRating * 10));
+    }
+
+    const [session] = await db.update(tutorSessions)
+      .set(updateData)
+      .where(eq(tutorSessions.id, sessionId))
+      .returning();
+    return session;
+  }
+
+  async getUserActiveTutorSession(userId: number): Promise<TutorSession | undefined> {
+    const [session] = await db.select().from(tutorSessions)
+      .where(and(
+        eq(tutorSessions.userId, userId),
+        eq(tutorSessions.completionStatus, 'in_progress')
+      ))
+      .orderBy(desc(tutorSessions.sessionStart))
+      .limit(1);
+    return session;
+  }
+
+  async getUserTutorSessions(userId: number, limit: number = 10): Promise<TutorSession[]> {
+    const sessions = await db.select().from(tutorSessions)
+      .where(eq(tutorSessions.userId, userId))
+      .orderBy(desc(tutorSessions.sessionStart))
+      .limit(limit);
+    return sessions;
+  }
+
+  async addTutorChatMessage(data: InsertTutorChatMessage): Promise<TutorChatMessage> {
+    const [message] = await db.insert(tutorChatMessages).values(data).returning();
+    return message;
+  }
+
+  async getTutorChatMessages(sessionId: number): Promise<TutorChatMessage[]> {
+    const messages = await db.select().from(tutorChatMessages)
+      .where(eq(tutorChatMessages.sessionId, sessionId))
+      .orderBy(asc(tutorChatMessages.timestamp));
+    return messages;
   }
 }

@@ -2,7 +2,9 @@ import {
   users, type User, type InsertUser,
   type Question, type Leaderboard, type Recommendation,
   type AvatarItem, type DailyChallenge, type MathStory, 
-  type MultiplayerRoom, type AiAnalytic
+  type MultiplayerRoom, type AiAnalytic,
+  type TutorSession, type TutorChatMessage, 
+  type InsertTutorSession, type InsertTutorChatMessage
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -107,6 +109,25 @@ export interface IStorage {
   getUserModuleHistory(userId: number, limit?: number): Promise<any[]>;
   getUserModuleHistoryByModule(userId: number, moduleName: string, limit?: number): Promise<any[]>;
   getModuleHistoryAnalytics(userId?: number, days?: number): Promise<any[]>;
+
+  // AI Tutor session methods
+  createTutorSession(data: InsertTutorSession): Promise<TutorSession>;
+  getTutorSession(sessionId: number): Promise<TutorSession | undefined>;
+  updateTutorSession(sessionId: number, data: Partial<TutorSession>): Promise<TutorSession | undefined>;
+  endTutorSession(sessionId: number, ratings?: {
+    helpfulness: number;
+    clarity: number;
+    difficulty: number;
+    engagement: number;
+    overallSatisfaction: number;
+    feedback?: string;
+  }): Promise<TutorSession | undefined>;
+  getUserActiveTutorSession(userId: number): Promise<TutorSession | undefined>;
+  getUserTutorSessions(userId: number, limit?: number): Promise<TutorSession[]>;
+  
+  // Tutor chat message methods
+  addTutorChatMessage(data: InsertTutorChatMessage): Promise<TutorChatMessage>;
+  getTutorChatMessages(sessionId: number): Promise<TutorChatMessage[]>;
 
   // Session store
   sessionStore: any; // Using any for sessionStore to avoid type issues
