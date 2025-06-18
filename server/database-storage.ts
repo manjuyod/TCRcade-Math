@@ -17,6 +17,10 @@ import { sessionStore } from "./session";
 // Use type import to avoid circular dependencies
 import type { IStorage } from "./storage";
 
+type IncrementalUpdate<T> = {
+  [K in keyof T]?: T[K] | { increment: number };
+};
+
 // Helper function to shuffle answer options
 function shuffleAnswerOptions(question: Question): Question {
   if (!question.options || question.options.length <= 1) {
@@ -125,7 +129,8 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: number, data: any): Promise<User | undefined> {
+  
+  async updateUser(id: number, data: IncrementalUpdate<User>): Promise<User | undefined> {
     console.log(`DATABASE: Updating user ${id} with data:`, data);
 
     try {
@@ -145,17 +150,17 @@ export class DatabaseStorage implements IStorage {
         const updatedFields = {
           tokens:
             typeof data.tokens === 'object' && 'increment' in data.tokens
-              ? (currentUser.tokens || 0) + data.tokens.increment
+              ? (currentUser.tokens || 0) + (data.tokens as any).increment
               : data.tokens ?? currentUser.tokens,
 
           questionsAnswered:
             typeof data.questionsAnswered === 'object' && 'increment' in data.questionsAnswered
-              ? (currentUser.questionsAnswered || 0) + data.questionsAnswered.increment
+              ? (currentUser.questionsAnswered || 0) + (data.questionsAnswered as any).increment
               : data.questionsAnswered ?? currentUser.questionsAnswered,
 
           correctAnswers:
             typeof data.correctAnswers === 'object' && 'increment' in data.correctAnswers
-              ? (currentUser.correctAnswers || 0) + data.correctAnswers.increment
+              ? (currentUser.correctAnswers || 0) + (data.correctAnswers as any).increment
               : data.correctAnswers ?? currentUser.correctAnswers,
 
           // ⚠️ Include any other non-increment fields passed in `data` last

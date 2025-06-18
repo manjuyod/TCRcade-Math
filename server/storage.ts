@@ -6,6 +6,8 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+// Import the DatabaseStorage implementation
+import { DatabaseStorage } from './database-storage';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -2502,8 +2504,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Import the DatabaseStorage implementation
-import { DatabaseStorage } from './database-storage';
+
 
 // Since we can't use dynamic imports easily with the circular dependency,
 // let's just export both implementations and let the consumer decide which to use
