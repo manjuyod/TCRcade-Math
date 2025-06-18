@@ -105,13 +105,21 @@ export default function RecTutorPage() {
   // Query for current session
   const { data: sessionData, refetch: refetchSession } = useQuery({
     queryKey: ["/api/tutor/session/current"],
-    enabled: sessionStarted
+    enabled: sessionStarted,
+    queryFn: async () => {
+      const response = await fetch('/api/tutor/session/current');
+      return response.json();
+    }
   });
 
   // Query for recommended question
   const { data: questionData, refetch: refetchQuestion } = useQuery({
     queryKey: ["/api/recommendations"],
-    enabled: sessionStarted && !currentQuestion
+    enabled: sessionStarted && !currentQuestion,
+    queryFn: async () => {
+      const response = await fetch('/api/recommendations');
+      return response.json();
+    }
   });
 
   // Start session mutation
