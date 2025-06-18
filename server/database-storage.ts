@@ -141,16 +141,37 @@ export class DatabaseStorage implements IStorage {
           throw new Error(`User with ID ${id} not found`);
         }
 
-        // Perform the update with transactions to ensure ACID compliance
+        // 🔧 Safely calculate incremented fields manually
+        const updatedFields = {
+          tokens:
+            typeof data.tokens === 'object' && 'increment' in data.tokens
+              ? (currentUser.tokens || 0) + data.tokens.increment
+              : data.tokens ?? currentUser.tokens,
+
+          questionsAnswered:
+            typeof data.questionsAnswered === 'object' && 'increment' in data.questionsAnswered
+              ? (currentUser.questionsAnswered || 0) + data.questionsAnswered.increment
+              : data.questionsAnswered ?? currentUser.questionsAnswered,
+
+          correctAnswers:
+            typeof data.correctAnswers === 'object' && 'increment' in data.correctAnswers
+              ? (currentUser.correctAnswers || 0) + data.correctAnswers.increment
+              : data.correctAnswers ?? currentUser.correctAnswers,
+
+          // ⚠️ Include any other non-increment fields passed in `data` last
+          ...data,
+        };
+
+
         const result = await tx
-          .update(users)
-          .set(data)
-          .where(eq(users.id, id))
-          .returning();
+            .update(users)
+            .set(updatedFields)
+            .where(eq(users.id, id))
+            .returning();
 
-        return result;
-      });
-
+          return result;
+        });
+      
       console.log(`DATABASE: User ${id} update successful:`, updatedUser?.tokens);
       return updatedUser;
     } catch (error) {

@@ -1542,10 +1542,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const newCorrectAnswers =
               (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
 
-            // Prepare the update with required fields
+            // Prepare the update with required fields using increment pattern
             const userUpdate = {
-              questionsAnswered: newQuestionsAnswered,
-              correctAnswers: newCorrectAnswers,
+              questionsAnswered: { increment: 1 },
+              correctAnswers: { increment: isCorrect ? 1 : 0 },
             };
 
             // Calculate total tokens to add (question tokens + any batch bonus)
@@ -1559,12 +1559,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Add tokens only if earned
             if (totalTokensToAdd > 0) {
-              const currentTokens = user.tokens || 0;
-              const newTokens = currentTokens + totalTokensToAdd;
-              userUpdate.tokens = newTokens;
+              userUpdate.tokens = { increment: totalTokensToAdd };
 
               // Update the user object in the request to reflect the token change
-              user.tokens = newTokens;
+              user.tokens = (user.tokens || 0) + totalTokensToAdd;
             }
 
             // Update the user record with token count and statistics
@@ -2026,9 +2024,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: (user.tokens || 0) + tokensEarned,
-          questionsAnswered: (user.questionsAnswered || 0) + total,
-          correctAnswers: (user.correctAnswers || 0) + correct,
+          tokens: { increment: tokensEarned },
+          questionsAnswered: { increment: total },
+          correctAnswers: { increment: correct },
         });
 
         // Record module history with module-specific grade level

@@ -9,13 +9,21 @@ import createMemoryStore from "memorystore";
 
 const MemoryStore = createMemoryStore(session);
 
+// Type for increment operations
+type IncrementValue = { increment: number };
+type UserUpdateData = Partial<User> & {
+  tokens?: number | IncrementValue;
+  questionsAnswered?: number | IncrementValue;
+  correctAnswers?: number | IncrementValue;
+};
+
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
+  updateUser(id: number, data: UserUpdateData): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
   getLeaderboard(): Promise<Array<User & { score: number }>>;
 
@@ -219,7 +227,31 @@ export class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return undefined;
 
-    const updatedUser = { ...user, ...data };
+    const updatedUser = {
+      ...user,
+
+      // Handle atomic-style increments
+      tokens:
+        typeof data.tokens === 'object' &&
+          data.tokens !== null &&
+          'increment' in data.tokens
+            ? (user.tokens || 0) + (data.tokens as any).increment
+            : data.tokens ?? user.tokens,
+
+      questionsAnswered:
+        typeof data.questionsAnswered === 'object' && data.questionsAnswered !== null && 'increment' in data.questionsAnswered
+          ? (user.questionsAnswered || 0) + (data.questionsAnswered as any).increment
+          : data.questionsAnswered ?? user.questionsAnswered,
+
+      correctAnswers:
+        typeof data.correctAnswers === 'object' && data.correctAnswers !== null &&'increment' in data.correctAnswers
+          ? (user.correctAnswers || 0) + (data.correctAnswers as any).increment
+          : data.correctAnswers ?? user.correctAnswers,
+
+      // Fallback for any other fields in data (e.g., streaks, name)
+      ...data,
+    };
+
     this.users.set(id, updatedUser);
     return updatedUser;
   }

@@ -47,51 +47,53 @@ export function useTokenSocket() {
       socket.emit('join', `user_${user.id}`);
     });
 
-    // Listen for real-time token updates
-    const handleTokenUpdate = (newTokenBalance: number) => {
-      console.log(`Received real-time token update: ${newTokenBalance} tokens`);
-      
-      // Update the user query cache with new token balance
-      queryClient.setQueryData(['/api/user'], (oldUser: any) => {
-        if (oldUser) {
-          return { ...oldUser, tokens: newTokenBalance };
-        }
-        return oldUser;
-      });
-    };
+     // Handle real-time token update
+        const handleTokenUpdate = (newTokenBalance: number) => {
+          console.log(`Received real-time token update: ${newTokenBalance} tokens`);
 
-    socket.on('token_updated', handleTokenUpdate);
-    
-    // Force refetch when a real-time update comes in
-    queryClient.invalidateQueries({
-      queryKey: ['/api/user'],
-      exact: true,
-    });
-    // Reconcile token balance every 30 seconds
-    const intervalId = setInterval(() => {
-      queryClient.invalidateQueries({
-        queryKey: ['/api/user'],
-        exact: true,
-      });
-    }, 30_000);
+          // Update cache immediately
+          queryClient.setQueryData(['/api/user'], (oldUser: any) => {
+            if (oldUser) {
+              return { ...oldUser, tokens: newTokenBalance };
+            }
+            return oldUser;
+          });
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from token updates namespace');
-    });
+          // Refetch to ensure consistency
+          queryClient.invalidateQueries({
+            queryKey: ['/api/user'],
+            exact: true,
+          });
+        };
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
+        socket.on('token_updated', handleTokenUpdate);
 
-    // Cleanup on unmount or user change
-    return () => {
-      if (socket) {
-        socket.off('token_updated', handleTokenUpdate);
-        socket.disconnect();
-      }
-      clearInterval(intervalId);
-    };
-  }, [user?.id]);
+        // Fallback: refetch every 30s
+        const intervalId = setInterval(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['/api/user'],
+            exact: true,
+          });
+        }, 30_000);
 
-  return socketRef.current;
-}
+        // Handle disconnects and errors
+        socket.on('disconnect', () => {
+          console.log('Disconnected from token updates namespace');
+        });
+
+        socket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error);
+        });
+
+        // Cleanup
+        return () => {
+          if (socket) {
+            socket.off('token_updated', handleTokenUpdate);
+            socket.disconnect();
+          }
+          clearInterval(intervalId);
+        };
+      }, [user?.id]);
+
+      return socketRef.current;
+    }
