@@ -35,6 +35,7 @@ import {
 import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 import { monolithRoutes } from "../monolith/server/routes";
 import { generatePersonalizedQuestions } from "./recommendation-engine";
+import { aiTutorEngine } from "./ai-tutor-engine";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -1162,6 +1163,259 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to explain concept",
         message: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  });
+
+  // AI Tutor Session Management endpoints
+  app.post("/api/tutor/session/start", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { sessionType, sessionTarget, targetType, conceptFocus, difficultyLevel } = req.body;
+
+      // Check for existing active session
+      const existingSession = await storage.getUserActiveTutorSession(userId);
+      if (existingSession) {
+        return res.json({ session: existingSession, isExisting: true });
+      }
+
+      // Create new session
+      const sessionData = {
+        userId,
+        sessionType: sessionType || 'guided',
+        sessionTarget: sessionTarget || 10,
+        targetType: targetType || 'questions',
+        conceptsFocused: conceptFocus || [],
+        difficultyLevel: difficultyLevel || 1,
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        hintsUsed: 0
+      };
+
+      const session = await storage.createTutorSession(sessionData);
+      res.json({ session, isExisting: false });
+    } catch (error) {
+      console.error("Error starting tutor session:", error);
+      res.status(500).json({ error: "Failed to start session" });
+    }
+  });
+
+  app.get("/api/tutor/session/current", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const session = await storage.getUserActiveTutorSession(userId);
+      
+      if (!session) {
+        return res.json({ session: null });
+      }
+
+      // Get chat messages for the session
+      const messages = await storage.getTutorChatMessages(session.id);
+      res.json({ session, messages });
+    } catch (error) {
+      console.error("Error getting current session:", error);
+      res.status(500).json({ error: "Failed to get current session" });
+    }
+  });
+
+  app.post("/api/tutor/session/answer", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { sessionId, question, userAnswer, isCorrect, timeSpent } = req.body;
+
+      if (!sessionId || !question || userAnswer === undefined) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Get session and validate ownership
+      const session = await storage.getTutorSession(sessionId);
+      if (!session || session.userId !== userId) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Get chat history for context
+      const chatHistory = await storage.getTutorChatMessages(sessionId);
+      const chatMessages = chatHistory.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: new Date(msg.timestamp),
+        questionContext: msg.questionContext
+      }));
+
+      // Generate AI response
+      const aiResponse = await aiTutorEngine.generateTutorResponse(
+        question,
+        userAnswer,
+        isCorrect,
+        chatMessages,
+        session.sessionType
+      );
+
+      // Add user message to chat
+      await storage.addTutorChatMessage({
+        sessionId,
+        role: 'user',
+        content: userAnswer,
+        questionContext: question,
+        messageType: 'answer',
+        isCorrectAnswer: isCorrect
+      });
+
+      // Add AI response to chat
+      await storage.addTutorChatMessage({
+        sessionId,
+        role: 'assistant',
+        content: aiResponse,
+        questionContext: question,
+        messageType: 'feedback'
+      });
+
+      // Update session progress
+      const updateData = {
+        questionsAnswered: session.questionsAnswered + 1,
+        correctAnswers: session.correctAnswers + (isCorrect ? 1 : 0),
+        totalTimeSeconds: session.totalTimeSeconds + (timeSpent || 0),
+        averageResponseTime: Math.round((session.totalTimeSeconds + (timeSpent || 0)) / (session.questionsAnswered + 1))
+      };
+
+      // Add concept to practiced concepts if provided
+      if (question.concepts && question.concepts.length > 0) {
+        const existingConcepts = session.conceptsPracticed || [];
+        const newConcepts = question.concepts.filter(concept => !existingConcepts.includes(concept));
+        if (newConcepts.length > 0) {
+          updateData.conceptsPracticed = [...existingConcepts, ...newConcepts];
+        }
+      }
+
+      await storage.updateTutorSession(sessionId, updateData);
+
+      res.json({ aiResponse, session: await storage.getTutorSession(sessionId) });
+    } catch (error) {
+      console.error("Error processing answer:", error);
+      res.status(500).json({ error: "Failed to process answer" });
+    }
+  });
+
+  app.post("/api/tutor/session/chat", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { sessionId, message, requestType } = req.body;
+
+      if (!sessionId || !message) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Get session and validate ownership
+      const session = await storage.getTutorSession(sessionId);
+      if (!session || session.userId !== userId) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // Get current question context if available
+      const chatHistory = await storage.getTutorChatMessages(sessionId);
+      const lastQuestionMessage = chatHistory
+        .reverse()
+        .find(msg => msg.questionContext);
+      
+      let aiResponse = "";
+
+      if (requestType === 'hint' && lastQuestionMessage?.questionContext) {
+        // Generate hint for current question
+        const previousHints = chatHistory
+          .filter(msg => msg.messageType === 'hint')
+          .map(msg => msg.content);
+        
+        aiResponse = await aiTutorEngine.generateHint(
+          lastQuestionMessage.questionContext,
+          previousHints,
+          session.sessionType
+        );
+
+        // Update hints used count
+        await storage.updateTutorSession(sessionId, {
+          hintsUsed: session.hintsUsed + 1
+        });
+      } else if (requestType === 'explanation' && lastQuestionMessage?.questionContext) {
+        // Generate concept explanation
+        aiResponse = await aiTutorEngine.explainConcept(
+          lastQuestionMessage.questionContext,
+          message,
+          false, // We don't know if it was correct in this context
+          session.sessionType
+        );
+      } else {
+        // General chat response
+        aiResponse = "I'm here to help you with math! Feel free to ask for hints or explanations about the current problem.";
+      }
+
+      // Add user message
+      await storage.addTutorChatMessage({
+        sessionId,
+        role: 'user',
+        content: message,
+        messageType: requestType || 'chat'
+      });
+
+      // Add AI response
+      await storage.addTutorChatMessage({
+        sessionId,
+        role: 'assistant',
+        content: aiResponse,
+        messageType: requestType || 'chat'
+      });
+
+      res.json({ response: aiResponse });
+    } catch (error) {
+      console.error("Error in chat:", error);
+      res.status(500).json({ error: "Failed to process chat message" });
+    }
+  });
+
+  app.post("/api/tutor/session/complete", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { sessionId, ratings } = req.body;
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "Missing session ID" });
+      }
+
+      // Get session and validate ownership
+      const session = await storage.getTutorSession(sessionId);
+      if (!session || session.userId !== userId) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      // End session with ratings
+      const completedSession = await storage.endTutorSession(sessionId, ratings);
+      
+      if (!completedSession) {
+        return res.status(500).json({ error: "Failed to complete session" });
+      }
+
+      // Generate session summary
+      const summary = aiTutorEngine.generateSessionSummary(completedSession);
+
+      res.json({ 
+        session: completedSession, 
+        summary,
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error completing session:", error);
+      res.status(500).json({ error: "Failed to complete session" });
+    }
+  });
+
+  app.get("/api/tutor/sessions", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const sessions = await storage.getUserTutorSessions(userId, limit);
+      res.json({ sessions });
+    } catch (error) {
+      console.error("Error getting user sessions:", error);
+      res.status(500).json({ error: "Failed to get sessions" });
     }
   });
 

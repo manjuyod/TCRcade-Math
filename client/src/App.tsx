@@ -41,6 +41,7 @@ import AlgebraLoadingPage from "@/pages/algebra/loading-page";
 import AlgebraPlayPage from "@/pages/algebra/play-page";
 import AlgebraCompletePage from "@/pages/algebra/complete-page";
 import AiTutorPage from "@/pages/ai-tutor-page";
+import RecTutorPage from "@/pages/RecTutorPage";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 import { TokenSocketProvider } from "@/components/token-socket-provider";
@@ -102,6 +103,7 @@ function Router() {
       <ProtectedRoute path="/recommendations" component={RecommendationQuizPage} />
       <ProtectedRoute path="/tutor" component={AiTutorPage} />
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
+      <ProtectedRoute path="/rectutor" component={RecTutorPage} />
       <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
       <ProtectedRoute path="/rush/play" component={MathRushPlayPage} />
       <ProtectedRoute path="/rush/complete" component={MathRushCompletePage} />
