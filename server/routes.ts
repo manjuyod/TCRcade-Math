@@ -2020,13 +2020,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user tokens
       const user = await storage.getUser(userId);
       if (user) {
-        tokens: { increment: tokensEarned },
-        questionsAnswered: { increment: questionsAnswered },
-        correctAnswers: { increment: correctAnswers },
-        hiddenGradeAsset: {
-          ...hiddenGradeAsset,
-          modules,
-        },
+        const updatedUser = await storage.updateUser(userId, {
+          tokens: { increment: tokensEarned },
+          questionsAnswered: { increment: total },
+          correctAnswers: { increment: correct }
         });
 
         // Record module history with module-specific grade level
