@@ -116,8 +116,10 @@ export default function RecTutorPage() {
 
   // Start session mutation
   const startSessionMutation = useMutation({
-    mutationFn: (options: SessionOptions) => 
-      apiRequest(`/api/tutor/session/start`, "POST", options),
+    mutationFn: async (options: SessionOptions) => {
+      const response = await apiRequest("POST", `/api/tutor/session/start`, options);
+      return response.json();
+    },
     onSuccess: (data) => {
       setCurrentSession(data.session);
       setSessionStarted(true);
@@ -134,14 +136,16 @@ export default function RecTutorPage() {
 
   // Submit answer mutation
   const submitAnswerMutation = useMutation({
-    mutationFn: ({ answer, isCorrect, timeSpent }: { answer: string; isCorrect: boolean; timeSpent: number }) =>
-      apiRequest(`/api/tutor/session/answer`, "POST", {
+    mutationFn: async ({ answer, isCorrect, timeSpent }: { answer: string; isCorrect: boolean; timeSpent: number }) => {
+      const response = await apiRequest("POST", `/api/tutor/session/answer`, {
         sessionId: currentSession?.id,
         question: currentQuestion,
         userAnswer: answer,
         isCorrect,
         timeSpent
-      }),
+      });
+      return response.json();
+    },
     onSuccess: (data) => {
       setMessages(prev => [...prev, 
         { 
@@ -172,12 +176,14 @@ export default function RecTutorPage() {
 
   // Chat mutation
   const chatMutation = useMutation({
-    mutationFn: ({ message, requestType }: { message: string; requestType: string }) =>
-      apiRequest(`/api/tutor/session/chat`, "POST", {
+    mutationFn: async ({ message, requestType }: { message: string; requestType: string }) => {
+      const response = await apiRequest("POST", `/api/tutor/session/chat`, {
         sessionId: currentSession?.id,
         message,
         requestType
-      }),
+      });
+      return response.json();
+    },
     onSuccess: (data) => {
       setMessages(prev => [...prev,
         {
@@ -201,11 +207,13 @@ export default function RecTutorPage() {
 
   // Complete session mutation
   const completeSessionMutation = useMutation({
-    mutationFn: () =>
-      apiRequest(`/api/tutor/session/complete`, "POST", {
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/tutor/session/complete`, {
         sessionId: currentSession?.id,
         ratings
-      }),
+      });
+      return response.json();
+    },
     onSuccess: (data) => {
       toast({
         title: "Session Complete!",
