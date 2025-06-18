@@ -125,7 +125,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+  async updateUser(id: number, data: any): Promise<User | undefined> {
     console.log(`DATABASE: Updating user ${id} with data:`, data);
 
     try {

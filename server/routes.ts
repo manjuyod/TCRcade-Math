@@ -2170,14 +2170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get current user
         const user = await storage.getUser(userId);
         if (user) {
-          // Update user's tokens and track statistics using casting to handle type system conflicts
+          // Update user's tokens and track statistics using increment pattern
           const updatedUser = await storage.updateUser(userId, {
-            tokens: (user.tokens || 0) + tokens,
-            // Use type assertion to handle schema vs database mismatch
-            ["questions_answered" as keyof typeof user]:
-              ((user as any).questions_answered || 0) + total,
-            ["correct_answers" as keyof typeof user]:
-              ((user as any).correct_answers || 0) + correct
+            tokens: { increment: tokens },
+            questionsAnswered: { increment: total },
+            correctAnswers: { increment: correct }
           });
 
                     const newBalance = (user.tokens || 0) + tokens;
@@ -2444,7 +2441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const user = await storage.getUser(userId);
         if (user) {
           const updatedUser = await storage.updateUser(userId, {
-            tokens: (user.tokens || 0) + tokensEarned,
+            tokens: { increment: tokensEarned },
           });
 
           // Emit real-time token update
@@ -2485,7 +2482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: (user.tokens || 0) + totalTokens,
+          tokens: { increment: totalTokens },
         });
 
         // Record module history with module-specific grade level
@@ -2710,9 +2707,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (user) {
         const updatedUser = await storage.updateUser(userId, {
-          tokens: (user.tokens || 0) + tokensEarned,
-          questionsAnswered: (user.questionsAnswered || 0) + totalCount,
-          correctAnswers: (user.correctAnswers || 0) + correctCount,
+          tokens: { increment: tokensEarned },
+          questionsAnswered: { increment: totalCount },
+          correctAnswers: { increment: correctCount },
         });
 
         // Record module history with module-specific grade level
