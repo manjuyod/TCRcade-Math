@@ -2961,7 +2961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // console.log("query: ", req.query)
       const runType = req.query.runType as string
 
-      if (!runType || !['practice', 'token'].includes(runType)) {
+      if (!runType || !['practice', 'token', 'test', 'token_run'].includes(runType)) {
          console.log("run type: ", runType)
         return res.status(400).json({ error: "Invalid run type" });
       }

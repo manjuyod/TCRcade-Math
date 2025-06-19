@@ -4,11 +4,11 @@
     "passed": 4,
     "failed": 1,
     "partial": 0,
-    "executionTime": "8.2s",
+    "executionTime": "9.0s",
     "criticalIssues": 0,
-    "highPriorityIssues": 2,
-    "timestamp": "2025-06-19T00:58:07.629Z",
-    "authenticatedUser": "TestUser1750294679791"
+    "highPriorityIssues": 1,
+    "timestamp": "2025-06-19T01:00:12.216Z",
+    "authenticatedUser": "TestUser1750294803607"
   },
   "workflowResults": [
     {
@@ -26,7 +26,7 @@
     {
       "workflow": "questionsystem",
       "status": "PASS",
-      "executionTime": "4.1s",
+      "executionTime": "4.7s",
       "details": "Question generation and submission working"
     },
     {
@@ -38,7 +38,7 @@
     {
       "workflow": "modulehistorytracking",
       "status": "PASS",
-      "executionTime": "0.5s",
+      "executionTime": "0.6s",
       "details": "Module history tracking working"
     }
   ],
@@ -48,12 +48,6 @@
       "priority": "HIGH",
       "description": "Analytics response missing required fields",
       "fix": "Verify analytics calculation logic"
-    },
-    {
-      "issue": "Module History Recording Failed",
-      "priority": "HIGH",
-      "description": "Cannot record module completions",
-      "fix": "Fix module history recording endpoint"
     }
   ],
   "fixes": [
@@ -65,43 +59,34 @@
         "server/analytics-service.ts",
         "server/routes.ts"
       ]
-    },
-    {
-      "issue": "Module History Recording Failed",
-      "priority": "HIGH",
-      "fix": "Fix module history recording endpoint",
-      "files": [
-        "server/routes.ts",
-        "server/modules/"
-      ]
     }
   ],
   "recommendations": [
-    "Fix 2 high-priority issues for optimal performance"
+    "Fix 1 high-priority issues for optimal performance"
   ],
   "detailedResults": [
     {
       "test": "User Progress Data",
       "status": "PASS",
-      "duration": 469,
+      "duration": 464,
       "details": "User progress data structure validated"
     },
     {
       "test": "Analytics Generation",
       "status": "FAIL",
-      "duration": 229,
+      "duration": 231,
       "details": "Analytics generation failed"
     },
     {
       "test": "Question System",
       "status": "PASS",
-      "duration": 4073,
+      "duration": 4709,
       "details": "Question generation and submission working"
     },
     {
       "test": "Module Workflows",
       "status": "PASS",
-      "duration": 2124,
+      "duration": 2137,
       "details": "6/6 modules operational",
       "moduleResults": [
         {
@@ -139,7 +124,7 @@
     {
       "test": "Module History Tracking",
       "status": "PASS",
-      "duration": 455,
+      "duration": 557,
       "details": "Module history tracking working"
     }
   ]
