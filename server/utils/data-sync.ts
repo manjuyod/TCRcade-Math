@@ -21,32 +21,44 @@ export async function syncUserProgressData(userId: number): Promise<void> {
     totalQuestions += progress.total_questions_answered || 0;
     totalCorrect += progress.correct_answers || 0;
   });
-  
-  // Use the higher value between current database values and calculated module totals
-  // This preserves recent session completions that may not be reflected in module data yet
-  const finalTokens = Math.max(totalTokens, user.tokens || 0);
-  const finalQuestions = Math.max(totalQuestions, user.questionsAnswered || 0);
-  const finalCorrect = Math.max(totalCorrect, user.correctAnswers || 0);
+
+  // Computing how many New tokens to add
+  const oldTokens = user.tokens || 0;
+  const tokenDelta = totalTokens - oldTokens; // This should fix the token issue
+
   
   // Update both table fields AND JSON global_stats
   const updatedGlobalStats = {
     ...hiddenGradeAsset.global_stats,
-    total_tokens_earned: finalTokens,
-    total_questions_answered: finalQuestions,
-    total_correct_answers: finalCorrect,
+    total_tokens_earned: totalTokens,
+    total_questions_answered: totalQuestions,
+    total_correct_answers: totalCorrect,
     last_sync: new Date().toISOString()
   };
+
   
-  await storage.updateUser(userId, {
-    tokens: finalTokens,
-    questionsAnswered: finalQuestions,
-    correctAnswers: finalCorrect,
-    hiddenGradeAsset: {
-      ...hiddenGradeAsset,
-      global_stats: updatedGlobalStats
+    // 6. Build the update payload—only include tokens if there’s a positive delta
+    const updateData: {
+      tokens?: { increment: number };
+      questionsAnswered: number;
+      correctAnswers: number;
+      hiddenGradeAsset: any;
+    } = {
+      questionsAnswered: totalQuestions,
+      correctAnswers:    totalCorrect,
+      hiddenGradeAsset: {
+        ...hiddenGradeAsset,
+        global_stats: updatedGlobalStats,
+      },
+    };
+    if (tokenDelta > 0) {
+      updateData.tokens = { increment: tokenDelta };
     }
-  });
-}
+
+    // 7. Persist to the DB
+    await storage.updateUser(userId, updateData);
+  
+  } // END of syncUserProgressData function
 
 export async function syncAllUsers(): Promise<number> {
   const users = await storage.getAllUsers();
