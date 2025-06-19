@@ -1,0 +1,63 @@
+{
+  "testSummary": {
+    "totalTests": 2,
+    "passed": 1,
+    "failed": 1,
+    "partial": 0,
+    "executionTime": "0.1s",
+    "criticalIssues": 1,
+    "timestamp": "2025-06-19T00:52:19.762Z"
+  },
+  "workflowResults": [
+    {
+      "workflow": "serverhealth",
+      "status": "PASS",
+      "executionTime": "0.1s",
+      "details": "Server responding with status 200"
+    },
+    {
+      "workflow": "authenticationflow",
+      "status": "FAIL",
+      "executionTime": "0.0s",
+      "details": "Authentication failed"
+    }
+  ],
+  "criticalIssues": [
+    {
+      "issue": "User Authentication Failure",
+      "priority": "CRITICAL",
+      "description": "User endpoint returned 401",
+      "endpoint": "/api/user"
+    }
+  ],
+  "fixes": [
+    {
+      "issue": "Authentication middleware",
+      "priority": "CRITICAL",
+      "fix": "Update JWT secret validation and session management",
+      "files": [
+        "server/auth.ts",
+        "server/middleware.ts"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Address 1 critical issues immediately",
+    "Fix 1 critical authentication/data issues first",
+    "Implement comprehensive error handling in authentication middleware"
+  ],
+  "detailedResults": [
+    {
+      "test": "Server Health",
+      "status": "PASS",
+      "duration": 64,
+      "details": "Server responding with status 200"
+    },
+    {
+      "test": "Authentication Flow",
+      "status": "FAIL",
+      "duration": 8,
+      "details": "Authentication failed"
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "testSummary": {
+    "totalTests": 5,
+    "passed": 3,
+    "failed": 2,
+    "partial": 0,
+    "executionTime": "4.2s",
+    "criticalIssues": 0,
+    "highPriorityIssues": 3,
+    "timestamp": "2025-06-19T00:54:14.625Z",
+    "authenticatedUser": "TestUser1750294450717"
+  },
+  "workflowResults": [
+    {
+      "workflow": "userprogressdata",
+      "status": "PASS",
+      "executionTime": "0.4s",
+      "details": "User progress data structure validated"
+    },
+    {
+      "workflow": "analyticsgeneration",
+      "status": "FAIL",
+      "executionTime": "0.2s",
+      "details": "Analytics generation failed"
+    },
+    {
+      "workflow": "questionsystem",
+      "status": "FAIL",
+      "executionTime": "0.2s",
+      "details": "Question system failures detected"
+    },
+    {
+      "workflow": "moduleworkflows",
+      "status": "PASS",
+      "executionTime": "2.1s",
+      "details": "6/6 modules operational"
+    },
+    {
+      "workflow": "modulehistorytracking",
+      "status": "PASS",
+      "executionTime": "0.4s",
+      "details": "Module history tracking working"
+    }
+  ],
+  "criticalIssues": [
+    {
+      "issue": "Incomplete Analytics Data",
+      "priority": "HIGH",
+      "description": "Analytics response missing required fields",
+      "fix": "Verify analytics calculation logic"
+    },
+    {
+      "issue": "Incomplete Question Data",
+      "priority": "HIGH",
+      "description": "Generated question missing required fields",
+      "fix": "Verify question generation logic and OpenAI integration"
+    },
+    {
+      "issue": "Module History Recording Failed",
+      "priority": "HIGH",
+      "description": "Cannot record module completions",
+      "fix": "Fix module history recording endpoint"
+    }
+  ],
+  "fixes": [
+    {
+      "issue": "Incomplete Analytics Data",
+      "priority": "HIGH",
+      "fix": "Verify analytics calculation logic",
+      "files": [
+        "server/analytics-service.ts",
+        "server/routes.ts"
+      ]
+    },
+    {
+      "issue": "Incomplete Question Data",
+      "priority": "HIGH",
+      "fix": "Verify question generation logic and OpenAI integration",
+      "files": [
+        "server/openai.ts",
+        "server/routes.ts"
+      ]
+    },
+    {
+      "issue": "Module History Recording Failed",
+      "priority": "HIGH",
+      "fix": "Fix module history recording endpoint",
+      "files": [
+        "server/routes.ts",
+        "server/modules/"
+      ]
+    }
+  ],
+  "recommendations": [
+    "Fix 3 high-priority issues for optimal performance",
+    "Verify OpenAI API key configuration and question generation logic"
+  ],
+  "detailedResults": [
+    {
+      "test": "User Progress Data",
+      "status": "PASS",
+      "duration": 443,
+      "details": "User progress data structure validated"
+    },
+    {
+      "test": "Analytics Generation",
+      "status": "FAIL",
+      "duration": 221,
+      "details": "Analytics generation failed"
+    },
+    {
+      "test": "Question System",
+      "status": "FAIL",
+      "duration": 220,
+      "details": "Question system failures detected"
+    },
+    {
+      "test": "Module Workflows",
+      "status": "PASS",
+      "duration": 2081,
+      "details": "6/6 modules operational",
+      "moduleResults": [
+        {
+          "module": "Math Facts Addition",
+          "status": "PASS",
+          "endpoint": "/api/math-facts/addition?grade=3"
+        },
+        {
+          "module": "Math Rush",
+          "status": "PASS",
+          "endpoint": "/api/rush/start"
+        },
+        {
+          "module": "Fractions Puzzle",
+          "status": "PASS",
+          "endpoint": "/api/fractions/start"
+        },
+        {
+          "module": "Decimal Defender",
+          "status": "PASS",
+          "endpoint": "/api/decimal-defender/start"
+        },
+        {
+          "module": "Measurement",
+          "status": "PASS",
+          "endpoint": "/api/measurement/questions?grade=3"
+        },
+        {
+          "module": "Ratios",
+          "status": "PASS",
+          "endpoint": "/api/ratios/questions?grade=6"
+        }
+      ]
+    },
+    {
+      "test": "Module History Tracking",
+      "status": "PASS",
+      "duration": 437,
+      "details": "Module history tracking working"
+    }
+  ]
+}
