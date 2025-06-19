@@ -248,7 +248,11 @@ export default function RecTutorPage() {
 
   // Update current question when question data changes
   useEffect(() => {
-    if (questionData?.question) {
+    if (questionData?.questions && questionData.questions.length > 0) {
+      // Take the first available question from the recommendations
+      setCurrentQuestion(questionData.questions[0]);
+    } else if (questionData?.question) {
+      // Fallback for single question response
       setCurrentQuestion(questionData.question);
     }
   }, [questionData]);
