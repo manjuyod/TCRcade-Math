@@ -13,3 +13,20 @@ declare namespace Express {
     };
   }
 }
+export interface SessionData {
+  userId?: number;
+  sessionId?: string;
+  moduleId?: string;
+  startTime?: Date;
+  lastActivity?: Date;
+}
+
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    sessionId?: string;
+    moduleId?: string;
+    startTime?: Date;
+    lastActivity?: Date;
+  }
+}
