@@ -204,7 +204,6 @@ function generateSVGImage(content: any, type: string): string {
   // Per user request, return an empty string with no visual elements at all
   console.log("SVG image generation completely disabled per user request");
   return "";
-  F
   /* Original SVG generation code has been disabled and will never execute
   const svgWidth = 300;
   const svgHeight = 200;
