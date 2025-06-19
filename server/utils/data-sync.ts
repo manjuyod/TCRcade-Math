@@ -4,7 +4,7 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 export async function syncUserProgressData(userId: number): Promise<void> {
-  const user = await storage.getUser(userId);
+  const user: User | undefined = await storage.getUser(userId);
   if (!user) throw new Error('User not found');
 
   const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
@@ -22,19 +22,25 @@ export async function syncUserProgressData(userId: number): Promise<void> {
     totalCorrect += progress.correct_answers || 0;
   });
   
+  // Use the higher value between current database values and calculated module totals
+  // This preserves recent session completions that may not be reflected in module data yet
+  const finalTokens = Math.max(totalTokens, user.tokens || 0);
+  const finalQuestions = Math.max(totalQuestions, user.questionsAnswered || 0);
+  const finalCorrect = Math.max(totalCorrect, user.correctAnswers || 0);
+  
   // Update both table fields AND JSON global_stats
   const updatedGlobalStats = {
     ...hiddenGradeAsset.global_stats,
-    total_tokens_earned: totalTokens,
-    total_questions_answered: totalQuestions,
-    total_correct_answers: totalCorrect,
+    total_tokens_earned: finalTokens,
+    total_questions_answered: finalQuestions,
+    total_correct_answers: finalCorrect,
     last_sync: new Date().toISOString()
   };
   
   await storage.updateUser(userId, {
-    tokens: totalTokens,
-    questionsAnswered: totalQuestions,
-    correctAnswers: totalCorrect,
+    tokens: finalTokens,
+    questionsAnswered: finalQuestions,
+    correctAnswers: finalCorrect,
     hiddenGradeAsset: {
       ...hiddenGradeAsset,
       global_stats: updatedGlobalStats
