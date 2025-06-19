@@ -4,17 +4,17 @@
     "passed": 4,
     "failed": 1,
     "partial": 0,
-    "executionTime": "9.0s",
+    "executionTime": "7.8s",
     "criticalIssues": 0,
     "highPriorityIssues": 1,
-    "timestamp": "2025-06-19T01:00:12.216Z",
-    "authenticatedUser": "TestUser1750294803607"
+    "timestamp": "2025-06-19T01:02:02.774Z",
+    "authenticatedUser": "TestUser1750294915328"
   },
   "workflowResults": [
     {
       "workflow": "userprogressdata",
       "status": "PASS",
-      "executionTime": "0.5s",
+      "executionTime": "0.4s",
       "details": "User progress data structure validated"
     },
     {
@@ -26,7 +26,7 @@
     {
       "workflow": "questionsystem",
       "status": "PASS",
-      "executionTime": "4.7s",
+      "executionTime": "3.7s",
       "details": "Question generation and submission working"
     },
     {
@@ -38,7 +38,7 @@
     {
       "workflow": "modulehistorytracking",
       "status": "PASS",
-      "executionTime": "0.6s",
+      "executionTime": "0.5s",
       "details": "Module history tracking working"
     }
   ],
@@ -46,7 +46,7 @@
     {
       "issue": "Incomplete Analytics Data",
       "priority": "HIGH",
-      "description": "Analytics response missing required fields",
+      "description": "Analytics response missing required fields. Found: ",
       "fix": "Verify analytics calculation logic"
     }
   ],
@@ -68,25 +68,25 @@
     {
       "test": "User Progress Data",
       "status": "PASS",
-      "duration": 464,
+      "duration": 442,
       "details": "User progress data structure validated"
     },
     {
       "test": "Analytics Generation",
       "status": "FAIL",
-      "duration": 231,
+      "duration": 221,
       "details": "Analytics generation failed"
     },
     {
       "test": "Question System",
       "status": "PASS",
-      "duration": 4709,
+      "duration": 3679,
       "details": "Question generation and submission working"
     },
     {
       "test": "Module Workflows",
       "status": "PASS",
-      "duration": 2137,
+      "duration": 2077,
       "details": "6/6 modules operational",
       "moduleResults": [
         {
@@ -124,7 +124,7 @@
     {
       "test": "Module History Tracking",
       "status": "PASS",
-      "duration": 557,
+      "duration": 526,
       "details": "Module history tracking working"
     }
   ]

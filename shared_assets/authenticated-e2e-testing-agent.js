@@ -53,8 +53,13 @@ class AuthenticatedE2ETestingAgent {
       const response = await fetch(url, finalOptions);
       
       // Capture session cookie if present
-      if (response.headers.get('set-cookie')) {
-        this.sessionCookie = response.headers.get('set-cookie');
+      const setCookieHeader = response.headers.get('set-cookie');
+      if (setCookieHeader) {
+        // Extract just the session ID part
+        const sessionMatch = setCookieHeader.match(/connect\.sid=([^;]+)/);
+        if (sessionMatch) {
+          this.sessionCookie = `connect.sid=${sessionMatch[1]}`;
+        }
       }
       
       const data = await response.json().catch(() => ({}));
@@ -242,17 +247,26 @@ class AuthenticatedE2ETestingAgent {
       if (analyticsResponse.ok && analyticsResponse.data) {
         const analytics = analyticsResponse.data;
         
-        // Validate analytics structure
+        // Log analytics structure for debugging
+        console.log('Analytics response structure:', JSON.stringify(analytics, null, 2));
+        
+        // Validate analytics structure - check for required fields
         if (analytics.totalTokens !== undefined && analytics.accuracyStats !== undefined) {
           this.log('Analytics generation successful');
           analyticsSuccess = true;
         } else {
-          this.criticalIssues.push({
-            issue: 'Incomplete Analytics Data',
-            priority: 'HIGH',
-            description: 'Analytics response missing required fields',
-            fix: 'Verify analytics calculation logic'
-          });
+          // Check if fields are nested under analytics key
+          if (analytics.analytics && analytics.totalTokens !== undefined && analytics.accuracyStats !== undefined) {
+            this.log('Analytics generation successful (nested structure)');
+            analyticsSuccess = true;
+          } else {
+            this.criticalIssues.push({
+              issue: 'Incomplete Analytics Data',
+              priority: 'HIGH',
+              description: `Analytics response missing required fields. Found: ${Object.keys(analytics).join(', ')}`,
+              fix: 'Verify analytics calculation logic'
+            });
+          }
         }
       } else {
         this.criticalIssues.push({
