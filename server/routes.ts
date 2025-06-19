@@ -2880,7 +2880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const runType = req.query.runType as string || 'practice';
       const { preloadMeasurementQuestions } = await import('./modules/measurement');
 
-      if (!runType || !['practice', 'token'].includes(runType)) {
+      if (!runType || !['practice', 'token', 'test', 'token_run'].includes(runType)) {
         return res.status(400).json({ error: "Invalid run type" });
       }
 
@@ -3507,9 +3507,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate runType
-      if (!['test', 'token_run'].includes(runType)) {
+      if (!['test', 'token_run', 'practice'].includes(runType)) {
         return res.status(400).json({ 
-          error: "runType must be either 'test' or 'token_run'" 
+          error: "runType must be either 'test', 'token_run', or 'practice'" 
         });
       }
 

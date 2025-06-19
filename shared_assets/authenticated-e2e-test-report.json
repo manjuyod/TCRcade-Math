@@ -1,20 +1,20 @@
 {
   "testSummary": {
     "totalTests": 5,
-    "passed": 3,
-    "failed": 2,
+    "passed": 4,
+    "failed": 1,
     "partial": 0,
-    "executionTime": "4.2s",
+    "executionTime": "8.2s",
     "criticalIssues": 0,
-    "highPriorityIssues": 3,
-    "timestamp": "2025-06-19T00:54:14.625Z",
-    "authenticatedUser": "TestUser1750294450717"
+    "highPriorityIssues": 2,
+    "timestamp": "2025-06-19T00:58:07.629Z",
+    "authenticatedUser": "TestUser1750294679791"
   },
   "workflowResults": [
     {
       "workflow": "userprogressdata",
       "status": "PASS",
-      "executionTime": "0.4s",
+      "executionTime": "0.5s",
       "details": "User progress data structure validated"
     },
     {
@@ -25,9 +25,9 @@
     },
     {
       "workflow": "questionsystem",
-      "status": "FAIL",
-      "executionTime": "0.2s",
-      "details": "Question system failures detected"
+      "status": "PASS",
+      "executionTime": "4.1s",
+      "details": "Question generation and submission working"
     },
     {
       "workflow": "moduleworkflows",
@@ -38,7 +38,7 @@
     {
       "workflow": "modulehistorytracking",
       "status": "PASS",
-      "executionTime": "0.4s",
+      "executionTime": "0.5s",
       "details": "Module history tracking working"
     }
   ],
@@ -48,12 +48,6 @@
       "priority": "HIGH",
       "description": "Analytics response missing required fields",
       "fix": "Verify analytics calculation logic"
-    },
-    {
-      "issue": "Incomplete Question Data",
-      "priority": "HIGH",
-      "description": "Generated question missing required fields",
-      "fix": "Verify question generation logic and OpenAI integration"
     },
     {
       "issue": "Module History Recording Failed",
@@ -73,15 +67,6 @@
       ]
     },
     {
-      "issue": "Incomplete Question Data",
-      "priority": "HIGH",
-      "fix": "Verify question generation logic and OpenAI integration",
-      "files": [
-        "server/openai.ts",
-        "server/routes.ts"
-      ]
-    },
-    {
       "issue": "Module History Recording Failed",
       "priority": "HIGH",
       "fix": "Fix module history recording endpoint",
@@ -92,32 +77,31 @@
     }
   ],
   "recommendations": [
-    "Fix 3 high-priority issues for optimal performance",
-    "Verify OpenAI API key configuration and question generation logic"
+    "Fix 2 high-priority issues for optimal performance"
   ],
   "detailedResults": [
     {
       "test": "User Progress Data",
       "status": "PASS",
-      "duration": 443,
+      "duration": 469,
       "details": "User progress data structure validated"
     },
     {
       "test": "Analytics Generation",
       "status": "FAIL",
-      "duration": 221,
+      "duration": 229,
       "details": "Analytics generation failed"
     },
     {
       "test": "Question System",
-      "status": "FAIL",
-      "duration": 220,
-      "details": "Question system failures detected"
+      "status": "PASS",
+      "duration": 4073,
+      "details": "Question generation and submission working"
     },
     {
       "test": "Module Workflows",
       "status": "PASS",
-      "duration": 2081,
+      "duration": 2124,
       "details": "6/6 modules operational",
       "moduleResults": [
         {
@@ -155,7 +139,7 @@
     {
       "test": "Module History Tracking",
       "status": "PASS",
-      "duration": 437,
+      "duration": 455,
       "details": "Module history tracking working"
     }
   ]
