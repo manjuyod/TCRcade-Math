@@ -217,6 +217,16 @@ function generateSVGImage(content: any, type: string): string {
   const svgFooter = `</svg>`;
   */
 
+  // Since SVG generation is disabled, return empty string
+  return "";
+}
+
+/* Disabled SVG generation function - all code below was commented out
+function generateSVGImageDisabled(content: any, type: string): string {
+  const svgWidth = 300;
+  const svgHeight = 200;
+  let svgContent = '';
+
   // Generate appropriate content based on type
   if (type === "money") {
     // Special case for money visuals (US currency)
@@ -1286,7 +1296,6 @@ export async function generateAdaptiveQuestion(params: AdaptiveQuestionParams) {
           - options: An array of 4 possible answers including the correct one (realistic distractors)
           - explanation: A brief explanation of how to solve the problem
           - difficulty: A number 1-5
-```text
           - concepts: Array of specific math concepts covered (be granular)
           - grade: The grade level ("K", "1", "2", etc.)
           - category: A specific category like "Arithmetic", "Algebra", "Fractions", etc.
@@ -1999,7 +2008,6 @@ Make sure it's appropriate for the student's level and provides a learning oppor
         }
 
         // Set the image content based on the fraction
-        ```text
         imageContent = [numerator, denominator];
         console.log(`Setting fraction image content: ${numerator}/${denominator}`);
 
