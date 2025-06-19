@@ -1,0 +1,200 @@
+
+# End-to-End Workflow Testing Agent
+
+## Objective
+Create and execute a comprehensive end-to-end test suite that validates all application workflows, identifies critical failures, and provides actionable fixes for the crashed application.
+
+## Project Context
+- **Stack**: React TS client, Node Express TS server, Drizzle ORM
+- **Current State**: Application crashed with multiple workflow failures
+- **Test Results**: 10/13 tests failing, primarily authentication and data flow issues
+
+## Critical Issues Identified
+Based on current test failures:
+1. **Authentication System**: 401 errors across all authenticated endpoints
+2. **User Progress Data**: Missing `hiddenGradeAsset` JSON data structure
+3. **Analytics Generation**: Complete failure in analytics pipeline
+4. **Question Systems**: Adaptive questions and submissions broken
+5. **Module Progress**: Session management and navigation issues
+
+## Test Implementation Requirements
+
+### 1. Authentication Flow Testing
+```javascript
+// Test user login, session management, and token validation
+async testAuthentication() {
+  // Login flow
+  // Session persistence
+  // Token refresh
+  // Protected route access
+}
+```
+
+### 2. Database Integrity Testing
+```javascript
+// Validate all database operations and data structures
+async testDatabaseOperations() {
+  // User data migration verification
+  // hiddenGradeAsset JSON structure validation
+  // Module history tracking
+  // Progress persistence
+}
+```
+
+### 3. Module Workflow Testing
+```javascript
+// Test each module's complete workflow
+async testModuleWorkflows() {
+  // Math Facts (addition, subtraction, multiplication, division)
+  // Algebra module
+  // Fractions Puzzle
+  // Decimal Defender
+  // Math Rush
+  // Measurement
+  // Ratios
+}
+```
+
+### 4. Question System Testing
+```javascript
+// Validate question generation, submission, and grading
+async testQuestionSystem() {
+  // Adaptive question generation
+  // Question submission and validation
+  // Grade calculation and progression
+  // Answer feedback system
+}
+```
+
+### 5. Analytics and Progress Testing
+```javascript
+// Test analytics generation and progress tracking
+async testAnalyticsSystem() {
+  // User analytics generation
+  // Progress data aggregation
+  // Subject mastery calculations
+  // Token tracking and updates
+}
+```
+
+## Expected Test Coverage
+
+### Core Workflows
+- [ ] User registration and authentication
+- [ ] Module selection and initialization
+- [ ] Question generation and display
+- [ ] Answer submission and validation
+- [ ] Progress tracking and persistence
+- [ ] Analytics generation and display
+- [ ] Session management and navigation
+
+### Data Flow Validation
+- [ ] User progress data structure integrity
+- [ ] Module history tracking accuracy
+- [ ] Token system functionality
+- [ ] Grade progression logic
+- [ ] Achievement and streak tracking
+
+### Error Handling
+- [ ] Network failure recovery
+- [ ] Authentication token expiration
+- [ ] Invalid question submissions
+- [ ] Database connection issues
+- [ ] Session timeout handling
+
+## Implementation Strategy
+
+### Phase 1: Fix Critical Authentication Issues
+1. Identify root cause of 401 errors
+2. Validate JWT token generation and verification
+3. Test session management and persistence
+4. Fix authentication middleware
+
+### Phase 2: Restore Data Flow
+1. Repair `hiddenGradeAsset` data structure
+2. Validate user progress migration
+3. Test module history tracking
+4. Ensure analytics data pipeline
+
+### Phase 3: Module-Specific Testing
+1. Test each module's complete workflow
+2. Validate question generation and submission
+3. Verify grade progression logic
+4. Test session navigation and state management
+
+### Phase 4: Integration Testing
+1. End-to-end user journey testing
+2. Cross-module navigation testing
+3. Analytics and progress integration
+4. Performance and reliability testing
+
+## Test Execution Requirements
+
+### Environment Setup
+- Use existing test infrastructure in `shared_assets/e2e-test-suite.js`
+- Target local development server on `http://localhost:5000`
+- Implement proper test data isolation
+- Ensure database state cleanup between tests
+
+### Reporting
+Generate comprehensive test reports including:
+- **Summary**: Total tests, pass/fail counts, execution time
+- **Detailed Results**: Per-test status with error details
+- **Recommendations**: Specific fixes for each failure
+- **Priority Assessment**: Critical vs. minor issues
+
+### Success Criteria
+- Authentication system fully functional
+- All modules operational end-to-end
+- User progress data accurately tracked
+- Analytics system generating valid reports
+- Zero critical workflow failures
+
+## Expected Output Format
+
+```json
+{
+  "testSummary": {
+    "totalTests": 25,
+    "passed": 23,
+    "failed": 2,
+    "executionTime": "45s",
+    "criticalIssues": 0
+  },
+  "workflowResults": [
+    {
+      "workflow": "authentication",
+      "status": "PASS",
+      "tests": ["login", "session", "tokens"],
+      "executionTime": "3.2s"
+    },
+    {
+      "workflow": "mathFacts",
+      "status": "PASS",
+      "tests": ["setup", "questions", "submission", "grading"],
+      "executionTime": "8.7s"
+    }
+  ],
+  "fixes": [
+    {
+      "issue": "Authentication middleware",
+      "priority": "CRITICAL",
+      "fix": "Update JWT secret validation in auth.ts",
+      "files": ["server/auth.ts"]
+    }
+  ],
+  "recommendations": [
+    "Implement comprehensive error handling in question submission",
+    "Add retry logic for analytics generation",
+    "Improve session state management"
+  ]
+}
+```
+
+## Action Items
+1. **Immediate**: Fix authentication system causing 401 errors
+2. **High Priority**: Restore user progress data structure
+3. **Medium Priority**: Validate module-specific workflows
+4. **Low Priority**: Optimize performance and add monitoring
+
+This agent should systematically test and fix all workflow issues to restore full application functionality.
