@@ -133,22 +133,30 @@ export async function getCurrentProgressionType(userId: number, operator: string
     const progressionData = await getUserProgressionData(userId, operator);
     const progression = getProgressionForOperator(operator);
     const typesComplete = progressionData.types_complete || [];
+    const autoSkipTypes = getAutoSkipTypes(operator, progressionData.grade || '3');
     
     console.log(`Current types complete for ${operator}:`, typesComplete);
     console.log(`Full progression for ${operator}:`, progression);
+    console.log(`Auto-skip types for ${operator}:`, autoSkipTypes);
     
-    // Find the lowest index type that is not in types_complete
+    // Find the first incomplete type that should be completed next
+    // This enforces sequential progression
     for (let i = 0; i < progression.length; i++) {
       const type = progression[i];
       const isComplete = typesComplete.includes(type);
-      console.log(`Checking type "${type}" (index ${i}) - Complete: ${isComplete}`);
+      const isAutoSkipped = autoSkipTypes.includes(type);
       
-      if (!isComplete) {
-        console.log(`Selected progression type for ${operator}: ${type} (index ${i})`);
-        return type;
-      } else {
-        console.log(`Skipping already complete type: ${type}`);
+      console.log(`Checking type "${type}" (index ${i}) - Complete: ${isComplete}, Auto-skipped: ${isAutoSkipped}`);
+      
+      // Skip if auto-skipped or already complete
+      if (isAutoSkipped || isComplete) {
+        console.log(`Skipping type: ${type} (${isAutoSkipped ? 'auto-skipped' : 'already complete'})`);
+        continue;
       }
+      
+      // This is the next type that needs to be completed
+      console.log(`PROGRESSION ENFORCEMENT: Selected type for ${operator}: ${type} (index ${i})`);
+      return type;
     }
     
     // All types complete
