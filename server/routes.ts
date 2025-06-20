@@ -2452,6 +2452,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Math Rush micro-token update endpoint
+  app.post("/api/rush/micro-tokens", ensureAuthenticated, async (req, res) => {
+    try {
+      const { operator, correctAnswers } = req.body;
+      const userId = getUserId(req);
+
+      if (!operator || typeof correctAnswers !== 'number') {
+        return res.status(400).json({ error: "Missing operator or correctAnswers" });
+      }
+
+      const { storeMicroTokens } = await import("./modules/mathRush");
+      const result = await storeMicroTokens(userId, operator, correctAnswers);
+
+      if (result.shouldUpdate) {
+        // Get updated user for current token balance
+        const user = await storage.getUser(userId);
+        
+        // Emit real-time token update
+        const tokenNamespace = (global as any).tokenNamespace;
+        if (tokenNamespace && user) {
+          tokenNamespace
+            .to(`user_${userId}`)
+            .emit("token_updated", user.tokens);
+        }
+
+        res.json({
+          success: true,
+          tokensEarned: result.tokensEarned,
+          newBalance: user?.tokens || 0
+        });
+      } else {
+        res.json({
+          success: true,
+          tokensEarned: 0,
+          newBalance: null
+        });
+      }
+    } catch (error) {
+      console.error("Error processing micro-tokens:", error);
+      res.status(500).json({ error: "Failed to process micro-tokens" });
+    }
+  });
+
   // Math Rush routes
   app.get("/api/rush/types", async (req, res) => {
     try {

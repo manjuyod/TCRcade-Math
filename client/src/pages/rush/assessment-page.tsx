@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { tokenManager } from '@/lib/token-manager';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -27,7 +29,6 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 type AssessmentQuestion = {
@@ -56,6 +57,7 @@ export default function MathRushAssessmentPage() {
   const [assessmentComplete, setAssessmentComplete] = useState(false);
   const [assessmentStarted, setAssessmentStarted] = useState(false);
   const [timeExpired, setTimeExpired] = useState(false);
+  const [correctCount, setCorrectCount] = useState(0);
 
   // Timer for 1-minute assessment
   const { timeRemaining, isRunning, startTimer, stopTimer, resetTimer } = useCountdownTimer(60);
@@ -150,6 +152,7 @@ export default function MathRushAssessmentPage() {
     }
   };
 
+  // Handle answer submission
   const handleAnswerSubmit = () => {
     if (!userAnswer.trim() || timeExpired) return;
 
@@ -163,6 +166,22 @@ export default function MathRushAssessmentPage() {
 
     const newAnswers = [...answers, newAnswer];
     setAnswers(newAnswers);
+
+    // Update score and check for micro-token award
+    if (isCorrect) {
+      const newCorrectCount = correctCount + 1;
+      setCorrectCount(newCorrectCount);
+
+      // Award micro-tokens every 3 correct answers
+      const tokensEarned = tokenManager.updateTokens(operator, newCorrectCount);
+      if (tokensEarned > 0) {
+        toast({
+          title: "Tokens Earned!",
+          description: `+${tokensEarned} token${tokensEarned > 1 ? 's' : ''} for ${newCorrectCount} correct answers!`,
+          duration: 2000,
+        });
+      }
+    }
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);

@@ -11,6 +11,43 @@ import {
 } from "./mathRushProgression";
 
 /**
+ * Store tokens locally and mirror to hidden_grade_asset for Math Rush assessments
+ * Awards 1 token per 3 correct answers with instant UI updates
+ */
+export async function storeMicroTokens(userId: number, operator: string, correctAnswers: number): Promise<{ tokensEarned: number, shouldUpdate: boolean }> {
+  // Calculate tokens: 1 token per 3 correct answers
+  const tokensEarned = Math.floor(correctAnswers / 3);
+  const shouldUpdate = tokensEarned > 0;
+
+  if (!shouldUpdate) {
+    return { tokensEarned: 0, shouldUpdate: false };
+  }
+
+  try {
+    // Update both users.tokens and hidden_grade_asset simultaneously
+    const moduleKey = `math_rush_${operator}`;
+    
+    await db.execute(sql`
+      UPDATE users 
+      SET 
+        tokens = COALESCE(tokens, 0) + ${tokensEarned},
+        hidden_grade_asset = jsonb_set(
+          COALESCE(hidden_grade_asset, '{}'),
+          '{modules,${sql.raw(moduleKey)},progress,tokens_earned}',
+          to_jsonb(COALESCE((hidden_grade_asset #> '{modules,${sql.raw(moduleKey)},progress,tokens_earned}')::integer, 0) + ${tokensEarned})
+        )
+      WHERE id = ${userId}
+    `);
+
+    console.log(`Micro-token update: User ${userId} earned ${tokensEarned} tokens for ${correctAnswers} correct answers in ${operator}`);
+    return { tokensEarned, shouldUpdate: true };
+  } catch (error) {
+    console.error('Error storing micro tokens:', error);
+    return { tokensEarned: 0, shouldUpdate: false };
+  }
+}
+
+/**
  * Check if user has taken assessment for a specific Math Rush operator
  * @param userId - User ID
  * @param operator - Math operator (addition, subtraction, multiplication, division)

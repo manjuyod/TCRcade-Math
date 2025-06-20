@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/use-auth';
 import { queryClient } from '@/lib/queryClient';
+import { tokenManager } from '@/lib/token-manager';
 
 /**
  * Custom hook for real-time token updates via Socket.IO
@@ -50,6 +51,9 @@ export function useTokenSocket() {
      // Handle real-time token update
         const handleTokenUpdate = (newTokenBalance: number) => {
           console.log(`Received real-time token update: ${newTokenBalance} tokens`);
+
+          // Update token manager balance
+          tokenManager.setBalance(newTokenBalance);
 
           // Update cache immediately
           queryClient.setQueryData(['/api/user'], (oldUser: any) => {
