@@ -2576,7 +2576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { completeAssessment } = await import("./modules/mathRush");
-      await completeAssessment(userId, operator, score);
+      await completeAssessment(userId, operator, score, answers);
       
       res.json({ success: true, message: "Assessment completed successfully" });
     } catch (error) {

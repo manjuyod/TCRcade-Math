@@ -455,32 +455,69 @@ export async function completeAssessment(userId: number, operator: string, score
     if (assessmentAnswers && assessmentAnswers.length > 0) {
       console.log(`Analyzing ${assessmentAnswers.length} assessment answers for ${operator}`);
 
-      // Group answers by question type
-      const typePerformance: Record<string, { correct: number; total: number }> = {};
+      try {
+        // Extract question IDs from answers
+        const correctQuestionIds = assessmentAnswers
+          .filter(answer => answer.isCorrect)
+          .map(answer => answer.questionId)
+          .filter(id => id != null);
 
-      assessmentAnswers.forEach(answer => {
-        const questionType = answer.questionType || answer.type || 'unknown';
-        if (!typePerformance[questionType]) {
-          typePerformance[questionType] = { correct: 0, total: 0 };
+        const incorrectQuestionIds = assessmentAnswers
+          .filter(answer => !answer.isCorrect)
+          .map(answer => answer.questionId)
+          .filter(id => id != null);
+
+        console.log(`Correct question IDs (${correctQuestionIds.length}):`, correctQuestionIds);
+        console.log(`Incorrect question IDs (${incorrectQuestionIds.length}):`, incorrectQuestionIds);
+
+        // Get question types for correct answers (types to potentially mark complete)
+        let typesToIgnore: string[] = [];
+        if (correctQuestionIds.length > 0) {
+          const correctTypesResult = await db.execute(sql`
+            SELECT array_agg(DISTINCT elem) AS types 
+            FROM assessments 
+            CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
+            WHERE id = ANY(${correctQuestionIds})
+          `);
+          const resultTypes = correctTypesResult.rows?.[0]?.types;
+          typesToIgnore = Array.isArray(resultTypes) ? resultTypes : [];
         }
-        typePerformance[questionType].total++;
-        if (answer.isCorrect) {
-          typePerformance[questionType].correct++;
+
+        // Get question types for incorrect answers (types to target for remediation)
+        let typesToTarget: string[] = [];
+        if (incorrectQuestionIds.length > 0) {
+          const incorrectTypesResult = await db.execute(sql`
+            SELECT array_agg(DISTINCT elem) AS types 
+            FROM assessments 
+            CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
+            WHERE id = ANY(${incorrectQuestionIds})
+          `);
+          const resultTypes = incorrectTypesResult.rows?.[0]?.types;
+          typesToTarget = Array.isArray(resultTypes) ? resultTypes : [];
         }
-      });
 
-      console.log(`Type performance for ${operator}:`, typePerformance);
+        console.log(`Types from correct answers (to ignore):`, typesToIgnore);
+        console.log(`Types from incorrect answers (to target):`, typesToTarget);
 
-      // Mark types as complete if user showed mastery (80%+ correct for that type)
-      Object.entries(typePerformance).forEach(([type, performance]) => {
-        const masteryPercentage = (performance.correct / performance.total) * 100;
-        console.log(`Type "${type}": ${performance.correct}/${performance.total} = ${masteryPercentage.toFixed(1)}%`);
+        // Apply precedence rule: Types to target (incorrect) trumps types to ignore (correct)
+        // Only mark types as complete if they appear in correct answers AND NOT in incorrect answers
+        const typesToMarkComplete = typesToIgnore.filter(type => !typesToTarget.includes(type));
 
-        if (masteryPercentage >= 80 && !typesComplete.includes(type)) {
-          typesComplete.push(type);
-          console.log(`Marking type "${type}" as complete due to ${masteryPercentage.toFixed(1)}% mastery`);
-        }
-      });
+        console.log(`Types to mark complete (mastered):`, typesToMarkComplete);
+
+        // Add mastered types to typesComplete array
+        typesToMarkComplete.forEach(type => {
+          if (!typesComplete.includes(type)) {
+            typesComplete.push(type);
+            console.log(`Marking type "${type}" as complete due to mastery (no incorrect answers)`);
+          }
+        });
+
+      } catch (error) {
+        console.error(`Error analyzing assessment answers for ${operator}:`, error);
+        // Fall back to simple analysis if database queries fail
+        console.log('Falling back to simple assessment analysis');
+      }
     } else {
       // Fallback logic: if they passed overall assessment, mark first progression step as complete
       const progression = getProgressionForOperator(operator);
