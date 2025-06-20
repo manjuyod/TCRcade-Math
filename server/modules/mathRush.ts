@@ -41,7 +41,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
         FROM assessments 
         WHERE module = 'math_rush' AND properties->>'facts_type' = 'addition'
         ORDER BY random()
-        LIMIT 10
+        LIMIT 24
       `;
     } else if (operator === 'subtraction') {
       query = sql`
@@ -49,7 +49,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
         FROM assessments 
         WHERE module = 'math_rush' AND properties->>'facts_type' = 'subtraction'
         ORDER BY random()
-        LIMIT 10
+        LIMIT 24
       `;
     } else if (operator === 'multiplication') {
       // Convert grade to numeric for grade-based filtering
@@ -62,7 +62,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
         WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
         AND properties->>'facts_type' = 'multiplication'
         ORDER BY random()
-        LIMIT 10
+        LIMIT 24
       `;
     } else if (operator === 'division') {
       // Convert grade to numeric for grade-based filtering
@@ -75,7 +75,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
         WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
         AND properties->>'facts_type' = 'division'
         ORDER BY random()
-        LIMIT 10
+        LIMIT 24
       `;
     } else {
       return [];

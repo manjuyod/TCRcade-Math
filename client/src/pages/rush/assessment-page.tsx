@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/use-auth';
 import Header from '@/components/header';
 import Navigation from '@/components/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { 
   ArrowRight, 
   Timer,
@@ -14,7 +15,8 @@ import {
   Divide,
   Check,
   AlertCircle,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { 
   Card, 
@@ -50,6 +52,11 @@ export default function MathRushAssessmentPage() {
   const [answers, setAnswers] = useState<Array<{questionId: number, selectedAnswer: string, correctAnswer: string, isCorrect: boolean}>>([]);
   const [showResults, setShowResults] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
+  const [timeExpired, setTimeExpired] = useState(false);
+
+  // Timer for 1-minute assessment
+  const { timeRemaining, isRunning, startTimer, stopTimer, resetTimer } = useCountdownTimer(60);
 
   // Fetch assessment questions
   const { data: questionsData, isLoading: questionsLoading } = useQuery({
@@ -91,6 +98,30 @@ export default function MathRushAssessmentPage() {
 
   const questions = questionsData?.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Handle time expiration
+  const handleTimeExpired = () => {
+    if (showResults || assessmentComplete) return;
+    
+    // Complete assessment with current answers
+    const score = Math.round((answers.filter(a => a.isCorrect).length / Math.max(answers.length, 1)) * 100);
+    setShowResults(true);
+    
+    // Submit assessment results
+    completeAssessmentMutation.mutate({
+      operator,
+      score,
+      answers
+    });
+  };
+
+  // Start assessment when questions are loaded
+  useEffect(() => {
+    if (questions.length > 0 && !assessmentStarted && !showResults) {
+      setAssessmentStarted(true);
+      start();
+    }
+  }, [questions, assessmentStarted, showResults, start]);
 
   // Get icon for operator
   const getOperatorIcon = (op: string) => {
