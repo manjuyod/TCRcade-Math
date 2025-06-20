@@ -142,10 +142,12 @@ export default function MathRushPlayPage() {
           sessionStorage.setItem(cacheKey, JSON.stringify(data.questions));
           console.log(`Cached ${data.questions.length} questions to sessionStorage`);
           
-          // Extract current type from first question
-          if (data.questions.length > 0 && data.questions[0].type) {
+          // Extract current type from first question if not already set
+          if (data.questions.length > 0 && data.questions[0].type && !currentType) {
             setCurrentType(data.questions[0].type);
-            console.log(`Current progression type: ${data.questions[0].type}`);
+            console.log(`Current progression type from questions: ${data.questions[0].type}`);
+          } else if (currentType) {
+            console.log(`Current progression type already set: ${currentType}`);
           }
           
           setSessionActive(true);
@@ -352,7 +354,7 @@ export default function MathRushPlayPage() {
         total: totalAnswered,
         durationSec,
         mode,
-        currentType,
+        currentType: currentType || (questions.length > 0 ? questions[0].type : null),
         tokensCalculated: tokensEarned // Include our local calculation
       });
 
