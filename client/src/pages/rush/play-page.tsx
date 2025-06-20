@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { MATH_RUSH_RULES } from '@shared/mathRushRules';
@@ -104,7 +103,7 @@ export default function MathRushPlayPage() {
         // Check sessionStorage first
         const cacheKey = `mathRush_${mode}_${questionType || 'default'}_${forceProgression}`;
         const cachedQuestions = sessionStorage.getItem(cacheKey);
-        
+
         if (cachedQuestions) {
           console.log('Loading questions from sessionStorage cache');
           const parsed = JSON.parse(cachedQuestions);
@@ -129,7 +128,7 @@ export default function MathRushPlayPage() {
         console.log(`Fetching Math Rush questions with mode: ${mode}${questionType ? `, type: ${questionType}` : ''}${forceProgression ? ', forceProgression: true' : ''}`);
         const response = await apiRequest('GET', url);
         const data = await response.json();
-        
+
         // Use the server-determined current type for progression
         if (data.currentType) {
           console.log(`Server selected progression type: ${data.currentType}`);
@@ -148,7 +147,7 @@ export default function MathRushPlayPage() {
           setQuestions(data.questions);
           sessionStorage.setItem(cacheKey, JSON.stringify(data.questions));
           console.log(`Cached ${data.questions.length} questions to sessionStorage`);
-          
+
           // Extract current type from first question if not already set
           if (data.questions.length > 0 && data.questions[0].type && !currentType) {
             setCurrentType(data.questions[0].type);
@@ -156,10 +155,10 @@ export default function MathRushPlayPage() {
           } else if (currentType) {
             console.log(`Current progression type already set: ${currentType}`);
           }
-          
+
           setSessionActive(true);
           setLoading(false);
-          
+
           // Clear forced progression flag after questions are loaded
           if (forceProgression) {
             localStorage.removeItem('mathRushForceProgression');
@@ -344,7 +343,7 @@ export default function MathRushPlayPage() {
     const correctQuestions = finalResults
       .map((result, index) => result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'}` : null)
       .filter(Boolean);
-    
+
     const incorrectQuestions = finalResults
       .map((result, index) => !result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'} (Answer: ${result.userAnswer}, Correct: ${result.correctAnswer})` : null)
       .filter(Boolean);
@@ -402,7 +401,7 @@ export default function MathRushPlayPage() {
       const correctQuestions = finalResults
         .map((result, index) => result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'}` : null)
         .filter(Boolean);
-      
+
       const incorrectQuestions = finalResults
         .map((result, index) => !result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'} (Answer: ${result.userAnswer}, Correct: ${result.correctAnswer})` : null)
         .filter(Boolean);

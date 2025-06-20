@@ -2832,7 +2832,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // **PROGRESSION LOGIC IMPLEMENTATION**
       if (userId && currentType && mode) {
-        console.log(`PROGRESSION: User ${userId} completed ${mode} with ${finalScore}% on type "${currentType}"`);
+        // Ensure we're working with the actual type name, not the operator
+        const actualTypeName = currentType === mode ? "Mixed 0–5" : currentType; // Fallback if currentType is just the operator
+        console.log(`PROGRESSION: User ${userId} completed ${mode} with ${finalScore}% on type "${actualTypeName}"`);
         
         try {
           const { getUserProgressionData, updateUserProgressionData } = await import("./modules/mathRush");
@@ -2847,8 +2849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let typesComplete = progressionData.types_complete || [];
           
           // Check if this type is already complete - if so, skip progression updates
-          if (typesComplete.includes(currentType)) {
-            console.log(`PROGRESSION: Type "${currentType}" is already complete - skipping progression updates`);
+          if (typesComplete.includes(actualTypeName)) {
+            console.log(`PROGRESSION: Type "${actualTypeName}" is already complete - skipping progression updates`);
             return;
           }
           
@@ -2872,9 +2874,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check if type should be marked complete
           let typeCompleted = false;
-          if (newGoodAttempt >= 2 && !typesComplete.includes(currentType)) {
-            console.log(`PROGRESSION: Type "${currentType}" completed! Adding to types_complete array`);
-            typesComplete = [...typesComplete, currentType];
+          if (newGoodAttempt >= 2 && !typesComplete.includes(actualTypeName)) {
+            console.log(`PROGRESSION: Type "${actualTypeName}" completed! Adding to types_complete array`);
+            typesComplete = [...typesComplete, actualTypeName];
             typeCompleted = true;
             // Reset counters after completion
             newGoodAttempt = 0;
@@ -2892,7 +2894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`PROGRESSION: Updated data - good: ${newGoodAttempt}, bad: ${newBadAttempt}, types_complete: [${typesComplete.join(', ')}]`);
           
           if (typeCompleted) {
-            console.log(`PROGRESSION: Type "${currentType}" mastery achieved for user ${userId}`);
+            console.log(`PROGRESSION: Type "${actualTypeName}" mastery achieved for user ${userId}`);
           }
           
         } catch (progressionError) {
