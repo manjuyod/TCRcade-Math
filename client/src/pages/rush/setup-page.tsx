@@ -98,11 +98,13 @@ export default function MathRushSetupPage() {
         navigate(`/math-rush-assessment?operator=${operator}`);
         return;
       }
+      // If test is taken, user can proceed to setup
+      setCheckingAssessment(false);
     }
   }, [assessmentData, assessmentLoading, operator, navigate]);
 
   // Show loading while checking assessment status
-  if (assessmentLoading || !assessmentData) {
+  if (assessmentLoading || !assessmentData || checkingAssessment) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
