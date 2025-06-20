@@ -408,7 +408,7 @@ export async function getRushQuestions(
       // Format questions for client use
       const formattedQuestions = combinedQuestions.slice(0, MATH_RUSH_RULES.questionCount).map(q => {
         // Format based on operation
-        const question = formatMathRushQuestion(q);
+        const question = formatMathRushQuestionLocal(q);
         return question;
       });
 
@@ -456,7 +456,7 @@ export async function getRushQuestions(
 
       // Format questions for client use
       const formattedQuestions = (result.rows || []).map(q => {
-        return formatMathRushQuestion({...q, mode});
+        return formatMathRushQuestionLocal({...q, mode});
       });
 
       // Additional validation for type-specific questions
