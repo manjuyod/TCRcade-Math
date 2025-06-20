@@ -419,12 +419,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 WHEN jsonb_typeof(module_value) = 'object' THEN
                   jsonb_set(
                     jsonb_set(
-                      module_value,
-                      '{progress,test_taken}',
+                      jsonb_set(
+                        module_value,
+                        '{progress,test_taken}',
+                        'false'::jsonb
+                      ),
+                      '{progress,mastery_level}',
                       'false'::jsonb
                     ),
-                    '{progress,mastery_level}',
-                    'false'::jsonb
+                    '{progress,types_complete}',
+                    '[]'::jsonb
                   )
                 ELSE module_value
               END
