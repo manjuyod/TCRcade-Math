@@ -202,6 +202,21 @@ export async function updateUserProgressionData(userId: number, operator: string
       };
     }
 
+    // Get current data before applying updates
+    const currentProgress = hiddenGradeAsset.modules[moduleKey].progress;
+    
+    // If adding a type to types_complete, ensure no duplicates
+    if (updates.types_complete && Array.isArray(updates.types_complete)) {
+      const existingTypes = currentProgress.types_complete || [];
+      const newTypes = updates.types_complete;
+      
+      // Merge arrays and remove duplicates
+      const mergedTypes = [...new Set([...existingTypes, ...newTypes])];
+      updates.types_complete = mergedTypes;
+      
+      console.log(`PROGRESSION: Merging types - existing: [${existingTypes.join(', ')}], new: [${newTypes.join(', ')}], final: [${mergedTypes.join(', ')}]`);
+    }
+
     // Apply updates
     Object.assign(hiddenGradeAsset.modules[moduleKey].progress, updates);
 

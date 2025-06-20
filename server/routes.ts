@@ -2700,10 +2700,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get current progression data
           const progressionData = await getUserProgressionData(userId, mode);
           console.log(`PROGRESSION: Current attempts - good: ${progressionData.good_attempt || 0}, bad: ${progressionData.bad_attempt || 0}`);
+          console.log(`PROGRESSION: Current types complete: [${(progressionData.types_complete || []).join(', ')}]`);
           
           let newGoodAttempt = progressionData.good_attempt || 0;
           let newBadAttempt = progressionData.bad_attempt || 0;
           let typesComplete = progressionData.types_complete || [];
+          
+          // Check if this type is already complete - if so, skip progression updates
+          if (typesComplete.includes(currentType)) {
+            console.log(`PROGRESSION: Type "${currentType}" is already complete - skipping progression updates`);
+            return;
+          }
           
           // Apply progression logic based on score thresholds
           if (finalScore < 80) {
