@@ -38,20 +38,20 @@ import {
 export default function MathRushSetupPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  
+
   // Get the operator from localStorage (set by modules page)
   const operator = localStorage.getItem('mathRushOperator') || 'addition';
-  
+
   // State for selected options
   const [mode] = useState<typeof MATH_RUSH_RULES.modes[number]>(operator as any);
   const [questionType, setQuestionType] = useState<string>('');
   const [timeOption, setTimeOption] = useState<'SHORT' | 'LONG'>('SHORT');
   const [checkingAssessment, setCheckingAssessment] = useState(true);
   const [needsAssessment, setNeedsAssessment] = useState(false);
-  
+
   // Get time in seconds from the selected time option
   const timeSeconds = MATH_RUSH_RULES.timeSettings[timeOption].sec;
-  
+
   // Check assessment status for this operator
   const { data: assessmentData, isLoading: assessmentLoading } = useQuery({
     queryKey: ['/api/rush/assessment-status', operator],
@@ -65,7 +65,20 @@ export default function MathRushSetupPage() {
     enabled: !!operator,
   });
 
-  // Fetch question types based on selected operation
+  // Get current progression type and available types
+  const { data: progressionData, isLoading: progressionLoading } = useQuery({
+    queryKey: ['/api/rush/progression', operator],
+    queryFn: async () => {
+      const response = await fetch(`/api/rush/progression?operator=${operator}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch progression data');
+      }
+      return response.json();
+    },
+    enabled: !!operator && !needsAssessment,
+  });
+
+  // Get available question types for this mode
   const { data: typeData, isLoading: typesLoading } = useQuery({
     queryKey: ['/api/rush/types', mode],
     queryFn: async () => {
@@ -83,7 +96,7 @@ export default function MathRushSetupPage() {
     },
     enabled: !!mode,
   });
-  
+
   // Reset type selection when operation changes
   useEffect(() => {
     setQuestionType('');
@@ -94,29 +107,29 @@ export default function MathRushSetupPage() {
     if (assessmentData && !assessmentLoading) {
       const testTaken = assessmentData.testTaken;
       const masteryLevel = assessmentData.masteryLevel;
-      
+
       if (!testTaken) {
         // Redirect to assessment page
         navigate(`/math-rush-assessment?operator=${operator}`);
         return;
       }
-      
+
       // If test is taken but mastery not achieved, force progression
       if (testTaken && !masteryLevel) {
         // Get the next required progression step and auto-navigate to play
         console.log('Test taken but mastery not achieved - forcing progression');
-        
+
         // Set up automatic progression - go directly to play with forced progression
         localStorage.setItem('mathRushMode', operator);
         localStorage.setItem('mathRushTimeOption', 'SHORT'); // Default to short
         localStorage.setItem('mathRushTimeSeconds', '60');
         localStorage.setItem('mathRushForceProgression', 'true'); // Flag for forced progression
         localStorage.removeItem('mathRushQuestionType'); // Let server determine next step
-        
+
         navigate('/rush/play');
         return;
       }
-      
+
       // If test is taken and mastery achieved, user can proceed to setup
       setCheckingAssessment(false);
     }
@@ -128,7 +141,7 @@ export default function MathRushSetupPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <Navigation active="home" />
-        
+
         <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6">
@@ -144,29 +157,29 @@ export default function MathRushSetupPage() {
       </div>
     );
   }
-  
+
   // Handle start button click
   const handleStart = () => {
     // Save settings to localStorage
     localStorage.setItem('mathRushMode', mode);
     localStorage.setItem('mathRushTimeOption', timeOption);
     localStorage.setItem('mathRushTimeSeconds', timeSeconds.toString());
-    
+
     // Save question type if selected
     if (questionType) {
       localStorage.setItem('mathRushQuestionType', questionType);
     } else {
       localStorage.removeItem('mathRushQuestionType');
     }
-    
+
     // Navigate to the play page
     navigate('/rush/play');
   };
-  
+
   // Check if we can proceed (type must be selected if types are available)
   const canProceed = !typesLoading && 
     (!(typeData?.types?.length) || questionType !== '');
-  
+
   // Get icon for each mode
   const getModeIcon = (mode: typeof MATH_RUSH_RULES.modes[number]) => {
     switch (mode) {
@@ -184,12 +197,12 @@ export default function MathRushSetupPage() {
         return null;
     }
   };
-  
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <Navigation active="home" />
-      
+
       <main className="flex-1 container max-w-4xl py-6 px-4">
         <div className="mb-6 flex items-center">
           <Button
@@ -201,7 +214,7 @@ export default function MathRushSetupPage() {
             Back to Modules
           </Button>
         </div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -217,7 +230,7 @@ export default function MathRushSetupPage() {
                 Choose your operation and time limit for a 20-question sprint!
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pt-6">
               <div className="space-y-6">
                 <div>
@@ -227,7 +240,7 @@ export default function MathRushSetupPage() {
                     <span className="text-lg font-semibold capitalize">{operator}</span>
                   </div>
                 </div>
-                
+
                 {/* Type selection - only shown after operation is selected */}
                 {typesLoading ? (
                   <div className="flex items-center space-x-2">
@@ -254,7 +267,7 @@ export default function MathRushSetupPage() {
                     </Select>
                   </div>
                 ) : null}
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-3">{typeData?.types?.length > 0 ? "3" : "2"}. Select Time</h3>
                   <RadioGroup
@@ -276,7 +289,7 @@ export default function MathRushSetupPage() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-start space-x-2">
                       <RadioGroupItem value="LONG" id="time-long" />
                       <div>
@@ -295,7 +308,7 @@ export default function MathRushSetupPage() {
                 </div>
               </div>
             </CardContent>
-            
+
             <CardFooter className="flex justify-between bg-gray-50">
               <div>
                 <p className="text-sm text-muted-foreground">

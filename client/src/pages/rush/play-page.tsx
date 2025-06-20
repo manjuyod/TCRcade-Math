@@ -131,9 +131,12 @@ export default function MathRushPlayPage() {
         const data = await response.json();
         
         // Use the server-determined current type for progression
-        if (data.currentType && forceProgression) {
+        if (data.currentType) {
           console.log(`Server selected progression type: ${data.currentType}`);
           setCurrentType(data.currentType);
+        } else if (questionType) {
+          console.log(`Using preset question type: ${questionType}`);
+          setCurrentType(questionType);
         }
 
         if (data.questions && Array.isArray(data.questions)) {
