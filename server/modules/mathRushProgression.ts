@@ -7,8 +7,7 @@
 /* Addition Progression */
 export const ADDITION_PROGRESSION = [
   'Adding 0 and 1',    // step 1  (index 0)
-  'Adding 10',         // step 2
-  'Adding 2',
+  'Adding 2',          // step 2
   'Adding 3',
   'Adding 4',
   'Adding 5',
@@ -17,6 +16,7 @@ export const ADDITION_PROGRESSION = [
   'Adding 7',
   'Adding 8',
   'Adding 9',
+  'Adding 10', 
   'Doubles to 20',
   'Mixed 6-10',        // step 13 (index 12)
 ] as const;
@@ -24,14 +24,14 @@ export const ADDITION_PROGRESSION = [
 /* Subtraction Progression */
 export const SUBTRACTION_PROGRESSION = [
   'Subtract From 0-3',             // step 1  (index 0)
-  'Subtract From 10',              // step 2
-  'Subtract From 4',
+  'Subtract From 4',              // step 2
   'Subtract From 5',
   'Subtraction Mixed 0-5',
   'Subtract From 6',
   'Subtract From 7',
   'Subtract From 8',
   'Subtract From 9',
+  'Subtract From 10',
   'Subtraction Half of a Double',
   'Subtraction Mixed 6-10',
   'Subtraction Odd Balls',         // step 12 (index 11)
