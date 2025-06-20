@@ -2674,9 +2674,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `);
             
             console.log(`FORCED PROGRESSION: Query executed for user ${userId}, operator: ${mode}`);
+            console.log(`FORCED PROGRESSION: Raw DB result:`, result.rows[0]?.types_complete);
             
-            const typesCompleteFromDB = result.rows[0]?.types_complete ? 
-              JSON.parse(result.rows[0].types_complete as string) : [];
+            let typesCompleteFromDB = [];
+            const rawTypesComplete = result.rows[0]?.types_complete;
+            
+            if (rawTypesComplete) {
+              try {
+                // Handle case where it might already be an array
+                if (Array.isArray(rawTypesComplete)) {
+                  typesCompleteFromDB = rawTypesComplete;
+                } else {
+                  // Try to parse as JSON string
+                  typesCompleteFromDB = JSON.parse(rawTypesComplete as string);
+                }
+              } catch (parseError) {
+                console.error(`FORCED PROGRESSION: JSON parse error for user ${userId}:`, parseError);
+                console.error(`FORCED PROGRESSION: Problematic data:`, rawTypesComplete);
+                
+                // Attempt to recover by extracting types from malformed string
+                if (typeof rawTypesComplete === 'string') {
+                  // Try to extract recognizable type names from the corrupted string
+                  const typePatterns = [
+                    'Adding 0 and 1', 'Adding 2', 'Adding 3', 'Adding 4', 'Adding 5',
+                    'Adding 6', 'Adding 7', 'Adding 8', 'Adding 9', 'Adding 10',
+                    'Mixed 0–5', 'Mixed 6-10', 'Doubles to 20'
+                  ];
+                  
+                  typesCompleteFromDB = typePatterns.filter(pattern => 
+                    rawTypesComplete.includes(pattern)
+                  );
+                  
+                  console.log(`FORCED PROGRESSION: Recovered types from corrupted data:`, typesCompleteFromDB);
+                } else {
+                  // Fallback to empty array
+                  typesCompleteFromDB = [];
+                }
+              }
+            }
             
             console.log(`FORCED PROGRESSION: Completed types from DB:`, typesCompleteFromDB);
             
