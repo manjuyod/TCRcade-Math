@@ -1,0 +1,139 @@
+
+# App Crash Debugging and Testing Agent
+
+## Problem Analysis
+
+**Primary Issue**: Application crashed with TypeScript syntax error in `client/src/lib/token-manager.ts`
+
+**Error Details**:
+```
+Pre-transform error: Transform failed with 1 error:
+/home/runner/workspace/client/src/lib/token-manager.ts:7:10: ERROR: Expected ";" but found "TokenUpdate"
+```
+
+**Secondary Issues Detected**:
+- Token socket disconnection during development
+- HMR (Hot Module Reload) failures for multiple files
+- Repeated SessionAwareLink logs indicating potential navigation issues
+
+## Immediate Fix Tasks
+
+### 1. Fix TypeScript Syntax Error
+- **File**: `client/src/lib/token-manager.ts`
+- **Line**: Line 7, column 10
+- **Issue**: Missing semicolon or incorrect type declaration syntax
+- **Action**: Review interface declarations and ensure proper TypeScript syntax
+
+### 2. Restore Application Functionality
+- Verify token manager integration works correctly
+- Ensure token socket provider initializes properly
+- Test Math Rush assessment page functionality
+
+## Comprehensive Testing Protocol
+
+### Phase 1: Core Functionality Recovery
+1. **Start Application**
+   - Run `npm run dev`
+   - Verify no TypeScript compilation errors
+   - Confirm server starts successfully on port 5000
+
+2. **Authentication Flow**
+   - Test user login/registration
+   - Verify token persistence
+   - Check session management
+
+3. **Token System Validation**
+   - Test token manager initialization
+   - Verify socket connection establishment
+   - Check real-time token updates
+
+### Phase 2: Module Testing
+1. **Math Rush Assessment**
+   - Navigate to `/rush/assessment?operator=addition`
+   - Complete assessment flow
+   - Verify micro-token awards (1 token per 3 correct answers)
+   - Check assessment completion and module unlock
+
+2. **Navigation System**
+   - Test SessionAwareLink component
+   - Verify module session state management
+   - Check for navigation lock issues
+
+3. **Progress Tracking**
+   - Test hidden_grade_asset updates
+   - Verify module history recording
+   - Check progress synchronization
+
+### Phase 3: Integration Testing
+1. **Database Operations**
+   - Test user progress updates
+   - Verify token balance persistence
+   - Check module completion tracking
+
+2. **Real-time Features**
+   - Socket.io token updates
+   - Live progress tracking
+   - Session state management
+
+## Testing Checkpoints
+
+### Critical Success Criteria
+- [ ] Application starts without TypeScript errors
+- [ ] Users can authenticate successfully
+- [ ] Token manager functions without crashes
+- [ ] Math Rush assessment completes successfully
+- [ ] Micro-tokens award correctly (every 3 correct answers)
+- [ ] Socket connection maintains stability
+- [ ] Navigation works without session conflicts
+
+### Performance Monitoring
+- [ ] HMR works for all modified files
+- [ ] No memory leaks in token socket connections
+- [ ] Database queries complete within acceptable timeframes
+- [ ] Session storage doesn't accumulate orphaned data
+
+## Debug Commands
+
+```bash
+# Check application health
+npm run dev
+
+# Verify TypeScript compilation
+npx tsc --noEmit
+
+# Test database connectivity
+node -e "console.log('DB Test:', require('./server/db.ts'))"
+
+# Monitor socket connections
+# (Check browser dev tools Network tab for WebSocket connections)
+```
+
+## Recovery Steps
+
+1. **Immediate**: Fix TypeScript syntax error in token-manager.ts
+2. **Short-term**: Verify all token-related functionality
+3. **Medium-term**: Complete Math Rush assessment flow testing
+4. **Long-term**: Implement monitoring to prevent similar crashes
+
+## Expected Outcomes
+
+After completing this debugging protocol:
+- Application runs stable without crashes
+- All token-related features function correctly
+- Math Rush assessments award micro-tokens properly
+- Real-time updates work reliably
+- Navigation system operates without conflicts
+
+## Risk Assessment
+
+**High Risk**: Token system malfunction affecting user progress
+**Medium Risk**: Socket connection instability causing data loss
+**Low Risk**: Navigation state conflicts causing minor UX issues
+
+## Success Metrics
+
+- Zero TypeScript compilation errors
+- 100% successful authentication attempts
+- Micro-token awards functioning (1 per 3 correct answers)
+- Socket uptime > 99%
+- Assessment completion rate maintained
