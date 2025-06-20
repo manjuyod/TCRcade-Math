@@ -107,6 +107,7 @@ function Router() {
       <ProtectedRoute path="/rectutor" component={RecTutorPage} />
       <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
       <ProtectedRoute path="/rush/assessment" component={MathRushAssessmentPage} />
+      <ProtectedRoute path="/math-rush-assessment" component={MathRushAssessmentPage} />
       <ProtectedRoute path="/rush/play" component={MathRushPlayPage} />
       <ProtectedRoute path="/rush/complete" component={MathRushCompletePage} />
       <ProtectedRoute path="/fractions/setup" component={FractionsSetupPage} />
