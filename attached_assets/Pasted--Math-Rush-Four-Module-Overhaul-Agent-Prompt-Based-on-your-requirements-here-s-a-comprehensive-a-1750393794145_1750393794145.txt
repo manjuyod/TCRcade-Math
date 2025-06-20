@@ -1,0 +1,159 @@
+
+# Math Rush Four-Module Overhaul Agent Prompt
+
+Based on your requirements, here's a comprehensive agent prompt to overhaul the Math Rush system into four separate modules:
+
+## Project Context
+- **Stack**: React TS client, Node Express TS server, Drizzle ORM, PostgreSQL
+- **Current State**: Single Math Rush module needs to be split into four operator-specific modules
+- **Goal**: Create four independent Math Rush modules (addition, subtraction, multiplication, division) with proper assessment flow and data migration
+
+## Implementation Requirements
+
+### 1. Database Schema Updates
+
+**Assessment Flow Logic:**
+- Check `SELECT hidden_grade_asset #>> '{modules,math_rush[operator],progress,test_taken}' FROM users WHERE id = {current_user}`
+- If `test_taken = false`, immediately redirect to assessment
+- Store assessment results and set `test_taken = true` before allowing token runs
+
+**Question Extraction by Operator:**
+
+```sql
+-- Addition Assessment
+SELECT id, int1, int2, int3 FROM assessments 
+WHERE module = 'math_rush' AND properties->>'facts_type' = 'addition'
+-- Format: int1 + int2 = int3 (validate against int3)
+
+-- Subtraction Assessment  
+SELECT id, int1, int2, int3 FROM assessments 
+WHERE module = 'math_rush' AND properties->>'facts_type' = 'subtraction'
+-- Format: int3 - int2 = int1 (validate against int1)
+
+-- Multiplication Assessment (Grade-Based)
+-- Step 1: Get user grade and convert to numeric
+SELECT grade FROM users WHERE id = {current_user}
+-- Convert using: {"K": 0, "1": 1, "2": 2, ..., "12": 12}
+-- Step 2: Query with grade filter
+SELECT id, int1, int2, int3 FROM assessments 
+WHERE properties->'grade_level' @> to_jsonb({grade_level}) 
+AND properties->>'facts_type' = 'multiplication'
+-- Format: int1 * int2 = int3 (validate against int3)
+
+-- Division Assessment (Grade-Based)
+-- Same grade logic as multiplication
+SELECT id, int1, int2, int3 FROM assessments 
+WHERE properties->'grade_level' @> to_jsonb({grade_level}) 
+AND properties->>'facts_type' = 'division'
+-- Format: int3 ÷ int2 = int1 (validate against int1)
+```
+
+### 2. Session Cache Implementation
+
+**Requirements:**
+- Use in-memory JavaScript objects for speed during active sessions
+- Mirror to sessionStorage only on writes to survive browser refresh
+- Clear sessionStorage when quiz completes
+- Cache structure per operator module
+
+### 3. Module Selection UI
+
+**Implementation:**
+- Add four separate Math Rush modules to `modules-page.tsx` similar to Math Facts layout:
+  - Math Rush: Addition
+  - Math Rush: Subtraction  
+  - Math Rush: Multiplication
+  - Math Rush: Division
+- No visual indicators for forced progression mode
+- Each module checks assessment status independently
+
+### 4. Testing Requirements
+
+**Unit Tests (must run in <1s):**
+
+```typescript
+// Database query tests - use test-only Postgres schema with transaction rollback
+describe('Math Rush Database Queries', () => {
+  // Test each operator's question extraction with controlled fixtures
+  // Verify correct row counts and data structure for each query
+});
+
+// Progression logic tests
+describe('Math Rush Progression Logic', () => {
+  // Feed helpers full progression arrays
+  // Assert getNext*FactType() returns expected values for every index
+  // Test STEP_MAP logic with various input scenarios
+});
+
+// Scoring tests  
+describe('Math Rush Scoring System', () => {
+  // Test with mocked answer sets: all-correct, half-correct, all-wrong
+  // Verify computed scores, time penalties, mastery flags
+  // Test token calculation edge cases
+});
+```
+
+**E2E Tests (minimal, fast):**
+- 1-2 Playwright tests running full "24-question drill" in headless browser
+- Test client/server handshake without slowing CI pipeline
+- Focus on regression protection for critical user flows
+
+### 5. Data Migration Strategy
+
+**Migration Tasks:**
+1. **Preserve Existing Data**: Move current `math_rush` progress to `math_rush.addition` module
+2. **Add Required Keys**: Create empty progress objects for subtraction, multiplication, division
+3. **Clean Organization**: Ensure consistent JSON structure across all four modules
+4. **Update References**: Update all code references to use new four-module structure
+
+**Migration Script Structure:**
+```sql
+-- Update existing users' hidden_grade_asset JSON
+UPDATE users SET hidden_grade_asset = jsonb_set(
+  hidden_grade_asset,
+  '{modules,math_rush}',
+  '{
+    "addition": {existing_data_here},
+    "subtraction": {empty_progress_template},
+    "multiplication": {empty_progress_template}, 
+    "division": {empty_progress_template}
+  }'::jsonb
+) WHERE hidden_grade_asset->'modules'->'math_rush' IS NOT NULL;
+```
+
+### 6. Implementation Steps
+
+1. **Backend Updates**:
+   - Update `mathRush.ts` to handle four separate operators
+   - Implement grade-based filtering for multiplication/division
+   - Add assessment flow logic with proper database queries
+   - Create session cache management utilities
+
+2. **Frontend Updates**:
+   - Modify `modules-page.tsx` to show four Math Rush modules
+   - Update routing to handle operator-specific paths
+   - Implement session cache with sessionStorage mirroring
+   - Update setup/play/complete pages for operator-specific flows
+
+3. **Testing Implementation**:
+   - Create comprehensive unit test suite for all core functions
+   - Implement minimal E2E tests for regression protection
+   - Set up test database schema with transaction rollback
+
+4. **Data Migration**:
+   - Execute migration script to preserve existing user data
+   - Verify data integrity post-migration
+   - Update all system references to new structure
+
+### 7. Acceptance Criteria
+
+- [ ] Four independent Math Rush modules appear in modules UI
+- [ ] Assessment flow works correctly for each operator
+- [ ] Grade-based filtering works for multiplication/division  
+- [ ] Session cache performs fast with sessionStorage backup
+- [ ] All unit tests pass in <1 second
+- [ ] E2E tests verify critical user flows
+- [ ] Existing user data preserved and properly migrated
+- [ ] All database queries return correct results for each operator
+
+**Priority**: High - This is a complete system overhaul requiring careful coordination between frontend, backend, database, and testing components.
