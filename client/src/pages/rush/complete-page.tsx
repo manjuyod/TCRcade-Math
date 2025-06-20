@@ -74,6 +74,8 @@ export default function MathRushCompletePage() {
   
   // Handle "Try Again" button click
   const handleTryAgain = () => {
+    // Clear results and navigate back to setup
+    localStorage.removeItem('mathRushResults');
     navigate('/rush/setup');
   };
   
