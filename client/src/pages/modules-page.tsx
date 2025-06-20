@@ -191,8 +191,6 @@ export default function ModulesPage() {
       completeCount: 0
     },
     */
-    // COMMENTED OUT FOR REMOVAL FROM HOME PAGE
-    // Can be uncommented later to restore these modules
     /*
     {
       id: 'addition-advanced',
@@ -205,7 +203,6 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-
     {
       id: 'time',
       name: 'Time Trials',
@@ -230,6 +227,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0,
     },
+    /*
     {
       id: "measurement",
       name: "Measurement Mastery",
@@ -253,6 +251,7 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0,
     },
+    */
     {
       id: "algebra",
       name: "Pre-Algebra Basics",
