@@ -485,7 +485,7 @@ export async function completeAssessment(userId: number, operator: string, score
       ) VALUES (
         ${userId},
         ${'math_rush_' + operator},
-        'assessment',
+        'test',
         ${userGrade},
         24,
         ${Math.round(24 * (score / 100))},
