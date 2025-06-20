@@ -540,28 +540,68 @@ export async function completeAssessment(userId: number, operator: string, score
     console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
     console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
 
-    // Update the module progression in hidden_grade_asset
+    // Get current module progress to increment counters
+    const currentProgress = await db.execute(sql`
+      SELECT hidden_grade_asset #> '{modules,math_rush_${sql.raw(operator)},progress}' as progress
+      FROM users 
+      WHERE id = ${userId}
+    `);
+
+    const existingProgress = currentProgress.rows?.[0]?.progress || {};
+    const currentTokens = existingProgress.tokens_earned || 0;
+    const currentQuestions = existingProgress.total_questions_answered || 0;
+    const currentCorrect = existingProgress.correct_answers || 0;
+
+    // Calculate new totals (24 questions total in assessment, score is percentage)
+    const questionsAnswered = 24;
+    const correctAnswers = Math.round(24 * (score / 100));
+    const tokensEarned = masteryLevel ? 50 : 0; // Award tokens for completing assessment
+
+    // Update the module progression in hidden_grade_asset with all progress data
     await db.execute(sql`
       UPDATE users 
       SET hidden_grade_asset = jsonb_set(
         jsonb_set(
           jsonb_set(
             jsonb_set(
-              COALESCE(hidden_grade_asset, '{}'),
-              '{modules,math_rush_${sql.raw(operator)},progress,test_taken}',
-              'true'::jsonb
+              jsonb_set(
+                jsonb_set(
+                  jsonb_set(
+                    COALESCE(hidden_grade_asset, '{}'),
+                    '{modules,math_rush_${sql.raw(operator)},progress,test_taken}',
+                    'true'::jsonb
+                  ),
+                  '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}',
+                  to_jsonb(${masteryLevel}::boolean)
+                ),
+                '{modules,math_rush_${sql.raw(operator)},progress,current_step}',
+                to_jsonb(${autoSkipSteps}::integer)
+              ),
+              '{modules,math_rush_${sql.raw(operator)},progress,types_complete}',
+              ${JSON.stringify(typesComplete)}::jsonb
             ),
-            '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}',
-            to_jsonb(${masteryLevel}::boolean)
+            '{modules,math_rush_${sql.raw(operator)},progress,tokens_earned}',
+            to_jsonb(${currentTokens + tokensEarned}::integer)
           ),
-          '{modules,math_rush_${sql.raw(operator)},progress,current_step}',
-          to_jsonb(${autoSkipSteps}::integer)
+          '{modules,math_rush_${sql.raw(operator)},progress,total_questions_answered}',
+          to_jsonb(${currentQuestions + questionsAnswered}::integer)
         ),
-        '{modules,math_rush_${sql.raw(operator)},progress,types_complete}',
-        ${JSON.stringify(typesComplete)}::jsonb
+        '{modules,math_rush_${sql.raw(operator)},progress,correct_answers}',
+        to_jsonb(${currentCorrect + correctAnswers}::integer)
       )
       WHERE id = ${userId}
     `);
+
+    // Also update the user's global tokens
+    if (tokensEarned > 0) {
+      await db.execute(sql`
+        UPDATE users 
+        SET tokens = COALESCE(tokens, 0) + ${tokensEarned},
+            questions_answered = COALESCE(questions_answered, 0) + ${questionsAnswered},
+            correct_answers = COALESCE(correct_answers, 0) + ${correctAnswers}
+        WHERE id = ${userId}
+      `);
+    }
 
     // Record module history for this assessment completion
     await db.execute(sql`
@@ -587,14 +627,15 @@ export async function completeAssessment(userId: number, operator: string, score
         ${Math.round(24 * (score / 100))},
         60,
         ${score},
-        0,
+        ${tokensEarned},
         3,
         ${JSON.stringify({
           type: 'assessment',
           operator: operator,
           score: score,
           mastery_level: masteryLevel,
-          auto_skip_steps: autoSkipSteps
+          auto_skip_steps: autoSkipSteps,
+          tokens_awarded: tokensEarned
         })},
         NOW()
       )
