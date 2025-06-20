@@ -1,0 +1,182 @@
+On clicking the a module, it will check against the specific module in SELECT hidden_grade_asset #>> '{modules,math_rush[specifcoperator],progress,test_taken}' FROM users WHERE id = {current user} in order to see if a test is taken.
+
+- If test_taken = false, immediately go to test.
+First - Question extraction depending on module = (
+-- Addition - SELECT id, int1, int2, int3 FROM assessments WHERE module = 'math_rush' AND properties->>'facts_type' = 'addition' (FORMAT IS int1 + int2 = int3 (only check against int3))
+-- Subtraction - SELECT id, int1, int2, int3 FROM assessments WHERE module = 'math_rush' AND properties->>'facts_type' = 'subtraction' (FORMAT IS int3 - int2 = int1 (only check against int1))
+-- Multiplication - Multi-Step
+--- SELECT grade USERS users WHERE user.id = {current user}. 
+--- Cast grade based on this {
+    "K": 0,
+    "1": 1,  "2": 2,  "3": 3,  "4": 4,
+    "5": 5,  "6": 6,  "7": 7,  "8": 8,
+    "9": 9, "10":10, "11":11, "12":12,
+} AS {grade_level}
+--- Then SELECT id, int1, int2, int3 FROM assessments WHERE  properties->'grade_level' @> to_jsonb({grade_level}) AND properties ->> 'facts_type' = 'multiplication' (FORMAT IS int1 * int2 = int3 (only check against int3))
+-- Division - Multi-Step
+--- SELECT grade USERS users WHERE user.id = {current user}. 
+--- Cast grade based on this {
+    "K": 0,
+    "1": 1,  "2": 2,  "3": 3,  "4": 4,
+    "5": 5,  "6": 6,  "7": 7,  "8": 8,
+    "9": 9, "10":10, "11":11, "12":12,
+} AS {grade_level}
+--- Then SELECT id, int1, int2, int3 FROM assessments WHERE  properties->'grade_level' @> to_jsonb({grade_level}) AND properties ->> 'facts_type' = 'division' (FORMAT IS int3/int2 = int1 (only check against int1))
+) -- MUST PRELOAD ALL QUESTIONS onto session level cache (indexed hash map) and must be scored locally, then the server can confirm the question scoring (trust but verify) and Fire any webhook / token logic.
+
+Second - Rules for Assessment (
+-- Addition - (FORMAT IS int1 + int2 = int3 (only check against int3))
+-- Subtraction - (FORMAT IS int3 - int2 = int1 (only check against int1))
+-- Multiplication - (FORMAT IS int1 * int2 = int3 (only check against int3))
+-- Division - (FORMAT IS int3/int2 = int1 (only check against int1))
+)
+
+Each test is timed for one minute.
+
+For every question that the student gets incorrect, aggregate the question id (not the hash map index) into a list of id's from the hash map generated in the previous step. Then query SELECT array_agg(DISTINCT elem) AS type FROM assessments CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) WHERE id IN ({aggregate_incorrect_ids});
+
+Thos are the types to target.
+
+For every question that the student gets correct, aggregate the question id (not the hash map index) into a list of id's from the hash map generated in the previous step. Then query SELECT array_agg(DISTINCT elem) AS type FROM assessments CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) WHERE id IN ({aggregate_correct_ids});
+
+Those are the types to ignore.
+
+types to target always trumps types to ignore, so if there is intersection always go with types to target (this will be useful later on). [store this locally, and then safely write to users.hidden_grade_asset (there needs to be a type_complete key added that is an array of all the types complete) for each specific module (this needs to be updated to handle that.)
+
+Grade, and send to complete-page This should be largely the same becasue assessment and game modes will be the same format of 24 questions.
+
+- If test_taken = true check against the specific module in SELECT hidden_grade_asset #>> '{modules,math_rush[specifcoperator],progress,test_taken,mastery_level}' FROM users WHERE id = {current user} in order to see if the specific module is mastered.
+
+-- If mastery level is false, DO NOT TAKE THEM TO SET UP PAGE. FORCE PROGRESSION. FORCE 1 minute time this is always a token_run
+--- Progression lists (
+ADDITION_PROGRESSION = [
+  'Adding 0 and 1',  // step 1  (index 0)
+  'Adding 10',       // step 2
+  'Adding 2',
+  'Adding 3',
+  'Adding 4',
+  'Adding 5',
+  'Mixed 0–5',
+  'Adding 6',
+  'Adding 7',
+  'Adding 8',
+  'Adding 9',
+  'Doubles to 20',
+  'Mixed 6–10',      // step 13 (index 12))
+
+SUBTRACTION_PROGRESSION = [
+  'Subtract From 0–3',            // step 1  (index 0)
+  'Subtract From 10',             // step 2
+  'Subtract From 4',
+  'Subtract From 5',
+  'Subtraction Mixed 0–5',
+  'Subtract From 6',
+  'Subtract From 7',
+  'Subtract From 8',
+  'Subtract From 9',
+  'Subtraction Half of a Double',
+  'Subtraction Mixed 6–10',
+  'Subtraction Odd Balls',        // step 12 (index 11)
+]
+
+MULTIPLICATION_PROGRESSION = [
+  'Multiply by 0 and 1',
+  'Multiply by 2',
+  'Multiply by 3',
+  'Multiply by 4',
+  'Multiply by 5',
+  'Mixed 0–5',
+  'Multiply by 6',
+  'Multiply by 7',
+  'Multiply by 8',
+  'Multiply by 9,
+  'Multiply by 10',
+  'Multiply by 11',
+  'Multiply by 12',
+  'Multiply Doubles',
+  'Mixed 6–12',	// step 15
+] - for multiplication progression (if above level 5, auto ignore multiply by 0, 1, and 2).
+
+export const DIVISION_PROGRESSION = [
+  'Divide by 2',       // step 4   (index 0)
+  'Divide by 3',       // step 5
+  'Divide by 4',       // step 6
+  'Divide by 5',       // step 7
+  'Divide by 6',       // step 8
+  'Mixed 2–6',         // step 12
+  'Divide by 7',       // step 9
+  'Divide by 8',       // step 10
+  'Divide by 9',       // step 11
+  'Divide by 10',      // step 1
+  'Divide by 11',      // step 2
+  'Divide by 12',      // step 3
+  'Mixed 7–12',        // step 13
+] - for division progression (if above level 5, auto ignore divide by 2).
+
+- Suggested functions division as an example (
+
+/**
+ * divisionProgression.ts
+ * --------------------------------------------------
+ * Hard-coded progression for division fact families.
+ * Array index 0 → step 1, index 1 → step 2, … index 12 → step 13.
+ */
+
+/* 1  · Canonical progression list */
+export const DIVISION_PROGRESSION = [
+  'Divide by 2',       // step 4   (index 0)
+  'Divide by 3',       // step 5
+  'Divide by 4',       // step 6
+  'Divide by 5',       // step 7
+  'Divide by 6',       // step 8
+  'Mixed 2–6',         // step 12
+  'Divide by 7',       // step 9
+  'Divide by 8',       // step 10
+  'Divide by 9',       // step 11
+  'Divide by 10',      // step 1
+  'Divide by 11',      // step 2
+  'Divide by 12',      // step 3
+  'Mixed 7–12',        // step 13
+] as const;
+
+/* 2  · Literal-union type (catches typos at compile time) */
+export type DivFactType = typeof DIVISION_PROGRESSION[number];
+
+/* 3  · Hash-map: factType ⇒ 1-based step (O(1) lookup) */
+export const DIV_FACT_STEP_MAP: Readonly<Record<DivFactType, number>> = (() => {
+  const map = {} as Record<DivFactType, number>;
+  DIVISION_PROGRESSION.forEach((ft, idx) => (map[ft] = idx + 1)); // idx 0 → step 1
+  return map;
+})();
+
+/* ---------- Optional helper utilities ---------- */
+
+/** Returns the next fact family in the progression, or null if finished.  
+ *  `currentStep` is the zero-based index of the *last* mastered step. */
+export function getNextDivFactType(currentStep: number): DivFactType | null {
+  return DIVISION_PROGRESSION[currentStep] ?? null;
+}
+
+/** Reverse lookup: which 1-based step does a fact family belong to? */
+export function getDivFactStep(fact: DivFactType): number {
+  return DIV_FACT_STEP_MAP[fact];
+}
+)
+
+- Logic - Check types_complete versus the progression array. Get to the lowest index item that is not in our types complete_array.
+- Every play session, if they score below an 80 for the current type, then reset good_attempt, and increment bad_attempt in the users.hidden_grade_asset
+- Every play session, if they score an at an 80 and below 100 for the current type, then increment good_attempt +1, and reset bad_attempt in the users.hidden_grade_asset
+- Every play session, if they score 100% for the current type, then increment good_attempt +2, and reset bad_attempt in the users.hidden_grade_asset.
+- IF good_attempt is 2 or more, then reset good_attempt and bad_attempt, and add the type to types_complete. 
+(the point is that every time the press the play button for a specific operator, it will check types_complete against the progression array.)
+
+IF THEY COMPLETE THE ENTIRE PROGRESSION, THEN SAFELY UPDATE hidden_grade_asset #>> '{modules,math_rush[specifcoperator],progress,test_taken,mastery_level to true.
+
+-- If mastery level is true, take them to respective set-up page where they can now pick what they would like to practice and have the option of 90-seconds.
+-- SELECTION query - (
+addition - SELECT DISTINCT type FROM questions_addition WHERE facts_type = 'addition'
+subtraction - SELECT DISTINCT type FROM questions_addition WHERE facts_type = 'subtraction'
+multiplication - SELECT DISTINCT type FROM questions_multiplication WHERE facts_type = 'multiplication'
+division - SELECT DISTINCT type FROM questions_multiplication WHERE facts_type = 'division')
+
+Ask clarifying questions before overhauling further

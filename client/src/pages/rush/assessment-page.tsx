@@ -115,13 +115,21 @@ export default function MathRushAssessmentPage() {
     });
   };
 
+  // Handle timer completion
+  useEffect(() => {
+    if (timeRemaining <= 0 && isRunning && !timeExpired) {
+      setTimeExpired(true);
+      handleTimeExpired();
+    }
+  }, [timeRemaining, isRunning, timeExpired]);
+
   // Start assessment when questions are loaded
   useEffect(() => {
     if (questions.length > 0 && !assessmentStarted && !showResults) {
       setAssessmentStarted(true);
-      start();
+      startTimer();
     }
-  }, [questions, assessmentStarted, showResults, start]);
+  }, [questions, assessmentStarted, showResults, startTimer]);
 
   // Get icon for operator
   const getOperatorIcon = (op: string) => {
@@ -144,7 +152,7 @@ export default function MathRushAssessmentPage() {
   };
 
   const handleNextQuestion = () => {
-    if (!selectedAnswer) return;
+    if (!selectedAnswer || timeExpired) return;
 
     const isCorrect = selectedAnswer === currentQuestion.answer;
     const newAnswer = {
@@ -162,6 +170,7 @@ export default function MathRushAssessmentPage() {
       setSelectedAnswer('');
     } else {
       // Assessment complete
+      stopTimer();
       const score = Math.round((newAnswers.filter(a => a.isCorrect).length / newAnswers.length) * 100);
       setShowResults(true);
       
@@ -219,7 +228,10 @@ export default function MathRushAssessmentPage() {
                 </div>
                 <CardTitle className="text-2xl">Assessment Complete!</CardTitle>
                 <CardDescription>
-                  {operator.charAt(0).toUpperCase() + operator.slice(1)} Assessment Results
+                  {operator.charAt(0).toUpperCase() + operator.slice(1)} Assessment Results (24 questions, 1 minute)
+                  {timeExpired && (
+                    <div className="text-red-600 mt-1 text-sm">Time expired!</div>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -317,17 +329,29 @@ export default function MathRushAssessmentPage() {
             
             <CardContent className="pt-6">
               <div className="space-y-6">
-                {/* Progress indicator */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
-                    <span>{Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%</span>
+                {/* Timer and Progress indicator */}
+                <div className="space-y-4">
+                  {/* Timer */}
+                  <div className="flex items-center justify-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <Clock className={`h-5 w-5 ${timeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-red-500'}`} />
+                    <span className={`font-bold text-lg ${timeRemaining <= 10 ? 'text-red-600' : 'text-red-500'}`}>
+                      {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-sm text-red-600">remaining</span>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-                    />
+                  
+                  {/* Progress indicator */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+                      <span>{Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -340,12 +364,13 @@ export default function MathRushAssessmentPage() {
 
                 {/* Answer options */}
                 <div className="grid grid-cols-2 gap-3">
-                  {currentQuestion.options.map((option, index) => (
+                  {currentQuestion.options.map((option: string, index: number) => (
                     <Button
                       key={index}
                       variant={selectedAnswer === option ? "default" : "outline"}
                       className="h-16 text-xl"
                       onClick={() => handleAnswerSelect(option)}
+                      disabled={timeExpired}
                     >
                       {option}
                     </Button>
