@@ -434,7 +434,7 @@ export async function completeAssessment(userId: number, operator: string, score
     const gradeLevel = parseInt(userGrade.replace(/[^\d]/g, '')) || 3;
     
     // Determine mastery level based on score
-    const masteryLevel = score >= 80 ? "mastered" : "needs_practice";
+    const masteryLevel = score >= 80;
     
     // Calculate auto-skip progression for multiplication and division
     let autoSkipSteps = 0;
@@ -459,7 +459,7 @@ export async function completeAssessment(userId: number, operator: string, score
               'true'::jsonb
             ),
             '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}',
-            to_jsonb(${masteryLevel}::text)
+            to_jsonb(${masteryLevel}::boolean)
           ),
           '{modules,math_rush_${sql.raw(operator)},progress,current_step}',
           to_jsonb(${autoSkipSteps}::integer)
