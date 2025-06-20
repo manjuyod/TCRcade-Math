@@ -13,6 +13,7 @@ import ModulesPage from "@/pages/modules-page";
 import MathRushSetupPage from "@/pages/rush/setup-page";
 import MathRushPlayPage from "@/pages/rush/play-page";
 import MathRushCompletePage from "@/pages/rush/complete-page";
+import MathRushAssessmentPage from "@/pages/rush/assessment-page";
 import FractionsSetupPage from "@/pages/fractions/setup-page";
 import FractionsPlayPage from "@/pages/fractions/play-page";
 import FractionsCompletePage from "@/pages/fractions/complete-page";
@@ -105,6 +106,7 @@ function Router() {
       <ProtectedRoute path="/ai-tutor" component={AiTutorPage} />
       <ProtectedRoute path="/rectutor" component={RecTutorPage} />
       <ProtectedRoute path="/rush/setup" component={MathRushSetupPage} />
+      <ProtectedRoute path="/rush/assessment" component={MathRushAssessmentPage} />
       <ProtectedRoute path="/rush/play" component={MathRushPlayPage} />
       <ProtectedRoute path="/rush/complete" component={MathRushCompletePage} />
       <ProtectedRoute path="/fractions/setup" component={FractionsSetupPage} />

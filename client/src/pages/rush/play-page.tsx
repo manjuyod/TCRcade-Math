@@ -63,7 +63,8 @@ export default function MathRushPlayPage() {
   const [sessionActive, setSessionActive] = useState(false);
   
   // Get settings from localStorage
-  const mode = localStorage.getItem('mathRushMode') || 'addition';
+  const operator = localStorage.getItem('mathRushOperator') || 'addition';
+  const mode = operator; // Use the specific operator as the mode
   const questionType = localStorage.getItem('mathRushQuestionType') || '';
   const timeOption = localStorage.getItem('mathRushTimeOption') || 'SHORT';
   const timeSeconds = parseInt(localStorage.getItem('mathRushTimeSeconds') || '60');

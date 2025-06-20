@@ -52,6 +52,19 @@ export default function MathRushSetupPage() {
   // Get time in seconds from the selected time option
   const timeSeconds = MATH_RUSH_RULES.timeSettings[timeOption].sec;
   
+  // Check assessment status for this operator
+  const { data: assessmentData, isLoading: assessmentLoading } = useQuery({
+    queryKey: ['/api/rush/assessment-status', operator],
+    queryFn: async () => {
+      const response = await fetch(`/api/rush/assessment-status?operator=${operator}`);
+      if (!response.ok) {
+        throw new Error('Failed to check assessment status');
+      }
+      return response.json();
+    },
+    enabled: !!operator,
+  });
+
   // Fetch question types based on selected operation
   const { data: typeData, isLoading: typesLoading } = useQuery({
     queryKey: ['/api/rush/types', mode],
@@ -71,6 +84,18 @@ export default function MathRushSetupPage() {
     enabled: !!mode,
   });
   
+  // Check if assessment is needed when assessment data loads
+  useEffect(() => {
+    if (assessmentData && !assessmentLoading) {
+      const testTaken = assessmentData.testTaken;
+      if (!testTaken) {
+        // Redirect to assessment page
+        navigate(`/rush/assessment?operator=${operator}`);
+        return;
+      }
+    }
+  }, [assessmentData, assessmentLoading, operator, navigate]);
+
   // Reset type selection when operation changes
   useEffect(() => {
     setQuestionType('');
@@ -152,22 +177,11 @@ export default function MathRushSetupPage() {
             <CardContent className="pt-6">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-3">1. Select Operation</h3>
-                  <RadioGroup
-                    value={mode}
-                    onValueChange={(value) => setMode(value as typeof MATH_RUSH_RULES.modes[number])}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                  >
-                    {MATH_RUSH_RULES.modes.map((opMode) => (
-                      <div key={opMode} className="flex items-center space-x-2">
-                        <RadioGroupItem value={opMode} id={`mode-${opMode}`} />
-                        <Label htmlFor={`mode-${opMode}`} className="flex items-center cursor-pointer">
-                          {getModeIcon(opMode)}
-                          <span className="capitalize">{opMode}</span>
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                  <h3 className="text-lg font-medium mb-3">Operation</h3>
+                  <div className="flex items-center space-x-3 p-4 bg-secondary rounded-lg">
+                    {getModeIcon(mode)}
+                    <span className="text-lg font-semibold capitalize">{operator}</span>
+                  </div>
                 </div>
                 
                 {/* Type selection - only shown after operation is selected */}
