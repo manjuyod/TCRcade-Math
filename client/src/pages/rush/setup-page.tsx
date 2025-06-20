@@ -96,6 +96,29 @@ export default function MathRushSetupPage() {
     }
   }, [assessmentData, assessmentLoading, operator, navigate]);
 
+  // Show loading while checking assessment status
+  if (assessmentLoading || !assessmentData) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <Navigation active="home" />
+        
+        <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-center text-muted-foreground">
+                  Checking assessment status...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   // Reset type selection when operation changes
   useEffect(() => {
     setQuestionType('');

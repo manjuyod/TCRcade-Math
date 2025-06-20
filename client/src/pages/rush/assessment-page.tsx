@@ -49,8 +49,9 @@ export default function MathRushAssessmentPage() {
   
   // State for assessment
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
+  const [userAnswer, setUserAnswer] = useState<string>('');
   const [answers, setAnswers] = useState<Array<{questionId: number, selectedAnswer: string, correctAnswer: string, isCorrect: boolean}>>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [showResults, setShowResults] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
   const [assessmentStarted, setAssessmentStarted] = useState(false);
@@ -148,17 +149,13 @@ export default function MathRushAssessmentPage() {
     }
   };
 
-  const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswer(answer);
-  };
+  const handleAnswerSubmit = () => {
+    if (!userAnswer.trim() || timeExpired) return;
 
-  const handleNextQuestion = () => {
-    if (!selectedAnswer || timeExpired) return;
-
-    const isCorrect = selectedAnswer === currentQuestion.answer;
+    const isCorrect = userAnswer.trim() === currentQuestion.answer.trim();
     const newAnswer = {
       questionId: currentQuestion.id,
-      selectedAnswer,
+      selectedAnswer: userAnswer.trim(),
       correctAnswer: currentQuestion.answer,
       isCorrect
     };
@@ -168,7 +165,9 @@ export default function MathRushAssessmentPage() {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer('');
+      setUserAnswer('');
+      // Focus the input for next question
+      setTimeout(() => inputRef.current?.focus(), 100);
     } else {
       // Assessment complete
       stopTimer();
@@ -181,6 +180,13 @@ export default function MathRushAssessmentPage() {
         score,
         answers: newAnswers
       });
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAnswerSubmit();
     }
   };
 
@@ -363,31 +369,39 @@ export default function MathRushAssessmentPage() {
                   </div>
                 </div>
 
-                {/* Answer options */}
-                <div className="grid grid-cols-2 gap-3">
-                  {currentQuestion.options.map((option: string, index: number) => (
-                    <Button
-                      key={index}
-                      variant={selectedAnswer === option ? "default" : "outline"}
-                      className="h-16 text-xl"
-                      onClick={() => handleAnswerSelect(option)}
+                {/* Answer input */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <label htmlFor="answer-input" className="block text-lg font-medium mb-2">
+                      Type your answer:
+                    </label>
+                    <Input
+                      id="answer-input"
+                      ref={inputRef}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9-]*"
+                      value={userAnswer}
+                      onChange={(e) => setUserAnswer(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Enter your answer"
+                      className="text-center text-2xl h-16 max-w-xs mx-auto"
                       disabled={timeExpired}
+                      autoFocus
+                    />
+                  </div>
+                  
+                  {/* Submit button */}
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleAnswerSubmit}
+                      disabled={!userAnswer.trim() || timeExpired}
+                      className="min-w-32 h-12 text-lg"
                     >
-                      {option}
+                      {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Complete'}
+                      <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                  ))}
-                </div>
-
-                {/* Next button */}
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleNextQuestion}
-                    disabled={!selectedAnswer}
-                    className="min-w-32"
-                  >
-                    {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Complete'}
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
