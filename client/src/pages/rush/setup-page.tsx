@@ -90,7 +90,7 @@ export default function MathRushSetupPage() {
       const testTaken = assessmentData.testTaken;
       if (!testTaken) {
         // Redirect to assessment page
-        navigate(`/rush/assessment?operator=${operator}`);
+        navigate(`/math-rush-assessment?operator=${operator}`);
         return;
       }
     }
