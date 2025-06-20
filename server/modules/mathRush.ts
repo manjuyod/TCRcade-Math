@@ -515,6 +515,87 @@ export async function completeAssessment(userId: number, operator: string, score
           }
         });
 
+        // Handle mixed progression steps based on individual type completion
+        if (operator === 'addition') {
+          // Check if Mixed 0–5 should be marked complete
+          const mixed05Types = ['Adding 0 and 1', 'Adding 2', 'Adding 3', 'Adding 4', 'Adding 5'];
+          const hasMixed05Prerequisites = mixed05Types.every(type => typesComplete.includes(type));
+          if (hasMixed05Prerequisites && !typesComplete.includes('Mixed 0–5')) {
+            typesComplete.push('Mixed 0–5');
+            console.log(`Marking "Mixed 0–5" as complete - all prerequisite types mastered`);
+          }
+
+          // Check if Make 10 should be marked complete (requires certain addition types)
+          const make10Types = ['Adding 1', 'Adding 2', 'Adding 3', 'Adding 4', 'Adding 5', 'Adding 6', 'Adding 7', 'Adding 8', 'Adding 9'];
+          const hasMake10Prerequisites = make10Types.some(type => typesComplete.includes(type));
+          if (hasMake10Prerequisites && !typesComplete.includes('Make 10')) {
+            typesComplete.push('Make 10');
+            console.log(`Marking "Make 10" as complete - addition types mastered`);
+          }
+
+          // Check if Mixed 6-10 should be marked complete  
+          const mixed610Types = ['Adding 6', 'Adding 7', 'Adding 8', 'Adding 9', 'Adding 10'];
+          const hasMixed610Prerequisites = mixed610Types.every(type => typesComplete.includes(type));
+          if (hasMixed610Prerequisites && !typesComplete.includes('Mixed 6-10')) {
+            typesComplete.push('Mixed 6-10');
+            console.log(`Marking "Mixed 6-10" as complete - all prerequisite types mastered`);
+          }
+        }
+        
+        else if (operator === 'subtraction') {
+          // Check if Subtraction Mixed 0-5 should be marked complete
+          const subMixed05Types = ['Subtract From 0-3', 'Subtract From 4', 'Subtract From 5'];
+          const hasSubMixed05Prerequisites = subMixed05Types.every(type => typesComplete.includes(type));
+          if (hasSubMixed05Prerequisites && !typesComplete.includes('Subtraction Mixed 0-5')) {
+            typesComplete.push('Subtraction Mixed 0-5');
+            console.log(`Marking "Subtraction Mixed 0-5" as complete - all prerequisite types mastered`);
+          }
+
+          // Check if Subtraction Mixed 6-10 should be marked complete
+          const subMixed610Types = ['Subtract From 6', 'Subtract From 7', 'Subtract From 8', 'Subtract From 9', 'Subtract From 10'];
+          const hasSubMixed610Prerequisites = subMixed610Types.every(type => typesComplete.includes(type));
+          if (hasSubMixed610Prerequisites && !typesComplete.includes('Subtraction Mixed 6-10')) {
+            typesComplete.push('Subtraction Mixed 6-10');
+            console.log(`Marking "Subtraction Mixed 6-10" as complete - all prerequisite types mastered`);
+          }
+        }
+        
+        else if (operator === 'multiplication') {
+          // Check if Mixed 0–5 should be marked complete
+          const multMixed05Types = ['Multiply by 0 and 1', 'Multiply by 2', 'Multiply by 3', 'Multiply by 4', 'Multiply by 5'];
+          const hasMultMixed05Prerequisites = multMixed05Types.every(type => typesComplete.includes(type));
+          if (hasMultMixed05Prerequisites && !typesComplete.includes('Mixed 0–5')) {
+            typesComplete.push('Mixed 0–5');
+            console.log(`Marking "Mixed 0–5" as complete - all prerequisite types mastered`);
+          }
+
+          // Check if Mixed 6–12 should be marked complete
+          const multMixed612Types = ['Multiply by 6', 'Multiply by 7', 'Multiply by 8', 'Multiply by 9', 'Multiply by 10', 'Multiply by 11', 'Multiply by 12'];
+          const hasMultMixed612Prerequisites = multMixed612Types.every(type => typesComplete.includes(type));
+          if (hasMultMixed612Prerequisites && !typesComplete.includes('Mixed 6–12')) {
+            typesComplete.push('Mixed 6–12');
+            console.log(`Marking "Mixed 6–12" as complete - all prerequisite types mastered`);
+          }
+        }
+        
+        else if (operator === 'division') {
+          // Check if Mixed 2–6 should be marked complete
+          const divMixed26Types = ['Divide by 2', 'Divide by 3', 'Divide by 4', 'Divide by 5', 'Divide by 6'];
+          const hasDivMixed26Prerequisites = divMixed26Types.every(type => typesComplete.includes(type));
+          if (hasDivMixed26Prerequisites && !typesComplete.includes('Mixed 2–6')) {
+            typesComplete.push('Mixed 2–6');
+            console.log(`Marking "Mixed 2–6" as complete - all prerequisite types mastered`);
+          }
+
+          // Check if Mixed 7–12 should be marked complete
+          const divMixed712Types = ['Divide by 7', 'Divide by 8', 'Divide by 9', 'Divide by 10', 'Divide by 11', 'Divide by 12'];
+          const hasDivMixed712Prerequisites = divMixed712Types.every(type => typesComplete.includes(type));
+          if (hasDivMixed712Prerequisites && !typesComplete.includes('Mixed 7–12')) {
+            typesComplete.push('Mixed 7–12');
+            console.log(`Marking "Mixed 7–12" as complete - all prerequisite types mastered`);
+          }
+        }
+
       } catch (error) {
         console.error(`Error analyzing assessment answers for ${operator}:`, error);
         // Fall back to simple analysis if database queries fail

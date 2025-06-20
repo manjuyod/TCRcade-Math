@@ -8,17 +8,18 @@
 export const ADDITION_PROGRESSION = [
   'Adding 0 and 1',    // step 1  (index 0)
   'Adding 10',         // step 2
-  'Adding 2',
-  'Adding 3',
-  'Adding 4',
-  'Adding 5',
-  'Mixed 0–5',
-  'Adding 6',
-  'Adding 7',
-  'Adding 8',
-  'Adding 9',
-  'Doubles to 20',
-  'Mixed 6-10',        // step 13 (index 12)
+  'Adding 2',          // step 3
+  'Adding 3',          // step 4
+  'Adding 4',          // step 5
+  'Adding 5',          // step 6
+  'Mixed 0–5',         // step 7
+  'Adding 6',          // step 8
+  'Adding 7',          // step 9
+  'Adding 8',          // step 10
+  'Adding 9',          // step 11
+  'Doubles to 20',     // step 12
+  'Make 10',           // step 13
+  'Mixed 6-10',        // step 14 (index 13)
 ] as const;
 
 /* Subtraction Progression */
