@@ -79,13 +79,14 @@ export default function MathRushAssessmentPage() {
       return apiRequest('POST', '/api/rush/complete-assessment', data);
     },
     onSuccess: () => {
+      const operatorName = operator.charAt(0).toUpperCase() + operator.slice(1);
       toast({
         title: "Assessment Complete!",
-        description: "You can now access Math Rush token runs.",
+        description: `Math Rush ${operatorName} is now unlocked! You can access token runs and practice sessions.`,
       });
-      // Navigate to setup page
+      // Navigate back to modules page
       setTimeout(() => {
-        navigate('/rush/setup');
+        navigate('/modules');
       }, 2000);
     },
     onError: (error) => {
