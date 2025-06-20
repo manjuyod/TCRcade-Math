@@ -473,12 +473,13 @@ export async function completeAssessment(userId: number, operator: string, score
         // Get question types for correct answers (types to potentially mark complete)
         let typesToIgnore: string[] = [];
         if (correctQuestionIds.length > 0) {
+          const correctIdsCommaSeparated = correctQuestionIds.join(',');
           const correctTypesResult = await db.execute(sql`
             SELECT array_agg(DISTINCT elem) AS types 
             FROM assessments 
             CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
-            WHERE id = ANY(${sql.placeholder('correctIds')})
-          `, { correctIds: correctQuestionIds });
+            WHERE id IN (${sql.raw(correctIdsCommaSeparated)})
+          `);
           const resultTypes = correctTypesResult.rows?.[0]?.types;
           typesToIgnore = Array.isArray(resultTypes) ? resultTypes : [];
         }
@@ -486,12 +487,13 @@ export async function completeAssessment(userId: number, operator: string, score
         // Get question types for incorrect answers (types to target for remediation)
         let typesToTarget: string[] = [];
         if (incorrectQuestionIds.length > 0) {
+          const incorrectIdsCommaSeparated = incorrectQuestionIds.join(',');
           const incorrectTypesResult = await db.execute(sql`
             SELECT array_agg(DISTINCT elem) AS types 
             FROM assessments 
             CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
-            WHERE id = ANY(${sql.placeholder('incorrectIds')})
-          `, { incorrectIds: incorrectQuestionIds });
+            WHERE id IN (${sql.raw(incorrectIdsCommaSeparated)})
+          `);
           const resultTypes = incorrectTypesResult.rows?.[0]?.types;
           typesToTarget = Array.isArray(resultTypes) ? resultTypes : [];
         }
