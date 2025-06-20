@@ -177,7 +177,7 @@ export default function Navigation({ active }: NavigationProps) {
                     </SessionAwareLink>
 
                     <SessionAwareLink
-                      href="/practice"
+                      href="/recquiz"
                       className="flex flex-col items-center justify-center w-20"
                     >
                       <div
@@ -192,12 +192,12 @@ export default function Navigation({ active }: NavigationProps) {
                       <span
                         className={`text-[11px] mt-1 text-center whitespace-nowrap ${active === "create-a-quiz" ? "font-semibold text-primary" : "text-gray-600"}`}
                       >
-                        Create-A-Quiz
+                        Create Quiz
                       </span>
                     </SessionAwareLink>
 
                     <SessionAwareLink
-                      href="/tutor"
+                      href="/rectutor"
                       className="flex flex-col items-center justify-center w-16"
                     >
                       <div

@@ -160,8 +160,8 @@ const NavigationWrapper = ({ children }: { children: React.ReactNode }) => {
     if (location === '/leaderboard') return 'leaderboard';
     if (location.includes('/multiplayer')) return 'multiplayer';
     if (location.includes('/analytics')) return 'analytics';
-    if (location.includes('/practice')) return 'create-a-quiz';
-    if (location.includes('/tutor')) return 'tutor';
+    if (location.includes('/practice') || location.includes('/recquiz')) return 'create-a-quiz';
+    if (location.includes('/tutor') || location.includes('/rectutor')) return 'tutor';
 
     return 'home';
   };
