@@ -318,6 +318,18 @@ export default function MathRushPlayPage() {
     console.log(`Total correct answers: ${correctCount}`);
     console.log(`Tokens calculated locally: ${tokensEarned} (base: ${baseTokens}, bonus: ${perfectBonus})`);
 
+    // Log correct and incorrect question arrays
+    const correctQuestions = finalResults
+      .map((result, index) => result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'}` : null)
+      .filter(Boolean);
+    
+    const incorrectQuestions = finalResults
+      .map((result, index) => !result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'} (Answer: ${result.userAnswer}, Correct: ${result.correctAnswer})` : null)
+      .filter(Boolean);
+
+    console.log('CORRECT QUESTIONS:', correctQuestions);
+    console.log('INCORRECT QUESTIONS:', incorrectQuestions);
+
     try {
       console.log('Submitting results:', { correct: correctCount, total: totalAnswered, tokensEarned });
 
@@ -362,6 +374,18 @@ export default function MathRushPlayPage() {
       }, 500);
     } catch (error) {
       console.error('Error submitting results:', error);
+
+      // Log correct and incorrect question arrays even in error case
+      const correctQuestions = finalResults
+        .map((result, index) => result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'}` : null)
+        .filter(Boolean);
+      
+      const incorrectQuestions = finalResults
+        .map((result, index) => !result.correct ? `Question ${index + 1}: ${questions[index]?.question || 'Question not available'} (Answer: ${result.userAnswer}, Correct: ${result.correctAnswer})` : null)
+        .filter(Boolean);
+
+      console.log('CORRECT QUESTIONS (Error fallback):', correctQuestions);
+      console.log('INCORRECT QUESTIONS (Error fallback):', incorrectQuestions);
 
       // Even if API fails, still save results and navigate to completion
       localStorage.setItem('mathRushResults', JSON.stringify({
