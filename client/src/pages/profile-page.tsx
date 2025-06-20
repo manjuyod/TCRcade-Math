@@ -158,6 +158,33 @@ export default function ProfilePage() {
     }
   });
 
+  // Reset module progress mutation (for testing)
+  const resetProgressMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/user/reset-progress');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reset progress');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+      toast({
+        title: 'Progress reset successfully',
+        description: 'All module assessments and mastery levels have been reset.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error resetting progress',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
@@ -590,6 +617,29 @@ export default function ProfilePage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Testing Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Testing Tools</h3>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => resetProgressMutation.mutate()}
+                disabled={resetProgressMutation.isPending}
+              >
+                {resetProgressMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Resetting...
+                  </>
+                ) : (
+                  'Reset All Module Progress'
+                )}
+              </Button>
+              <p className="text-xs text-gray-500 mt-1">
+                Resets test_taken and mastery_level flags for all modules
+              </p>
             </div>
             
             <DialogFooter>

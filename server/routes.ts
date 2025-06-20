@@ -401,6 +401,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reset module progress for testing
+  app.post("/api/user/reset-progress", ensureAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Reset all module progress flags in hidden_grade_asset
+      await db.execute(sql`
+        UPDATE users 
+        SET hidden_grade_asset = jsonb_set(
+          COALESCE(hidden_grade_asset, '{}'),
+          '{modules}',
+          (
+            SELECT jsonb_object_agg(
+              module_key,
+              CASE 
+                WHEN jsonb_typeof(module_value) = 'object' THEN
+                  jsonb_set(
+                    jsonb_set(
+                      module_value,
+                      '{progress,test_taken}',
+                      'false'::jsonb
+                    ),
+                    '{progress,mastery_level}',
+                    'false'::jsonb
+                  )
+                ELSE module_value
+              END
+            )
+            FROM jsonb_each(COALESCE(hidden_grade_asset->'modules', '{}')) AS m(module_key, module_value)
+          )
+        )
+        WHERE id = ${userId}
+      `);
+      
+      console.log(`Module progress reset for user ${userId}`);
+      res.json({ success: true, message: "Module progress reset successfully" });
+    } catch (error) {
+      console.error("Error resetting module progress:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to reset module progress",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   app.get("/api/subject-masteries", ensureAuthenticated, async (req, res) => {
     try {
       const userId = req.user!.id;
