@@ -126,6 +126,33 @@ export async function getUserProgressionData(userId: number, operator: string) {
 }
 
 /**
+ * Get the current type to play based on progression
+ */
+export async function getCurrentProgressionType(userId: number, operator: string): Promise<string | null> {
+  try {
+    const progressionData = await getUserProgressionData(userId, operator);
+    const progression = getProgressionForOperator(operator);
+    const typesComplete = progressionData.types_complete || [];
+    
+    // Find the lowest index type that is not in types_complete
+    for (let i = 0; i < progression.length; i++) {
+      const type = progression[i];
+      if (!typesComplete.includes(type)) {
+        console.log(`Selected progression type for ${operator}: ${type} (index ${i})`);
+        return type;
+      }
+    }
+    
+    // All types complete
+    console.log(`All progression types complete for ${operator}`);
+    return null;
+  } catch (error) {
+    console.error('Error getting current progression type:', error);
+    return null;
+  }
+}
+
+/**
  * Update user's progression data for a specific operator
  */
 export async function updateUserProgressionData(userId: number, operator: string, updates: any) {

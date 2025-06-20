@@ -63,6 +63,7 @@ export default function MathRushPlayPage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [currentType, setCurrentType] = useState<string | null>(null);
 
   // Get settings from localStorage
   const mode = localStorage.getItem('mathRushOperator') || 'addition';
@@ -134,6 +135,12 @@ export default function MathRushPlayPage() {
           setQuestions(data.questions);
           sessionStorage.setItem(cacheKey, JSON.stringify(data.questions));
           console.log(`Cached ${data.questions.length} questions to sessionStorage`);
+          
+          // Extract current type from first question
+          if (data.questions.length > 0 && data.questions[0].type) {
+            setCurrentType(data.questions[0].type);
+            console.log(`Current progression type: ${data.questions[0].type}`);
+          }
           
           setSessionActive(true);
           setLoading(false);
@@ -339,6 +346,7 @@ export default function MathRushPlayPage() {
         total: totalAnswered,
         durationSec,
         mode,
+        currentType,
         tokensCalculated: tokensEarned // Include our local calculation
       });
 
@@ -393,6 +401,7 @@ export default function MathRushPlayPage() {
         total: totalAnswered,
         durationSec,
         mode,
+        currentType,
         tokens: tokensEarned, // Use local calculation as fallback
         timeOption
       }));
