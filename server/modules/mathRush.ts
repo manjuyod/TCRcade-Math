@@ -1,6 +1,93 @@
 import { db } from "../db";           // existing Drizzle instance
 import { sql } from "drizzle-orm";
 import { MATH_RUSH_RULES } from "../../shared/mathRushRules";
+import { assessments } from "../../shared/schema";
+
+/**
+ * Check if user has taken assessment for a specific Math Rush operator
+ * @param userId - User ID
+ * @param operator - Math operator (addition, subtraction, multiplication, division)
+ * @returns Boolean indicating if test has been taken
+ */
+export async function checkAssessmentStatus(userId: number, operator: string): Promise<boolean> {
+  try {
+    const result = await db.execute(sql`
+      SELECT hidden_grade_asset #>> '{modules,math_rush,${sql.raw(operator)},progress,test_taken}' as test_taken
+      FROM users 
+      WHERE id = ${userId}
+    `);
+    
+    const testTaken = result.rows?.[0]?.test_taken;
+    return testTaken === 'true' || testTaken === true;
+  } catch (error) {
+    console.error(`Error checking assessment status for user ${userId}, operator ${operator}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Get assessment questions for a specific operator
+ * @param operator - Math operator (addition, subtraction, multiplication, division)
+ * @param userGrade - User's grade level (for multiplication/division)
+ * @returns Array of assessment questions
+ */
+export async function getAssessmentQuestions(operator: string, userGrade?: string): Promise<any[]> {
+  try {
+    let query;
+    
+    if (operator === 'addition') {
+      query = sql`
+        SELECT id, int1, int2, int3 
+        FROM assessments 
+        WHERE module = 'math_rush' AND properties->>'facts_type' = 'addition'
+        ORDER BY random()
+        LIMIT 10
+      `;
+    } else if (operator === 'subtraction') {
+      query = sql`
+        SELECT id, int1, int2, int3 
+        FROM assessments 
+        WHERE module = 'math_rush' AND properties->>'facts_type' = 'subtraction'
+        ORDER BY random()
+        LIMIT 10
+      `;
+    } else if (operator === 'multiplication') {
+      // Convert grade to numeric for grade-based filtering
+      const gradeMap: Record<string, number> = {"K": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12};
+      const gradeLevel = gradeMap[userGrade || "3"] || 3;
+      
+      query = sql`
+        SELECT id, int1, int2, int3 
+        FROM assessments 
+        WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
+        AND properties->>'facts_type' = 'multiplication'
+        ORDER BY random()
+        LIMIT 10
+      `;
+    } else if (operator === 'division') {
+      // Convert grade to numeric for grade-based filtering
+      const gradeMap: Record<string, number> = {"K": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12};
+      const gradeLevel = gradeMap[userGrade || "3"] || 3;
+      
+      query = sql`
+        SELECT id, int1, int2, int3 
+        FROM assessments 
+        WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
+        AND properties->>'facts_type' = 'division'
+        ORDER BY random()
+        LIMIT 10
+      `;
+    } else {
+      return [];
+    }
+    
+    const result = await db.execute(query);
+    return result.rows || [];
+  } catch (error) {
+    console.error(`Error fetching assessment questions for ${operator}:`, error);
+    return [];
+  }
+}
 
 /**
  * Get available question types for a given operation
@@ -39,7 +126,8 @@ export async function getQuestionTypes(operation: string): Promise<string[]> {
 
 export async function getRushQuestions(
   mode: typeof MATH_RUSH_RULES.modes[number],
-  type?: string
+  type?: string,
+  operator?: string
 ) {
   try {
     console.log(`Getting questions for mode: ${mode}, type: ${type || 'any'}`);
@@ -214,4 +302,29 @@ export function calculateRushTokens(correct: number, total: number, durationSec:
   console.log(`Token calculation: ${correct}/${total} correct, ${baseTokens} base tokens, isPerfect: ${isPerfect}, bonus: ${perfectBonus}`);
   
   return baseTokens + perfectBonus;
+}
+
+/**
+ * Mark assessment as complete for a specific Math Rush operator
+ * @param userId - User ID
+ * @param operator - Math operator (addition, subtraction, multiplication, division)
+ * @param score - Assessment score (0-100)
+ */
+export async function completeAssessment(userId: number, operator: string, score: number): Promise<void> {
+  try {
+    await db.execute(sql`
+      UPDATE users 
+      SET hidden_grade_asset = jsonb_set(
+        COALESCE(hidden_grade_asset, '{}'),
+        '{modules,math_rush,${sql.raw(operator)},progress,test_taken}',
+        'true'
+      )
+      WHERE id = ${userId}
+    `);
+    
+    console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
+  } catch (error) {
+    console.error(`Error completing assessment for user ${userId}, operator ${operator}:`, error);
+    throw error;
+  }
 }

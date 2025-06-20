@@ -276,14 +276,48 @@ export default function ModulesPage() {
       locked: true,
       completeCount: 0,
     },
+    // Math Rush modules - four separate operator-specific modules
     {
-      id: "math_rush",
-      name: "Math Rush",
-      description: "Timed 20-question sprint in the operation of your choice",
+      id: "math_rush_addition",
+      name: "Math Rush: Addition",
+      description: "Timed 20-question addition sprint",
       gameType: GameType.MATH_RUSH,
-      icon: <Timer className="h-12 w-12 text-orange-500" />,
+      icon: <Timer className="h-12 w-12 text-blue-500" />,
+      difficulty: 2,
+      category: "addition",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_subtraction",
+      name: "Math Rush: Subtraction",
+      description: "Timed 20-question subtraction sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-red-500" />,
+      difficulty: 2,
+      category: "subtraction",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_multiplication",
+      name: "Math Rush: Multiplication",
+      description: "Timed 20-question multiplication sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-green-500" />,
       difficulty: 3,
-      category: "mixed",
+      category: "multiplication",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_division",
+      name: "Math Rush: Division",
+      description: "Timed 20-question division sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-purple-500" />,
+      difficulty: 3,
+      category: "division",
       locked: false,
       completeCount: 0,
     },
@@ -374,8 +408,14 @@ export default function ModulesPage() {
 
     // Handle different module types
     if (module.gameType === GameType.MATH_RUSH) {
-      // For Math Rush, navigate to the rush setup page
-      console.log("Loading math rush module, navigating to setup page");
+      // For Math Rush modules, extract the operator and store it
+      const operator = module.id.includes("addition") ? "addition" :
+                      module.id.includes("subtraction") ? "subtraction" :
+                      module.id.includes("multiplication") ? "multiplication" :
+                      module.id.includes("division") ? "division" : "addition";
+      
+      localStorage.setItem("mathRushOperator", operator);
+      console.log(`Loading math rush ${operator} module, navigating to setup page`);
       setLocation("/rush/setup");
       return;
     }

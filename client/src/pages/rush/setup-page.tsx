@@ -39,10 +39,15 @@ export default function MathRushSetupPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
+  // Get the operator from localStorage (set by modules page)
+  const operator = localStorage.getItem('mathRushOperator') || 'addition';
+  
   // State for selected options
-  const [mode, setMode] = useState<typeof MATH_RUSH_RULES.modes[number]>('addition');
+  const [mode] = useState<typeof MATH_RUSH_RULES.modes[number]>(operator as any);
   const [questionType, setQuestionType] = useState<string>('');
   const [timeOption, setTimeOption] = useState<'SHORT' | 'LONG'>('SHORT');
+  const [checkingAssessment, setCheckingAssessment] = useState(true);
+  const [needsAssessment, setNeedsAssessment] = useState(false);
   
   // Get time in seconds from the selected time option
   const timeSeconds = MATH_RUSH_RULES.timeSettings[timeOption].sec;

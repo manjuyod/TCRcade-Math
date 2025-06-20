@@ -2440,9 +2440,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/rush/assessment-status", async (req, res) => {
+    try {
+      const { operator } = req.query;
+      const userId = getUserId(req);
+
+      if (!operator || typeof operator !== 'string') {
+        return res.status(400).json({ error: "Operator parameter required" });
+      }
+
+      const { checkAssessmentStatus } = await import("./modules/mathRush");
+      const testTaken = await checkAssessmentStatus(userId, operator);
+      
+      res.json({ testTaken });
+    } catch (error) {
+      console.error("Error checking assessment status:", error);
+      res.status(500).json({ error: "Failed to check assessment status" });
+    }
+  });
+
+  app.get("/api/rush/assessment-questions", async (req, res) => {
+    try {
+      const { operator } = req.query;
+      const userId = getUserId(req);
+
+      if (!operator || typeof operator !== 'string') {
+        return res.status(400).json({ error: "Operator parameter required" });
+      }
+
+      // Get user grade for grade-based filtering
+      const userResult = await storage.getUser(userId);
+      const userGrade = userResult?.grade || "3";
+
+      const { getAssessmentQuestions } = await import("./modules/mathRush");
+      const questions = await getAssessmentQuestions(operator, userGrade);
+      
+      // Format assessment questions for the frontend
+      const formattedQuestions = questions.map(q => {
+        let questionText = '';
+        let answer = '';
+        
+        if (operator === 'addition') {
+          questionText = `${q.int1} + ${q.int2} = ?`;
+          answer = String(q.int3);
+        } else if (operator === 'subtraction') {
+          questionText = `${q.int3} - ${q.int2} = ?`;
+          answer = String(q.int1);
+        } else if (operator === 'multiplication') {
+          questionText = `${q.int1} × ${q.int2} = ?`;
+          answer = String(q.int3);
+        } else if (operator === 'division') {
+          questionText = `${q.int3} ÷ ${q.int2} = ?`;
+          answer = String(q.int1);
+        }
+        
+        // Generate multiple choice options
+        const answerNum = parseInt(answer);
+        const options = [
+          String(Math.max(0, answerNum - 2)),
+          String(Math.max(0, answerNum - 1)),
+          answer,
+          String(answerNum + 1),
+          String(answerNum + 2)
+        ].sort(() => Math.random() - 0.5);
+        
+        return {
+          id: q.id,
+          question: questionText,
+          answer,
+          options,
+          operator
+        };
+      });
+      
+      res.json({ questions: formattedQuestions });
+    } catch (error) {
+      console.error("Error fetching assessment questions:", error);
+      res.status(500).json({ error: "Failed to fetch assessment questions" });
+    }
+  });
+
+  app.post("/api/rush/complete-assessment", async (req, res) => {
+    try {
+      const { operator, score, answers } = req.body;
+      const userId = getUserId(req);
+
+      if (!operator || typeof operator !== 'string') {
+        return res.status(400).json({ error: "Operator parameter required" });
+      }
+
+      const { completeAssessment } = await import("./modules/mathRush");
+      await completeAssessment(userId, operator, score);
+      
+      res.json({ success: true, message: "Assessment completed successfully" });
+    } catch (error) {
+      console.error("Error completing assessment:", error);
+      res.status(500).json({ error: "Failed to complete assessment" });
+    }
+  });
+
   app.get("/api/rush/questions", async (req, res) => {
     try {
-      const { mode = "addition", type } = req.query;
+      const { mode = "addition", type, operator } = req.query;
       const userId = getUserId(req);
 
       // Dynamically import the Math Rush functionality and rules
@@ -2456,7 +2555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const questions = await getRushQuestions(mode as any, type as string);
+      const questions = await getRushQuestions(mode as any, type as string, operator as string);
       res.json({ questions });
     } catch (error) {
       console.error("Error fetching rush questions:", error);
