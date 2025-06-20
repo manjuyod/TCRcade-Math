@@ -129,6 +129,12 @@ export default function MathRushPlayPage() {
         console.log(`Fetching Math Rush questions with mode: ${mode}${questionType ? `, type: ${questionType}` : ''}${forceProgression ? ', forceProgression: true' : ''}`);
         const response = await apiRequest('GET', url);
         const data = await response.json();
+        
+        // Use the server-determined current type for progression
+        if (data.currentType && forceProgression) {
+          console.log(`Server selected progression type: ${data.currentType}`);
+          setCurrentType(data.currentType);
+        }
 
         if (data.questions && Array.isArray(data.questions)) {
           // Cache questions in both RAM and sessionStorage

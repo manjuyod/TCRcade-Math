@@ -134,9 +134,13 @@ export async function getCurrentProgressionType(userId: number, operator: string
     const progression = getProgressionForOperator(operator);
     const typesComplete = progressionData.types_complete || [];
     
+    console.log(`Current types complete for ${operator}:`, typesComplete);
+    console.log(`Full progression for ${operator}:`, progression);
+    
     // Find the lowest index type that is not in types_complete
     for (let i = 0; i < progression.length; i++) {
       const type = progression[i];
+      console.log(`Checking type "${type}" (index ${i}) - Complete: ${typesComplete.includes(type)}`);
       if (!typesComplete.includes(type)) {
         console.log(`Selected progression type for ${operator}: ${type} (index ${i})`);
         return type;
