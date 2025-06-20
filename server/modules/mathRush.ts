@@ -429,7 +429,7 @@ export async function completeAssessment(userId: number, operator: string, score
       SELECT grade, hidden_grade_asset FROM users WHERE id = ${userId}
     `);
     
-    const user = userResult.rows?.[0];
+    const user = userResult.rows?.[0] as any;
     const userGrade = String(user?.grade || "3");
     const gradeLevel = parseInt(userGrade.replace(/[^\d]/g, '')) || 3;
     
