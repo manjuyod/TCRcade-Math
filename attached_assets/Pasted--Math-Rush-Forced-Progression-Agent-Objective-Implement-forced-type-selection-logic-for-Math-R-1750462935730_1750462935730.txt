@@ -1,0 +1,131 @@
+
+# Math Rush Forced Progression Agent
+
+## Objective
+Implement forced type selection logic for Math Rush modules that applies when `test_taken = true AND mastery_level = false`. This logic should work alongside existing progression without interfering with other workflows.
+
+## Scope
+- **Target Condition**: Only activate when `forceProgression=true` AND user has `test_taken = true` AND `mastery_level = false`
+- **Location**: Modify existing forced progression logic in `/api/rush/questions` endpoint
+- **Operators**: addition, subtraction, multiplication, division
+
+## Implementation Steps
+
+### 1. Module Start Detection & Logging
+When the forced progression algorithm activates from setup-page:
+```javascript
+console.log(`FORCED PROGRESSION: Activated for user ${userId}, operator: ${operator}`);
+```
+
+### 2. Database Query for Completed Types
+Grab the user's completed types from database:
+```sql
+SELECT hidden_grade_asset #> '{modules,math_rush_${operator},progress,types_complete}' AS types_complete 
+FROM users WHERE id = ${userId};
+```
+
+**Log the query and output:**
+```javascript
+console.log(`FORCED PROGRESSION: Query executed for user ${userId}, operator: ${operator}`);
+console.log(`FORCED PROGRESSION: Completed types from DB:`, typesCompleteFromDB);
+```
+
+### 3. Get Progression Array
+Retrieve the full progression array for the chosen operator:
+```javascript
+const progressionArray = getProgressionForOperator(operator);
+console.log(`FORCED PROGRESSION: Full progression array for ${operator}:`, progressionArray);
+```
+
+### 4. Create Active Array
+Filter out completed types to create the active array:
+```javascript
+const activeArray = progressionArray.filter(type => !typesCompleteFromDB.includes(type));
+console.log(`FORCED PROGRESSION: Active array (uncompleted types):`, activeArray);
+```
+
+### 5. Select Lowest Indexed Type
+Pick the first item from the active array (lowest index):
+```javascript
+const lowestIndexedType = activeArray[0];
+console.log(`FORCED PROGRESSION: Selected lowest indexed type: ${lowestIndexedType}`);
+```
+
+### 6. Question Database Query
+Query for questions based on the selected type and operator:
+
+**For addition/subtraction:**
+```sql
+SELECT id, int1, int2, int3 
+FROM questions_addition 
+WHERE facts_type = '${operator}' AND type = '${lowestIndexedType}'
+```
+
+**For multiplication/division:**
+```sql
+SELECT id, int1, int2, int3 
+FROM questions_multiplication 
+WHERE facts_type = '${operator}' AND type = '${lowestIndexedType}'
+```
+
+**Log the query:**
+```javascript
+console.log(`FORCED PROGRESSION: Querying questions - Table: ${tableName}, Operator: ${operator}, Type: ${lowestIndexedType}`);
+console.log(`FORCED PROGRESSION: Found ${questions.length} questions for type: ${lowestIndexedType}`);
+```
+
+## Error Handling
+
+### Empty Active Array
+```javascript
+if (activeArray.length === 0) {
+    // Check if progression is complete
+    if (typesCompleteFromDB.length === progressionArray.length) {
+        console.log(`FORCED PROGRESSION: All types completed for ${operator}. Progression complete.`);
+        // Handle completion logic
+    } else {
+        console.log(`FORCED PROGRESSION: Active array empty but progression incomplete. Completed: ${typesCompleteFromDB.length}, Total: ${progressionArray.length}`);
+        // Re-check types_complete from database
+    }
+}
+```
+
+### No Questions Found
+```javascript
+if (questions.length === 0) {
+    throw new Error(`FORCED PROGRESSION: No questions found for operator: ${operator}, type: ${lowestIndexedType}`);
+}
+```
+
+### Database Query Failures
+```javascript
+try {
+    // Database operations
+} catch (error) {
+    console.error(`FORCED PROGRESSION: Database query failed for user ${userId}, operator: ${operator}`, error);
+    throw new Error(`FORCED PROGRESSION: Database query failed: ${error.message}`);
+}
+```
+
+## Integration Requirements
+
+1. **Modify existing forced progression logic** in the `/api/rush/questions` endpoint
+2. **Preserve all existing functionality** - this should be an additional code path
+3. **Only activate under specific conditions**: `forceProgression=true` AND `test_taken = true` AND `mastery_level = false`
+4. **Use console.log for all logging** throughout the process
+5. **Maintain compatibility** with existing progression and question selection logic
+
+## Key Questions for Implementation
+
+1. Where in the current codebase should this logic be integrated?
+2. How should this interact with the existing `getCurrentProgressionType` function?
+3. Should this logic bypass or enhance the current progression system?
+4. What happens after a user completes questions from the forced progression?
+
+## Expected Outcome
+
+When implemented, this system will:
+- Provide targeted remediation for users who failed assessments
+- Ensure systematic progression through uncompleted fact types
+- Maintain detailed logging for debugging and verification
+- Work seamlessly with existing Math Rush functionality
