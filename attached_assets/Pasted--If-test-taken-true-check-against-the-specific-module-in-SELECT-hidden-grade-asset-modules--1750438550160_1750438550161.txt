@@ -1,0 +1,103 @@
+- If test_taken = true check against the specific module in SELECT hidden_grade_asset #>> '{modules,math_rush[specifcoperator],progress,test_taken,mastery_level}' FROM users WHERE id = {current user} in order to see if the specific module is mastered.
+
+-- If mastery level is false, DO NOT TAKE THEM TO SET UP PAGE. FORCE PROGRESSION. FORCE 1 minute time this is always a token_run
+--- Progression lists (
+ADDITION_PROGRESSION = [
+  'Adding 0 and 1',  // step 1  (index 0)
+  'Adding 10',       // step 2
+  'Adding 2',
+  'Adding 3',
+  'Adding 4',
+  'Adding 5',
+  'Mixed 0–5',
+  'Adding 6',
+  'Adding 7',
+  'Adding 8',
+  'Adding 9',
+  'Doubles to 20',
+  'Mixed 6–10',      // step 13 (index 12))
+
+SUBTRACTION_PROGRESSION = [
+  'Subtract From 0–3',            // step 1  (index 0)
+  'Subtract From 10',             // step 2
+  'Subtract From 4',
+  'Subtract From 5',
+  'Subtraction Mixed 0–5',
+  'Subtract From 6',
+  'Subtract From 7',
+  'Subtract From 8',
+  'Subtract From 9',
+  'Subtraction Half of a Double',
+  'Subtraction Mixed 6–10',
+  'Subtraction Odd Balls',        // step 12 (index 11)
+]
+
+MULTIPLICATION_PROGRESSION = [
+  'Multiply by 0 and 1',
+  'Multiply by 2',
+  'Multiply by 3',
+  'Multiply by 4',
+  'Multiply by 5',
+  'Mixed 0–5',
+  'Multiply by 6',
+  'Multiply by 7',
+  'Multiply by 8',
+  'Multiply by 9,
+  'Multiply by 10',
+  'Multiply by 11',
+  'Multiply by 12',
+  'Multiply Doubles',
+  'Mixed 6–12',	// step 15
+] - for multiplication progression (if above level 5, auto ignore multiply by 0, 1, and 2).
+
+export const DIVISION_PROGRESSION = [
+  'Divide by 2',       // step 4   (index 0)
+  'Divide by 3',       // step 5
+  'Divide by 4',       // step 6
+  'Divide by 5',       // step 7
+  'Divide by 6',       // step 8
+  'Mixed 2–6',         // step 12
+  'Divide by 7',       // step 9
+  'Divide by 8',       // step 10
+  'Divide by 9',       // step 11
+  'Divide by 10',      // step 1
+  'Divide by 11',      // step 2
+  'Divide by 12',      // step 3
+  'Mixed 7–12',        // step 13
+] - for division progression (if above level 5, auto ignore divide by 2).
+
+- Suggested functions division as an example (
+
+/**
+ * divisionProgression.ts
+ * --------------------------------------------------
+ * Hard-coded progression for division fact families.
+ * Array index 0 → step 1, index 1 → step 2, … index 12 → step 13.
+ */
+
+/* 1  · Canonical progression list */
+export const DIVISION_PROGRESSION = [
+  'Divide by 2',       // step 4   (index 0)
+  'Divide by 3',       // step 5
+  'Divide by 4',       // step 6
+  'Divide by 5',       // step 7
+  'Divide by 6',       // step 8
+  'Mixed 2–6',         // step 12
+  'Divide by 7',       // step 9
+  'Divide by 8',       // step 10
+  'Divide by 9',       // step 11
+  'Divide by 10',      // step 1
+  'Divide by 11',      // step 2
+  'Divide by 12',      // step 3
+  'Mixed 7–12',        // step 13
+] as const;
+
+/* 2  · Literal-union type (catches typos at compile time) */
+export type DivFactType = typeof DIVISION_PROGRESSION[number];
+
+/* 3  · Hash-map: factType ⇒ 1-based step (O(1) lookup) */
+export const DIV_FACT_STEP_MAP: Readonly<Record<DivFactType, number>> = (() => {
+  const map = {} as Record<DivFactType, number>;
+  DIVISION_PROGRESSION.forEach((ft, idx) => (map[ft] = idx + 1)); // idx 0 → step 1
+  return map;
+})();
