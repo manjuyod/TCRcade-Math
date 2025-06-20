@@ -422,6 +422,7 @@ export async function getRushQuestions(
       let query;
 
       if (type) {
+        console.log(`Filtering questions by type: "${type}" from table: ${table}`);
         query = sql`
           SELECT id, int1, int2, int3, type, facts_type
           FROM ${sql.raw(table)}
@@ -440,7 +441,17 @@ export async function getRushQuestions(
       }
 
       const result = await db.execute(query);
-      console.log(`Database query returned ${result.rows?.length || 0} rows`);
+      console.log(`Database query returned ${result.rows?.length || 0} rows for type: ${type || 'no filter'}`);
+      
+      if (type && result.rows?.length) {
+        console.log(`Sample questions for type "${type}":`, result.rows.slice(0, 3).map(r => ({
+          id: r.id,
+          int1: r.int1,
+          int2: r.int2,
+          type: r.type,
+          facts_type: r.facts_type
+        })));
+      }
 
       // Format questions for client use
       const formattedQuestions = (result.rows || []).map(q => {
