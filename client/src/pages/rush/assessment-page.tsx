@@ -42,11 +42,11 @@ export default function MathRushAssessmentPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  
+
   // Get operator from URL params
   const urlParams = new URLSearchParams(window.location.search);
   const operator = urlParams.get('operator') || 'addition';
-  
+
   // State for assessment
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
@@ -105,11 +105,11 @@ export default function MathRushAssessmentPage() {
   // Handle time expiration
   const handleTimeExpired = () => {
     if (showResults || assessmentComplete) return;
-    
+
     // Complete assessment with current answers
     const score = Math.round((answers.filter(a => a.isCorrect).length / Math.max(answers.length, 1)) * 100);
     setShowResults(true);
-    
+
     // Submit assessment results
     completeAssessmentMutation.mutate({
       operator,
@@ -174,7 +174,7 @@ export default function MathRushAssessmentPage() {
       stopTimer();
       const score = Math.round((newAnswers.filter(a => a.isCorrect).length / newAnswers.length) * 100);
       setShowResults(true);
-      
+
       // Submit assessment results
       completeAssessmentMutation.mutate({
         operator,
@@ -196,7 +196,7 @@ export default function MathRushAssessmentPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <Navigation active="home" />
-        
+
         <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6">
@@ -222,7 +222,7 @@ export default function MathRushAssessmentPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <Navigation active="home" />
-        
+
         <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -251,16 +251,16 @@ export default function MathRushAssessmentPage() {
                     {correctCount} out of {totalCount} correct
                   </p>
                 </div>
-                
+
                 <div className="flex items-center justify-center space-x-2 text-green-600">
                   <Check className="h-5 w-5" />
                   <span>Assessment completed successfully</span>
                 </div>
-                
+
                 <p className="text-center text-sm text-muted-foreground">
                   You can now access Math Rush token runs for {operator}!
                 </p>
-                
+
                 {completeAssessmentMutation.isPending && (
                   <div className="flex items-center justify-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -280,7 +280,7 @@ export default function MathRushAssessmentPage() {
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <Navigation active="home" />
-        
+
         <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6">
@@ -304,7 +304,7 @@ export default function MathRushAssessmentPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <Navigation active="home" />
-      
+
       <main className="flex-1 container max-w-4xl py-6 px-4">
         <div className="mb-6 flex items-center">
           <Button
@@ -316,7 +316,7 @@ export default function MathRushAssessmentPage() {
             Back to Modules
           </Button>
         </div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -334,7 +334,7 @@ export default function MathRushAssessmentPage() {
                 Complete this assessment to unlock Math Rush token runs
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pt-6">
               <div className="space-y-6">
                 {/* Timer and Progress indicator */}
@@ -347,7 +347,7 @@ export default function MathRushAssessmentPage() {
                     </span>
                     <span className="text-sm text-red-600">remaining</span>
                   </div>
-                  
+
                   {/* Progress indicator */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -391,7 +391,7 @@ export default function MathRushAssessmentPage() {
                       autoFocus
                     />
                   </div>
-                  
+
                   {/* Submit button */}
                   <div className="flex justify-center">
                     <Button

@@ -23,7 +23,7 @@ export async function checkAssessmentStatus(userId: number, operator: string): P
       FROM users 
       WHERE id = ${userId}
     `);
-    
+
     const testTaken = result.rows?.[0]?.test_taken;
     return testTaken === 'true' || testTaken === true;
   } catch (error) {
@@ -42,7 +42,7 @@ export async function checkMasteryLevel(userId: number, operator: string): Promi
       FROM users 
       WHERE id = ${userId}
     `);
-    
+
     return result.rows[0]?.mastery_level === 'true';
   } catch (error) {
     console.error('Error checking mastery level:', error);
@@ -57,11 +57,11 @@ export async function getUserProgressionData(userId: number, operator: string) {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new Error('User not found');
-    
+
     const hiddenGradeAsset = user.hiddenGradeAsset as any;
     const moduleKey = `math_rush_${operator}`;
     const moduleData = hiddenGradeAsset?.modules?.[moduleKey];
-    
+
     if (!moduleData) {
       return {
         test_taken: false,
@@ -72,7 +72,7 @@ export async function getUserProgressionData(userId: number, operator: string) {
         current_step: 0
       };
     }
-    
+
     return moduleData.progress;
   } catch (error) {
     console.error('Error getting user progression data:', error);
@@ -87,11 +87,11 @@ export async function updateUserProgressionData(userId: number, operator: string
   try {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new Error('User not found');
-    
+
     let hiddenGradeAsset = user.hiddenGradeAsset as any;
     if (!hiddenGradeAsset) hiddenGradeAsset = { modules: {} };
     if (!hiddenGradeAsset.modules) hiddenGradeAsset.modules = {};
-    
+
     const moduleKey = `math_rush_${operator}`;
     if (!hiddenGradeAsset.modules[moduleKey]) {
       hiddenGradeAsset.modules[moduleKey] = {
@@ -121,15 +121,15 @@ export async function updateUserProgressionData(userId: number, operator: string
         }
       };
     }
-    
+
     // Apply updates
     Object.assign(hiddenGradeAsset.modules[moduleKey].progress, updates);
-    
+
     await db
       .update(users)
       .set({ hiddenGradeAsset })
       .where(eq(users.id, userId));
-      
+
     return hiddenGradeAsset.modules[moduleKey].progress;
   } catch (error) {
     console.error('Error updating user progression data:', error);
@@ -146,7 +146,7 @@ export async function updateUserProgressionData(userId: number, operator: string
 export async function getAssessmentQuestions(operator: string, userGrade?: string): Promise<any[]> {
   try {
     let query;
-    
+
     if (operator === 'addition') {
       query = sql`
         SELECT id, int1, int2, int3 
@@ -167,7 +167,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
       // Convert grade to numeric for grade-based filtering
       const gradeMap: Record<string, number> = {"K": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12};
       const gradeLevel = gradeMap[userGrade || "3"] || 3;
-      
+
       query = sql`
         SELECT id, int1, int2, int3 
         FROM assessments 
@@ -180,7 +180,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
       // Convert grade to numeric for grade-based filtering
       const gradeMap: Record<string, number> = {"K": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, "11": 11, "12": 12};
       const gradeLevel = gradeMap[userGrade || "3"] || 3;
-      
+
       query = sql`
         SELECT id, int1, int2, int3 
         FROM assessments 
@@ -192,7 +192,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
     } else {
       return [];
     }
-    
+
     const result = await db.execute(query);
     return result.rows || [];
   } catch (error) {
@@ -211,9 +211,9 @@ export async function getQuestionTypes(operation: string): Promise<string[]> {
   const table = operation === "addition" || operation === "subtraction"
     ? "questions_addition"
     : "questions_multiplication";
-  
+
   console.log(`Getting question types for operation '${operation}' from table '${table}'`);
-  
+
   try {
     // Query the database for distinct types
     const query = sql`
@@ -221,14 +221,14 @@ export async function getQuestionTypes(operation: string): Promise<string[]> {
       WHERE type IS NOT NULL
       ORDER BY type;
     `;
-    
+
     const result = await db.execute(query);
     console.log("Database query result for types:", result.rows);
-    
+
     // Extract types from the result and ensure they're strings
     const types = (result.rows?.map(row => String(row.type)) || []) as string[];
     console.log(`Found ${types.length} types:`, types);
-    
+
     return types;
   } catch (error) {
     console.error(`Error fetching question types for ${operation}:`, error);
@@ -243,10 +243,10 @@ export async function getRushQuestions(
 ) {
   try {
     console.log(`Getting questions for mode: ${mode}, type: ${type || 'any'}`);
-    
+
     if (mode === "mixed") {
       // For mixed mode, we need to get a mix of questions from both tables
-      
+
       // Get questions from questions_addition (for addition and subtraction)
       const additionResult = await db.execute(sql`
         SELECT id, 'addition' as mode, int1, int2, int3, type
@@ -254,14 +254,14 @@ export async function getRushQuestions(
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
-      
+
       const subtractionResult = await db.execute(sql`
         SELECT id, 'subtraction' as mode, int1, int2, int3, type
         FROM questions_addition
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
-      
+
       // Get questions from questions_multiplication (for multiplication and division)
       const multiplicationResult = await db.execute(sql`
         SELECT id, 'multiplication' as mode, int1, int2, int3, type
@@ -269,20 +269,20 @@ export async function getRushQuestions(
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
-      
+
       const divisionResult = await db.execute(sql`
         SELECT id, 'division' as mode, int1, int2, int3, type
         FROM questions_multiplication
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
-      
+
       // Convert results to arrays
       const additionQuestions = additionResult.rows || [];
       const subtractionQuestions = subtractionResult.rows || [];
       const multiplicationQuestions = multiplicationResult.rows || [];
       const divisionQuestions = divisionResult.rows || [];
-      
+
       // Combine all questions
       const combinedQuestions = [
         ...additionQuestions,
@@ -290,30 +290,30 @@ export async function getRushQuestions(
         ...multiplicationQuestions,
         ...divisionQuestions
       ];
-      
+
       // Shuffle the array to mix the question types
       for (let i = combinedQuestions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [combinedQuestions[i], combinedQuestions[j]] = [combinedQuestions[j], combinedQuestions[i]];
       }
-      
+
       // Format questions for client use
       const formattedQuestions = combinedQuestions.slice(0, MATH_RUSH_RULES.questionCount).map(q => {
         // Format based on operation
         const question = formatMathRushQuestion(q);
         return question;
       });
-      
+
       console.log(`Returning ${formattedQuestions.length} mixed questions`);
       return formattedQuestions;
     } else {
       const table = mode === "addition" || mode === "subtraction"
         ? "questions_addition"
         : "questions_multiplication";
-      
+
       // Build the query based on whether a type filter is provided
       let query;
-      
+
       if (type) {
         query = sql`
           SELECT id, int1, int2, int3, type
@@ -330,15 +330,15 @@ export async function getRushQuestions(
           LIMIT ${MATH_RUSH_RULES.questionCount};
         `;
       }
-      
+
       const result = await db.execute(query);
       console.log(`Database query returned ${result.rows?.length || 0} rows`);
-      
+
       // Format questions for client use
       const formattedQuestions = (result.rows || []).map(q => {
         return formatMathRushQuestion({...q, mode});
       });
-      
+
       console.log(`Returning ${formattedQuestions.length} ${mode} questions`);
       return formattedQuestions;
     }
@@ -347,7 +347,7 @@ export async function getRushQuestions(
     // Return some default questions if database fails
     return [];
   }
-  
+
   /**
    * Format a database row into a proper question object for the client
    */
@@ -356,7 +356,7 @@ export async function getRushQuestions(
     let questionText = '';
     let answer = '';
     let options = [];
-    
+
     if (operation === 'addition') {
       questionText = `${int1} + ${int2} = ?`;
       answer = String(int1 + int2);
@@ -371,7 +371,7 @@ export async function getRushQuestions(
       questionText = `${dividend} ÷ ${int1} = ?`;
       answer = String(int2);
     }
-    
+
     // Generate options (including the correct answer)
     const answerNum = parseInt(answer);
     options = [
@@ -380,7 +380,7 @@ export async function getRushQuestions(
       answer,
       String(answerNum + 1)
     ].sort(() => Math.random() - 0.5);
-    
+
     return {
       id,
       question: questionText,
@@ -404,15 +404,15 @@ export function calculateRushTokens(correct: number, total: number, durationSec:
 
   // Calculate tokens based on correct answers (3 tokens per 5 correct for SHORT, 2 per 5 for LONG)
   const baseTokens = Math.floor(correct / 5) * setting.tokensPer5;
-  
+
   // Give perfect bonus if the player had perfect accuracy
   // This means they didn't miss any questions they attempted
   const isPerfect = (correct === total && correct > 0);
-                    
+
   const perfectBonus = isPerfect ? setting.bonusPerfect : 0;
-  
+
   console.log(`Token calculation: ${correct}/${total} correct, ${baseTokens} base tokens, isPerfect: ${isPerfect}, bonus: ${perfectBonus}`);
-  
+
   return baseTokens + perfectBonus;
 }
 
@@ -421,21 +421,22 @@ export function calculateRushTokens(correct: number, total: number, durationSec:
  * @param userId - User ID
  * @param operator - Math operator (addition, subtraction, multiplication, division)
  * @param score - Assessment score (0-100)
+ * @param assessmentAnswers - Array of user answers with question types for analysis
  */
-export async function completeAssessment(userId: number, operator: string, score: number): Promise<void> {
+export async function completeAssessment(userId: number, operator: string, score: number, assessmentAnswers?: any[]): Promise<void> {
   try {
     // Get user's current grade for progression logic
     const userResult = await db.execute(sql`
       SELECT grade, hidden_grade_asset FROM users WHERE id = ${userId}
     `);
-    
+
     const user = userResult.rows?.[0] as any;
     const userGrade = String(user?.grade || "3");
     const gradeLevel = parseInt(userGrade.replace(/[^\d]/g, '')) || 3;
-    
+
     // Determine mastery level based on score
     const masteryLevel = score >= 80;
-    
+
     // Calculate auto-skip progression for multiplication and division
     let autoSkipSteps = 0;
     if (operator === 'multiplication' && gradeLevel > 5) {
@@ -443,11 +444,58 @@ export async function completeAssessment(userId: number, operator: string, score
     } else if (operator === 'division' && gradeLevel > 5) {
       autoSkipSteps = 1; // Skip step 0
     }
-    
+
     // Get the appropriate auto-skip types for this operator and grade
-    const typesComplete = getAutoSkipTypes(operator, userGrade);
-    console.log(`Types complete for ${operator}, grade ${userGrade}:`, typesComplete);
-    
+    const autoSkipTypes = getAutoSkipTypes(operator, userGrade);
+
+    // Start with auto-skip types
+    const typesComplete = [...autoSkipTypes];
+
+    // Analyze question-by-question performance if assessment answers provided
+    if (assessmentAnswers && assessmentAnswers.length > 0) {
+      console.log(`Analyzing ${assessmentAnswers.length} assessment answers for ${operator}`);
+
+      // Group answers by question type
+      const typePerformance: Record<string, { correct: number; total: number }> = {};
+
+      assessmentAnswers.forEach(answer => {
+        const questionType = answer.questionType || answer.type || 'unknown';
+        if (!typePerformance[questionType]) {
+          typePerformance[questionType] = { correct: 0, total: 0 };
+        }
+        typePerformance[questionType].total++;
+        if (answer.isCorrect) {
+          typePerformance[questionType].correct++;
+        }
+      });
+
+      console.log(`Type performance for ${operator}:`, typePerformance);
+
+      // Mark types as complete if user showed mastery (80%+ correct for that type)
+      Object.entries(typePerformance).forEach(([type, performance]) => {
+        const masteryPercentage = (performance.correct / performance.total) * 100;
+        console.log(`Type "${type}": ${performance.correct}/${performance.total} = ${masteryPercentage.toFixed(1)}%`);
+
+        if (masteryPercentage >= 80 && !typesComplete.includes(type)) {
+          typesComplete.push(type);
+          console.log(`Marking type "${type}" as complete due to ${masteryPercentage.toFixed(1)}% mastery`);
+        }
+      });
+    } else {
+      // Fallback logic: if they passed overall assessment, mark first progression step as complete
+      const progression = getProgressionForOperator(operator);
+      if (masteryLevel && progression.length > 0) {
+        const firstNonAutoSkipStep = progression.find(step => !autoSkipTypes.includes(step));
+        if (firstNonAutoSkipStep && !typesComplete.includes(firstNonAutoSkipStep)) {
+          typesComplete.push(firstNonAutoSkipStep);
+          console.log(`Marking first step "${firstNonAutoSkipStep}" as complete due to overall assessment pass`);
+        }
+      }
+    }
+
+    console.log(`Auto-skip types for ${operator}, grade ${userGrade}:`, autoSkipTypes);
+    console.log(`Final types complete after assessment for ${operator}:`, typesComplete);
+
     // Update the module progression in hidden_grade_asset
     await db.execute(sql`
       UPDATE users 
@@ -470,7 +518,7 @@ export async function completeAssessment(userId: number, operator: string, score
       )
       WHERE id = ${userId}
     `);
-    
+
     // Record module history for this assessment completion
     await db.execute(sql`
       INSERT INTO module_history (
@@ -507,7 +555,7 @@ export async function completeAssessment(userId: number, operator: string, score
         NOW()
       )
     `);
-    
+
     console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
     console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
   } catch (error) {
