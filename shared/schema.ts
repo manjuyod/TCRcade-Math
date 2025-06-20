@@ -331,6 +331,20 @@ export const insertModuleHistorySchema = createInsertSchema(moduleHistory);
 export const insertTutorSessionSchema = createInsertSchema(tutorSessions);
 export const insertTutorChatMessageSchema = createInsertSchema(tutorChatMessages);
 
+// Assessments table for Math Rush assessment flow
+export const assessments = pgTable("assessments", {
+  id: serial("id").primaryKey(),
+  module: text("module"),
+  properties: json("properties"),
+  int1: integer("int1"),
+  int2: integer("int2"),
+  int3: integer("int3"),
+  answerBank: json("answer_bank"),
+  correctAnswer: text("correct_answer"),
+});
+
+export const insertAssessmentSchema = createInsertSchema(assessments);
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Question = typeof questions.$inferSelect;
@@ -347,3 +361,5 @@ export type TutorSession = typeof tutorSessions.$inferSelect;
 export type TutorChatMessage = typeof tutorChatMessages.$inferSelect;
 export type InsertTutorSession = z.infer<typeof insertTutorSessionSchema>;
 export type InsertTutorChatMessage = z.infer<typeof insertTutorChatMessageSchema>;
+export type Assessment = typeof assessments.$inferSelect;
+export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
