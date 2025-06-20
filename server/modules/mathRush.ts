@@ -507,13 +507,16 @@ export async function completeAssessment(userId: number, operator: string, score
 
         console.log(`Types to mark complete (mastered):`, typesToMarkComplete);
 
-        // Add mastered types to typesComplete array
+        // Add mastered types to typesComplete array (no auto-completion of bonus types)
         typesToMarkComplete.forEach(type => {
           if (!typesComplete.includes(type)) {
             typesComplete.push(type);
             console.log(`Marking type "${type}" as complete due to mastery (no incorrect answers)`);
           }
         });
+
+        // Remove any auto-completion logic that might add bonus types like "Mixed 0–5", "Make 10", "Mixed 6-10"
+        // Only the types that were actually mastered in the assessment should be marked complete
 
       } catch (error) {
         console.error(`Error analyzing assessment answers for ${operator}:`, error);
