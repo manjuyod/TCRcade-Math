@@ -452,16 +452,16 @@ export async function completeAssessment(userId: number, operator: string, score
           jsonb_set(
             jsonb_set(
               COALESCE(hidden_grade_asset, '{}'),
-              '{modules,math_rush,${sql.raw(operator)},progress,test_taken}',
-              'true'
+              '{modules,math_rush_${sql.raw(operator)},progress,test_taken}',
+              'true'::jsonb
             ),
-            '{modules,math_rush,${sql.raw(operator)},progress,mastery_level}',
-            to_jsonb(${masteryLevel})
+            '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}',
+            to_jsonb(${masteryLevel}::text)
           ),
-          '{modules,math_rush,${sql.raw(operator)},progress,current_step}',
-          to_jsonb(${autoSkipSteps})
+          '{modules,math_rush_${sql.raw(operator)},progress,current_step}',
+          to_jsonb(${autoSkipSteps}::integer)
         ),
-        '{modules,math_rush,${sql.raw(operator)},progress,types_complete}',
+        '{modules,math_rush_${sql.raw(operator)},progress,types_complete}',
         '[]'::jsonb
       )
       WHERE id = ${userId}
