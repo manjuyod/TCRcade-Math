@@ -325,30 +325,34 @@ export async function getRushQuestions(
 
       // Get questions from questions_addition (for addition and subtraction)
       const additionResult = await db.execute(sql`
-        SELECT id, 'addition' as mode, int1, int2, int3, type
+        SELECT id, 'addition' as mode, int1, int2, int3, type, facts_type
         FROM questions_addition
+        WHERE facts_type = 'addition'
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
 
       const subtractionResult = await db.execute(sql`
-        SELECT id, 'subtraction' as mode, int1, int2, int3, type
+        SELECT id, 'subtraction' as mode, int1, int2, int3, type, facts_type
         FROM questions_addition
+        WHERE facts_type = 'subtraction'
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
 
       // Get questions from questions_multiplication (for multiplication and division)
       const multiplicationResult = await db.execute(sql`
-        SELECT id, 'multiplication' as mode, int1, int2, int3, type
+        SELECT id, 'multiplication' as mode, int1, int2, int3, type, facts_type
         FROM questions_multiplication
+        WHERE facts_type = 'multiplication'
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
 
       const divisionResult = await db.execute(sql`
-        SELECT id, 'division' as mode, int1, int2, int3, type
+        SELECT id, 'division' as mode, int1, int2, int3, type, facts_type
         FROM questions_multiplication
+        WHERE facts_type = 'division'
         ORDER BY random()
         LIMIT ${Math.ceil(MATH_RUSH_RULES.questionCount / 4)};
       `);
@@ -392,7 +396,7 @@ export async function getRushQuestions(
 
       if (type) {
         query = sql`
-          SELECT id, int1, int2, int3, type
+          SELECT id, int1, int2, int3, type, facts_type
           FROM ${sql.raw(table)}
           WHERE type = ${type}
           ORDER BY random()
@@ -400,8 +404,9 @@ export async function getRushQuestions(
         `;
       } else {
         query = sql`
-          SELECT id, int1, int2, int3, type
+          SELECT id, int1, int2, int3, type, facts_type
           FROM ${sql.raw(table)}
+          WHERE facts_type = ${mode}
           ORDER BY random()
           LIMIT ${MATH_RUSH_RULES.questionCount};
         `;
@@ -428,21 +433,23 @@ export async function getRushQuestions(
    * Format a database row into a proper question object for the client
    */
   function formatMathRushQuestion(q: any) {
-    const { id, mode: operation = mode, int1, int2, int3, type } = q;
+    const { id, mode: operation = mode, int1, int2, int3, type, facts_type } = q;
+    // Use facts_type if available, otherwise fall back to mode
+    const actualOperation = facts_type || operation;
     let questionText = '';
     let answer = '';
     let options = [];
 
-    if (operation === 'addition') {
+    if (actualOperation === 'addition') {
       questionText = `${int1} + ${int2} = ?`;
       answer = String(int1 + int2);
-    } else if (operation === 'subtraction') {
+    } else if (actualOperation === 'subtraction') {
       questionText = `${int1 + int2} - ${int1} = ?`;
       answer = String(int2);
-    } else if (operation === 'multiplication') {
+    } else if (actualOperation === 'multiplication') {
       questionText = `${int1} × ${int2} = ?`;
       answer = String(int1 * int2);
-    } else if (operation === 'division') {
+    } else if (actualOperation === 'division') {
       const dividend = int1 * int2;
       questionText = `${dividend} ÷ ${int1} = ?`;
       answer = String(int2);
@@ -462,8 +469,8 @@ export async function getRushQuestions(
       question: questionText,
       answer,
       options,
-      type: type || operation,
-      operation,
+      type: type || actualOperation,
+      operation: actualOperation,
     };
   }
 }
