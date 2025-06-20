@@ -10,6 +10,14 @@ import {
   getNextFactType
 } from "./mathRushProgression";
 
+// Interface for module progress tracking
+interface ModuleProgress {
+  tokens_earned?: number;
+  total_questions_answered?: number;
+  correct_answers?: number;
+  [key: string]: any;
+}
+
 /**
  * Store tokens locally and mirror to hidden_grade_asset for Math Rush assessments
  * Awards 1 token per 3 correct answers with instant UI updates
@@ -586,7 +594,7 @@ export async function completeAssessment(userId: number, operator: string, score
       WHERE id = ${userId}
     `);
 
-    const existingProgress = currentProgress.rows?.[0]?.progress || {};
+    const existingProgress: ModuleProgress = currentProgress.rows?.[0]?.progress || {};
     const currentTokens = existingProgress.tokens_earned || 0;
     const currentQuestions = existingProgress.total_questions_answered || 0;
     const currentCorrect = existingProgress.correct_answers || 0;

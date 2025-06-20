@@ -1,5 +1,4 @@
-
-<new_str>/**
+/**
  * Token Manager for Math Rush micro-updates
  * Handles local storage mirroring and queue management
  */
@@ -194,4 +193,3 @@ class TokenManager {
 }
 
 export const tokenManager = TokenManager.getInstance();
-</new_str>
