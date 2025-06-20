@@ -434,8 +434,8 @@ export async function completeAssessment(userId: number, operator: string, score
     const userGrade = String(user?.grade || "3");
     const gradeLevel = parseInt(userGrade.replace(/[^\d]/g, '')) || 3;
 
-    // Determine mastery level based on score
-    const masteryLevel = score >= 80;
+    // Mastery level will be determined after assessment analysis based on progression completion
+    let masteryLevel = false;
 
     // Calculate auto-skip progression for multiplication and division
     let autoSkipSteps = 0;
@@ -534,6 +534,11 @@ export async function completeAssessment(userId: number, operator: string, score
 
     console.log(`Auto-skip types for ${operator}, grade ${userGrade}:`, autoSkipTypes);
     console.log(`Final types complete after assessment for ${operator}:`, typesComplete);
+
+    // Calculate mastery based on progression completion (not just score)
+    masteryLevel = isProgressionComplete(operator, typesComplete, userGrade);
+    console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
+    console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
 
     // Update the module progression in hidden_grade_asset
     await db.execute(sql`

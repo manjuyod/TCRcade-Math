@@ -1,0 +1,40 @@
+
+# Math Rush Mastery Logic Fix Agent
+
+**Objective:** Fix the incorrect mastery flag logic in Math Rush assessments. Currently, mastery is set to `true` at 80% score, but it should only be `true` when the entire progression is complete (when `types_complete` array matches the full progression array for that operator).
+
+## Project Context
+- **Stack:** React TS client, Node Express TS server, Drizzle ORM
+- **Issue:** In `server/routes.ts`, the `/api/rush/complete-assessment` endpoint incorrectly sets `mastery_level: true` when score >= 80%
+- **Correct Logic:** Mastery should only be `true` when `isProgressionComplete(operator, typesComplete, userGrade)` returns `true`
+
+## Required Changes
+
+### 1. Fix Assessment Completion Logic in `server/routes.ts`:
+- Import `isProgressionComplete` from `./modules/mathRushProgression`
+- Replace the hardcoded `score >= 80` mastery check with proper progression completion check
+- Ensure mastery is only set when ALL required progression steps are complete
+
+### 2. Add Comprehensive Test Suite:
+- Test progression completion logic for all 4 operators
+- Test auto-skip behavior for different grade levels
+- Verify mastery flag is NOT set prematurely
+- Test edge cases (exactly 80% vs progression incomplete)
+
+### 3. Update Assessment Analysis:
+- Ensure the assessment properly analyzes which types are mastered vs need work
+- Verify the precedence rule (types in incorrect answers don't get marked complete)
+
+## Test Scenarios to Validate:
+- User scores 80%+ but hasn't completed full progression → mastery = false
+- User completes all progression steps → mastery = true  
+- Grade 6+ user with auto-skip types → mastery based on remaining progression
+- User scores 90%+ but missing key progression steps → mastery = false
+
+## Success Criteria:
+- Mastery flag only set when progression is 100% complete
+- Assessment properly tracks individual type completion
+- All test scenarios pass
+- Console logs show correct mastery determination logic
+
+Please implement these fixes and create a comprehensive test to validate the corrected mastery logic across all Math Rush operators.
