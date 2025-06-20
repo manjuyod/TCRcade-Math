@@ -219,7 +219,8 @@ export async function updateUserProgressionData(userId: number, operator: string
       const newTypes = updates.types_complete;
       
       // Merge arrays and remove duplicates
-      const mergedTypes = [...new Set([...existingTypes, ...newTypes])];
+      const combinedTypes = [...existingTypes, ...newTypes];
+      const mergedTypes = combinedTypes.filter((type, index) => combinedTypes.indexOf(type) === index);
       updates.types_complete = mergedTypes;
       
       console.log(`PROGRESSION: Merging types - existing: [${existingTypes.join(', ')}], new: [${newTypes.join(', ')}], final: [${mergedTypes.join(', ')}]`);
@@ -504,47 +505,55 @@ export async function getRushQuestions(
   /**
    * Format a database row into a proper question object for the client
    */
-  function formatMathRushQuestion(q: any) {
-    const { id, mode: operation = mode, int1, int2, int3, type, facts_type } = q;
-    // Use facts_type if available, otherwise fall back to mode
-    const actualOperation = facts_type || operation;
-    let questionText = '';
-    let answer = '';
-    let options = [];
-
-    if (actualOperation === 'addition') {
-      questionText = `${int1} + ${int2} = ?`;
-      answer = String(int1 + int2);
-    } else if (actualOperation === 'subtraction') {
-      questionText = `${int1 + int2} - ${int1} = ?`;
-      answer = String(int2);
-    } else if (actualOperation === 'multiplication') {
-      questionText = `${int1} × ${int2} = ?`;
-      answer = String(int1 * int2);
-    } else if (actualOperation === 'division') {
-      const dividend = int1 * int2;
-      questionText = `${dividend} ÷ ${int1} = ?`;
-      answer = String(int2);
-    }
-
-    // Generate options (including the correct answer)
-    const answerNum = parseInt(answer);
-    options = [
-      String(answerNum - 2),
-      String(answerNum - 1),
-      answer,
-      String(answerNum + 1)
-    ].sort(() => Math.random() - 0.5);
-
-    return {
-      id,
-      question: questionText,
-      answer,
-      options,
-      type: type || actualOperation,
-      operation: actualOperation,
-    };
+  function formatMathRushQuestionLocal(q: any) {
+    return formatMathRushQuestion(q);
   }
+}
+
+/**
+ * Format a database row into a proper question object for the client
+ * Exported for use in forced progression logic
+ */
+export function formatMathRushQuestion(q: any) {
+  const { id, mode: operation, int1, int2, int3, type, facts_type } = q;
+  // Use facts_type if available, otherwise fall back to mode
+  const actualOperation = facts_type || operation;
+  let questionText = '';
+  let answer = '';
+  let options = [];
+
+  if (actualOperation === 'addition') {
+    questionText = `${int1} + ${int2} = ?`;
+    answer = String(int1 + int2);
+  } else if (actualOperation === 'subtraction') {
+    questionText = `${int1 + int2} - ${int1} = ?`;
+    answer = String(int2);
+  } else if (actualOperation === 'multiplication') {
+    questionText = `${int1} × ${int2} = ?`;
+    answer = String(int1 * int2);
+  } else if (actualOperation === 'division') {
+    const dividend = int1 * int2;
+    questionText = `${dividend} ÷ ${int1} = ?`;
+    answer = String(int2);
+  }
+
+  // Generate options (including the correct answer)
+  const answerNum = parseInt(answer);
+  options = [
+    String(answerNum - 2),
+    String(answerNum - 1),
+    answer,
+    String(answerNum + 1)
+  ].sort(() => Math.random() - 0.5);
+
+  return {
+    id,
+    question: questionText,
+    answer,
+    options,
+    type: type || actualOperation,
+    operation: actualOperation,
+  };
 }
 
 /**

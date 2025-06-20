@@ -2637,11 +2637,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/rush/questions", async (req, res) => {
     try {
-      const { mode = "addition", type, operator } = req.query;
+      const { mode = "addition", type, operator, forceProgression } = req.query;
       const userId = getUserId(req);
 
       // Dynamically import the Math Rush functionality and rules
-      const { getRushQuestions } = await import("./modules/mathRush");
+      const { getRushQuestions, checkAssessmentStatus, checkMasteryLevel } = await import("./modules/mathRush");
+      const { getProgressionForOperator } = await import("./modules/mathRushProgression");
       const { MATH_RUSH_RULES } = await import("../shared/mathRushRules");
 
       // Validate that mode is one of the allowed modes
@@ -2651,8 +2652,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const questions = await getRushQuestions(mode as any, type as string, operator as string);
-      res.json({ questions });
+      let selectedType = type as string;
+      let currentType = type as string;
+
+      // **FORCED PROGRESSION LOGIC IMPLEMENTATION**
+      if (forceProgression === 'true') {
+        console.log(`FORCED PROGRESSION: Activated for user ${userId}, operator: ${mode}`);
+        
+        try {
+          // Check if user has taken assessment and lacks mastery
+          const testTaken = await checkAssessmentStatus(userId, mode as string);
+          const masteryLevel = await checkMasteryLevel(userId, mode as string);
+          
+          if (testTaken && !masteryLevel) {
+            console.log(`FORCED PROGRESSION: User ${userId} has test_taken=true and mastery_level=false for ${mode}`);
+            
+            // Get user's completed types from database
+            const result = await db.execute(sql`
+              SELECT hidden_grade_asset #> '{modules,math_rush_${sql.raw(mode as string)},progress,types_complete}' AS types_complete 
+              FROM users WHERE id = ${userId}
+            `);
+            
+            console.log(`FORCED PROGRESSION: Query executed for user ${userId}, operator: ${mode}`);
+            
+            const typesCompleteFromDB = result.rows[0]?.types_complete ? 
+              JSON.parse(result.rows[0].types_complete as string) : [];
+            
+            console.log(`FORCED PROGRESSION: Completed types from DB:`, typesCompleteFromDB);
+            
+            // Get the full progression array for the chosen operator
+            const progressionArray = getProgressionForOperator(mode as any);
+            console.log(`FORCED PROGRESSION: Full progression array for ${mode}:`, progressionArray);
+            
+            // Create active array (filter out completed types)
+            const activeArray = progressionArray.filter(type => !typesCompleteFromDB.includes(type));
+            console.log(`FORCED PROGRESSION: Active array (uncompleted types):`, activeArray);
+            
+            // Error handling for empty active array
+            if (activeArray.length === 0) {
+              if (typesCompleteFromDB.length === progressionArray.length) {
+                console.log(`FORCED PROGRESSION: All types completed for ${mode}. Progression complete.`);
+                // Fall back to regular progression
+              } else {
+                console.log(`FORCED PROGRESSION: Active array empty but progression incomplete. Completed: ${typesCompleteFromDB.length}, Total: ${progressionArray.length}`);
+                // Re-check types_complete from database or fall back
+              }
+            } else {
+              // Select the lowest indexed type (first item in active array)
+              const lowestIndexedType = activeArray[0];
+              console.log(`FORCED PROGRESSION: Selected lowest indexed type: ${lowestIndexedType}`);
+              
+              selectedType = lowestIndexedType;
+              currentType = lowestIndexedType;
+              
+              // Query for questions based on the selected type and operator
+              const tableName = (mode === "addition" || mode === "subtraction") 
+                ? "questions_addition" 
+                : "questions_multiplication";
+              
+              console.log(`FORCED PROGRESSION: Querying questions - Table: ${tableName}, Operator: ${mode}, Type: ${lowestIndexedType}`);
+              
+              const questionsResult = await db.execute(sql`
+                SELECT id, int1, int2, int3 
+                FROM ${sql.raw(tableName)}
+                WHERE facts_type = ${mode} AND type = ${lowestIndexedType}
+                ORDER BY random()
+                LIMIT ${MATH_RUSH_RULES.questionCount}
+              `);
+              
+              console.log(`FORCED PROGRESSION: Found ${questionsResult.rows?.length || 0} questions for type: ${lowestIndexedType}`);
+              
+              // Error handling for no questions found
+              if (!questionsResult.rows || questionsResult.rows.length === 0) {
+                throw new Error(`FORCED PROGRESSION: No questions found for operator: ${mode}, type: ${lowestIndexedType}`);
+              }
+              
+              // Import formatMathRushQuestion function
+              const { formatMathRushQuestion } = await import("./modules/mathRush");
+              
+              // Format questions using the existing logic
+              const formattedQuestions = questionsResult.rows.map(q => {
+                return formatMathRushQuestion({...q, mode, facts_type: mode});
+              });
+              
+              console.log(`FORCED PROGRESSION: Returning ${formattedQuestions.length} questions for forced progression`);
+              return res.json({ 
+                questions: formattedQuestions,
+                currentType: lowestIndexedType,
+                forcedProgression: true
+              });
+            }
+          } else {
+            console.log(`FORCED PROGRESSION: Conditions not met for user ${userId}. test_taken: ${testTaken}, mastery_level: ${masteryLevel}`);
+          }
+        } catch (error) {
+          console.error(`FORCED PROGRESSION: Database query failed for user ${userId}, operator: ${mode}`, error);
+          // Fall back to regular question retrieval
+        }
+      }
+
+      // Regular question retrieval (existing logic)
+      const questions = await getRushQuestions(mode as any, selectedType, operator as string);
+      res.json({ 
+        questions,
+        currentType: currentType || selectedType,
+        forcedProgression: false
+      });
     } catch (error) {
       console.error("Error fetching rush questions:", error);
       res.status(500).json({ error: "Failed to fetch questions" });
