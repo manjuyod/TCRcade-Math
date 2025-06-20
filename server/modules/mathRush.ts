@@ -446,6 +446,7 @@ export async function completeAssessment(userId: number, operator: string, score
     
     // Get the appropriate auto-skip types for this operator and grade
     const typesComplete = getAutoSkipTypes(operator, userGrade);
+    console.log(`Types complete for ${operator}, grade ${userGrade}:`, typesComplete);
     
     // Update the module progression in hidden_grade_asset
     await db.execute(sql`
@@ -465,7 +466,7 @@ export async function completeAssessment(userId: number, operator: string, score
           to_jsonb(${autoSkipSteps}::integer)
         ),
         '{modules,math_rush_${sql.raw(operator)},progress,types_complete}',
-        to_jsonb(${JSON.stringify(typesComplete)}::jsonb)
+        ${JSON.stringify(typesComplete)}::jsonb
       )
       WHERE id = ${userId}
     `);
