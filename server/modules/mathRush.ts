@@ -458,6 +458,23 @@ export async function getRushQuestions(
         return formatMathRushQuestion({...q, mode});
       });
 
+      // Additional validation for type-specific questions
+      if (type) {
+        console.log(`VALIDATION: Checking if all questions match expected type "${type}"`);
+        formattedQuestions.forEach((q, index) => {
+          const isValidForType = validateQuestionForType(q, type);
+          if (!isValidForType) {
+            console.error(`VALIDATION ERROR: Question ${index + 1} (${q.question}) doesn't match type "${type}"`);
+            console.error(`Question details:`, { 
+              operation: q.operation, 
+              type: q.type, 
+              originalInt1: result.rows?.[index]?.int1,
+              originalInt2: result.rows?.[index]?.int2 
+            });
+          }
+        });
+      }
+
       console.log(`Returning ${formattedQuestions.length} ${mode} questions`);
       return formattedQuestions;
     }
@@ -465,6 +482,23 @@ export async function getRushQuestions(
     console.error('Error in getRushQuestions:', error);
     // Return some default questions if database fails
     return [];
+  }
+
+  /**
+   * Validate if a question matches its expected type
+   */
+  function validateQuestionForType(question: any, expectedType: string): boolean {
+    if (expectedType === "Mixed 0–5") {
+      // For Mixed 0-5, both operands should be between 0 and 5
+      const parts = question.question.match(/(\d+)\s*[+\-×÷]\s*(\d+)/);
+      if (parts) {
+        const num1 = parseInt(parts[1]);
+        const num2 = parseInt(parts[2]);
+        return num1 >= 0 && num1 <= 5 && num2 >= 0 && num2 <= 5;
+      }
+    }
+    // Add more type validations as needed
+    return true; // Default to valid if we can't validate
   }
 
   /**
