@@ -10,5 +10,5 @@ export const MATH_RUSH_RULES = {
              bonusPerfect: 15 }
   } as const,
 
-  questionCount: 20
+  questionCount: 24
 } as const;

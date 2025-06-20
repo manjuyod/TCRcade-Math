@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { MATH_RUSH_RULES } from '@shared/mathRushRules';
@@ -41,6 +42,7 @@ type AnswerResult = {
   correct: boolean;
   userAnswer: string;
   correctAnswer: string;
+  timestamp: number;
 };
 
 export default function MathRushPlayPage() {
@@ -94,10 +96,23 @@ export default function MathRushPlayPage() {
     isRunning 
   } = useCountdownTimer(timeSeconds);
 
-  // Load questions when component mounts
+  // Load and cache questions when component mounts
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
+        // Check sessionStorage first
+        const cacheKey = `mathRush_${mode}_${questionType || 'default'}_${forceProgression}`;
+        const cachedQuestions = sessionStorage.getItem(cacheKey);
+        
+        if (cachedQuestions) {
+          console.log('Loading questions from sessionStorage cache');
+          const parsed = JSON.parse(cachedQuestions);
+          setQuestions(parsed);
+          setSessionActive(true);
+          setLoading(false);
+          return;
+        }
+
         // Build the API URL with query parameters
         let url = `/api/rush/questions?mode=${mode}`;
 
@@ -115,11 +130,16 @@ export default function MathRushPlayPage() {
         const data = await response.json();
 
         if (data.questions && Array.isArray(data.questions)) {
+          // Cache questions in both RAM and sessionStorage
           setQuestions(data.questions);
-          setSessionActive(true); // Activate session prevention
+          sessionStorage.setItem(cacheKey, JSON.stringify(data.questions));
+          console.log(`Cached ${data.questions.length} questions to sessionStorage`);
+          
+          setSessionActive(true);
           setLoading(false);
-           // Clear forced progression flag after questions are loaded
-           if (forceProgression) {
+          
+          // Clear forced progression flag after questions are loaded
+          if (forceProgression) {
             localStorage.removeItem('mathRushForceProgression');
           }
         } else {
@@ -155,6 +175,9 @@ export default function MathRushPlayPage() {
     // Cleanup function for navigation away
     return () => {
       stopTimer();
+      // Clear sessionStorage on navigation away
+      const cacheKey = `mathRush_${mode}_${questionType || 'default'}_${forceProgression}`;
+      sessionStorage.removeItem(cacheKey);
     };
   }, []);
 
@@ -163,22 +186,19 @@ export default function MathRushPlayPage() {
     if (!loading && questions.length > 0 && !gameStarted) {
       startTimer();
       setGameStarted(true);
-      setSessionActive(true); // ✅ Activate session prevention
-      sessionStorage.setItem('moduleInProgress', 'true'); // ✅ Enable nav bar session mode
+      setSessionActive(true);
+      sessionStorage.setItem('moduleInProgress', 'true');
     }
   }, [loading, questions, gameStarted]);
 
   // Effect to handle game over when timer reaches zero
-  // BUT allow the user to finish the 20th question if they're on it
   useEffect(() => {
     if (timeRemaining === 0 && gameStarted && !gameOver) {
       // Only end the game if we're not on the final question
-      // This allows the user to finish the last question even if time runs out
       if (currentQuestionIndex < MATH_RUSH_RULES.questionCount - 1) {
         handleGameOver();
       } else {
         // Just show the timer has expired, but don't end the game yet
-        // Let the user submit their final answer
         setTimerExpired(true);
       }
     }
@@ -208,7 +228,7 @@ export default function MathRushPlayPage() {
     return question.answer;
   };
 
-  // Handle answer submission
+  // Handle answer submission with instant feedback
   const handleSubmitAnswer = () => {
     if (!questions[currentQuestionIndex] || gameOver) return;
 
@@ -216,53 +236,58 @@ export default function MathRushPlayPage() {
     const correctAnswer = getCorrectAnswer(currentQuestion);
     const isAnswerCorrect = answer.trim() === correctAnswer;
 
-    // Show feedback
+    // Show instant feedback
     setIsCorrect(isAnswerCorrect);
     setFeedbackText(isAnswerCorrect ? 'Correct!' : 'Incorrect!');
     setFeedbackVisible(true);
 
-    // Create the new result
+    // Create the new result with timestamp
     const newResult = {
       correct: isAnswerCorrect,
       userAnswer: answer,
-      correctAnswer
+      correctAnswer,
+      timestamp: Date.now()
     };
 
-    // Save result - include the 20th answer
+    // Save result locally
     const nextResults = [...answerResults, newResult];
     setAnswerResults(nextResults);
 
     // Clear input
     setAnswer('');
 
-    // Hide feedback after a short delay and move to next question
-    setTimeout(() => {
-      setFeedbackVisible(false);
+    // Move to next question or end game immediately
+    const isLastQuestion = currentQuestionIndex >= MATH_RUSH_RULES.questionCount - 1;
 
-      // Check if this was the final (20th) question
-      const isLastQuestion = currentQuestionIndex >= MATH_RUSH_RULES.questionCount - 1;
-
-      if (isLastQuestion) {
-        // We've finished grading the last question, now end the game
-        console.log("Final question completed! Ending game.");
+    if (isLastQuestion) {
+      // We've finished the last question, now end the game
+      console.log("Final question completed! Ending game.");
+      setTimeout(() => {
+        setFeedbackVisible(false);
         handleGameOver(nextResults);
-      } else if (timeRemaining <= 0 && !isLastQuestion) {
-        // Time ran out and we're not on the last question
-        console.log("Time expired before reaching final question. Ending game.");
+      }, 1000); // Brief delay to show feedback
+    } else if (timeRemaining <= 0 && !isLastQuestion) {
+      // Time ran out and we're not on the last question
+      console.log("Time expired before reaching final question. Ending game.");
+      setTimeout(() => {
+        setFeedbackVisible(false);
         handleGameOver(nextResults);
-      } else {
-        // Move to next question
+      }, 1000);
+    } else {
+      // Move to next question immediately after brief feedback
+      setTimeout(() => {
+        setFeedbackVisible(false);
         setCurrentQuestionIndex(prevIndex => prevIndex + 1);
 
         // Focus input for next question
         if (inputRef.current) {
           inputRef.current.focus();
         }
-      }
-    }, 2000);
+      }, 500); // Shorter delay for instant feel
+    }
   };
 
-  // Handle game over
+  // Handle game over with local scoring
   const handleGameOver = async (
     finalResults: AnswerResult[] = answerResults
   ) => {
@@ -274,30 +299,35 @@ export default function MathRushPlayPage() {
     const endTime = Date.now();
     const durationSec = Math.round((endTime - startTimeRef.current) / 1000);
 
-    // Calculate stats using the provided finalResults
+    // Calculate stats locally
     const totalAnswered = finalResults.length;
     const correctCount = finalResults.filter(r => r.correct).length;
+
+    // Calculate tokens locally using shared utility
+    const setting = durationSec <= MATH_RUSH_RULES.timeSettings.SHORT.sec
+      ? MATH_RUSH_RULES.timeSettings.SHORT
+      : MATH_RUSH_RULES.timeSettings.LONG;
+
+    const baseTokens = Math.floor(correctCount / 5) * setting.tokensPer5;
+    const perfectBonus = (correctCount === totalAnswered && totalAnswered > 0) ? setting.bonusPerfect : 0;
+    const tokensEarned = baseTokens + perfectBonus;
 
     // Detailed logging for debugging
     console.log('Final answer results:', JSON.stringify(finalResults));
     console.log(`Total questions attempted: ${totalAnswered}`);
     console.log(`Total correct answers: ${correctCount}`);
-    console.log(`Correct answer details:`, finalResults.map((r, i) => ({
-      questionIndex: i, 
-      correct: r.correct,
-      userAnswer: r.userAnswer,
-      correctAnswer: r.correctAnswer
-    })));
+    console.log(`Tokens calculated locally: ${tokensEarned} (base: ${baseTokens}, bonus: ${perfectBonus})`);
 
     try {
-      console.log('Submitting results:', { correct: correctCount, total: totalAnswered });
+      console.log('Submitting results:', { correct: correctCount, total: totalAnswered, tokensEarned });
 
-      // Submit results to server using the final results count
+      // Submit results to server with local calculations (trust but verify)
       const response = await apiRequest('POST', '/api/rush/complete', {
         correct: correctCount,
         total: totalAnswered,
         durationSec,
-        mode
+        mode,
+        tokensCalculated: tokensEarned // Include our local calculation
       });
 
       if (!response.ok) {
@@ -307,19 +337,26 @@ export default function MathRushPlayPage() {
       const data = await response.json();
       console.log('Server response:', data);
 
-      // Store results for the completion page with the final question count
+      // Use server-verified tokens if provided, otherwise use local calculation
+      const finalTokens = data.tokens !== undefined ? data.tokens : tokensEarned;
+
+      // Store results for the completion page
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
         total: totalAnswered,
         durationSec,
         mode,
-        tokens: data.tokens || 0,
+        tokens: finalTokens,
         timeOption
       }));
 
+      // Clear cache on completion
+      const cacheKey = `mathRush_${mode}_${questionType || 'default'}_${forceProgression}`;
+      sessionStorage.removeItem(cacheKey);
+
       // Navigate to completion page after a small delay
       setTimeout(() => {
-        sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
+        sessionStorage.setItem('moduleInProgress', 'false');
         endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
@@ -329,15 +366,19 @@ export default function MathRushPlayPage() {
       // Even if API fails, still save results and navigate to completion
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
-        total: MATH_RUSH_RULES.questionCount,
+        total: totalAnswered,
         durationSec,
         mode,
-        tokens: 0,
+        tokens: tokensEarned, // Use local calculation as fallback
         timeOption
       }));
 
+      // Clear cache on error
+      const cacheKey = `mathRush_${mode}_${questionType || 'default'}_${forceProgression}`;
+      sessionStorage.removeItem(cacheKey);
+
       setTimeout(() => {
-        sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
+        sessionStorage.setItem('moduleInProgress', 'false');
         endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
@@ -430,7 +471,7 @@ export default function MathRushPlayPage() {
                     </Button>
                   </div>
 
-                  {/* Feedback message */}
+                  {/* Instant feedback message */}
                   <AnimatePresence>
                     {feedbackVisible && (
                       <motion.div
