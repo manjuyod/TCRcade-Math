@@ -454,6 +454,13 @@ export async function completeAssessment(userId: number, operator: string, score
     // Analyze question-by-question performance if assessment answers provided
     if (assessmentAnswers && assessmentAnswers.length > 0) {
       console.log(`Analyzing ${assessmentAnswers.length} assessment answers for ${operator}`);
+        
+        // Debug: Log all question types found in assessment
+        const allQuestionTypes = new Set();
+        assessmentAnswers.forEach(answer => {
+          if (answer.questionType) allQuestionTypes.add(answer.questionType);
+        });
+        console.log(`All question types found in assessment:`, Array.from(allQuestionTypes));
 
       try {
         // Extract question IDs from answers
@@ -507,7 +514,7 @@ export async function completeAssessment(userId: number, operator: string, score
 
         console.log(`Types to mark complete (mastered):`, typesToMarkComplete);
 
-        // Add mastered types to typesComplete array (no auto-completion of bonus types)
+        // Add mastered types to typesComplete array (ONLY types that were actually mastered)
         typesToMarkComplete.forEach(type => {
           if (!typesComplete.includes(type)) {
             typesComplete.push(type);
@@ -515,25 +522,17 @@ export async function completeAssessment(userId: number, operator: string, score
           }
         });
 
-        // Remove any auto-completion logic that might add bonus types like "Mixed 0–5", "Make 10", "Mixed 6-10"
-        // Only the types that were actually mastered in the assessment should be marked complete
+        console.log(`Final mastered types from assessment analysis:`, typesToMarkComplete);
+        console.log(`Types complete before any auto-progression:`, typesComplete);
 
       } catch (error) {
         console.error(`Error analyzing assessment answers for ${operator}:`, error);
         // Fall back to simple analysis if database queries fail
-        console.log('Falling back to simple assessment analysis');
-      }
-    } else {
-      // Fallback logic: if they passed overall assessment, mark first progression step as complete
-      const progression = getProgressionForOperator(operator);
-      if (masteryLevel && progression.length > 0) {
-        const firstNonAutoSkipStep = progression.find(step => !autoSkipTypes.includes(step));
-        if (firstNonAutoSkipStep && !typesComplete.includes(firstNonAutoSkipStep)) {
-          typesComplete.push(firstNonAutoSkipStep);
-          console.log(`Marking first step "${firstNonAutoSkipStep}" as complete due to overall assessment pass`);
-        }
+        console.log('Falling back to simple assessment analysis - no auto-completion of types');
       }
     }
+    // Removed fallback logic that auto-completed progression steps
+    // Assessment should only mark types as complete based on actual question performance
 
     console.log(`Auto-skip types for ${operator}, grade ${userGrade}:`, autoSkipTypes);
     console.log(`Final types complete after assessment for ${operator}:`, typesComplete);
