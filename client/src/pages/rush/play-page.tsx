@@ -139,6 +139,10 @@ export default function MathRushPlayPage() {
           setCurrentType(questionType);
         }
 
+        // Log the type that will be used for this session
+        const typeToUse = data.currentType || questionType || 'default';
+        console.log(`Math Rush Play Page loaded with type: ${typeToUse}`);
+
         if (data.questions && Array.isArray(data.questions)) {
           // Cache questions in both RAM and sessionStorage
           setQuestions(data.questions);
