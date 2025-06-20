@@ -408,27 +408,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Reset all module progress flags in hidden_grade_asset
       await db.execute(sql`
-        UPDATE users 
+        UPDATE users
         SET hidden_grade_asset = jsonb_set(
-          COALESCE(hidden_grade_asset, '{}'),
+          COALESCE(hidden_grade_asset, '{}'::jsonb),
           '{modules}',
           (
             SELECT jsonb_object_agg(
               module_key,
-              CASE 
+              CASE
                 WHEN jsonb_typeof(module_value) = 'object' THEN
-                  jsonb_set(
-                    jsonb_set(
-                      jsonb_set(
+                  jsonb_set(                                       -- types_complete → []
+                    jsonb_set(                                     -- mastery_level → false
+                      jsonb_set(                                   -- test_taken    → false
                         module_value,
                         '{progress,test_taken}',
-                        'false'::jsonb
+                        'false'::jsonb,
+                        true
                       ),
                       '{progress,mastery_level}',
-                      'false'::jsonb
+                      'false'::jsonb,
+                      true
                     ),
                     '{progress,types_complete}',
-                    '[]'::jsonb
+                    '[]'::jsonb,
+                    true
                   )
                 ELSE module_value
               END
