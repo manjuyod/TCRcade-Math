@@ -477,8 +477,8 @@ export async function completeAssessment(userId: number, operator: string, score
             SELECT array_agg(DISTINCT elem) AS types 
             FROM assessments 
             CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
-            WHERE id = ANY(${sql.array(correctQuestionIds)})
-          `);
+            WHERE id = ANY(${sql.placeholder('correctIds')})
+          `, { correctIds: correctQuestionIds });
           const resultTypes = correctTypesResult.rows?.[0]?.types;
           typesToIgnore = Array.isArray(resultTypes) ? resultTypes : [];
         }
@@ -490,8 +490,8 @@ export async function completeAssessment(userId: number, operator: string, score
             SELECT array_agg(DISTINCT elem) AS types 
             FROM assessments 
             CROSS JOIN LATERAL jsonb_array_elements_text(properties->'type') AS t(elem) 
-            WHERE id = ANY(${sql.array(incorrectQuestionIds)})
-          `);
+            WHERE id = ANY(${sql.placeholder('incorrectIds')})
+          `, { incorrectIds: incorrectQuestionIds });
           const resultTypes = incorrectTypesResult.rows?.[0]?.types;
           typesToTarget = Array.isArray(resultTypes) ? resultTypes : [];
         }
