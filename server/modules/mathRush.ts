@@ -1,7 +1,14 @@
 import { db } from "../db";           // existing Drizzle instance
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { MATH_RUSH_RULES } from "../../shared/mathRushRules";
-import { assessments } from "../../shared/schema";
+import { assessments, users } from "../../shared/schema";
+import { 
+  getProgressionForOperator, 
+  getAutoSkipTypes, 
+  getCurrentProgressionStep,
+  isProgressionComplete,
+  getNextFactType
+} from "./mathRushProgression";
 
 /**
  * Check if user has taken assessment for a specific Math Rush operator
@@ -12,7 +19,7 @@ import { assessments } from "../../shared/schema";
 export async function checkAssessmentStatus(userId: number, operator: string): Promise<boolean> {
   try {
     const result = await db.execute(sql`
-      SELECT hidden_grade_asset #>> '{modules,math_rush,${sql.raw(operator)},progress,test_taken}' as test_taken
+      SELECT hidden_grade_asset #>> '{modules,math_rush_${sql.raw(operator)},progress,test_taken}' as test_taken
       FROM users 
       WHERE id = ${userId}
     `);
@@ -22,6 +29,111 @@ export async function checkAssessmentStatus(userId: number, operator: string): P
   } catch (error) {
     console.error(`Error checking assessment status for user ${userId}, operator ${operator}:`, error);
     return false;
+  }
+}
+
+/**
+ * Check mastery level for a specific Math Rush operator
+ */
+export async function checkMasteryLevel(userId: number, operator: string): Promise<boolean> {
+  try {
+    const result = await db.execute(sql`
+      SELECT hidden_grade_asset #>> '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}' as mastery_level
+      FROM users 
+      WHERE id = ${userId}
+    `);
+    
+    return result.rows[0]?.mastery_level === 'true';
+  } catch (error) {
+    console.error('Error checking mastery level:', error);
+    return false;
+  }
+}
+
+/**
+ * Get user's progression data for a specific operator
+ */
+export async function getUserProgressionData(userId: number, operator: string) {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new Error('User not found');
+    
+    const hiddenGradeAsset = user.hiddenGradeAsset as any;
+    const moduleKey = `math_rush_${operator}`;
+    const moduleData = hiddenGradeAsset?.modules?.[moduleKey];
+    
+    if (!moduleData) {
+      return {
+        test_taken: false,
+        mastery_level: false,
+        types_complete: getAutoSkipTypes(operator, user.grade || '3'),
+        good_attempt: 0,
+        bad_attempt: 0,
+        current_step: 0
+      };
+    }
+    
+    return moduleData.progress;
+  } catch (error) {
+    console.error('Error getting user progression data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update user's progression data for a specific operator
+ */
+export async function updateUserProgressionData(userId: number, operator: string, updates: any) {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new Error('User not found');
+    
+    let hiddenGradeAsset = user.hiddenGradeAsset as any;
+    if (!hiddenGradeAsset) hiddenGradeAsset = { modules: {} };
+    if (!hiddenGradeAsset.modules) hiddenGradeAsset.modules = {};
+    
+    const moduleKey = `math_rush_${operator}`;
+    if (!hiddenGradeAsset.modules[moduleKey]) {
+      hiddenGradeAsset.modules[moduleKey] = {
+        progress: {
+          lesson: null,
+          concepts: [operator, "speed", "memorization"],
+          test_taken: false,
+          mastery_level: false,
+          types_complete: getAutoSkipTypes(operator, user.grade || '3'),
+          good_attempt: 0,
+          bad_attempt: 0,
+          current_step: 0,
+          best_time: null,
+          timestamp: null,
+          best_score: 0,
+          attempt_bad: 0,
+          last_played: null,
+          streak_best: 0,
+          attempt_good: 0,
+          tokens_earned: 0,
+          streak_current: 0,
+          correct_answers: 0,
+          time_spent_total: 0,
+          sessions_completed: 0,
+          preferred_difficulty: 2,
+          total_questions_answered: 0,
+        }
+      };
+    }
+    
+    // Apply updates
+    Object.assign(hiddenGradeAsset.modules[moduleKey].progress, updates);
+    
+    await db
+      .update(users)
+      .set({ hiddenGradeAsset })
+      .where(eq(users.id, userId));
+      
+    return hiddenGradeAsset.modules[moduleKey].progress;
+  } catch (error) {
+    console.error('Error updating user progression data:', error);
+    throw error;
   }
 }
 
