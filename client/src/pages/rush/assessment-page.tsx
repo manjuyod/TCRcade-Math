@@ -172,14 +172,16 @@ export default function MathRushAssessmentPage() {
       const newCorrectCount = correctCount + 1;
       setCorrectCount(newCorrectCount);
 
-      // Award micro-tokens every 3 correct answers
-      const tokensEarned = tokenManager.updateTokens(operator, newCorrectCount);
-      if (tokensEarned > 0) {
-        toast({
-          title: "Tokens Earned!",
-          description: `+${tokensEarned} token${tokensEarned > 1 ? 's' : ''} for ${newCorrectCount} correct answers!`,
-          duration: 2000,
-        });
+      // Award micro-tokens only every 3 correct answers (3, 6, 9, 12, etc.)
+      if (newCorrectCount % 3 === 0) {
+        const tokensEarned = tokenManager.updateTokens(operator, newCorrectCount);
+        if (tokensEarned > 0) {
+          toast({
+            title: "Tokens Earned!",
+            description: `+${tokensEarned} token${tokensEarned > 1 ? 's' : ''} for ${newCorrectCount} correct answers!`,
+            duration: 2000,
+          });
+        }
       }
     }
 
