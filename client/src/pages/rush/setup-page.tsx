@@ -84,6 +84,11 @@ export default function MathRushSetupPage() {
     enabled: !!mode,
   });
   
+  // Reset type selection when operation changes
+  useEffect(() => {
+    setQuestionType('');
+  }, [mode]);
+
   // Check if assessment is needed when assessment data loads
   useEffect(() => {
     if (assessmentData && !assessmentLoading) {
@@ -118,11 +123,6 @@ export default function MathRushSetupPage() {
       </div>
     );
   }
-
-  // Reset type selection when operation changes
-  useEffect(() => {
-    setQuestionType('');
-  }, [mode]);
   
   // Handle start button click
   const handleStart = () => {
