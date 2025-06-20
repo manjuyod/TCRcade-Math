@@ -47,7 +47,7 @@ export default function MathRushPlayPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  
+
   // State for questions and game progress
   const [questions, setQuestions] = useState<RushQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,18 +61,18 @@ export default function MathRushPlayPage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [timerExpired, setTimerExpired] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
-  
+
   // Get settings from localStorage
-  const operator = localStorage.getItem('mathRushOperator') || 'addition';
-  const mode = operator; // Use the specific operator as the mode
+  const mode = localStorage.getItem('mathRushOperator') || 'addition';
   const questionType = localStorage.getItem('mathRushQuestionType') || '';
   const timeOption = localStorage.getItem('mathRushTimeOption') || 'SHORT';
   const timeSeconds = parseInt(localStorage.getItem('mathRushTimeSeconds') || '60');
-  
+  const forceProgression = localStorage.getItem('mathRushForceProgression') === 'true';
+
   // References
   const inputRef = useRef<HTMLInputElement>(null);
   const startTimeRef = useRef<number>(0);
-  
+
   // Session prevention - prevent exit during active game
   const { endSession } = useSessionPrevention({
     isActive: sessionActive && gameStarted && !gameOver,
@@ -85,7 +85,7 @@ export default function MathRushPlayPage() {
     },
     allowedPaths: ['/rush/complete']
   });
-  
+
   // Timer setup
   const { 
     timeRemaining, 
@@ -93,27 +93,35 @@ export default function MathRushPlayPage() {
     stopTimer, 
     isRunning 
   } = useCountdownTimer(timeSeconds);
-  
+
   // Load questions when component mounts
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         // Build the API URL with query parameters
         let url = `/api/rush/questions?mode=${mode}`;
-        
+
         // Add type parameter if available
         if (questionType) {
           url += `&type=${questionType}`;
         }
-        
-        console.log(`Fetching Math Rush questions with mode: ${mode}${questionType ? `, type: ${questionType}` : ''}`);
+
+        if (forceProgression) {
+          url += `&forceProgression=true`;
+        }
+
+        console.log(`Fetching Math Rush questions with mode: ${mode}${questionType ? `, type: ${questionType}` : ''}${forceProgression ? ', forceProgression: true' : ''}`);
         const response = await apiRequest('GET', url);
         const data = await response.json();
-        
+
         if (data.questions && Array.isArray(data.questions)) {
           setQuestions(data.questions);
           setSessionActive(true); // Activate session prevention
           setLoading(false);
+           // Clear forced progression flag after questions are loaded
+           if (forceProgression) {
+            localStorage.removeItem('mathRushForceProgression');
+          }
         } else {
           toast({
             title: 'Error',
@@ -132,24 +140,24 @@ export default function MathRushPlayPage() {
         navigate('/rush/setup');
       }
     };
-    
+
     fetchQuestions();
     // Record start time
     startTimeRef.current = Date.now();
-    
+
     // Start with focus on input
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
       }
     }, 500);
-    
+
     // Cleanup function for navigation away
     return () => {
       stopTimer();
     };
   }, []);
-  
+
   // Start timer when questions are loaded
   useEffect(() => {
     if (!loading && questions.length > 0 && !gameStarted) {
@@ -159,7 +167,7 @@ export default function MathRushPlayPage() {
       sessionStorage.setItem('moduleInProgress', 'true'); // ✅ Enable nav bar session mode
     }
   }, [loading, questions, gameStarted]);
-  
+
   // Effect to handle game over when timer reaches zero
   // BUT allow the user to finish the 20th question if they're on it
   useEffect(() => {
@@ -175,7 +183,7 @@ export default function MathRushPlayPage() {
       }
     }
   }, [timeRemaining, gameStarted, currentQuestionIndex]);
-  
+
   // Effect to focus the input when the question changes
   useEffect(() => {
     if (gameStarted && !gameOver && inputRef.current && questions.length > 0) {
@@ -187,53 +195,53 @@ export default function MathRushPlayPage() {
       }, 50);
     }
   }, [gameStarted, gameOver, currentQuestionIndex, questions.length]);
-  
+
   // Function to format question text - now just returns the question text directly
   const formatQuestionText = (question: RushQuestion) => {
     // The question text is already formatted by the server
     return question.question;
   };
-  
+
   // Function to get correct answer for a question
   const getCorrectAnswer = (question: RushQuestion): string => {
     // The correct answer is already provided by the server
     return question.answer;
   };
-  
+
   // Handle answer submission
   const handleSubmitAnswer = () => {
     if (!questions[currentQuestionIndex] || gameOver) return;
-    
+
     const currentQuestion = questions[currentQuestionIndex];
     const correctAnswer = getCorrectAnswer(currentQuestion);
     const isAnswerCorrect = answer.trim() === correctAnswer;
-    
+
     // Show feedback
     setIsCorrect(isAnswerCorrect);
     setFeedbackText(isAnswerCorrect ? 'Correct!' : 'Incorrect!');
     setFeedbackVisible(true);
-    
+
     // Create the new result
     const newResult = {
       correct: isAnswerCorrect,
       userAnswer: answer,
       correctAnswer
     };
-    
+
     // Save result - include the 20th answer
     const nextResults = [...answerResults, newResult];
     setAnswerResults(nextResults);
-    
+
     // Clear input
     setAnswer('');
-    
+
     // Hide feedback after a short delay and move to next question
     setTimeout(() => {
       setFeedbackVisible(false);
-      
+
       // Check if this was the final (20th) question
       const isLastQuestion = currentQuestionIndex >= MATH_RUSH_RULES.questionCount - 1;
-      
+
       if (isLastQuestion) {
         // We've finished grading the last question, now end the game
         console.log("Final question completed! Ending game.");
@@ -245,7 +253,7 @@ export default function MathRushPlayPage() {
       } else {
         // Move to next question
         setCurrentQuestionIndex(prevIndex => prevIndex + 1);
-        
+
         // Focus input for next question
         if (inputRef.current) {
           inputRef.current.focus();
@@ -253,7 +261,7 @@ export default function MathRushPlayPage() {
       }
     }, 2000);
   };
-  
+
   // Handle game over
   const handleGameOver = async (
     finalResults: AnswerResult[] = answerResults
@@ -261,15 +269,15 @@ export default function MathRushPlayPage() {
     // Stop the timer
     stopTimer();
     setGameOver(true);
-    
+
     // Calculate total duration in seconds
     const endTime = Date.now();
     const durationSec = Math.round((endTime - startTimeRef.current) / 1000);
-    
+
     // Calculate stats using the provided finalResults
     const totalAnswered = finalResults.length;
     const correctCount = finalResults.filter(r => r.correct).length;
-    
+
     // Detailed logging for debugging
     console.log('Final answer results:', JSON.stringify(finalResults));
     console.log(`Total questions attempted: ${totalAnswered}`);
@@ -280,10 +288,10 @@ export default function MathRushPlayPage() {
       userAnswer: r.userAnswer,
       correctAnswer: r.correctAnswer
     })));
-    
+
     try {
       console.log('Submitting results:', { correct: correctCount, total: totalAnswered });
-      
+
       // Submit results to server using the final results count
       const response = await apiRequest('POST', '/api/rush/complete', {
         correct: correctCount,
@@ -291,14 +299,14 @@ export default function MathRushPlayPage() {
         durationSec,
         mode
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Server response:', data);
-      
+
       // Store results for the completion page with the final question count
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
@@ -308,7 +316,7 @@ export default function MathRushPlayPage() {
         tokens: data.tokens || 0,
         timeOption
       }));
-      
+
       // Navigate to completion page after a small delay
       setTimeout(() => {
         sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
@@ -317,7 +325,7 @@ export default function MathRushPlayPage() {
       }, 500);
     } catch (error) {
       console.error('Error submitting results:', error);
-      
+
       // Even if API fails, still save results and navigate to completion
       localStorage.setItem('mathRushResults', JSON.stringify({
         correct: correctCount,
@@ -327,13 +335,13 @@ export default function MathRushPlayPage() {
         tokens: 0,
         timeOption
       }));
-      
+
       setTimeout(() => {
         sessionStorage.setItem('moduleInProgress', 'false'); // ✅ Reset nav bar session state
         endSession(); // End session prevention
         navigate('/rush/complete');
       }, 500);
-      
+
       toast({
         title: 'Note',
         description: 'Your results were saved but tokens may not be awarded.',
@@ -341,23 +349,23 @@ export default function MathRushPlayPage() {
       });
     }
   };
-  
+
   // Handle key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && answer.trim() !== '') {
       handleSubmitAnswer();
     }
   };
-  
+
   // Current question or loading state
   const currentQuestion = !loading && questions.length > 0 
     ? questions[currentQuestionIndex] 
     : null;
-    
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
-      
+
       <main className="flex-1 container max-w-4xl py-6 px-4 flex flex-col items-center">
         {/* Timer bar */}
         <div className="w-full mb-6">
@@ -376,7 +384,7 @@ export default function MathRushPlayPage() {
             color={timeRemaining < 10 ? 'bg-red-500' : 'bg-orange-500'}
           />
         </div>
-        
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="animate-spin w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full mb-4"></div>
@@ -397,7 +405,7 @@ export default function MathRushPlayPage() {
                   <div className="text-4xl md:text-5xl font-bold mb-8 text-center">
                     {formatQuestionText(currentQuestion)}
                   </div>
-                  
+
                   {/* Always use text input for answers */}
                   <div className="flex w-full max-w-md items-center space-x-2">
                     <Input
@@ -421,7 +429,7 @@ export default function MathRushPlayPage() {
                       Submit
                     </Button>
                   </div>
-                  
+
                   {/* Feedback message */}
                   <AnimatePresence>
                     {feedbackVisible && (
@@ -442,7 +450,7 @@ export default function MathRushPlayPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* Timer expired message for final question */}
                   <AnimatePresence>
                     {timerExpired && currentQuestionIndex === MATH_RUSH_RULES.questionCount - 1 && !gameOver && !feedbackVisible && (

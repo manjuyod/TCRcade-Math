@@ -93,12 +93,31 @@ export default function MathRushSetupPage() {
   useEffect(() => {
     if (assessmentData && !assessmentLoading) {
       const testTaken = assessmentData.testTaken;
+      const masteryLevel = assessmentData.masteryLevel;
+      
       if (!testTaken) {
         // Redirect to assessment page
         navigate(`/math-rush-assessment?operator=${operator}`);
         return;
       }
-      // If test is taken, user can proceed to setup
+      
+      // If test is taken but mastery not achieved, force progression
+      if (testTaken && !masteryLevel) {
+        // Get the next required progression step and auto-navigate to play
+        console.log('Test taken but mastery not achieved - forcing progression');
+        
+        // Set up automatic progression - go directly to play with forced progression
+        localStorage.setItem('mathRushMode', operator);
+        localStorage.setItem('mathRushTimeOption', 'SHORT'); // Default to short
+        localStorage.setItem('mathRushTimeSeconds', '60');
+        localStorage.setItem('mathRushForceProgression', 'true'); // Flag for forced progression
+        localStorage.removeItem('mathRushQuestionType'); // Let server determine next step
+        
+        navigate('/rush/play');
+        return;
+      }
+      
+      // If test is taken and mastery achieved, user can proceed to setup
       setCheckingAssessment(false);
     }
   }, [assessmentData, assessmentLoading, operator, navigate]);
