@@ -424,17 +424,88 @@ export function calculateRushTokens(correct: number, total: number, durationSec:
  */
 export async function completeAssessment(userId: number, operator: string, score: number): Promise<void> {
   try {
+    // Get user's current grade for progression logic
+    const userResult = await db.execute(sql`
+      SELECT grade, hidden_grade_asset FROM users WHERE id = ${userId}
+    `);
+    
+    const user = userResult.rows?.[0];
+    const userGrade = String(user?.grade || "3");
+    const gradeLevel = parseInt(userGrade.replace(/[^\d]/g, '')) || 3;
+    
+    // Determine mastery level based on score
+    const masteryLevel = score >= 80 ? "mastered" : "needs_practice";
+    
+    // Calculate auto-skip progression for multiplication and division
+    let autoSkipSteps = 0;
+    if (operator === 'multiplication' && gradeLevel > 5) {
+      autoSkipSteps = 3; // Skip steps 0, 1, 2
+    } else if (operator === 'division' && gradeLevel > 5) {
+      autoSkipSteps = 1; // Skip step 0
+    }
+    
+    // Update the module progression in hidden_grade_asset
     await db.execute(sql`
       UPDATE users 
       SET hidden_grade_asset = jsonb_set(
-        COALESCE(hidden_grade_asset, '{}'),
-        '{modules,math_rush,${sql.raw(operator)},progress,test_taken}',
-        'true'
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              COALESCE(hidden_grade_asset, '{}'),
+              '{modules,math_rush,${sql.raw(operator)},progress,test_taken}',
+              'true'
+            ),
+            '{modules,math_rush,${sql.raw(operator)},progress,mastery_level}',
+            to_jsonb(${masteryLevel})
+          ),
+          '{modules,math_rush,${sql.raw(operator)},progress,current_step}',
+          to_jsonb(${autoSkipSteps})
+        ),
+        '{modules,math_rush,${sql.raw(operator)},progress,types_complete}',
+        '[]'::jsonb
       )
       WHERE id = ${userId}
     `);
     
+    // Record module history for this assessment completion
+    await db.execute(sql`
+      INSERT INTO module_history (
+        user_id, 
+        module_name, 
+        run_type,
+        grade_level,
+        questions_total, 
+        questions_correct, 
+        time_spent_seconds,
+        final_score,
+        tokens_earned,
+        difficulty_level,
+        properties,
+        completed_at
+      ) VALUES (
+        ${userId},
+        ${'math_rush_' + operator},
+        'assessment',
+        ${userGrade},
+        24,
+        ${Math.round(24 * (score / 100))},
+        60,
+        ${score},
+        0,
+        3,
+        ${JSON.stringify({
+          type: 'assessment',
+          operator: operator,
+          score: score,
+          mastery_level: masteryLevel,
+          auto_skip_steps: autoSkipSteps
+        })},
+        NOW()
+      )
+    `);
+    
     console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
+    console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
   } catch (error) {
     console.error(`Error completing assessment for user ${userId}, operator ${operator}:`, error);
     throw error;
