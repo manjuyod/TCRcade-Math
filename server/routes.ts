@@ -2661,7 +2661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/rush/complete", async (req, res) => {
     try {
-      const { correct, total, durationSec, mode } = req.body;
+      const { correct, total, durationSec, mode, currentType } = req.body;
       const userId = getUserId(req);
 
       if (
@@ -2689,6 +2689,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate final score (0-100)
       const finalScore = Math.round((correct / total) * 100);
+
+      // **PROGRESSION LOGIC IMPLEMENTATION**
+      if (userId && currentType && mode) {
+        console.log(`PROGRESSION: User ${userId} completed ${mode} with ${finalScore}% on type "${currentType}"`);
+        
+        try {
+          const { getUserProgressionData, updateUserProgressionData } = await import("./modules/mathRush");
+          
+          // Get current progression data
+          const progressionData = await getUserProgressionData(userId, mode);
+          console.log(`PROGRESSION: Current attempts - good: ${progressionData.good_attempt || 0}, bad: ${progressionData.bad_attempt || 0}`);
+          
+          let newGoodAttempt = progressionData.good_attempt || 0;
+          let newBadAttempt = progressionData.bad_attempt || 0;
+          let typesComplete = progressionData.types_complete || [];
+          
+          // Apply progression logic based on score thresholds
+          if (finalScore < 80) {
+            // Below 80%: Reset good_attempt to 0, increment bad_attempt
+            console.log(`PROGRESSION: Score ${finalScore}% < 80% - Resetting good_attempt to 0, incrementing bad_attempt`);
+            newGoodAttempt = 0;
+            newBadAttempt = (progressionData.bad_attempt || 0) + 1;
+          } else if (finalScore >= 80 && finalScore < 100) {
+            // 80-99%: Increment good_attempt by 1, reset bad_attempt to 0
+            console.log(`PROGRESSION: Score ${finalScore}% = 80-99% - Incrementing good_attempt to ${newGoodAttempt + 1}, resetting bad_attempt`);
+            newGoodAttempt = (progressionData.good_attempt || 0) + 1;
+            newBadAttempt = 0;
+          } else if (finalScore === 100) {
+            // 100%: Increment good_attempt by 2, reset bad_attempt to 0
+            console.log(`PROGRESSION: Score ${finalScore}% = 100% - Incrementing good_attempt to ${newGoodAttempt + 2}, resetting bad_attempt`);
+            newGoodAttempt = (progressionData.good_attempt || 0) + 2;
+            newBadAttempt = 0;
+          }
+          
+          // Check if type should be marked complete
+          let typeCompleted = false;
+          if (newGoodAttempt >= 2 && !typesComplete.includes(currentType)) {
+            console.log(`PROGRESSION: Type "${currentType}" completed! Adding to types_complete array`);
+            typesComplete = [...typesComplete, currentType];
+            typeCompleted = true;
+            // Reset counters after completion
+            newGoodAttempt = 0;
+            newBadAttempt = 0;
+          }
+          
+          // Update progression data
+          await updateUserProgressionData(userId, mode, {
+            good_attempt: newGoodAttempt,
+            bad_attempt: newBadAttempt,
+            types_complete: typesComplete,
+            last_played: new Date().toISOString()
+          });
+          
+          console.log(`PROGRESSION: Updated data - good: ${newGoodAttempt}, bad: ${newBadAttempt}, types_complete: [${typesComplete.join(', ')}]`);
+          
+          if (typeCompleted) {
+            console.log(`PROGRESSION: Type "${currentType}" mastery achieved for user ${userId}`);
+          }
+          
+        } catch (progressionError) {
+          console.error('PROGRESSION: Error updating progression data:', progressionError);
+          // Continue with normal completion even if progression fails
+        }
+      }
 
       // Update user tokens in database if user is authenticated
       if (userId) {
