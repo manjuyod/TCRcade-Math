@@ -21,40 +21,40 @@ export async function updateConceptsFromAnswer(
     console.error("User not found for concept mastery update");
     return;
   }
-  
+
   // Case 1: Direct concepts array provided
   if (Array.isArray(conceptsOrQuestionId)) {
     const concepts = conceptsOrQuestionId;
     const grade = gradeOrIsCorrect as string;
     const correct = isCorrect === undefined ? false : isCorrect;
-    
+
     console.log(`Updating concept mastery for user ${userId} with concepts:`, concepts);
-    
+
     // Update mastery for each concept directly
     for (const concept of concepts) {
       await storage.updateConceptMastery(userId, concept, grade, correct);
     }
     return;
   }
-  
+
   // Case 2: Question ID provided
   const questionId = conceptsOrQuestionId as number;
   const correct = gradeOrIsCorrect as boolean;
-  
+
   console.log(`Updating concept mastery for user ${userId} from question ${questionId}`);
-  
+
   // Fetch the question to get its concepts
   const question = await storage.getQuestion(questionId);
   if (!question || !question.concepts || question.concepts.length === 0) {
     console.log(`No concepts found for question ${questionId}`);
     return;
   }
-  
+
   if (!user.grade) {
     console.error("User has no grade specified for concept mastery update");
     return;
   }
-  
+
   // Update mastery for each concept in the question
   for (const concept of question.concepts) {
     await storage.updateConceptMastery(userId, concept, user.grade, correct);
@@ -67,37 +67,37 @@ export async function updateConceptsFromAnswer(
 export async function getRecommendedQuestion(userId: number): Promise<Question | undefined> {
   const user = await storage.getUser(userId);
   if (!user || !user.grade) return undefined;
-  
+
   // Generate recommendations if we don't have any
   let recommendations = await storage.getUserRecommendations(userId);
   if (!recommendations) {
     recommendations = await storage.generateRecommendations(userId);
   }
-  
+
   // If we have concepts to review, prioritize questions that cover those concepts
   if (recommendations.conceptsToReview.length > 0) {
     // Try to find a question from a concept that needs review
     const conceptToReview = recommendations.conceptsToReview[
       Math.floor(Math.random() * recommendations.conceptsToReview.length)
     ];
-    
+
     // Find questions that cover this concept
     const matchingQuestions = await storage.getQuestionsByConcept(
       user.grade, 
       conceptToReview
     );
-    
+
     if (matchingQuestions.length > 0) {
       return matchingQuestions[Math.floor(Math.random() * matchingQuestions.length)];
     }
   }
-  
+
   // If we have suggested categories, prioritize those
   if (recommendations.suggestedCategories.length > 0) {
     const suggestedCategory = recommendations.suggestedCategories[
       Math.floor(Math.random() * recommendations.suggestedCategories.length)
     ];
-    
+
     // Get an adaptive question from this category with the recommended difficulty
     return storage.getAdaptiveQuestion(
       userId, 
@@ -106,7 +106,7 @@ export async function getRecommendedQuestion(userId: number): Promise<Question |
       suggestedCategory
     );
   }
-  
+
   // If all else fails, get a standard adaptive question
   return storage.getAdaptiveQuestion(userId, user.grade);
 }
@@ -119,33 +119,33 @@ export async function generateRecommendations(userId: number): Promise<Recommend
   if (!user || !user.grade) {
     throw new Error("User not found or grade not set");
   }
-  
+
   // Get user's concept masteries
   const conceptMasteries = await storage.getUserConceptMasteries(userId);
-  
+
   // Gather concepts that need review based on performance
   const conceptsToReview = conceptMasteries
     .filter(m => m.needsReview)
     .map(m => m.concept);
-  
+
   // Get user progress by category
   const userProgress = await storage.getUserProgress(userId);
-  
+
   // Calculate category scores
   const categoryScores: Record<string, number> = {};
   userProgress.forEach(prog => {
     categoryScores[prog.category] = prog.score / Math.max(1, prog.completedQuestions);
   });
-  
+
   // Find categories with low scores and suggest them
   const suggestedCategories = Object.entries(categoryScores)
     .filter(([_, score]) => score < 3.5) // Below average score
     .map(([category, _]) => category);
-  
+
   // If user is doing well in all categories, suggest more advanced ones
   if (suggestedCategories.length === 0) {
     const validCategories = ["addition", "subtraction", "multiplication", "division", "fractions", "time"];
-    
+
     // For K-1, focus on addition and subtraction
     if (user.grade === "K" || user.grade === "1") {
       suggestedCategories.push("addition", "subtraction");
@@ -159,12 +159,12 @@ export async function generateRecommendations(userId: number): Promise<Recommend
       suggestedCategories.push("fractions");
     }
   }
-  
+
   // Find concepts the user hasn't practiced yet but should learn
   // based on their grade level
   const conceptsMastered = new Set(conceptMasteries.map(m => m.concept));
   const conceptsToLearn: string[] = [];
-  
+
   // Grade-specific concepts to learn
   if (user.grade === "K") {
     if (!conceptsMastered.has("counting")) conceptsToLearn.push("counting");
@@ -183,7 +183,7 @@ export async function generateRecommendations(userId: number): Promise<Recommend
     if (!conceptsMastered.has("ratios")) conceptsToLearn.push("ratios");
     if (!conceptsMastered.has("percentages")) conceptsToLearn.push("percentages");
   }
-  
+
   // Calculate appropriate difficulty level based on performance
   let difficultyLevel = 1;
   if (user.questionsAnswered > 0) {
@@ -191,7 +191,7 @@ export async function generateRecommendations(userId: number): Promise<Recommend
     if (correctRate > 0.8) difficultyLevel = Math.min(5, difficultyLevel + 1);
     else if (correctRate < 0.5) difficultyLevel = Math.max(1, difficultyLevel - 1);
   }
-  
+
   // Create new recommendation
   return storage.createRecommendation({
     userId,
@@ -233,7 +233,7 @@ export async function generatePersonalizedQuestions({
   maxQuestions?: number;
 }): Promise<Question[]> {
   console.log('Starting personalized question generation');
-  
+
   try {
     // Create context for OpenAI from both data sources
     const userContext = {
@@ -315,19 +315,19 @@ Return a JSON array of questions.`
     try {
       // Try to extract JSON array from response
       let jsonString = aiContent;
-      
+
       // Look for JSON array pattern
       const arrayMatch = aiContent.match(/\[.*\]/s);
       if (arrayMatch) {
         jsonString = arrayMatch[0];
         console.log('Extracted JSON array from response');
       }
-      
+
       console.log('Attempting to parse JSON:', jsonString.substring(0, 200) + '...');
       const parsed = JSON.parse(jsonString);
       generatedQuestions = Array.isArray(parsed) ? parsed : [parsed];
       console.log(`Successfully parsed ${generatedQuestions.length} questions`);
-      
+
       if (generatedQuestions.length > 0) {
         console.log('Sample question structure:', {
           hasQuestion: !!generatedQuestions[0].question,
@@ -364,7 +364,7 @@ Return a JSON array of questions.`
 
     console.log(`=== Final Question Validation ===`);
     console.log(`Generated ${validQuestions.length} personalized questions from ${generatedQuestions.length} raw questions`);
-    
+
     if (validQuestions.length > 0) {
       console.log('Sample valid question:', {
         id: validQuestions[0].id,
@@ -374,14 +374,55 @@ Return a JSON array of questions.`
         category: validQuestions[0].category
       });
     }
-    
+
     return validQuestions;
 
   } catch (error) {
     console.error('OpenAI question generation failed, using fallback:', error);
-    
+
     // Fallback: Generate questions from existing database
     return generateFallbackQuestions(user, weakConcepts, validModules, maxQuestions);
+  }
+}
+
+/**
+ * Generate personalized questions for a user
+ */
+export async function getPersonalizedQuestions(
+  userPreferences: any,
+  analytics: any,
+  moduleHistory: any[],
+  validModules: string[],
+  weakConcepts: string[],
+  maxQuestions: number = 10,
+  excludeIds: number[] = []
+): Promise<Question[]> {
+  console.log('Starting retrieval of personalized questions');
+
+  try {
+    // Generate personalized questions using OpenAI
+    let questions = await generatePersonalizedQuestions({
+      maxQuestions: maxQuestions + excludeIds.length, // Generate extra to account for exclusions
+      weakConcepts: weakConcepts.slice(0, 3), // Limit to top 3 weak concepts
+      validModules,
+      user: userPreferences,
+      analytics,
+      moduleHistory
+    });
+
+    // Filter out excluded questions
+    if (excludeIds.length > 0) {
+      questions = questions.filter(q => !excludeIds.includes(q.id));
+    }
+
+    // Limit to requested number of questions
+    return questions.slice(0, maxQuestions);
+
+  } catch (error) {
+    console.error('Personalized question generation failed:', error);
+
+    // Fallback: Generate questions from existing database
+    return generateFallbackQuestions(userPreferences, weakConcepts, validModules, maxQuestions);
   }
 }
 
@@ -401,17 +442,17 @@ async function generateFallbackQuestions(
     validModules: validModules.slice(0, 3),
     maxQuestions
   });
-  
+
   const questions: Question[] = [];
   const grade = user.grade || 'K';
-  
+
   // Try to get questions for weak concepts from database
   for (const concept of weakConcepts.slice(0, 3)) {
     try {
       console.log(`Searching for questions with concept: ${concept}, grade: ${grade}`);
       const conceptQuestions = await storage.getQuestionsByConcept(grade, concept);
       console.log(`Found ${conceptQuestions.length} questions for concept ${concept}`);
-      
+
       if (conceptQuestions.length > 0) {
         questions.push(...conceptQuestions.slice(0, 3));
         console.log(`Added ${Math.min(conceptQuestions.length, 3)} questions for concept ${concept}`);
@@ -420,7 +461,7 @@ async function generateFallbackQuestions(
       console.error(`Failed to get questions for concept ${concept}:`, error);
     }
   }
-  
+
   // If we don't have enough questions, get general questions for the grade
   if (questions.length < maxQuestions) {
     try {
@@ -441,6 +482,6 @@ async function generateFallbackQuestions(
       console.error('Failed to get general questions:', error);
     }
   }
-  
+
   return questions.slice(0, maxQuestions);
 }

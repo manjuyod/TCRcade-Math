@@ -102,6 +102,7 @@ export default function RecTutorPage() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [showSessionDialog, setShowSessionDialog] = useState(false);
   const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [answeredQuestionIds, setAnsweredQuestionIds] = useState<number[]>([]);
   const [sessionOptions, setSessionOptions] = useState<SessionOptions>({
     sessionType: "guided",
     sessionTarget: 10,
@@ -137,10 +138,14 @@ export default function RecTutorPage() {
 
   // Query for recommended question
   const { data: questionData, refetch: refetchQuestion } = useQuery({
-    queryKey: ["/api/recommendations"],
+    queryKey: ["/api/recommendations", answeredQuestionIds],
     enabled: sessionStarted && !currentQuestion,
     queryFn: async () => {
-      const response = await fetch("/api/recommendations");
+      const excludeIds = answeredQuestionIds.join(',');
+      const url = excludeIds 
+        ? `/api/recommendations?excludeIds=${excludeIds}`
+        : "/api/recommendations";
+      const response = await fetch(url);
       return response.json();
     },
   });
@@ -159,6 +164,8 @@ export default function RecTutorPage() {
       setCurrentSession(data.session);
       setSessionStarted(true);
       setMessages(data.messages || []);
+      // Reset answered questions for new session
+      setAnsweredQuestionIds([]);
       if (!data.isExisting) {
         toast({
           title: "Session Started",
@@ -190,6 +197,11 @@ export default function RecTutorPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Track this question as answered
+      if (currentQuestion) {
+        setAnsweredQuestionIds(prev => [...prev, currentQuestion.id]);
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -210,6 +222,9 @@ export default function RecTutorPage() {
       ]);
       setCurrentSession(data.session);
       setUserAnswer("");
+      
+      // Clear current question to trigger new question fetch
+      setCurrentQuestion(null);
 
       // Get next question after a brief delay
       setTimeout(() => {
@@ -274,6 +289,7 @@ export default function RecTutorPage() {
       setCurrentSession(null);
       setMessages([]);
       setCurrentQuestion(null);
+      setAnsweredQuestionIds([]);
       setShowRatingDialog(false);
     },
   });
