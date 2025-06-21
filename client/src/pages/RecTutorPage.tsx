@@ -278,16 +278,16 @@ export default function RecTutorPage() {
     },
   });
 
-  // Timer effect
+  // Timer effect - only runs when session is active AND a question is loaded
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (sessionStarted && currentSession) {
+    if (sessionStarted && currentSession && currentQuestion && !submitAnswerMutation.isPending) {
       interval = setInterval(() => {
         setSessionTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [sessionStarted, currentSession]);
+  }, [sessionStarted, currentSession, currentQuestion, submitAnswerMutation.isPending]);
 
   // Update current question when question data changes
   useEffect(() => {
