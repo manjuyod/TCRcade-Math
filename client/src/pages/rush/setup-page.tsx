@@ -111,6 +111,8 @@ export default function MathRushSetupPage() {
       const testTaken = assessmentData.testTaken;
       const masteryLevel = assessmentData.masteryLevel;
 
+      console.log('Assessment data:', { testTaken, masteryLevel, operator });
+
       if (!testTaken) {
         // Redirect to assessment page
         navigate(`/math-rush-assessment?operator=${operator}`);
@@ -134,6 +136,7 @@ export default function MathRushSetupPage() {
       }
 
       // If test is taken and mastery achieved, user can proceed to setup
+      console.log('Mastery achieved - allowing setup page access');
       setCheckingAssessment(false);
     }
   }, [assessmentData, assessmentLoading, operator, navigate]);
