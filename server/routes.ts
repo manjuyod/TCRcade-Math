@@ -2847,8 +2847,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // **PROGRESSION LOGIC IMPLEMENTATION**
       if (userId && currentType && mode) {
-        // Ensure we're working with the actual type name, not the operator
-        const actualTypeName = currentType === mode ? "Mixed 0–5" : currentType; // Fallback if currentType is just the operator
+        // Use the currentType as provided - it should be the actual type being played
+        const actualTypeName = currentType;
         console.log(`PROGRESSION: User ${userId} completed ${mode} with ${finalScore}% on type "${actualTypeName}"`);
         
         try {
@@ -2866,50 +2866,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Check if this type is already complete - if so, skip progression updates
           if (typesComplete.includes(actualTypeName)) {
             console.log(`PROGRESSION: Type "${actualTypeName}" is already complete - skipping progression updates`);
-            return;
-          }
+            // Don't return here - still complete the session normally
+          } else {
           
           // Apply progression logic based on score thresholds
-          if (finalScore < 80) {
-            // Below 80%: Reset good_attempt to 0, increment bad_attempt
-            console.log(`PROGRESSION: Score ${finalScore}% < 80% - Resetting good_attempt to 0, incrementing bad_attempt`);
-            newGoodAttempt = 0;
-            newBadAttempt = (progressionData.bad_attempt || 0) + 1;
-          } else if (finalScore >= 80 && finalScore < 100) {
-            // 80-99%: Increment good_attempt by 1, reset bad_attempt to 0
-            console.log(`PROGRESSION: Score ${finalScore}% = 80-99% - Incrementing good_attempt to ${newGoodAttempt + 1}, resetting bad_attempt`);
-            newGoodAttempt = (progressionData.good_attempt || 0) + 1;
-            newBadAttempt = 0;
-          } else if (finalScore === 100) {
-            // 100%: Increment good_attempt by 2, reset bad_attempt to 0
-            console.log(`PROGRESSION: Score ${finalScore}% = 100% - Incrementing good_attempt to ${newGoodAttempt + 2}, resetting bad_attempt`);
-            newGoodAttempt = (progressionData.good_attempt || 0) + 2;
-            newBadAttempt = 0;
-          }
-          
-          // Check if type should be marked complete
-          let typeCompleted = false;
-          if (newGoodAttempt >= 2 && !typesComplete.includes(actualTypeName)) {
-            console.log(`PROGRESSION: Type "${actualTypeName}" completed! Adding to types_complete array`);
-            typesComplete = [...typesComplete, actualTypeName];
-            typeCompleted = true;
-            // Reset counters after completion
-            newGoodAttempt = 0;
-            newBadAttempt = 0;
-          }
-          
-          // Update progression data
-          await updateUserProgressionData(userId, mode, {
-            good_attempt: newGoodAttempt,
-            bad_attempt: newBadAttempt,
-            types_complete: typesComplete,
-            last_played: new Date().toISOString()
-          });
-          
-          console.log(`PROGRESSION: Updated data - good: ${newGoodAttempt}, bad: ${newBadAttempt}, types_complete: [${typesComplete.join(', ')}]`);
-          
-          if (typeCompleted) {
-            console.log(`PROGRESSION: Type "${actualTypeName}" mastery achieved for user ${userId}`);
+            if (finalScore < 80) {
+              // Below 80%: Reset good_attempt to 0, increment bad_attempt
+              console.log(`PROGRESSION: Score ${finalScore}% < 80% - Resetting good_attempt to 0, incrementing bad_attempt`);
+              newGoodAttempt = 0;
+              newBadAttempt = (progressionData.bad_attempt || 0) + 1;
+            } else if (finalScore >= 80 && finalScore < 100) {
+              // 80-99%: Increment good_attempt by 1, reset bad_attempt to 0
+              console.log(`PROGRESSION: Score ${finalScore}% = 80-99% - Incrementing good_attempt to ${newGoodAttempt + 1}, resetting bad_attempt`);
+              newGoodAttempt = (progressionData.good_attempt || 0) + 1;
+              newBadAttempt = 0;
+            } else if (finalScore === 100) {
+              // 100%: Increment good_attempt by 2, reset bad_attempt to 0
+              console.log(`PROGRESSION: Score ${finalScore}% = 100% - Incrementing good_attempt to ${newGoodAttempt + 2}, resetting bad_attempt`);
+              newGoodAttempt = (progressionData.good_attempt || 0) + 2;
+              newBadAttempt = 0;
+            }
+            
+            // Check if type should be marked complete
+            let typeCompleted = false;
+            if (newGoodAttempt >= 2 && !typesComplete.includes(actualTypeName)) {
+              console.log(`PROGRESSION: Type "${actualTypeName}" completed! Adding to types_complete array`);
+              typesComplete = [...typesComplete, actualTypeName];
+              typeCompleted = true;
+              // Reset counters after completion
+              newGoodAttempt = 0;
+              newBadAttempt = 0;
+            }
+            
+            // Update progression data
+            await updateUserProgressionData(userId, mode, {
+              good_attempt: newGoodAttempt,
+              bad_attempt: newBadAttempt,
+              types_complete: typesComplete,
+              last_played: new Date().toISOString()
+            });
+            
+            console.log(`PROGRESSION: Updated data - good: ${newGoodAttempt}, bad: ${newBadAttempt}, types_complete: [${typesComplete.join(', ')}]`);
+            
+            if (typeCompleted) {
+              console.log(`PROGRESSION: Type "${actualTypeName}" mastery achieved for user ${userId}`);
+            }
           }
           
         } catch (progressionError) {
