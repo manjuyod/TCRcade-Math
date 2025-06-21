@@ -322,19 +322,20 @@ export async function getQuestionTypes(operation: string): Promise<string[]> {
   console.log(`Getting question types for operation '${operation}' from table '${table}'`);
 
   try {
-    // Query the database for distinct types
+    // Query the database for distinct types filtered by facts_type
     const query = sql`
       SELECT DISTINCT type FROM ${sql.raw(table)}
       WHERE type IS NOT NULL
+      AND facts_type = ${operation}
       ORDER BY type;
     `;
 
     const result = await db.execute(query);
-    console.log("Database query result for types:", result.rows);
+    console.log(`Database query result for types with facts_type='${operation}':`, result.rows);
 
     // Extract types from the result and ensure they're strings
     const types = (result.rows?.map(row => String(row.type)) || []) as string[];
-    console.log(`Found ${types.length} types:`, types);
+    console.log(`Found ${types.length} types for ${operation}:`, types);
 
     return types;
   } catch (error) {
