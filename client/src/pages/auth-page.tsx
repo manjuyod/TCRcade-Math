@@ -36,16 +36,27 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import tcLogo from "../assets/tc-logo.png";
 
+// Type definitions for CRM data
+interface Franchise {
+  franchiseID: number;
+  franchiseName: string;
+}
+
+interface Student {
+  studentID: number;
+  studentName: string;
+}
+
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  franchiseID: z.string().min(1, "Please select a franchise"),
+  studentID: z.string().min(1, "Please select a student"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   email: z.string().email("Please enter a valid email address").optional(),
-  displayName: z.string().optional(),
   grade: z.string().min(1, "Please select a grade"),
   initials: z
     .string()
@@ -66,9 +77,22 @@ export default function AuthPage() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [resetError, setResetError] = useState<string | null>(null);
+  const [selectedFranchiseID, setSelectedFranchiseID] = useState<string>("");
 
   // Import toast from module to avoid hooks issues
   const { toast } = useToast();
+
+  // Fetch franchises
+  const { data: franchises, isLoading: franchisesLoading } = useQuery<Franchise[]>({
+    queryKey: ['/api/franchises'],
+    enabled: activeTab === 'register',
+  });
+
+  // Fetch students for selected franchise
+  const { data: students, isLoading: studentsLoading } = useQuery<Student[]>({
+    queryKey: ['/api/students', selectedFranchiseID],
+    enabled: activeTab === 'register' && !!selectedFranchiseID,
+  });
 
   // Redirect if already logged in
   useEffect(() => {
@@ -88,10 +112,10 @@ export default function AuthPage() {
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
+      franchiseID: "",
+      studentID: "",
       password: "",
       email: "",
-      displayName: "",
       grade: "K",
       initials: "",
     },
@@ -102,11 +126,34 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
-    // Set initials to first 3 chars of username if not provided
-    if (!data.initials) {
-      data.initials = data.username.substring(0, 3).toUpperCase();
+    // Find the selected student to get their name
+    const selectedStudent = students?.find(s => s.studentID.toString() === data.studentID);
+    if (!selectedStudent) {
+      toast({
+        title: "Error",
+        description: "Please select a valid student",
+        variant: "destructive",
+      });
+      return;
     }
-    registerMutation.mutate(data);
+
+    // Use student name as both username and displayName
+    const studentName = selectedStudent.studentName;
+    
+    // Set initials to first 3 chars of student name if not provided
+    if (!data.initials) {
+      data.initials = studentName.substring(0, 3).toUpperCase();
+    }
+
+    // Create registration data with username and displayName from student
+    const registrationData = {
+      ...data,
+      username: studentName,
+      displayName: studentName,
+      studentID: parseInt(data.studentID),
+    };
+
+    registerMutation.mutate(registrationData);
   };
 
   // Check if the register mutation has a specific email already exists error
@@ -117,11 +164,19 @@ export default function AuthPage() {
 
   const handleGoToLogin = () => {
     setActiveTab("login");
-    // Pre-fill the username in login form if available
-    const username = registerForm.getValues("username");
-    if (username) {
-      loginForm.setValue("username", username);
+    // Pre-fill the username in login form if available from selected student
+    const selectedStudent = students?.find(s => s.studentID.toString() === registerForm.getValues("studentID"));
+    if (selectedStudent) {
+      loginForm.setValue("username", selectedStudent.studentName);
     }
+  };
+
+  // Handle franchise selection change
+  const handleFranchiseChange = (franchiseID: string) => {
+    setSelectedFranchiseID(franchiseID);
+    registerForm.setValue("franchiseID", franchiseID);
+    // Reset student selection when franchise changes
+    registerForm.setValue("studentID", "");
   };
 
   const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
@@ -363,17 +418,61 @@ export default function AuthPage() {
                   >
                     <FormField
                       control={registerForm.control}
-                      name="username"
+                      name="franchiseID"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder="Create a username"
-                            />
-                          </FormControl>
+                          <FormLabel>Select Franchise</FormLabel>
+                          <Select
+                            onValueChange={handleFranchiseChange}
+                            value={field.value}
+                            disabled={franchisesLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary">
+                                <SelectValue placeholder={franchisesLoading ? "Loading franchises..." : "Choose your franchise"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {franchises?.map((franchise: any) => (
+                                <SelectItem key={franchise.franchiseID} value={franchise.franchiseID.toString()}>
+                                  {franchise.franchiseName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="studentID"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Student</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={!selectedFranchiseID || studentsLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary">
+                                <SelectValue placeholder={
+                                  !selectedFranchiseID ? "Please select a franchise first" :
+                                  studentsLoading ? "Loading students..." :
+                                  "Choose your student"
+                                } />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {students?.map((student: any) => (
+                                <SelectItem key={student.studentID} value={student.studentID.toString()}>
+                                  {student.studentName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -417,23 +516,7 @@ export default function AuthPage() {
                       )}
                     />
 
-                    <FormField
-                      control={registerForm.control}
-                      name="displayName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Display Name (optional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder="Your display name"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+
 
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
