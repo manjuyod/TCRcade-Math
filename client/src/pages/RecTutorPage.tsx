@@ -428,7 +428,7 @@ export default function RecTutorPage() {
 
         {/* Session Setup Dialog */}
         <Dialog open={showSessionDialog} onOpenChange={setShowSessionDialog}>
-          <DialogContent className="max-w-md rounded-none overflow-hidden">
+          <DialogContent className="max-w-md !rounded-none overflow-hidden">
             <DialogHeader>
               <DialogTitle>Setup Your Session</DialogTitle>
               <DialogDescription>
@@ -732,7 +732,7 @@ export default function RecTutorPage() {
 
         {/* Session Rating Dialog */}
         <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
-          <DialogContent className="max-w-md rounded-none overflow-hidden">
+          <DialogContent className="max-w-md !rounded-none overflow-hidden">
             <DialogHeader>
               <DialogTitle>Rate Your Session</DialogTitle>
               <DialogDescription>
