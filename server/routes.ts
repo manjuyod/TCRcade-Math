@@ -2676,7 +2676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`FORCED PROGRESSION: Query executed for user ${userId}, operator: ${mode}`);
             console.log(`FORCED PROGRESSION: Raw DB result:`, result.rows[0]?.types_complete);
             
-            let typesCompleteFromDB = [];
+            let typesCompleteFromDB: string[] = [];
             const rawTypesComplete = result.rows[0]?.types_complete;
             
             if (rawTypesComplete) {
@@ -2727,6 +2727,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (activeArray.length === 0) {
               if (typesCompleteFromDB.length === progressionArray.length) {
                 console.log(`FORCED PROGRESSION: All types completed for ${mode}. Progression complete.`);
+                
+                // Update mastery level to true since all progression types are complete
+                try {
+                  const { updateUserProgressionData } = await import("./modules/mathRush");
+                  const { isProgressionComplete } = await import("./modules/mathRushProgression");
+                  
+                  // Get user grade for progression check
+                  const userResult = await db.execute(sql`
+                    SELECT grade FROM users WHERE id = ${userId}
+                  `);
+                  const userGrade = userResult.rows[0]?.grade || "3";
+                  
+                  // Double-check progression completion
+                  const isComplete = isProgressionComplete(mode as string, typesCompleteFromDB, userGrade as string);
+                  
+                  if (isComplete) {
+                    console.log(`FORCED PROGRESSION: Setting mastery_level = true for user ${userId}, operator: ${mode}`);
+                    
+                    // Update the mastery level flag
+                    await updateUserProgressionData(userId, mode as string, {
+                      mastery_level: true
+                    });
+                    
+                    console.log(`FORCED PROGRESSION: Mastery level updated successfully for user ${userId}, operator: ${mode}`);
+                  } else {
+                    console.log(`FORCED PROGRESSION: Progression check failed - not setting mastery level for user ${userId}, operator: ${mode}`);
+                  }
+                } catch (masteryError) {
+                  console.error(`FORCED PROGRESSION: Failed to update mastery level for user ${userId}, operator: ${mode}:`, masteryError);
+                }
+                
                 // Fall back to regular progression
               } else {
                 console.log(`FORCED PROGRESSION: Active array empty but progression incomplete. Completed: ${typesCompleteFromDB.length}, Total: ${progressionArray.length}`);

@@ -1,0 +1,37 @@
+Here's an agent prompt to fix this specific mastery issue:
+
+Math Rush Mastery Logic Fix Agent
+Objective: Fix the mastery flag logic in Math Rush setup to correctly set mastery_level = true when all progression types are completed.
+
+Problem Analysis:
+
+The forced progression logic in /api/rush/questions correctly identifies when all types are complete (activeArray.length === 0)
+However, it only logs "All types completed for {mode}. Progression complete." but doesn't update the mastery_level flag
+The mastery check currently only happens during completion via /api/rush/complete, not during setup
+Users who have completed all progression types still show mastery_level = false until they complete another session
+Required Fix:
+In server/routes.ts, within the forced progression logic (around line 1157), when activeArray.length === 0 is detected, we need to:
+
+Import the mastery progression functions
+Check if progression is truly complete using isProgressionComplete()
+Update the user's mastery_level = true in their hidden_grade_asset
+Log the mastery level update
+Specific Implementation:
+
+Locate the forced progression section in /api/rush/questions endpoint
+Find the condition: if (activeArray.length === 0)
+Add mastery level check and update logic before falling back to regular progression
+Use existing updateUserProgressionData() function to set mastery_level: true
+Ensure this only affects the mastery flag, not other progression data
+Expected Outcome:
+
+When a user accesses Math Rush setup and all progression types are complete, mastery_level is automatically set to true
+Console logs confirm when mastery level is updated
+No impact on other progression logic or completion workflows
+Users immediately see mastery status reflected in their progress
+Testing Verification:
+
+User with completed progression types should have mastery_level = true after visiting setup
+Console should log mastery level updates
+Existing completion logic should remain unaffected
+Focus only on the mastery flag update in the setup/question generation phase. Do not modify the completion logic or other progression mechanics.

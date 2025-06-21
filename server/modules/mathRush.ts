@@ -15,6 +15,9 @@ interface ModuleProgress {
   tokens_earned?: number;
   total_questions_answered?: number;
   correct_answers?: number;
+  mastery_level?: boolean;
+  test_taken?: boolean;
+  types_complete?: string[];
   [key: string]: any;
 }
 
