@@ -90,7 +90,7 @@ export default function AuthPage() {
 
   // Fetch students for selected franchise
   const { data: students, isLoading: studentsLoading } = useQuery<Student[]>({
-    queryKey: ['/api/students', selectedFranchiseID],
+    queryKey: [`/api/students/${selectedFranchiseID}`],
     enabled: activeTab === 'register' && !!selectedFranchiseID,
   });
 
