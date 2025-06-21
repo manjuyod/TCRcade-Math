@@ -6,7 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, User } from "@shared/schema";
-import { validateStudentNumber } from "./crm-db";
+import { getFranchises, getStudentsByFranchise, getStudentInfo } from "./crm-db";
 
 declare global {
   namespace Express {
@@ -65,63 +65,62 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const { username, password, email, displayName, grade, initials, isAdmin, studentNumber } =
-      req.body;
+    const { password, grade, initials, isAdmin, studentID } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).send("Username and password are required");
+    if (!password) {
+      return res.status(400).send("Password is required");
     }
 
-    if (!studentNumber) {
-      return res.status(400).send("Student number is required");
+    if (!studentID) {
+      return res.status(400).send("Student selection is required");
     }
 
-    // Validate student number against CRM database
+    // Get student information from CRM
+    let crmStudent, username, displayName, finalGrade, finalEmail;
+    
     try {
-      console.log(`Validating student number: ${studentNumber}`);
-      const crmValidation = await validateStudentNumber(studentNumber);
+      console.log(`Getting student info for ID: ${studentID}`);
+      const crmValidation = await getStudentInfo(studentID);
       
       if (!crmValidation.isValid) {
-        console.log(`Student number ${studentNumber} not found in CRM`);
-        return res.status(400).send("Invalid student number. Please contact your instructor.");
+        console.log(`Student ID ${studentID} not found in CRM`);
+        return res.status(400).send("Invalid student selection. Please try again.");
       }
 
-      console.log(`Student number ${studentNumber} validated successfully:`, crmValidation.studentInfo);
+      crmStudent = crmValidation.studentInfo;
+      username = crmStudent.firstName.toLowerCase() + crmStudent.lastName.toLowerCase();
+      displayName = `${crmStudent.firstName} ${crmStudent.lastName}`;
+      finalGrade = grade || crmStudent?.grade || "K";
+      finalEmail = crmStudent?.email || null;
       
-      // Use CRM data to populate user information if not provided
-      const crmStudent = crmValidation.studentInfo;
-      const finalGrade = grade || crmStudent?.grade || "K";
-      const finalEmail = email || crmStudent?.email || null;
-      const finalDisplayName = displayName || `${crmStudent?.firstName} ${crmStudent?.lastName}` || username;
+      console.log(`Creating user for student: ${displayName} (ID: ${studentID})`);
       
     } catch (error) {
-      console.error("Error validating student number:", error);
-      return res.status(500).send("Unable to validate student number. Please try again later.");
+      console.error("Error getting student info:", error);
+      return res.status(500).send("Unable to retrieve student information. Please try again later.");
     }
 
-    // Validate initials (3 letters for arcade-style)
-    if (
-      initials &&
-      (initials.length !== 3 || !/^[A-Za-z]{3}$/.test(initials))
-    ) {
-      return res.status(400).send("Initials must be exactly 3 letters");
-    }
-
-    // By default, set initials to the first 3 letters of username (uppercase)
-    const defaultInitials = username.substring(0, 3).toUpperCase();
-
+    // Check if username already exists
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
       return res.status(400).send("Username already exists");
     }
 
     // Check for existing email if email is provided
-    if (email) {
-      const existingEmailUser = await storage.getUserByEmail(email);
+    if (finalEmail) {
+      const existingEmailUser = await storage.getUserByEmail(finalEmail);
       if (existingEmailUser) {
         return res.status(400).send("Email already exists");
       }
     }
+
+    // Validate initials (3 letters for arcade-style)
+    if (initials && (initials.length !== 3 || !/^[A-Za-z]{3}$/.test(initials))) {
+      return res.status(400).send("Initials must be exactly 3 letters");
+    }
+
+    // By default, set initials to the first 3 letters of username (uppercase)
+    const defaultInitials = username.substring(0, 3).toUpperCase();
 
     // Dynamically fetch concepts for the selected grade
     const weaknessConcepts = await storage.getConceptsForGrade(finalGrade);
@@ -130,10 +129,11 @@ export function setupAuth(app: Express) {
       username,
       password: await hashPassword(password),
       email: finalEmail,
-      displayName: finalDisplayName,
+      displayName,
       grade: finalGrade,
       initials: initials || defaultInitials,
       isAdmin: isAdmin || false,
+      studentID: studentID,
 
       // Subject mastery initialization
       strengthConcepts: [],
@@ -142,7 +142,7 @@ export function setupAuth(app: Express) {
 
     // Log for confirmation during testing
     console.log("New user registered with subject mastery:", {
-      grade: gradeLevel,
+      grade: finalGrade,
       strengthConcepts: [],
       weaknessConcepts,
     });
@@ -151,6 +151,32 @@ export function setupAuth(app: Express) {
       if (err) return next(err);
       res.status(201).json(user);
     });
+  });
+
+  // API endpoints for CRM integration
+  app.get("/api/franchises", async (req, res) => {
+    try {
+      const franchises = await getFranchises();
+      res.json(franchises);
+    } catch (error) {
+      console.error("Error fetching franchises:", error);
+      res.status(500).json({ error: "Failed to fetch franchises" });
+    }
+  });
+
+  app.get("/api/students/:franchiseID", async (req, res) => {
+    try {
+      const franchiseID = parseInt(req.params.franchiseID);
+      if (isNaN(franchiseID)) {
+        return res.status(400).json({ error: "Invalid franchise ID" });
+      }
+      
+      const students = await getStudentsByFranchise(franchiseID);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ error: "Failed to fetch students" });
+    }
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {

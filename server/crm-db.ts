@@ -53,48 +53,88 @@ export async function testCrmConnection(): Promise<boolean> {
   }
 }
 
-export async function validateStudentNumber(studentNumber: string): Promise<{ isValid: boolean; studentInfo?: any }> {
+export async function getFranchises(): Promise<{ franchiseID: number; franchiseName: string }[]> {
   try {
     const pool = await getCrmConnection();
+    const result = await pool.request().query(`
+      SELECT ID AS franchiseID, FranchiesName 
+      FROM tblFranchies
+    `);
     
-    // Query to check if student number exists in CRM
-    // Adjust the table name and column names based on your CRM schema
+    console.log(`✓ Retrieved ${result.recordset.length} franchises from CRM`);
+    return result.recordset.map((row: any) => ({
+      franchiseID: row.franchiseID,
+      franchiseName: row.FranchiesName
+    }));
+  } catch (error) {
+    console.error('✗ Error fetching franchises:', error);
+    return [];
+  }
+}
+
+export async function getStudentsByFranchise(franchiseID: number): Promise<{ studentID: number; studentName: string }[]> {
+  try {
+    const pool = await getCrmConnection();
     const result = await pool.request()
-      .input('studentNumber', sql.VarChar, studentNumber)
+      .input('franchiseID', sql.Int, franchiseID)
+      .query(`
+        SELECT ID AS studentID, CONCAT(Firstname, ' ', LastName) AS studentName
+        FROM tblstudents 
+        WHERE FranchiseID = @franchiseID
+      `);
+    
+    console.log(`✓ Retrieved ${result.recordset.length} students for franchise ${franchiseID}`);
+    return result.recordset.map((row: any) => ({
+      studentID: row.studentID,
+      studentName: row.studentName
+    }));
+  } catch (error) {
+    console.error('✗ Error fetching students:', error);
+    return [];
+  }
+}
+
+export async function getStudentInfo(studentID: number): Promise<{ isValid: boolean; studentInfo?: any }> {
+  try {
+    const pool = await getCrmConnection();
+    const result = await pool.request()
+      .input('studentID', sql.Int, studentID)
       .query(`
         SELECT TOP 1 
-          StudentID,
-          FirstName, 
-          LastName,
-          Email,
-          Grade,
-          Status
-        FROM Students 
-        WHERE StudentID = @studentNumber 
-        AND Status = 'Active'
+          s.ID as studentID,
+          s.Firstname,
+          s.LastName,
+          s.Email,
+          s.Grade,
+          s.FranchiseID,
+          f.FranchiesName
+        FROM tblstudents s
+        LEFT JOIN tblFranchies f ON s.FranchiseID = f.ID
+        WHERE s.ID = @studentID
       `);
     
     if (result.recordset.length > 0) {
       const student = result.recordset[0];
-      console.log(`✓ Student found in CRM: ${student.FirstName} ${student.LastName} (Grade ${student.Grade})`);
+      console.log(`✓ Student found: ${student.Firstname} ${student.LastName} from ${student.FranchiesName}`);
       
       return {
         isValid: true,
         studentInfo: {
-          studentId: student.StudentID,
-          firstName: student.FirstName,
+          studentID: student.studentID,
+          firstName: student.Firstname,
           lastName: student.LastName,
           email: student.Email,
           grade: student.Grade,
-          status: student.Status
+          franchiseID: student.FranchiseID,
+          franchiseName: student.FranchiesName
         }
       };
     } else {
-      console.log(`✗ Student number ${studentNumber} not found in CRM or inactive`);
+      console.log(`✗ Student ID ${studentID} not found in CRM`);
       return { isValid: false };
     }
   } catch (error) {
-    console.error('✗ Error validating student number:', error);
+    console.error('✗ Error fetching student info:', error);
     return { isValid: false };
   }
 }

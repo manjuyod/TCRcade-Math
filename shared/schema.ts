@@ -50,6 +50,8 @@ export const users = pgTable("users", {
   preferredDifficulty: integer("preferred_difficulty").default(1).notNull(),
   // JSON field to store all progress data
   hiddenGradeAsset: json("hidden_grade_asset"),
+  // CRM integration field
+  studentID: integer("student_id"),
 });
 
 // Avatar items that can be unlocked and purchased
