@@ -36,7 +36,7 @@ import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 import { monolithRoutes } from "../monolith/server/routes";
 import { generatePersonalizedQuestions } from "./recommendation-engine";
 import { aiTutorEngine } from "./ai-tutor-engine";
-import { testCrmConnection, validateStudentNumber } from "./crm-db";
+import { testCrmConnection } from "./crm-db";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -4358,6 +4358,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching math facts question:', error);
       res.status(500).json({ message: 'Failed to fetch question' });
+    }
+  });
+
+  // CRM test endpoint
+  app.get("/api/crm/test", async (req, res) => {
+    try {
+      const isConnected = await testCrmConnection();
+      res.json({ 
+        connected: isConnected,
+        message: isConnected ? "CRM database connection successful" : "CRM database connection failed"
+      });
+    } catch (error) {
+      console.error("CRM test endpoint error:", error);
+      res.status(500).json({ error: "Failed to test CRM connection" });
     }
   });
 
