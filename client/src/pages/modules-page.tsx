@@ -117,6 +117,100 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0,
     },
+    // Math Rush modules - four separate operator-specific modules
+    {
+      id: "math_rush_addition",
+      name: "Math Rush: Addition",
+      description: "Timed 20-question addition sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-blue-500" />,
+      difficulty: 2,
+      category: "addition",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_subtraction",
+      name: "Math Rush: Subtraction",
+      description: "Timed 20-question subtraction sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-red-500" />,
+      difficulty: 2,
+      category: "subtraction",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_multiplication",
+      name: "Math Rush: Multiplication",
+      description: "Timed 20-question multiplication sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-green-500" />,
+      difficulty: 3,
+      category: "multiplication",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "math_rush_division",
+      name: "Math Rush: Division",
+      description: "Timed 20-question division sprint",
+      gameType: GameType.MATH_RUSH,
+      icon: <Timer className="h-12 w-12 text-purple-500" />,
+      difficulty: 3,
+      category: "division",
+      locked: false,
+      completeCount: 0,
+    },
+    // Fractions, Decimals, Pre-Algebra
+    {
+      id: "fractions_puzzle",
+      name: "Fractions Puzzle",
+      description: "Master fractions through 10 progressively harder questions",
+      gameType: GameType.FRACTIONS_PUZZLE,
+      icon: <Puzzle className="h-12 w-12 text-blue-500" />,
+      difficulty: 3,
+      category: "fractions",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "decimal-defender",
+      name: "Decimal Defender",
+      description:
+        "Master decimal skills through rounding, comparing, and operations",
+      gameType: GameType.STANDARD,
+      icon: <Shield className="h-12 w-12 text-cyan-500" />,
+      difficulty: 4,
+      category: "decimals",
+      locked: false,
+      completeCount: 0,
+    },
+    {
+      id: "algebra",
+      name: "Pre-Algebra Basics",
+      description:
+        "Master fundamental algebra skills through interactive practice",
+      gameType: GameType.STANDARD,
+      icon: <Calculator className="h-12 w-12 text-purple-600" />,
+      difficulty: 5,
+      category: "algebra",
+      locked: false,
+      completeCount: 0,
+    },
+    // Ultimate Challenge
+    {
+      id: "mixed",
+      name: "Ultimate Challenge",
+      description:
+        "Test your skills with a mix of all topics at maximum difficulty",
+      gameType: GameType.STANDARD,
+      icon: <Trophy className="h-12 w-12 text-amber-500" />,
+      difficulty: 5,
+      category: "mixed",
+      locked: true,
+      completeCount: 0,
+    },
     // Original modules - COMMENTED OUT FOR REMOVAL FROM HOME PAGE
     // Can be uncommented later to restore these modules
     /*
@@ -164,21 +258,6 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-    */
-    {
-      id: "fractions_puzzle",
-      name: "Fractions Puzzle",
-      description: "Master fractions through 10 progressively harder questions",
-      gameType: GameType.FRACTIONS_PUZZLE,
-      icon: <Puzzle className="h-12 w-12 text-blue-500" />,
-      difficulty: 3,
-      category: "fractions",
-      locked: false,
-      completeCount: 0,
-    },
-    // COMMENTED OUT FOR REMOVAL FROM HOME PAGE
-    // Can be uncommented later to restore this module
-    /*
     {
       id: 'word-race',
       name: 'Math Word Race',
@@ -190,8 +269,6 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-    */
-    /*
     {
       id: 'addition-advanced',
       name: 'Addition Challenge',
@@ -214,20 +291,6 @@ export default function ModulesPage() {
       locked: false,
       completeCount: 0
     },
-    */
-    {
-      id: "decimal-defender",
-      name: "Decimal Defender",
-      description:
-        "Master decimal skills through rounding, comparing, and operations",
-      gameType: GameType.STANDARD,
-      icon: <Shield className="h-12 w-12 text-cyan-500" />,
-      difficulty: 4,
-      category: "decimals",
-      locked: false,
-      completeCount: 0,
-    },
-    /*
     {
       id: "measurement",
       name: "Measurement Mastery",
@@ -252,75 +315,6 @@ export default function ModulesPage() {
       completeCount: 0,
     },
     */
-    {
-      id: "algebra",
-      name: "Pre-Algebra Basics",
-      description:
-        "Master fundamental algebra skills through interactive practice",
-      gameType: GameType.STANDARD,
-      icon: <Calculator className="h-12 w-12 text-purple-600" />,
-      difficulty: 5,
-      category: "algebra",
-      locked: false,
-      completeCount: 0,
-    },
-    {
-      id: "mixed",
-      name: "Ultimate Challenge",
-      description:
-        "Test your skills with a mix of all topics at maximum difficulty",
-      gameType: GameType.STANDARD,
-      icon: <Trophy className="h-12 w-12 text-amber-500" />,
-      difficulty: 5,
-      category: "mixed",
-      locked: true,
-      completeCount: 0,
-    },
-    // Math Rush modules - four separate operator-specific modules
-    {
-      id: "math_rush_addition",
-      name: "Math Rush: Addition",
-      description: "Timed 20-question addition sprint",
-      gameType: GameType.MATH_RUSH,
-      icon: <Timer className="h-12 w-12 text-blue-500" />,
-      difficulty: 2,
-      category: "addition",
-      locked: false,
-      completeCount: 0,
-    },
-    {
-      id: "math_rush_subtraction",
-      name: "Math Rush: Subtraction",
-      description: "Timed 20-question subtraction sprint",
-      gameType: GameType.MATH_RUSH,
-      icon: <Timer className="h-12 w-12 text-red-500" />,
-      difficulty: 2,
-      category: "subtraction",
-      locked: false,
-      completeCount: 0,
-    },
-    {
-      id: "math_rush_multiplication",
-      name: "Math Rush: Multiplication",
-      description: "Timed 20-question multiplication sprint",
-      gameType: GameType.MATH_RUSH,
-      icon: <Timer className="h-12 w-12 text-green-500" />,
-      difficulty: 3,
-      category: "multiplication",
-      locked: false,
-      completeCount: 0,
-    },
-    {
-      id: "math_rush_division",
-      name: "Math Rush: Division",
-      description: "Timed 20-question division sprint",
-      gameType: GameType.MATH_RUSH,
-      icon: <Timer className="h-12 w-12 text-purple-500" />,
-      difficulty: 3,
-      category: "division",
-      locked: false,
-      completeCount: 0,
-    },
   ];
 
   // Filter modules based on active filter
