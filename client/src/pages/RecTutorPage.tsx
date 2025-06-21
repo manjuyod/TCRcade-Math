@@ -789,7 +789,19 @@ export default function RecTutorPage() {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setShowRatingDialog(false)}
+                onClick={() => {
+                  // Complete session with default ratings when skipping
+                  const defaultRatings = {
+                    helpfulness: 5,
+                    clarity: 5,
+                    difficulty: 5,
+                    engagement: 5,
+                    overallSatisfaction: 5,
+                    feedback: "",
+                  };
+                  setRatings(defaultRatings);
+                  completeSessionMutation.mutate();
+                }}
               >
                 Skip
               </Button>
