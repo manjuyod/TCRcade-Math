@@ -433,7 +433,7 @@ export default function AuthPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {franchises?.map((franchise: any) => (
+                              {franchises?.map((franchise) => (
                                 <SelectItem key={franchise.franchiseID} value={franchise.franchiseID.toString()}>
                                   {franchise.franchiseName}
                                 </SelectItem>
@@ -466,7 +466,7 @@ export default function AuthPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {students?.map((student: any) => (
+                              {students?.map((student) => (
                                 <SelectItem key={student.studentID} value={student.studentID.toString()}>
                                   {student.studentName}
                                 </SelectItem>
