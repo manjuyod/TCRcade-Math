@@ -1351,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tutor/session/chat", ensureAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { sessionId, message, requestType } = req.body;
+      const { sessionId, message, requestType, currentQuestion } = req.body;
 
       if (!sessionId || !message) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -1363,22 +1363,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Session not found" });
       }
 
-      // Get current question context if available
-      const chatHistory = await storage.getTutorChatMessages(sessionId);
-      const lastQuestionMessage = chatHistory
-        .reverse()
-        .find(msg => msg.questionContext);
+      // Use the current question passed from frontend, or fall back to chat history
+      let questionContext = currentQuestion;
+      if (!questionContext) {
+        const chatHistory = await storage.getTutorChatMessages(sessionId);
+        const lastQuestionMessage = chatHistory
+          .reverse()
+          .find(msg => msg.questionContext);
+        questionContext = lastQuestionMessage?.questionContext;
+      }
       
       let aiResponse = "";
 
-      if (requestType === 'hint' && lastQuestionMessage?.questionContext) {
-        // Generate hint for current question
+      if (requestType === 'hint' && questionContext) {
+        // Get hints for the CURRENT question only by filtering by question ID
+        const chatHistory = await storage.getTutorChatMessages(sessionId);
+        const currentQuestionId = questionContext.id;
         const previousHints = chatHistory
-          .filter(msg => msg.messageType === 'hint')
+          .filter(msg => 
+            msg.messageType === 'hint' && 
+            msg.questionContext && 
+            msg.questionContext.id === currentQuestionId
+          )
           .map(msg => msg.content);
         
         aiResponse = await aiTutorEngine.generateHint(
-          lastQuestionMessage.questionContext,
+          questionContext,
           previousHints,
           session.sessionType
         );
@@ -1387,32 +1397,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateTutorSession(sessionId, {
           hintsUsed: session.hintsUsed + 1
         });
-      } else if (requestType === 'explanation' && lastQuestionMessage?.questionContext) {
-        // Generate concept explanation
+      } else if (requestType === 'explanation' && questionContext) {
+        // Generate concept explanation for current question
         aiResponse = await aiTutorEngine.explainConcept(
-          lastQuestionMessage.questionContext,
+          questionContext,
           message,
           false, // We don't know if it was correct in this context
           session.sessionType
         );
+      } else if (questionContext) {
+        // General chat response about current question
+        aiResponse = `I'm here to help you with this math problem: "${typeof questionContext.question === 'string' ? questionContext.question : JSON.parse(questionContext.question).text}". What would you like to know?`;
       } else {
-        // General chat response
-        aiResponse = "I'm here to help you with math! Feel free to ask for hints or explanations about the current problem.";
+        // No question context available
+        aiResponse = "I'm here to help you with math! Please wait for a question to load, then feel free to ask for hints or explanations.";
       }
 
-      // Add user message
+      // Add user message with current question context
       await storage.addTutorChatMessage({
         sessionId,
         role: 'user',
         content: message,
+        questionContext: questionContext,
         messageType: requestType || 'chat'
       });
 
-      // Add AI response
+      // Add AI response with current question context
       await storage.addTutorChatMessage({
         sessionId,
         role: 'assistant',
         content: aiResponse,
+        questionContext: questionContext,
         messageType: requestType || 'chat'
       });
 

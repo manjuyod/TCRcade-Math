@@ -246,6 +246,7 @@ export default function RecTutorPage() {
         sessionId: currentSession?.id,
         message,
         requestType,
+        currentQuestion: currentQuestion, // Always pass current question
       });
       return response.json();
     },
@@ -346,7 +347,14 @@ export default function RecTutorPage() {
   };
 
   const handleSendChat = () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || !currentQuestion) {
+      toast({
+        title: "No question available",
+        description: "Please wait for a question to load before using chat.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     chatMutation.mutate({
       message: chatInput,

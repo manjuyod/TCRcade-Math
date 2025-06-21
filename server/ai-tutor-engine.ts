@@ -29,7 +29,7 @@ interface SessionRating {
 }
 
 export class AITutorEngine {
-  
+
   /**
    * Generate contextual response based on student answer
    */
@@ -51,7 +51,7 @@ export class AITutorEngine {
         : JSON.parse(question.question).text;
 
       const systemPrompt = this.getSystemPrompt(sessionType, question.grade);
-      
+
       const prompt = `
 Previous conversation:
 ${conversationContext}
@@ -114,7 +114,9 @@ ${hintLevel === 1 ? 'Start with a gentle nudge in the right direction.' :
   hintLevel === 2 ? 'Give a more specific hint about the method or approach.' :
   'Provide a very specific hint that guides them step-by-step, but still requires them to do the final calculation.'}
 
-Don't give away the answer directly. Keep it encouraging and grade-appropriate.
+IMPORTANT: This hint is specifically for question ID ${question.id}. Make sure your hint relates to this exact question.
+
+Keep your response conversational, encouraging, and grade-appropriate for grade ${question.grade}.
 `;
 
       const response = await openai.chat.completions.create({
@@ -139,8 +141,8 @@ Don't give away the answer directly. Keep it encouraging and grade-appropriate.
    */
   async explainConcept(
     question: Question, 
-    userAnswer: string, 
-    isCorrect: boolean,
+    concept: string, 
+    wasCorrect: boolean,
     sessionType: string = 'guided'
   ): Promise<string> {
     try {
@@ -148,22 +150,19 @@ Don't give away the answer directly. Keep it encouraging and grade-appropriate.
         ? question.question 
         : JSON.parse(question.question).text;
 
-      const concepts = question.concepts?.join(', ') || 'this math concept';
       const systemPrompt = this.getSystemPrompt(sessionType, question.grade);
 
       const prompt = `
 Question: ${questionText}
-Student's answer: ${userAnswer}
-Correct answer: ${question.answer}
-Math concepts: ${concepts}
+Question ID: ${question.id}
+Concept to explain: ${concept}
+Student got this ${wasCorrect ? 'correct' : 'incorrect'}
 
-Explain the underlying mathematical concept for a grade ${question.grade} student.
-${isCorrect 
-  ? 'Since they got it right, reinforce their understanding and connect it to broader concepts.'
-  : 'Since they got it wrong, explain the concept clearly and show the correct approach step-by-step.'
-}
+Explain the mathematical concept behind THIS SPECIFIC question (ID: ${question.id}) in a way that helps the student understand the underlying principles.
 
-Use simple language and relatable examples. Make it engaging and educational.
+IMPORTANT: Focus your explanation on this exact question, not on general concepts or previous questions.
+
+Keep your explanation clear, encouraging, and grade-appropriate for grade ${question.grade}.
 `;
 
       const response = await openai.chat.completions.create({
@@ -194,7 +193,7 @@ Use simple language and relatable examples. Make it engaging and educational.
       ratings.engagement + 
       ratings.overallSatisfaction
     ) / 5;
-    
+
     // Convert 1-10 scale to weight (10-100)
     // Poor sessions (1-4): 10-40
     // Average sessions (5-6): 50-60  
@@ -208,20 +207,20 @@ Use simple language and relatable examples. Make it engaging and educational.
    */
   private getSystemPrompt(sessionType: string, grade: string): string {
     const basePrompt = `You are an encouraging AI math tutor for grade ${grade} students. Your goal is to help students learn through guidance, not by giving direct answers.`;
-    
+
     switch (sessionType) {
       case 'guided':
         return `${basePrompt} Provide detailed explanations and step-by-step guidance. Be very supportive and offer multiple hints when needed.`;
-      
+
       case 'independent':
         return `${basePrompt} Encourage independent thinking. Give minimal hints and focus on helping students develop problem-solving strategies.`;
-      
+
       case 'review':
         return `${basePrompt} Focus on reinforcing previously learned concepts. Connect new problems to familiar patterns and help build confidence.`;
-      
+
       case 'mixed':
         return `${basePrompt} Adapt your approach based on the student's responses. Use a mix of guidance and independent thinking encouragement.`;
-      
+
       default:
         return basePrompt;
     }
@@ -234,9 +233,9 @@ Use simple language and relatable examples. Make it engaging and educational.
     const accuracy = session.questionsAnswered > 0 
       ? Math.round((session.correctAnswers / session.questionsAnswered) * 100)
       : 0;
-    
+
     const timeMinutes = Math.round(session.totalTimeSeconds / 60);
-    
+
     const concepts = session.conceptsPracticed?.length ? session.conceptsPracticed.join(', ') : 'various math concepts';
     return `Great session! You answered ${session.questionsAnswered} questions with ${accuracy}% accuracy in ${timeMinutes} minutes. You practiced ${concepts}. Keep up the excellent work!`;
   }
