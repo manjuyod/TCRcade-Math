@@ -34,7 +34,7 @@ export async function storeMicroTokens(userId: number, operator: string, correct
   try {
     // Update both users.tokens and hidden_grade_asset simultaneously
     const moduleKey = `math_rush_${operator}`;
-    
+
     await db.execute(sql`
       UPDATE users 
       SET 
@@ -134,31 +134,31 @@ export async function getCurrentProgressionType(userId: number, operator: string
     const progression = getProgressionForOperator(operator);
     const typesComplete = progressionData.types_complete || [];
     const autoSkipTypes = getAutoSkipTypes(operator, progressionData.grade || '3');
-    
+
     console.log(`Current types complete for ${operator}:`, typesComplete);
     console.log(`Full progression for ${operator}:`, progression);
     console.log(`Auto-skip types for ${operator}:`, autoSkipTypes);
-    
+
     // Find the first incomplete type that should be completed next
     // This enforces sequential progression
     for (let i = 0; i < progression.length; i++) {
       const type = progression[i];
       const isComplete = typesComplete.includes(type);
       const isAutoSkipped = autoSkipTypes.includes(type);
-      
+
       console.log(`Checking type "${type}" (index ${i}) - Complete: ${isComplete}, Auto-skipped: ${isAutoSkipped}`);
-      
+
       // Skip if auto-skipped or already complete
       if (isAutoSkipped || isComplete) {
         console.log(`Skipping type: ${type} (${isAutoSkipped ? 'auto-skipped' : 'already complete'})`);
         continue;
       }
-      
+
       // This is the next type that needs to be completed
       console.log(`PROGRESSION ENFORCEMENT: Selected type for ${operator}: ${type} (index ${i})`);
       return type;
     }
-    
+
     // All types complete
     console.log(`All progression types complete for ${operator}`);
     return null;
@@ -212,17 +212,17 @@ export async function updateUserProgressionData(userId: number, operator: string
 
     // Get current data before applying updates
     const currentProgress = hiddenGradeAsset.modules[moduleKey].progress;
-    
+
     // If adding a type to types_complete, ensure no duplicates
     if (updates.types_complete && Array.isArray(updates.types_complete)) {
       const existingTypes = currentProgress.types_complete || [];
       const newTypes = updates.types_complete;
-      
+
       // Merge arrays and remove duplicates
       const combinedTypes = [...existingTypes, ...newTypes];
       const mergedTypes = combinedTypes.filter((type, index) => combinedTypes.indexOf(type) === index);
       updates.types_complete = mergedTypes;
-      
+
       console.log(`PROGRESSION: Merging types - existing: [${existingTypes.join(', ')}], new: [${newTypes.join(', ')}], final: [${mergedTypes.join(', ')}]`);
     }
 
@@ -443,7 +443,7 @@ export async function getRushQuestions(
 
       const result = await db.execute(query);
       console.log(`Database query returned ${result.rows?.length || 0} rows for type: ${type || 'no filter'}`);
-      
+
       if (type && result.rows?.length) {
         console.log(`Sample questions for type "${type}":`, result.rows.slice(0, 3).map(r => ({
           id: r.id,
@@ -455,25 +455,24 @@ export async function getRushQuestions(
       }
 
       // Format questions for client use
-      const formattedQuestions = (result.rows || []).map(q => {
-        return formatMathRushQuestionLocal({...q, mode});
+      let formattedQuestions = result.rows.map(q => {
+        const question = formatMathRushQuestionLocal(q);
+        return question;
       });
 
-      // Additional validation for type-specific questions
-      if (type) {
-        console.log(`VALIDATION: Checking if all questions match expected type "${type}"`);
-        formattedQuestions.forEach((q, index) => {
-          const isValidForType = validateQuestionForType(q, type);
-          if (!isValidForType) {
-            console.error(`VALIDATION ERROR: Question ${index + 1} (${q.question}) doesn't match type "${type}"`);
-            console.error(`Question details:`, { 
-              operation: q.operation, 
-              type: q.type, 
-              originalInt1: result.rows?.[index]?.int1,
-              originalInt2: result.rows?.[index]?.int2 
-            });
-          }
-        });
+      // If we don't have enough questions, repeat them to reach 24
+      if (formattedQuestions.length < MATH_RUSH_RULES.questionCount) {
+        console.log(`Only ${formattedQuestions.length} ${mode} questions available, repeating to reach ${MATH_RUSH_RULES.questionCount}`);
+        const originalQuestions = [...formattedQuestions];
+        while (formattedQuestions.length < MATH_RUSH_RULES.questionCount) {
+          const randomIndex = Math.floor(Math.random() * originalQuestions.length);
+          const repeatedQuestion = {
+            ...originalQuestions[randomIndex],
+            id: `${originalQuestions[randomIndex].id}-repeat-${formattedQuestions.length}`
+          };
+          formattedQuestions.push(repeatedQuestion);
+        }
+        console.log(`Expanded to ${formattedQuestions.length} ${mode} questions through repetition`);
       }
 
       console.log(`Returning ${formattedQuestions.length} ${mode} questions`);
@@ -618,7 +617,7 @@ export async function completeAssessment(userId: number, operator: string, score
     // Analyze question-by-question performance if assessment answers provided
     if (assessmentAnswers && assessmentAnswers.length > 0) {
       console.log(`Analyzing ${assessmentAnswers.length} assessment answers for ${operator}`);
-        
+
         // Debug: Log all question types found in assessment
         const allQuestionTypes = new Set();
         assessmentAnswers.forEach(answer => {
