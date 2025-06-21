@@ -227,6 +227,7 @@ export default function AuthPage() {
                           </FormControl>
                           <FormMessage />
                           <Button
+                            type="button"
                             variant="link"
                             onClick={() => setActiveTab("reset")}
                             className="text-primary text-sm mt-1 p-0 h-auto block ml-auto"
