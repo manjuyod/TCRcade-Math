@@ -137,6 +137,62 @@ Keep your response conversational, encouraging, and grade-appropriate for grade 
   }
 
   /**
+   * Generate dynamic chat response for general conversation
+   */
+  async generateChatResponse(
+    question: Question,
+    userMessage: string,
+    chatHistory: ChatMessage[],
+    sessionType: string = 'guided'
+  ): Promise<string> {
+    try {
+      const conversationContext = chatHistory
+        .slice(-6) // Last 6 messages for context
+        .map(msg => `${msg.role}: ${msg.content}`)
+        .join('\n');
+
+      const questionText = typeof question.question === 'string' 
+        ? question.question 
+        : JSON.parse(question.question).text;
+
+      const systemPrompt = this.getSystemPrompt(sessionType, question.grade);
+
+      const prompt = `
+Previous conversation:
+${conversationContext}
+
+Current question: ${questionText}
+Question ID: ${question.id}
+Student's message: ${userMessage}
+
+Respond to the student's message in a helpful, encouraging way. Focus on the current question (ID: ${question.id}) they're working on.
+
+If they're asking for help, provide guidance without giving away the answer directly.
+If they're sharing their thought process, encourage and guide them.
+If they're asking about the concept, explain it in an age-appropriate way.
+If they're just chatting, keep it brief and redirect to the math problem.
+
+Keep your response conversational, encouraging, and grade-appropriate for grade ${question.grade}.
+`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 250,
+        temperature: 0.8,
+      });
+
+      return response.choices[0]?.message?.content || "I'm here to help you with this math problem! What would you like to know?";
+    } catch (error) {
+      console.error("Error generating chat response:", error);
+      return "I'm here to help you with this math problem! What would you like to know?";
+    }
+  }
+
+  /**
    * Explain concept after correct/incorrect answer
    */
   async explainConcept(

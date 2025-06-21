@@ -36,7 +36,6 @@ import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 import { monolithRoutes } from "../monolith/server/routes";
 import { generatePersonalizedQuestions } from "./recommendation-engine";
 import { aiTutorEngine } from "./ai-tutor-engine";
-import { testCrmConnection } from "./crm-db";
 
 /**
  * Import the efficient, deterministic math facts module
@@ -1407,8 +1406,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           session.sessionType
         );
       } else if (questionContext) {
-        // General chat response about current question
-        aiResponse = `I'm here to help you with this math problem: "${typeof questionContext.question === 'string' ? questionContext.question : JSON.parse(questionContext.question).text}". What would you like to know?`;
+        // General chat response about current question - use AI engine for dynamic responses
+        const chatHistory = await storage.getTutorChatMessages(sessionId);
+        const chatMessages = chatHistory.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          questionContext: msg.questionContext
+        }));
+
+        aiResponse = await aiTutorEngine.generateChatResponse(
+          questionContext,
+          message,
+          chatMessages,
+          session.sessionType
+        );
       } else {
         // No question context available
         aiResponse = "I'm here to help you with math! Please wait for a question to load, then feel free to ask for hints or explanations.";
@@ -2552,7 +2564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/rush/assessment-status", ensureAuthenticated, async (req, res) => {
+  app.get("/api/rush/assessment-status", async (req, res) => {
     try {
       const { operator } = req.query;
       const userId = getUserId(req);
@@ -2561,11 +2573,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Operator parameter required" });
       }
 
-      const { checkAssessmentStatus, checkMasteryLevel } = await import("./modules/mathRush");
+      const { checkAssessmentStatus } = await import("./modules/mathRush");
       const testTaken = await checkAssessmentStatus(userId, operator);
-      const masteryLevel = await checkMasteryLevel(userId, operator);
       
-      res.json({ testTaken, masteryLevel });
+      res.json({ testTaken });
     } catch (error) {
       console.error("Error checking assessment status:", error);
       res.status(500).json({ error: "Failed to check assessment status" });
@@ -4358,20 +4369,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching math facts question:', error);
       res.status(500).json({ message: 'Failed to fetch question' });
-    }
-  });
-
-  // CRM test endpoint
-  app.get("/api/crm/test", async (req, res) => {
-    try {
-      const isConnected = await testCrmConnection();
-      res.json({ 
-        connected: isConnected,
-        message: isConnected ? "CRM database connection successful" : "CRM database connection failed"
-      });
-    } catch (error) {
-      console.error("CRM test endpoint error:", error);
-      res.status(500).json({ error: "Failed to test CRM connection" });
     }
   });
 
