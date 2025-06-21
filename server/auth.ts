@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, User } from "@shared/schema";
+import { validateStudentNumber } from "./crm-db";
 
 declare global {
   namespace Express {
@@ -64,11 +65,38 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const { username, password, email, displayName, grade, initials, isAdmin } =
+    const { username, password, email, displayName, grade, initials, isAdmin, studentNumber } =
       req.body;
 
     if (!username || !password) {
       return res.status(400).send("Username and password are required");
+    }
+
+    if (!studentNumber) {
+      return res.status(400).send("Student number is required");
+    }
+
+    // Validate student number against CRM database
+    try {
+      console.log(`Validating student number: ${studentNumber}`);
+      const crmValidation = await validateStudentNumber(studentNumber);
+      
+      if (!crmValidation.isValid) {
+        console.log(`Student number ${studentNumber} not found in CRM`);
+        return res.status(400).send("Invalid student number. Please contact your instructor.");
+      }
+
+      console.log(`Student number ${studentNumber} validated successfully:`, crmValidation.studentInfo);
+      
+      // Use CRM data to populate user information if not provided
+      const crmStudent = crmValidation.studentInfo;
+      const finalGrade = grade || crmStudent?.grade || "K";
+      const finalEmail = email || crmStudent?.email || null;
+      const finalDisplayName = displayName || `${crmStudent?.firstName} ${crmStudent?.lastName}` || username;
+      
+    } catch (error) {
+      console.error("Error validating student number:", error);
+      return res.status(500).send("Unable to validate student number. Please try again later.");
     }
 
     // Validate initials (3 letters for arcade-style)
@@ -95,18 +123,15 @@ export function setupAuth(app: Express) {
       }
     }
 
-    // Determine the user's grade or default to Kindergarten
-    const gradeLevel = grade || "K";
-
     // Dynamically fetch concepts for the selected grade
-    const weaknessConcepts = await storage.getConceptsForGrade(gradeLevel);
+    const weaknessConcepts = await storage.getConceptsForGrade(finalGrade);
 
     const user = await storage.createUser({
       username,
       password: await hashPassword(password),
-      email: email || null,
-      displayName: displayName || username,
-      grade: gradeLevel,
+      email: finalEmail,
+      displayName: finalDisplayName,
+      grade: finalGrade,
       initials: initials || defaultInitials,
       isAdmin: isAdmin || false,
 

@@ -36,6 +36,7 @@ import { getModuleGradeLevel } from "./utils/module-grade-extractor";
 import { monolithRoutes } from "../monolith/server/routes";
 import { generatePersonalizedQuestions } from "./recommendation-engine";
 import { aiTutorEngine } from "./ai-tutor-engine";
+import { testCrmConnection, validateStudentNumber } from "./crm-db";
 
 /**
  * Import the efficient, deterministic math facts module
