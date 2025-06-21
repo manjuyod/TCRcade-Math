@@ -1,0 +1,46 @@
+Math Rush Mastery Type Selection Agent
+Objective
+Enable users who have achieved mastery (mastery_level=true) to manually select which type they want to practice on the Math Rush setup page, with celebratory UI elements and enhanced time options.
+
+Scope
+Target: Math Rush modules only (math_rush_addition, math_rush_subtraction, math_rush_multiplication, math_rush_division)
+Condition: Only when test_taken=true AND mastery_level=true
+Files to modify: client/src/pages/rush/setup-page.tsx
+Requirements
+Mastery Detection Logic
+
+When mastery_level=true, enable full type selection functionality
+Display all available types for the operator (from /api/rush/types)
+Remove any forced progression restrictions
+UI Enhancements for Mastery Users
+
+Add a celebratory "Mastery Achieved - Free Play Mode" banner with fireworks effect
+Use Framer Motion for smooth animations
+Include fire/sparkles icons and celebratory colors
+Type Selection Enhancement
+
+Convert the current dropdown to a more prominent selection UI
+Show all progression types for the operator
+Allow users to freely choose any type they want to practice
+Time Options Enhancement
+
+Make time selection more prominent for mastery users
+Possibly add additional time options or highlight the flexibility
+Visual Hierarchy
+
+Clearly differentiate mastery mode from progression mode
+Use distinct styling to show this is a "reward" state
+Technical Implementation
+Check progressionData.mastery_level in the setup page
+Modify the conditional rendering logic for type selection
+Add celebratory animations using existing Framer Motion setup
+Ensure the flow still works for non-mastery users (forced progression)
+Expected User Flow
+User with mastery clicks Math Rush module
+Gets directed to setup page (not bypassed)
+Sees "Mastery Achieved" celebration
+Can freely select any type from full list
+Chooses time option
+Proceeds to play with their selected preferences
+Current State Analysis
+The setup page currently has basic type selection but forces progression for non-mastery users. We need to enhance this to celebrate and reward mastery achievement while maintaining the existing progression system for users still working toward mastery.
