@@ -2927,13 +2927,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
               newBadAttempt = 0;
             }
             
-            // Update progression data
-            await updateUserProgressionData(userId, mode, {
+            // Check if all progression is complete and set mastery_level
+            const { getProgressionForOperator, isProgressionComplete } = await import("./modules/mathRushProgression");
+            const user = await storage.getUser(userId);
+            const userGrade = user?.grade || '3';
+            const isComplete = isProgressionComplete(mode, typesComplete, userGrade);
+            
+            console.log(`PROGRESSION: Checking if progression complete for ${mode}`);
+            console.log(`PROGRESSION: User grade: ${userGrade}, Types complete: ${typesComplete.length}, Is complete: ${isComplete}`);
+            
+            // Update progression data with mastery check
+            const updateData = {
               good_attempt: newGoodAttempt,
               bad_attempt: newBadAttempt,
               types_complete: typesComplete,
               last_played: new Date().toISOString()
-            });
+            };
+            
+            // Set mastery_level if progression is complete
+            if (isComplete) {
+              updateData.mastery_level = true;
+              console.log(`PROGRESSION: Setting mastery_level = true for user ${userId}, operator ${mode}`);
+            }
+            
+            await updateUserProgressionData(userId, mode, updateData);
             
             console.log(`PROGRESSION: Updated data - good: ${newGoodAttempt}, bad: ${newBadAttempt}, types_complete: [${typesComplete.join(', ')}]`);
             
