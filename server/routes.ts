@@ -2664,7 +2664,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const testTaken = await checkAssessmentStatus(userId, mode as string);
           const masteryLevel = await checkMasteryLevel(userId, mode as string);
           
-          if (testTaken && !masteryLevel) {
+          if (testTaken && masteryLevel) {
+            console.log(`FORCED PROGRESSION: User ${userId} has achieved mastery for ${mode}. Allowing free play of any type.`);
+            // User has mastery - allow them to play any type (fall through to regular logic)
+          } else if (testTaken && !masteryLevel) {
             console.log(`FORCED PROGRESSION: User ${userId} has test_taken=true and mastery_level=false for ${mode}`);
             
             // Get user's completed types from database
