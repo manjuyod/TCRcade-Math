@@ -2847,8 +2847,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // **PROGRESSION LOGIC IMPLEMENTATION**
       if (userId && currentType && mode) {
-        // Use the currentType as provided - it should be the actual type being played
-        const actualTypeName = currentType;
+        // Determine the actual progression type being practiced
+        let actualTypeName = currentType;
+        
+        // If currentType is just the operator (like "addition"), we need to determine 
+        // which progression type was actually being practiced
+        if (currentType === mode) {
+          console.log(`PROGRESSION: currentType "${currentType}" matches mode "${mode}" - determining actual progression type`);
+          
+          try {
+            const { getUserProgressionData } = await import("./modules/mathRush");
+            const { getProgressionForOperator } = await import("./modules/mathRushProgression");
+            
+            // Get current progression data to determine which type should be active
+            const progressionData = await getUserProgressionData(userId, mode);
+            const typesComplete = progressionData.types_complete || [];
+            const progressionArray = getProgressionForOperator(mode);
+            
+            // Find the first incomplete type (this should be what they were practicing)
+            const activeArray = progressionArray.filter(type => !typesComplete.includes(type));
+            if (activeArray.length > 0) {
+              actualTypeName = activeArray[0];
+              console.log(`PROGRESSION: Determined actual progression type: "${actualTypeName}"`);
+            } else {
+              console.log(`PROGRESSION: All progression types complete for ${mode}`);
+            }
+          } catch (error) {
+            console.error('PROGRESSION: Error determining actual progression type:', error);
+            // Fall back to using currentType as-is
+          }
+        }
+        
         console.log(`PROGRESSION: User ${userId} completed ${mode} with ${finalScore}% on type "${actualTypeName}"`);
         
         try {
