@@ -2766,9 +2766,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const { formatMathRushQuestion } = await import("./modules/mathRush");
               
               // Format questions using the existing logic
-              const formattedQuestions = questionsResult.rows.map(q => {
+              let formattedQuestions = questionsResult.rows.map(q => {
                 return formatMathRushQuestion({...q, mode, facts_type: mode});
               });
+              
+              // If we don't have enough questions, repeat them to reach 24
+              if (formattedQuestions.length < MATH_RUSH_RULES.questionCount) {
+                console.log(`FORCED PROGRESSION: Only ${formattedQuestions.length} questions available for type "${lowestIndexedType}", repeating to reach ${MATH_RUSH_RULES.questionCount}`);
+                const originalQuestions = [...formattedQuestions];
+                while (formattedQuestions.length < MATH_RUSH_RULES.questionCount) {
+                  const randomIndex = Math.floor(Math.random() * originalQuestions.length);
+                  const repeatedQuestion = {
+                    ...originalQuestions[randomIndex],
+                    id: `${originalQuestions[randomIndex].id}-repeat-${formattedQuestions.length}`
+                  };
+                  formattedQuestions.push(repeatedQuestion);
+                }
+                console.log(`FORCED PROGRESSION: Expanded to ${formattedQuestions.length} questions through repetition`);
+              }
               
               console.log(`FORCED PROGRESSION: Returning ${formattedQuestions.length} questions for forced progression`);
               return res.json({ 
