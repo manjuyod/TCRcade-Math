@@ -280,7 +280,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
       query = sql`
         SELECT id, int1, int2, int3 
         FROM assessments 
-        WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
+        WHERE properties->'grade_level' @> ${JSON.stringify([gradeLevel])}::jsonb
         AND properties->>'facts_type' = 'multiplication'
         ORDER BY random()
         LIMIT 24
@@ -293,7 +293,7 @@ export async function getAssessmentQuestions(operator: string, userGrade?: strin
       query = sql`
         SELECT id, int1, int2, int3 
         FROM assessments 
-        WHERE properties->'grade_level' @> to_jsonb(${gradeLevel}) 
+        WHERE properties->'grade_level' @> ${JSON.stringify([gradeLevel])}::jsonb
         AND properties->>'facts_type' = 'division'
         ORDER BY random()
         LIMIT 24
