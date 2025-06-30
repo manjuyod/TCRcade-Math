@@ -136,8 +136,15 @@ export default function MathRushSetupPage() {
         return;
       }
 
-      // If test is taken and mastery achieved, user can proceed to setup
-      console.log('Mastery achieved - allowing setup page access');
+      // If test is taken and mastery achieved, user stays on setup page to choose
+      if (testTaken && masteryLevel) {
+        console.log('Mastery achieved - staying on setup page for type selection');
+        setCheckingAssessment(false);
+        return;
+      }
+
+      // Fallback - should not reach here
+      console.log('Unexpected assessment state - allowing setup page access');
       setCheckingAssessment(false);
     }
   }, [assessmentData, assessmentLoading, operator, navigate]);
@@ -191,9 +198,10 @@ export default function MathRushSetupPage() {
     navigate('/rush/play');
   };
 
-  // Check if we can proceed (type must be selected if types are available)
+  // Check if we can proceed (type must be selected if types are available, especially for mastery users)
   const canProceed = !typesLoading && 
-    (!(typeData?.types?.length) || questionType !== '');
+    (!(typeData?.types?.length) || questionType !== '') &&
+    (!hasMastery || questionType !== ''); // Mastery users MUST select a type
 
   // Get icon for each mode
   const getModeIcon = (mode: typeof MATH_RUSH_RULES.modes[number]) => {
