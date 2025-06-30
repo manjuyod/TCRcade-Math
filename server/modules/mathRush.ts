@@ -73,7 +73,9 @@ export async function checkAssessmentStatus(userId: number, operator: string): P
     `);
 
     const testTaken = result.rows?.[0]?.test_taken;
-    return testTaken === 'true' || testTaken === true;
+    const status = testTaken === 'true' || testTaken === true;
+    console.log(`Assessment status for user ${userId}, operator ${operator}: test_taken=${testTaken}, returning=${status}`);
+    return status;
   } catch (error) {
     console.error(`Error checking assessment status for user ${userId}, operator ${operator}:`, error);
     return false;

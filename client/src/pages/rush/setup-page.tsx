@@ -115,6 +115,7 @@ export default function MathRushSetupPage() {
 
       if (!testTaken) {
         // Redirect to assessment page
+        console.log('No test taken - redirecting to assessment');
         navigate(`/math-rush-assessment?operator=${operator}`);
         return;
       }
