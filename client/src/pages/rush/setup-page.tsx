@@ -121,7 +121,7 @@ export default function MathRushSetupPage() {
       }
 
       // If test is taken but mastery not achieved, force progression
-      if (testTaken && !masteryLevel) {
+      else if (testTaken && !masteryLevel) {
         // Get the next required progression step and auto-navigate to play
         console.log('Test taken but mastery not achieved - forcing progression');
 
@@ -137,7 +137,7 @@ export default function MathRushSetupPage() {
       }
 
       // If test is taken and mastery achieved, user stays on setup page to choose
-      if (testTaken && masteryLevel) {
+      else if (testTaken && masteryLevel) {
         console.log('Mastery achieved - staying on setup page for type selection');
         setCheckingAssessment(false);
         return;
