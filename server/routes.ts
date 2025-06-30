@@ -2573,10 +2573,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Operator parameter required" });
       }
 
-      const { checkAssessmentStatus } = await import("./modules/mathRush");
+      const { checkAssessmentStatus, checkMasteryLevel } = await import("./modules/mathRush");
       const testTaken = await checkAssessmentStatus(userId, operator);
+      const masteryLevel = await checkMasteryLevel(userId, operator);
       
-      res.json({ testTaken });
+      res.json({ testTaken, masteryLevel });
     } catch (error) {
       console.error("Error checking assessment status:", error);
       res.status(500).json({ error: "Failed to check assessment status" });
