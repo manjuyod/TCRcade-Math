@@ -92,8 +92,11 @@ export async function checkMasteryLevel(userId: number, operator: string): Promi
       FROM users 
       WHERE id = ${userId}
     `);
-
-    return result.rows[0]?.mastery_level === 'true';
+    const masteryLevel = result.rows?.[0]?.mastery_level;
+    result.rows[0]?.mastery_level === 'true';
+    const status = masteryLevel === 'true' || masteryLevel === true;
+    console.log(`Mastery level for user ${userId}, operator ${operator}: mastery_level=${masteryLevel}, returning=${status}`);
+    return status;
   } catch (error) {
     console.error('Error checking mastery level:', error);
     return false;
