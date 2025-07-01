@@ -328,4 +328,49 @@ export function setupAuth(app: Express) {
       res.status(500).json({ error: "Failed to update user profile" });
     }
   });
+
+  // Update user password
+  app.patch("/api/user/password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters long" });
+      }
+
+      // Verify current password
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const isCurrentPasswordValid = await comparePasswords(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+
+      // Update user password
+      const updatedUser = await storage.updateUser(req.user.id, {
+        password: hashedNewPassword
+      });
+
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update password" });
+      }
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ error: "Failed to update password" });
+    }
+  });
 }
