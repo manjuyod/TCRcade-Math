@@ -452,7 +452,7 @@ export default function RecTutorPage() {
 
         {/* Session Setup Dialog */}
         <Dialog open={showSessionDialog} onOpenChange={setShowSessionDialog}>
-          <DialogContent className="max-w-md !rounded-none overflow-hidden">
+          <DialogContent className="max-w-md !rounded-lg overflow-hidden">
             <DialogHeader>
               <DialogTitle>Setup Your Session</DialogTitle>
               <DialogDescription>
@@ -613,7 +613,7 @@ export default function RecTutorPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Question Panel */}
           <div className="lg:col-span-2">
-            <Card className="h-full rounded-none">
+            <Card className="h-full rounded-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">Current Problem</CardTitle>
                 {currentQuestion && (
@@ -633,7 +633,7 @@ export default function RecTutorPage() {
               <CardContent className="space-y-4 px-4 sm:px-6">
                 {currentQuestion ? (
                   <>
-                    <div className="bg-blue-50 p-3 sm:p-4 rounded-none border border-blue-200">
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
                       <div className="text-base sm:text-lg font-medium mb-3 sm:mb-4 break-words hyphens-auto leading-relaxed">
                         {typeof currentQuestion.question === "string"
                           ? currentQuestion.question
@@ -646,11 +646,11 @@ export default function RecTutorPage() {
                             <Button
                               key={index}
                               variant="outline"
-                              className="justify-start text-left h-auto py-2 px-3 rounded-none text-sm sm:text-base break-words"
+                              className="justify-start text-left h-auto py-2 px-3 rounded-lg text-sm sm:text-base break-words overflow-hidden"
                               onClick={() => setUserAnswer(option)}
                             >
-                              <span className="font-semibold mr-2">{String.fromCharCode(65 + index)}.</span>
-                              <span className="flex-1">{option}</span>
+                              <span className="font-semibold mr-2 flex-shrink-0">{String.fromCharCode(65 + index)}.</span>
+                              <span className="flex-1 truncate">{option}</span>
                             </Button>
                           ))}
                         </div>
@@ -665,7 +665,7 @@ export default function RecTutorPage() {
                           value={userAnswer}
                           onChange={(e) => setUserAnswer(e.target.value)}
                           placeholder="Enter your answer..."
-                          className="rounded-none text-base"
+                          className="rounded-lg text-base"
                           onKeyPress={(e) =>
                             e.key === "Enter" && handleSubmitAnswer()
                           }
@@ -675,7 +675,7 @@ export default function RecTutorPage() {
                           disabled={
                             !userAnswer.trim() || submitAnswerMutation.isPending
                           }
-                          className="rounded-none px-4"
+                          className="rounded-lg px-4"
                         >
                           <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -694,7 +694,7 @@ export default function RecTutorPage() {
 
           {/* Chat Panel */}
           <div className="lg:col-span-1">
-            <Card className="h-full flex flex-col rounded-none">
+            <Card className="h-full flex flex-col rounded-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <MessageSquare className="h-5 w-5" />
@@ -706,7 +706,7 @@ export default function RecTutorPage() {
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`p-3 rounded-none border ${
+                      className={`p-3 sm:p-4 rounded-lg border ${
                         message.role === "user"
                           ? "bg-blue-50 border-blue-200 ml-2 sm:ml-4"
                           : "bg-gray-50 border-gray-200 mr-2 sm:mr-4"
@@ -715,7 +715,7 @@ export default function RecTutorPage() {
                       <div className="text-xs sm:text-sm font-medium mb-1">
                         {message.role === "user" ? "You" : "AI Tutor"}
                       </div>
-                      <div className="text-sm break-words leading-relaxed">{message.content}</div>
+                      <div className="text-sm break-words leading-relaxed overflow-hidden text-wrap">{message.content}</div>
                     </div>
                   ))}
                 </div>
@@ -742,14 +742,14 @@ export default function RecTutorPage() {
                           ? "Ask about a concept..."
                           : "Chat with your tutor..."
                     }
-                    className="rounded-none text-base"
+                    className="rounded-lg text-base"
                     onKeyPress={(e) => e.key === "Enter" && handleSendChat()}
                   />
                   <Button
                     size="sm"
                     onClick={handleSendChat}
                     disabled={!chatInput.trim() || chatMutation.isPending}
-                    className="rounded-none"
+                    className="rounded-lg"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -761,7 +761,7 @@ export default function RecTutorPage() {
 
         {/* Session Rating Dialog */}
         <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
-          <DialogContent className="max-w-md !rounded-none overflow-hidden">
+          <DialogContent className="max-w-md !rounded-lg overflow-hidden">
             <DialogHeader>
               <DialogTitle>Rate Your Session</DialogTitle>
               <DialogDescription>
