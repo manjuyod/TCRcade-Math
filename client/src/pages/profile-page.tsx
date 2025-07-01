@@ -499,7 +499,7 @@ export default function ProfilePage() {
 
         {/* Settings Dialog */}
         <Dialog open={showSettings} onOpenChange={setShowSettings}>
-          <DialogContent className="max-w-md !rounded-none overflow-hidden break-words"
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Profile Settings</DialogTitle>
               <DialogDescription>
