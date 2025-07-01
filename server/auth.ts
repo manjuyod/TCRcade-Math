@@ -285,13 +285,14 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const { displayName, grade, interests } = req.body;
+      const { displayName, grade, interests, email } = req.body;
 
       // Only update fields that were provided
       const updateData: Partial<User> = {};
       if (displayName !== undefined) updateData.displayName = displayName;
       if (grade !== undefined) updateData.grade = grade;
       if (interests !== undefined) updateData.interests = interests;
+      if (email !== undefined) updateData.email = email;
 
       // Generate initials if display name changes
       if (displayName) {
@@ -301,6 +302,11 @@ export function setupAuth(app: Express) {
           .join("")
           .toUpperCase()
           .substring(0, 2);
+      }
+
+      // Check if there are any fields to update
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No fields provided to update" });
       }
 
       // Update user

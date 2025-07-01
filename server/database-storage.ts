@@ -177,6 +177,10 @@ export class DatabaseStorage implements IStorage {
           }
         });
 
+        // Check if there are any fields to update
+        if (Object.keys(updatedFields).length === 0) {
+          throw new Error("No values to set");
+        }
 
         const result = await tx
             .update(users)
