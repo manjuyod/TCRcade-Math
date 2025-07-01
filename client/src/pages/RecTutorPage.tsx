@@ -613,11 +613,11 @@ export default function RecTutorPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Question Panel */}
           <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Current Problem</CardTitle>
+            <Card className="h-full rounded-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl">Current Problem</CardTitle>
                 {currentQuestion && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary">
                       {currentQuestion.category}
                     </Badge>
@@ -630,40 +630,42 @@ export default function RecTutorPage() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 px-4 sm:px-6">
                 {currentQuestion ? (
                   <>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-lg font-medium mb-4">
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-none border border-blue-200">
+                      <div className="text-base sm:text-lg font-medium mb-3 sm:mb-4 break-words hyphens-auto leading-relaxed">
                         {typeof currentQuestion.question === "string"
                           ? currentQuestion.question
                           : JSON.parse(currentQuestion.question).text}
                       </div>
 
                       {currentQuestion.options.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {currentQuestion.options.map((option, index) => (
                             <Button
                               key={index}
                               variant="outline"
-                              className="justify-start"
+                              className="justify-start text-left h-auto py-2 px-3 rounded-none text-sm sm:text-base break-words"
                               onClick={() => setUserAnswer(option)}
                             >
-                              {String.fromCharCode(65 + index)}. {option}
+                              <span className="font-semibold mr-2">{String.fromCharCode(65 + index)}.</span>
+                              <span className="flex-1">{option}</span>
                             </Button>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="answer">Your Answer</Label>
-                      <div className="flex gap-2">
+                    <div className="space-y-3">
+                      <Label htmlFor="answer" className="text-sm font-medium">Your Answer</Label>
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Input
                           id="answer"
                           value={userAnswer}
                           onChange={(e) => setUserAnswer(e.target.value)}
                           placeholder="Enter your answer..."
+                          className="rounded-none text-base"
                           onKeyPress={(e) =>
                             e.key === "Enter" && handleSubmitAnswer()
                           }
@@ -673,6 +675,7 @@ export default function RecTutorPage() {
                           disabled={
                             !userAnswer.trim() || submitAnswerMutation.isPending
                           }
+                          className="rounded-none px-4"
                         >
                           <ArrowRight className="h-4 w-4" />
                         </Button>
@@ -691,28 +694,28 @@ export default function RecTutorPage() {
 
           {/* Chat Panel */}
           <div className="lg:col-span-1">
-            <Card className="h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="h-full flex flex-col rounded-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <MessageSquare className="h-5 w-5" />
                   AI Tutor Chat
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className="flex-1 flex flex-col px-4 sm:px-6">
                 <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-96">
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`p-3 rounded-lg ${
+                      className={`p-3 rounded-none border ${
                         message.role === "user"
-                          ? "bg-blue-100 ml-4"
-                          : "bg-gray-100 mr-4"
+                          ? "bg-blue-50 border-blue-200 ml-2 sm:ml-4"
+                          : "bg-gray-50 border-gray-200 mr-2 sm:mr-4"
                       }`}
                     >
-                      <div className="text-sm font-medium mb-1">
+                      <div className="text-xs sm:text-sm font-medium mb-1">
                         {message.role === "user" ? "You" : "AI Tutor"}
                       </div>
-                      <div className="text-sm">{message.content}</div>
+                      <div className="text-sm break-words leading-relaxed">{message.content}</div>
                     </div>
                   ))}
                 </div>
@@ -728,7 +731,7 @@ export default function RecTutorPage() {
                   </TabsList>
                 </Tabs>
 
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <Input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
@@ -739,12 +742,14 @@ export default function RecTutorPage() {
                           ? "Ask about a concept..."
                           : "Chat with your tutor..."
                     }
+                    className="rounded-none text-base"
                     onKeyPress={(e) => e.key === "Enter" && handleSendChat()}
                   />
                   <Button
                     size="sm"
                     onClick={handleSendChat}
                     disabled={!chatInput.trim() || chatMutation.isPending}
+                    className="rounded-none"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
