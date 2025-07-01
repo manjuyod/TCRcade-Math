@@ -527,7 +527,7 @@ export default function AiAnalytics() {
                         <div className="flex transition-transform duration-300 ease-in-out" id="module-carousel">
                           {analytics.modulePerformance.map((module: any, index: number) => (
                             <div key={index} className="w-full flex-shrink-0 px-3">
-                              <div className="border rounded-lg p-6 min-h-[240px] bg-card">
+                              <div className="p-6 min-h-[240px] bg-card">
                                 <h4 className="font-semibold mb-6 text-center capitalize text-lg text-primary">
                                   {module.moduleName.replace(/-/g, ' ').replace(/_/g, ' ')}
                                 </h4>
@@ -819,7 +819,7 @@ export default function AiAnalytics() {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {processedConceptMasteries.map((concept, index) => (
-                        <div key={index} className="border rounded-lg p-4 space-y-3">
+                        <div key={index} className="p-4 space-y-3">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-semibold capitalize">
