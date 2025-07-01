@@ -819,7 +819,7 @@ export default function AiAnalytics() {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {processedConceptMasteries.map((concept, index) => (
-                        <div key={index} className="p-4 space-y-3">
+                        <div key={index} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm w-full h-full">
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-semibold capitalize">

@@ -418,7 +418,7 @@ export default function AiTutorPage() {
                     Current Problem
                   </CardTitle>
                   <CardDescription className="flex items-center mt-1">
-                    <span className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+                    <span className="text-primary rounded-full px-2 py-0.5 text-xs font-medium">
                       Grade {currentQuestion.grade}
                     </span>
                     <span className="mx-2 text-muted-foreground">&bull;</span>
