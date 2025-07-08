@@ -7,11 +7,10 @@ import { questions, users, User, MultiplayerRoom } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { 
-  syncUserProgressData, 
+  syncUserProgressData,
   syncAllUsers, 
   calculateTokenPercentile, 
   calculateAccuracyPercentile,
-  getCategoryLabel,
   calculateModuleCompletion,
   calculateModuleAccuracy
 } from "./utils/data-sync";
@@ -80,15 +79,24 @@ function getCategoryLabel(category: string): string {
     time: "Time",
     money: "Money",
     algebra: "Pre-Algebra Basics",
-    "math-facts-addition": "Addition Facts",
-    "math-facts-subtraction": "Subtraction Facts",
-    "math-facts-multiplication": "Multiplication Facts",
-    "math-facts-division": "Division Facts",
+    "math_facts_addition": "Addition Facts",
+    "math_facts_subtraction": "Subtraction Facts",
+    "math_facts_multiplication": "Multiplication Facts",
+    "math_facts_division": "Division Facts",
     "fractions_puzzle": "Fractions Puzzle",
     "math_rush": "Math Rush",
+    "math_rush_addition": "Math Rush Addition",
+    "math_rush_subtraction": "Math Rush Subtraction", 
+    "math_rush_multiplication": "Math Rush Multiplication",
+    "math_rush_division": "Math Rush Division",
     "decimal_defender": "Decimal Defender", 
     "ratios_proportions": "Ratios & Proportions",
     "measurement_mastery": "Measurement Mastery",
+    "word_race": "Word Race",
+    "addition_facts": "Addition Facts",
+    "subtraction_facts": "Subtraction Facts",
+    "multiplication_facts": "Multiplication Facts",
+    "division_facts": "Division Facts",
     "overall": "Overall Progress"
   };
   return labels[category] || category.charAt(0).toUpperCase() + category.slice(1);
