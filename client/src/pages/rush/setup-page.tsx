@@ -439,7 +439,7 @@ export default function MathRushSetupPage() {
                       whileHover={{ scale: hasMastery ? 1.02 : 1 }}
                       className={`${hasMastery ? 'transition-transform' : ''}`}
                     >
-                      <div className={`flex items-start space-x-2 p-4 rounded-lg border-2 ${
+                      <div className={`flex items-start space-x-2 p-4 border-2 ${
                         timeOption === 'SHORT' 
                           ? hasMastery 
                             ? 'border-purple-500 bg-purple-50' 
@@ -470,7 +470,7 @@ export default function MathRushSetupPage() {
                       whileHover={{ scale: hasMastery ? 1.02 : 1 }}
                       className={`${hasMastery ? 'transition-transform' : ''}`}
                     >
-                      <div className={`flex items-start space-x-2 p-4 rounded-lg border-2 ${
+                      <div className={`flex items-start space-x-2 p-4 border-2 ${
                         timeOption === 'LONG' 
                           ? hasMastery 
                             ? 'border-purple-500 bg-purple-50' 
