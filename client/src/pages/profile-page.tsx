@@ -35,7 +35,6 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [showSettings, setShowSettings] = useState(false);
   const [interests, setInterests] = useState<string[]>(user?.interests || []);
-  const [newInterest, setNewInterest] = useState('');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [grade, setGrade] = useState(user?.grade || 'K');
   
@@ -187,13 +186,6 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     logoutMutation.mutate();
-  };
-
-  const addInterest = () => {
-    if (newInterest && !interests.includes(newInterest)) {
-      setInterests([...interests, newInterest]);
-      setNewInterest('');
-    }
   };
 
   const removeInterest = (index: number) => {
@@ -601,13 +593,26 @@ export default function ProfilePage() {
               <div>
                 <label className="text-sm font-medium">Learning Interests</label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    value={newInterest}
-                    onChange={(e) => setNewInterest(e.target.value)}
-                    placeholder="Add an interest"
-                    onKeyPress={(e) => e.key === 'Enter' && addInterest()}
-                  />
-                  <Button onClick={addInterest} size="sm">Add</Button>
+                  <select
+                    value=""
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                      const selectedInterest = e.target.value;
+                      if (selectedInterest && !interests.includes(selectedInterest)) {
+                        setInterests([...interests, selectedInterest]);
+                      }
+                      e.target.value = ""; // Reset selection
+                    }}
+                    className="flex-1 p-2 border rounded-md"
+                  >
+                    <option value="">Select an interest...</option>
+                    <option value="Addition">Addition</option>
+                    <option value="Subtraction">Subtraction</option>
+                    <option value="Multiplication">Multiplication</option>
+                    <option value="Division">Division</option>
+                    <option value="Fractions">Fractions</option>
+                    <option value="Decimals">Decimals</option>
+                    <option value="Pre-Algebra">Pre-Algebra</option>
+                  </select>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {interests.map((interest, index) => (
