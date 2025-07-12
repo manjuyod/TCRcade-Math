@@ -37,8 +37,8 @@ export default function Navigation({ active }: NavigationProps) {
   // Check for active module session
   useEffect(() => {
     const checkActiveSession = () => {
-      const moduleInProgress = sessionStorage.getItem('moduleInProgress');
-      const isActive = moduleInProgress === 'true';
+      const moduleInProgress = sessionStorage.getItem("moduleInProgress");
+      const isActive = moduleInProgress === "true";
       setHasActiveSession((prev) => {
         if (prev !== isActive) {
           console.log("🔁 Nav session state changed:", isActive);
@@ -136,6 +136,8 @@ export default function Navigation({ active }: NavigationProps) {
                   </button>
 
                   <div className="flex flex-wrap justify-around py-2 mt-2">
+
+                    <div onClick={() => setIsFeatureMenuOpen(false)}>
                     <SessionAwareLink
                       href="/multiplayer"
                       className="flex flex-col items-center justify-center w-16"
@@ -155,7 +157,9 @@ export default function Navigation({ active }: NavigationProps) {
                         Multiplayer
                       </span>
                     </SessionAwareLink>
+                      </div>
 
+                    <div onClick={() => setIsFeatureMenuOpen(false)}>
                     <SessionAwareLink
                       href="/analytics"
                       className="flex flex-col items-center justify-center w-16"
@@ -175,7 +179,9 @@ export default function Navigation({ active }: NavigationProps) {
                         AI Analytics
                       </span>
                     </SessionAwareLink>
+                      </div>
 
+                    <div onClick={() => setIsFeatureMenuOpen(false)}>
                     <SessionAwareLink
                       href="/recquiz"
                       className="flex flex-col items-center justify-center w-20"
@@ -195,7 +201,9 @@ export default function Navigation({ active }: NavigationProps) {
                         Create Quiz
                       </span>
                     </SessionAwareLink>
+                      </div>
 
+                    <div onClick={() => setIsFeatureMenuOpen(false)}>
                     <SessionAwareLink
                       href="/rectutor"
                       className="flex flex-col items-center justify-center w-16"
@@ -215,6 +223,7 @@ export default function Navigation({ active }: NavigationProps) {
                         AI Tutor
                       </span>
                     </SessionAwareLink>
+                    </div>
                   </div>
                 </div>
               )}
