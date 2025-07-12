@@ -215,9 +215,13 @@ export default function AiAnalytics() {
     try {
       await apiRequest('POST', '/api/analytics/generate', {});
       await refetchAnalytics();
+      
+      // Also regenerate the study plan after analytics are updated
+      await generateCustomStudyPlan();
+      
       toast({
         title: 'Analytics Generated',
-        description: 'Your personalized learning insights are ready to view.',
+        description: 'Your personalized learning insights and study plan are ready to view.',
         variant: 'default',
         dismisstimeout: 3000,
       });
