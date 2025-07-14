@@ -40,7 +40,7 @@ export default function AiAnalytics() {
   const [customStudyPlan, setCustomStudyPlan] = useState<string[]>([]);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
-  
+
   // Fetch user's AI analytics
   const { 
     data: analyticsData, 
@@ -83,22 +83,22 @@ export default function AiAnalytics() {
       return data;
     }
   });
-  
+
   // Extract the nested analytics data
   const analytics = analyticsData?.analytics?.analytics;
   const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
   // Process recent progress data from hiddenGradeAsset modules
   const processRecentProgressFromAsset = (hiddenGradeAsset: any) => {
     if (!hiddenGradeAsset?.modules) return { data: [], isDummy: false };
-    
+
     const dailyData: { [key: string]: { date: string; totalScore: number; totalQuestions: number; sessions: number } } = {};
     const modules = hiddenGradeAsset.modules;
     let hasRealData = false;
-    
+
     // Extract progress data from each module
     Object.keys(modules).forEach(moduleKey => {
       const module = modules[moduleKey];
-      
+
       // Check for session history or daily tracking
       if (module.session_history) {
         module.session_history.forEach((session: any) => {
@@ -119,7 +119,7 @@ export default function AiAnalytics() {
           }
         });
       }
-      
+
       // Check for daily statistics
       if (module.daily_stats) {
         Object.keys(module.daily_stats).forEach(date => {
@@ -138,7 +138,7 @@ export default function AiAnalytics() {
           hasRealData = true;
         });
       }
-      
+
       // Check for progress tracking with timestamps
       if (module.progress && module.progress.completion_history) {
         module.progress.completion_history.forEach((entry: any) => {
@@ -160,24 +160,24 @@ export default function AiAnalytics() {
         });
       }
     });
-    
+
     // If no real data found, generate dummy data for study plan generation but flag it
     let isDummy = false;
     if (Object.keys(dailyData).length === 0 && user) {
       const totalTokens = user.tokens || 0;
       const totalQuestions = user.questionsAnswered || 0;
       const today = new Date();
-      
+
       // Only generate dummy data if user has some activity
       if (totalTokens > 0 || totalQuestions > 0) {
         isDummy = true;
-        
+
         // Generate last 7 days with distributed data
         for (let i = 6; i >= 0; i--) {
           const date = new Date(today);
           date.setDate(date.getDate() - i);
           const dateStr = date.toISOString().split('T')[0];
-          
+
           // Distribute total progress over the last 7 days with some variation
           const dayWeight = Math.random() * 0.3 + 0.1; // 10-40% of average
           dailyData[dateStr] = {
@@ -189,22 +189,22 @@ export default function AiAnalytics() {
         }
       }
     }
-    
+
     // Convert to array and sort by date
     const processedData = Object.values(dailyData)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-7); // Show last 7 days
-    
+
     return { data: processedData, isDummy };
   };
 
   const recentProgressResult = processRecentProgressFromAsset(user?.hiddenGradeAsset);
   const recentProgress = recentProgressResult.data;
   const isProgressDataDummy = recentProgressResult.isDummy;
-  
+
   // Extract concept mastery data from user's hiddenGradeAsset
   const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || {};
-  
+
   // Process concept mastery data for display
   const processConceptMasteryData = () => {
     return Object.entries(conceptMasteryData).map(([concept, data]: [string, any]) => ({
@@ -219,9 +219,9 @@ export default function AiAnalytics() {
       breakdown: data.breakdown || {}
     })).sort((a, b) => b.weightedScore - a.weightedScore);
   };
-  
+
   const processedConceptMasteries = processConceptMasteryData();
-  
+
   // Generate new analytics
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerateAnalytics = async () => {
@@ -229,10 +229,10 @@ export default function AiAnalytics() {
     try {
       await apiRequest('POST', '/api/analytics/generate', {});
       await refetchAnalytics();
-      
+
       // Also regenerate the study plan after analytics are updated
       await generateCustomStudyPlan();
-      
+
       toast({
         title: 'Analytics Generated',
         description: 'Your personalized learning insights and study plan are ready to view.',
@@ -251,7 +251,7 @@ export default function AiAnalytics() {
       setIsGenerating(false);
     }
   };
-  
+
   // Automatically generate a study plan when analytics data changes
   useEffect(() => {
     if (analyticsData && customStudyPlan.length === 0) {
@@ -265,46 +265,80 @@ export default function AiAnalytics() {
       );
     }
   }, [analyticsData, customStudyPlan.length, toast]);
-  
+
   // Function to generate a custom study plan based on user data
   const generateCustomStudyPlan = async () => {
-    if (!analytics) return;
-    
+    if (!analytics) {
+      console.log('No analytics data available for study plan generation');
+      return;
+    }
+
     setIsGeneratingPlan(true);
-    
+
+    // Clear existing study plan first
+    setCustomStudyPlan([]);
+
     // Notify user that generation is in progress
     toast({
       title: "Generating Study Plan",
       description: "Creating your personalized study plan based on your progress...",
-      dismisstimeout: 3000,
+      dismissTimeout: 3000,
     });
-    
+
     try {
       // Call the new comprehensive study plan endpoint
       const response = await apiRequest('POST', '/api/analytics/study-plan', {});
-      
-      if (response.studyPlan) {
+
+      console.log('Study plan response:', response);
+
+      if (response.studyPlan && response.studyPlan.studyPlan && response.studyPlan.studyPlan.dailyActivities) {
         // Transform the study plan into display format
         const planItems = response.studyPlan.studyPlan.dailyActivities.map((day: any) => 
           `Day ${day.day}: ${day.activities.map((activity: any) => 
             `${activity.activity} (${activity.duration})`
           ).join(', ')}`
         );
-        
+
         setCustomStudyPlan(planItems);
         setActiveTab('recommendations');
-        
+
         toast({
           title: "Study Plan Generated",
           description: "Your personalized 14-day study plan is ready!",
           variant: 'default',
-          dismisstimeout: 3000,
+          dismissTimeout: 3000,
         });
         playSound('levelUp');
+      } else if (response.studyPlan && Array.isArray(response.studyPlan)) {
+        // Handle direct array format
+        setCustomStudyPlan(response.studyPlan);
+        setActiveTab('recommendations');
+
+        toast({
+          title: "Study Plan Generated",
+          description: "Your personalized study plan is ready!",
+          variant: 'default',
+          dismissTimeout: 3000,
+        });
+        playSound('levelUp');
+      } else {
+        console.log('Using fallback study plan generation');
+        // Fallback to the existing helper function
+        generateCustomStudyPlanFromAnalytics(
+          {
+            analytics,
+            conceptMasteries,
+            recentProgress
+          },
+          setCustomStudyPlan,
+          setIsGeneratingPlan,
+          setActiveTab,
+          toast
+        );
       }
     } catch (error) {
       console.error('Error generating study plan:', error);
-      
+
       // Fallback to the existing helper function
       generateCustomStudyPlanFromAnalytics(
         {
@@ -321,7 +355,7 @@ export default function AiAnalytics() {
       setIsGeneratingPlan(false);
     }
   };
-  
+
   // Loading state
   if (isLoadingAnalytics) {
     return (
@@ -331,7 +365,7 @@ export default function AiAnalytics() {
       </div>
     );
   }
-  
+
   // Error or no analytics available
   if (isAnalyticsError || !analytics) {
     return (
@@ -367,7 +401,7 @@ export default function AiAnalytics() {
       </Card>
     );
   }
-  
+
   return (
     <Card className="analytics-card">
       <CardHeader>
@@ -396,7 +430,7 @@ export default function AiAnalytics() {
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="analytics-tabs">
           <TabsList className="grid w-full grid-cols-3">
@@ -413,7 +447,7 @@ export default function AiAnalytics() {
               Study Plan
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Overview Tab */}
           <TabsContent value="overview" className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -458,7 +492,7 @@ export default function AiAnalytics() {
                   </p>
                 </CardContent>
               </Card>
-              
+
               {/* Consistency Index */}
               <Card>
                 <CardHeader className="pb-2">
@@ -538,7 +572,7 @@ export default function AiAnalytics() {
                 const hasReliableModuleData = analytics.modulePerformance && 
                   analytics.modulePerformance.length > 0 && 
                   analytics.modulePerformance.some((module: any) => module.sessionCount >= 3);
-                
+
                 if (hasReliableModuleData) {
                   return (
                     <Card>
@@ -586,7 +620,7 @@ export default function AiAnalytics() {
                               ))}
                             </div>
                           </div>
-                          
+
                           {/* Navigation buttons */}
                           {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).length > 1 && (
                             <div className="flex justify-center mt-4 space-x-3">
@@ -630,7 +664,7 @@ export default function AiAnalytics() {
                               </Button>
                             </div>
                           )}
-                          
+
                           {/* Indicator dots */}
                           {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).length > 1 && (
                             <div className="flex justify-center mt-3 space-x-1">
@@ -791,7 +825,7 @@ export default function AiAnalytics() {
                     })()}
                   </div>
                 </CardContent>
-              </Card>
+              </</Card>
             </div>
 
 
@@ -990,10 +1024,6 @@ export default function AiAnalytics() {
             )}
           </TabsContent>
 
-
-          
-
-          
           {/* Recommendations Tab */}
           <TabsContent value="recommendations" className="pt-4">
             <Card>
@@ -1008,7 +1038,7 @@ export default function AiAnalytics() {
                       Follow this plan to improve your skills
                     </CardDescription>
                   </div>
-                  
+
                   <Button 
                     size="sm" 
                     variant="outline"
@@ -1059,7 +1089,7 @@ export default function AiAnalytics() {
           </TabsContent>
         </Tabs>
       </CardContent>
-      
+
       <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
         <div className="flex items-center">
           <Clock className="h-3 w-3 mr-1" />
