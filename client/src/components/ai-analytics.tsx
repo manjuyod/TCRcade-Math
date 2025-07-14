@@ -89,10 +89,11 @@ export default function AiAnalytics() {
   const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
   // Process recent progress data from hiddenGradeAsset modules
   const processRecentProgressFromAsset = (hiddenGradeAsset: any) => {
-    if (!hiddenGradeAsset?.modules) return [];
+    if (!hiddenGradeAsset?.modules) return { data: [], isDummy: false };
     
     const dailyData: { [key: string]: { date: string; totalScore: number; totalQuestions: number; sessions: number } } = {};
     const modules = hiddenGradeAsset.modules;
+    let hasRealData = false;
     
     // Extract progress data from each module
     Object.keys(modules).forEach(moduleKey => {
@@ -114,6 +115,7 @@ export default function AiAnalytics() {
             dailyData[date].totalScore += session.tokens_earned || 0;
             dailyData[date].totalQuestions += session.questions_attempted || 0;
             dailyData[date].sessions += 1;
+            hasRealData = true;
           }
         });
       }
@@ -133,6 +135,7 @@ export default function AiAnalytics() {
           dailyData[date].totalScore += stats.tokens_earned || 0;
           dailyData[date].totalQuestions += stats.questions_attempted || 0;
           dailyData[date].sessions += stats.sessions || 1;
+          hasRealData = true;
         });
       }
       
@@ -152,41 +155,52 @@ export default function AiAnalytics() {
             dailyData[date].totalScore += entry.score || 0;
             dailyData[date].totalQuestions += entry.questions_answered || 0;
             dailyData[date].sessions += 1;
+            hasRealData = true;
           }
         });
       }
     });
     
-    // If no data found, generate recent dummy data based on user's total stats
+    // If no real data found, generate dummy data for study plan generation but flag it
+    let isDummy = false;
     if (Object.keys(dailyData).length === 0 && user) {
       const totalTokens = user.tokens || 0;
       const totalQuestions = user.questionsAnswered || 0;
       const today = new Date();
       
-      // Generate last 7 days with distributed data
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
+      // Only generate dummy data if user has some activity
+      if (totalTokens > 0 || totalQuestions > 0) {
+        isDummy = true;
         
-        // Distribute total progress over the last 7 days with some variation
-        const dayWeight = Math.random() * 0.3 + 0.1; // 10-40% of average
-        dailyData[dateStr] = {
-          date: dateStr,
-          totalScore: Math.floor((totalTokens / 7) * dayWeight),
-          totalQuestions: Math.floor((totalQuestions / 7) * dayWeight),
-          sessions: Math.floor(Math.random() * 3) + 1
-        };
+        // Generate last 7 days with distributed data
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          // Distribute total progress over the last 7 days with some variation
+          const dayWeight = Math.random() * 0.3 + 0.1; // 10-40% of average
+          dailyData[dateStr] = {
+            date: dateStr,
+            totalScore: Math.floor((totalTokens / 7) * dayWeight),
+            totalQuestions: Math.floor((totalQuestions / 7) * dayWeight),
+            sessions: Math.floor(Math.random() * 3) + 1
+          };
+        }
       }
     }
     
     // Convert to array and sort by date
-    return Object.values(dailyData)
+    const processedData = Object.values(dailyData)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-7); // Show last 7 days
+    
+    return { data: processedData, isDummy };
   };
 
-  const recentProgress = processRecentProgressFromAsset(user?.hiddenGradeAsset);
+  const recentProgressResult = processRecentProgressFromAsset(user?.hiddenGradeAsset);
+  const recentProgress = recentProgressResult.data;
+  const isProgressDataDummy = recentProgressResult.isDummy;
   
   // Extract concept mastery data from user's hiddenGradeAsset
   const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || {};
@@ -478,7 +492,7 @@ export default function AiAnalytics() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {recentProgress && recentProgress.length > 0 ? (
+                  {recentProgress && recentProgress.length > 0 && !isProgressDataDummy ? (
                     <div className="h-64">
                       <div className="relative h-full flex items-end pb-8">
                         {recentProgress.map((entry: any, index: number) => (
@@ -507,9 +521,11 @@ export default function AiAnalytics() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center p-4">
-                      <p className="text-muted-foreground">
-                        Not enough data to display progress chart yet.
+                    <div className="text-center p-8">
+                      <LineChart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                      <h3 className="font-medium mb-2">Not enough real data yet</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Complete more sessions to see your actual progress chart.
                       </p>
                     </div>
                   )}
@@ -517,114 +533,144 @@ export default function AiAnalytics() {
               </Card>
 
               {/* Module Performance Carousel */}
-              {analytics.modulePerformance && analytics.modulePerformance.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center">
-                      <PieChart className="h-4 w-4 mr-2 text-primary" />
-                      Module Performance Analysis
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="relative min-h-[280px]">
-                      <div className="overflow-hidden">
-                        <div className="flex transition-transform duration-300 ease-in-out" id="module-carousel">
-                          {analytics.modulePerformance.map((module: any, index: number) => (
-                            <div key={index} className="w-full flex-shrink-0 px-3">
-                              <div className="p-6 min-h-[240px] bg-card">
-                                <h4 className="font-semibold mb-6 text-center capitalize text-lg text-primary">
-                                  {module.moduleName.replace(/-/g, ' ').replace(/_/g, ' ')}
-                                </h4>
-                                <div className="space-y-4">
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Average Score:</span>
-                                    <span className="font-medium text-base">{Math.round(module.averageScore)}%</span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Accuracy:</span>
-                                    <span className="font-medium text-base">{Math.round(module.accuracy)}%</span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Sessions:</span>
-                                    <span className="font-medium text-base">{module.sessionCount}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Trend:</span>
-                                    <span className={`font-medium text-base ${
-                                      module.trend === 'improving' ? 'text-green-600' :
-                                      module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
-                                    }`}>
-                                      {module.trend === 'improving' ? '↗' : module.trend === 'declining' ? '↘' : '→'} {module.trend}
-                                    </span>
+              {(() => {
+                // Check if module performance data is reliable (has enough sessions for meaningful trends)
+                const hasReliableModuleData = analytics.modulePerformance && 
+                  analytics.modulePerformance.length > 0 && 
+                  analytics.modulePerformance.some((module: any) => module.sessionCount >= 3);
+                
+                if (hasReliableModuleData) {
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center">
+                          <PieChart className="h-4 w-4 mr-2 text-primary" />
+                          Module Performance Analysis
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="relative min-h-[280px]">
+                          <div className="overflow-hidden">
+                            <div className="flex transition-transform duration-300 ease-in-out" id="module-carousel">
+                              {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).map((module: any, index: number) => (
+                                <div key={index} className="w-full flex-shrink-0 px-3">
+                                  <div className="p-6 min-h-[240px] bg-card">
+                                    <h4 className="font-semibold mb-6 text-center capitalize text-lg text-primary">
+                                      {module.moduleName.replace(/-/g, ' ').replace(/_/g, ' ')}
+                                    </h4>
+                                    <div className="space-y-4">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Average Score:</span>
+                                        <span className="font-medium text-base">{Math.round(module.averageScore)}%</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Accuracy:</span>
+                                        <span className="font-medium text-base">{Math.round(module.accuracy)}%</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Sessions:</span>
+                                        <span className="font-medium text-base">{module.sessionCount}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Trend:</span>
+                                        <span className={`font-medium text-base ${
+                                          module.trend === 'improving' ? 'text-green-600' :
+                                          module.trend === 'declining' ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                          {module.trend === 'improving' ? '↗' : module.trend === 'declining' ? '↘' : '→'} {module.trend}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+                          
+                          {/* Navigation buttons */}
+                          {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).length > 1 && (
+                            <div className="flex justify-center mt-4 space-x-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const carousel = document.getElementById('module-carousel');
+                                  if (carousel) {
+                                    const currentTransform = carousel.style.transform;
+                                    const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
+                                    const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
+                                    const newTranslate = Math.min(0, current + 100);
+                                    carousel.style.transform = `translateX(${newTranslate}%)`;
+                                    setCurrentModuleIndex(Math.max(0, currentModuleIndex - 1));
+                                  }
+                                }}
+                                className="h-9 w-9 p-0"
+                              >
+                                <ChevronUp className="h-4 w-4 rotate-[-90deg]" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const carousel = document.getElementById('module-carousel');
+                                  if (carousel) {
+                                    const currentTransform = carousel.style.transform;
+                                    const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
+                                    const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
+                                    const reliableModules = analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3);
+                                    const maxTranslate = -(reliableModules.length - 1) * 100;
+                                    const newTranslate = Math.max(maxTranslate, current - 100);
+                                    carousel.style.transform = `translateX(${newTranslate}%)`;
+                                    setCurrentModuleIndex(Math.min(reliableModules.length - 1, currentModuleIndex + 1));
+                                  }
+                                }}
+                                className="h-9 w-9 p-0"
+                              >
+                                <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* Indicator dots */}
+                          {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).length > 1 && (
+                            <div className="flex justify-center mt-3 space-x-1">
+                              {analytics.modulePerformance.filter((module: any) => module.sessionCount >= 3).map((_: any, index: number) => (
+                                <div 
+                                  key={index} 
+                                  className="w-2 h-2 rounded-full bg-muted transition-colors duration-200"
+                                  style={{
+                                    backgroundColor: index === currentModuleIndex ? 'hsl(var(--primary))' : undefined
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      
-                      {/* Navigation buttons */}
-                      {analytics.modulePerformance.length > 1 && (
-                        <div className="flex justify-center mt-4 space-x-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const carousel = document.getElementById('module-carousel');
-                              if (carousel) {
-                                const currentTransform = carousel.style.transform;
-                                const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
-                                const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
-                                const newTranslate = Math.min(0, current + 100);
-                                carousel.style.transform = `translateX(${newTranslate}%)`;
-                                setCurrentModuleIndex(Math.max(0, currentModuleIndex - 1));
-                              }
-                            }}
-                            className="h-9 w-9 p-0"
-                          >
-                            <ChevronUp className="h-4 w-4 rotate-[-90deg]" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const carousel = document.getElementById('module-carousel');
-                              if (carousel) {
-                                const currentTransform = carousel.style.transform;
-                                const currentTranslate = currentTransform.match(/translateX\((-?\d+)%\)/);
-                                const current = currentTranslate ? parseInt(currentTranslate[1]) : 0;
-                                const maxTranslate = -(analytics.modulePerformance.length - 1) * 100;
-                                const newTranslate = Math.max(maxTranslate, current - 100);
-                                carousel.style.transform = `translateX(${newTranslate}%)`;
-                                setCurrentModuleIndex(Math.min(analytics.modulePerformance.length - 1, currentModuleIndex + 1));
-                              }
-                            }}
-                            className="h-9 w-9 p-0"
-                          >
-                            <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
-                          </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                } else {
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center">
+                          <PieChart className="h-4 w-4 mr-2 text-primary" />
+                          Module Performance Analysis
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center p-8">
+                          <PieChart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <h3 className="font-medium mb-2">Not enough real data yet</h3>
+                          <p className="text-muted-foreground text-sm">
+                            Complete more sessions to see meaningful module performance analysis.
+                          </p>
                         </div>
-                      )}
-                      
-                      {/* Indicator dots */}
-                      {analytics.modulePerformance.length > 1 && (
-                        <div className="flex justify-center mt-3 space-x-1">
-                          {analytics.modulePerformance.map((_: any, index: number) => (
-                            <div 
-                              key={index} 
-                              className="w-2 h-2 rounded-full bg-muted transition-colors duration-200"
-                              style={{
-                                backgroundColor: index === currentModuleIndex ? 'hsl(var(--primary))' : undefined
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+              })()}
             </div>
 
             {/* Enhanced Progress Stats */}
