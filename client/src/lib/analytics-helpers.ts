@@ -15,9 +15,6 @@ export function generateCustomStudyPlanFromAnalytics(
   // Update loading state
   setIsGeneratingPlan(true);
   
-  // Clear existing study plan first
-  setCustomStudyPlan([]);
-  
   // Notify user that generation is in progress
   toastFn({
     title: "Generating Study Plan",
@@ -101,7 +98,7 @@ export function generateCustomStudyPlanFromAnalytics(
     
     // Make sure the recommendations tab is active to show the plan
     setActiveTab('recommendations');
-  }, 500);
+  }, 1000);
   
   return studyPlanBullets;
 }
