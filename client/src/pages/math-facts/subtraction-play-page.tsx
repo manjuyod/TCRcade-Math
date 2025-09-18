@@ -302,7 +302,7 @@ export default function SubtractionPlayPage() {
             <div className="text-center">
               <h1 className="text-xl font-bold">Math Facts: Subtraction</h1>
               <p className="text-sm text-muted-foreground">
-                Question {questionCount + 1} of 10 | Correct: {correctCount}
+                Question {questionCount + 1} of 6 | Correct: {correctCount}
               </p>
             </div>
 
@@ -315,7 +315,7 @@ export default function SubtractionPlayPage() {
             isLoading={isLoading}
             isSubmitting={isSubmitting}
             questionNumber={questionCount + 1}
-            totalQuestions={10}
+            totalQuestions={6}
             correctCount={correctCount}
             timeElapsed={elapsedTime}
             progressPercentage={progressPercentage}
@@ -330,7 +330,7 @@ export default function SubtractionPlayPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Exit Math Facts Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              You're currently {questionCount > 0 ? `${questionCount}/10 questions` : 'starting your session'}. 
+              You're currently {questionCount > 0 ? `${questionCount}/6 questions` : 'starting your session'}. 
               If you leave now, your progress will be lost and no tokens will be saved.
             </AlertDialogDescription>
           </AlertDialogHeader>

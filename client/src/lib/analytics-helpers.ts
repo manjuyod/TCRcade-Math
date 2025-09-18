@@ -16,11 +16,11 @@ export function generateCustomStudyPlanFromAnalytics(
   setIsGeneratingPlan(true);
   
   // Notify user that generation is in progress
-  toastFn({
-    title: "Generating Study Plan",
-    description: "Creating your personalized study plan based on your progress...",
-    dismissTimeout: 3000,
-  });
+  // toastFn({
+  //   title: "Generating Study Plan",
+  //   description: "Creating your personalized study plan based on your progress...",
+  //   dismissTimeout: 3000,
+  // });
   
   // Get strengths to build on - preserve actual user performance data
   const strengthConcepts = [...new Set((analytics.conceptMasteries || [])
@@ -87,14 +87,14 @@ export function generateCustomStudyPlanFromAnalytics(
   setTimeout(() => {
     setCustomStudyPlan(studyPlanBullets);
     setIsGeneratingPlan(false);
-    playSound('levelUp');
+    // playSound('levelUp');
     
     // Small toast to confirm completion
-    toastFn({
-      title: "Study Plan Ready",
-      description: "Your personalized study plan has been generated",
-      dismissTimeout: 3000, // Auto-dismiss after 3 seconds
-    });
+    // toastFn({
+    //   title: "Study Plan Ready",
+    //   description: "Your personalized study plan has been generated",
+    //   dismissTimeout: 3000, // Auto-dismiss after 3 seconds
+    // });
     
     // Make sure the recommendations tab is active to show the plan
     setActiveTab('recommendations');
