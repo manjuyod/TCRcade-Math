@@ -55,7 +55,7 @@ export class OpenAIRecommendationEngine {
     
     console.log('Starting OpenAI recommendation generation...');
     console.log(`Available questions: ${availableQuestions.length}`);
-    console.log(`User grade: ${userProfile.currentGrade}`);
+    console.log(`User ID: ${userProfile.userId}`);
     console.log(`Request max questions: ${request.maxQuestions}`);
     
     // If no questions available, return empty array
