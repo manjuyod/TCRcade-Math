@@ -66,6 +66,9 @@ export default function MathRushSetupPage() {
       return response.json();
     },
     enabled: !!operator,
+    // Force fresh read on mount to avoid stale cache after assessment
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Get current progression type and available types
@@ -79,6 +82,9 @@ export default function MathRushSetupPage() {
       return response.json();
     },
     enabled: !!operator && !needsAssessment,
+    // Force fresh read on mount to ensure latest progression
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Get available question types for this mode
@@ -98,6 +104,9 @@ export default function MathRushSetupPage() {
       return data;
     },
     enabled: !!mode,
+    // Force fresh read on mount so user sees current types immediately
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Reset type selection when operation changes
@@ -345,7 +354,7 @@ export default function MathRushSetupPage() {
                         </motion.div>
                       )}
                     </h3>
-                    
+
                     {hasMastery ? (
                       // Enhanced grid selection for mastery users
                       <div className="space-y-3">
@@ -422,7 +431,7 @@ export default function MathRushSetupPage() {
                       </motion.div>
                     )}
                   </h3>
-                  
+
                   {hasMastery && (
                     <p className="text-sm text-muted-foreground bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border-l-4 border-green-500 mb-4">
                       <Flame className="h-4 w-4 inline mr-2 text-green-600" />
