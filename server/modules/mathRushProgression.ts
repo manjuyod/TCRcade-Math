@@ -11,7 +11,7 @@ export const ADDITION_PROGRESSION = [
   'Adding 3',
   'Adding 4',
   'Adding 5',
-  'Mixed 0–5',
+  'Mixed 0-5',
   'Adding 6',
   'Adding 7',
   'Adding 8',
@@ -44,7 +44,7 @@ export const MULTIPLICATION_PROGRESSION = [
   'Multiply by 3',        // step 3 (index 2) - auto-skip if grade > 5
   'Multiply by 4',
   'Multiply by 5',
-  'Mixed 0–5',
+  'Mixed 0-5',
   'Multiply by 6',
   'Multiply by 7',
   'Multiply by 8',
@@ -53,7 +53,7 @@ export const MULTIPLICATION_PROGRESSION = [
   'Multiply by 11',
   'Multiply by 12',
   'Multiply Doubles',
-  'Mixed 6–12',           // step 15 (index 14)
+  'Mixed 6-12',           // step 15 (index 14)
 ] as const;
 
 /* Division Progression */
@@ -63,14 +63,14 @@ export const DIVISION_PROGRESSION = [
   'Divide by 4',          // step 3
   'Divide by 5',          // step 4
   'Divide by 6',          // step 5
-  'Mixed 2–6',            // step 6
+  'Mixed 2-6',            // step 6
   'Divide by 7',          // step 7
   'Divide by 8',          // step 8
   'Divide by 9',          // step 9
   'Divide by 10',         // step 10
   'Divide by 11',         // step 11
   'Divide by 12',         // step 12
-  'Mixed 7–12',           // step 13 (index 12)
+  'Mixed 7-12',           // step 13 (index 12)
 ] as const;
 
 /* Type definitions */
@@ -143,11 +143,11 @@ export function getAutoSkipTypes(operator: string, userGrade: string): string[] 
     "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, 
     "10": 10, "11": 11, "12": 12
   };
-  
+
   const gradeLevel = gradeMap[userGrade] || 3;
-  
+
   if (gradeLevel <= 5) return [];
-  
+
   switch (operator) {
     case 'multiplication':
       return ['Multiply by 0 and 1', 'Multiply by 2'];
@@ -164,7 +164,7 @@ export function getAutoSkipTypes(operator: string, userGrade: string): string[] 
 export function getCurrentProgressionStep(operator: string, typesComplete: string[], userGrade: string): number {
   const progression = getProgressionForOperator(operator);
   const autoSkipTypes = getAutoSkipTypes(operator, userGrade);
-  
+
   // Find the lowest index item that is not in types_complete (including auto-skipped)
   for (let i = 0; i < progression.length; i++) {
     const type = progression[i];
@@ -172,7 +172,7 @@ export function getCurrentProgressionStep(operator: string, typesComplete: strin
       return i;
     }
   }
-  
+
   // All steps completed
   return progression.length;
 }
@@ -183,7 +183,7 @@ export function getCurrentProgressionStep(operator: string, typesComplete: strin
 export function isProgressionComplete(operator: string, typesComplete: string[], userGrade: string): boolean {
   const progression = getProgressionForOperator(operator);
   const autoSkipTypes = getAutoSkipTypes(operator, userGrade);
-  
+
   // Check if all required types are completed
   return progression.every(type => 
     typesComplete.includes(type) || autoSkipTypes.includes(type)
