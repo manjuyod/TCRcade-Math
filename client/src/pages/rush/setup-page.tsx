@@ -66,6 +66,9 @@ export default function MathRushSetupPage() {
       return response.json();
     },
     enabled: !!operator,
+    // Force fresh read on mount to avoid stale cache after assessment
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Get current progression type and available types
@@ -79,6 +82,9 @@ export default function MathRushSetupPage() {
       return response.json();
     },
     enabled: !!operator && !needsAssessment,
+    // Force fresh read on mount to ensure latest progression
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Get available question types for this mode
@@ -98,6 +104,9 @@ export default function MathRushSetupPage() {
       return data;
     },
     enabled: !!mode,
+    // Force fresh read on mount so user sees current types immediately
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Reset type selection when operation changes

@@ -43,7 +43,7 @@ export async function storeMicroTokens(userId: number, operator: string, correct
       SET 
         tokens = COALESCE(tokens, 0) + ${tokensEarned},
         hidden_grade_asset = jsonb_set(
-          COALESCE(hidden_grade_asset, '{}'),
+          COALESCE(hidden_grade_asset, '{}'::jsonb),
           '{modules,${sql.raw(moduleKey)},progress,tokens_earned}',
           to_jsonb(COALESCE((hidden_grade_asset #> '{modules,${sql.raw(moduleKey)},progress,tokens_earned}')::integer, 0) + ${tokensEarned})
         )
@@ -711,6 +711,23 @@ export async function completeAssessment(userId: number, operator: string, score
 
     // Calculate mastery based on progression completion (not just score)
     masteryLevel = isProgressionComplete(operator, typesComplete, userGrade);
+
+    // If all questions were answered correctly, grant mastery regardless of progression coverage
+    // Prefer exact count from submitted answers; fall back to score-based estimate
+    let correctCountForMastery = 0;
+    if (Array.isArray(assessmentAnswers) && assessmentAnswers.length > 0) {
+      correctCountForMastery = assessmentAnswers.filter(a => a?.isCorrect === true).length;
+    } else {
+      const numericScore = Number(score);
+      if (!Number.isNaN(numericScore)) {
+        correctCountForMastery = Math.round(24 * (numericScore / 100));
+      }
+    }
+
+    if (correctCountForMastery >= 24) {
+      masteryLevel = true;
+    }
+    
     console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
     console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
 
@@ -741,27 +758,34 @@ export async function completeAssessment(userId: number, operator: string, score
               jsonb_set(
                 jsonb_set(
                   jsonb_set(
-                    COALESCE(hidden_grade_asset, '{}'),
+                    COALESCE(hidden_grade_asset, '{}'::jsonb),
                     '{modules,math_rush_${sql.raw(operator)},progress,test_taken}',
-                    'true'::jsonb
+                    'true'::jsonb,
+                    true
                   ),
                   '{modules,math_rush_${sql.raw(operator)},progress,mastery_level}',
-                  to_jsonb(${masteryLevel}::boolean)
+                  to_jsonb(${masteryLevel}::boolean),
+                  true
                 ),
                 '{modules,math_rush_${sql.raw(operator)},progress,current_step}',
-                to_jsonb(${autoSkipSteps}::integer)
+                to_jsonb(${autoSkipSteps}::integer),
+                true
               ),
               '{modules,math_rush_${sql.raw(operator)},progress,types_complete}',
-              ${JSON.stringify(typesComplete)}::jsonb
+              ${JSON.stringify(typesComplete)}::jsonb,
+              true
             ),
             '{modules,math_rush_${sql.raw(operator)},progress,tokens_earned}',
-            to_jsonb(${currentTokens + tokensEarned}::integer)
+            to_jsonb(${currentTokens + tokensEarned}::integer),
+            true
           ),
           '{modules,math_rush_${sql.raw(operator)},progress,total_questions_answered}',
-          to_jsonb(${currentQuestions + questionsAnswered}::integer)
+          to_jsonb(${currentQuestions + questionsAnswered}::integer),
+          true
         ),
         '{modules,math_rush_${sql.raw(operator)},progress,correct_answers}',
-        to_jsonb(${currentCorrect + correctAnswers}::integer)
+        to_jsonb(${currentCorrect + correctAnswers}::integer),
+        true
       )
       WHERE id = ${userId}
     `);
