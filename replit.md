@@ -45,6 +45,7 @@ tcRCADE is a comprehensive gamified math learning platform designed for K-6 stud
 
 ### Authentication System
 - **User Management**: Registration with grade-level selection
+- **CRM-Sourced Email**: Registration relies on the student's CRM record for email, so no manual entry is needed on the auth page
 - **Password Security**: Bcrypt hashing with secure reset tokens
 - **Session Management**: Express-session with proper cleanup
 - **Email Integration**: SendGrid for password reset functionality

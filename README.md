@@ -16,7 +16,7 @@ A gamified math learning platform for K-6 students that provides an adaptive, en
 ### Login and Registration
 - Full authentication with secure password hashing
 - Grade-level selection during registration
-- Optional email for account recovery
+- Email addresses are automatically sourced from the CRM, so no entry is required on the auth page
 
 ### Password Reset Functionality
 - Request password reset with username or email
