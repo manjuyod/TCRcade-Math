@@ -104,12 +104,13 @@ export async function getStudentInfo(studentID: number): Promise<{ isValid: bool
           s.ID as studentID,
           s.Firstname,
           s.LastName,
-          s.Email,
+          i.Email,
           s.Grade,
           s.FranchiseID,
           f.FranchiesName
         FROM tblstudents s
         LEFT JOIN tblFranchies f ON s.FranchiseID = f.ID
+        LEFT JOIN tblInquiry i ON s.InquiryID = i.ID
         WHERE s.ID = @studentID
       `);
     
