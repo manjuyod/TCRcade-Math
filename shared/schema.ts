@@ -254,7 +254,6 @@ export const session = pgTable("session", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
-  email: true,
   displayName: true,
   grade: true,
   lastGradeAdvancement: true,

@@ -56,7 +56,6 @@ const registerSchema = z.object({
   franchiseID: z.string().min(1, "Please select a franchise"),
   studentID: z.string().min(1, "Please select a student"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  email: z.string().email("Please enter a valid email address").optional(),
   grade: z.string().min(1, "Please select a grade"),
   initials: z
     .string()
@@ -115,7 +114,6 @@ export default function AuthPage() {
       franchiseID: "",
       studentID: "",
       password: "",
-      email: "",
       grade: "K",
       initials: "",
     },
@@ -155,12 +153,6 @@ export default function AuthPage() {
 
     registerMutation.mutate(registrationData);
   };
-
-  // Check if the register mutation has a specific email already exists error
-  console.log("Register error:", registerMutation.error?.message);
-  console.log("Register error includes 'Email already exists':", registerMutation.error?.message?.includes("Email already exists"));
-  const hasEmailExistsError = registerMutation.error?.message?.includes("Email already exists");
-  console.log("hasEmailExistsError:", hasEmailExistsError);
 
   const handleGoToLogin = () => {
     setActiveTab("login");
@@ -497,27 +489,6 @@ export default function AuthPage() {
                       )}
                     />
 
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder="Your email address"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-
-
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={registerForm.control}
@@ -569,26 +540,7 @@ export default function AuthPage() {
                         )}
                       />
                     </div>
-
-                    {hasEmailExistsError && (
-                      <Alert className="border-orange-500">
-                        <AlertTitle className="text-orange-600">
-                          Email Already Registered
-                        </AlertTitle>
-                        <AlertDescription className="space-y-3">
-                          <p>This email is already registered. Would you like to login instead?</p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={handleGoToLogin}
-                          >
-                            Go to Login
-                          </Button>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
+                    
                     <Button
                       type="submit"
                       className="arcade-btn w-full bg-primary hover:bg-opacity-90 text-white font-bold py-3 px-4 rounded-xl"
