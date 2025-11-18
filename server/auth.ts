@@ -281,11 +281,11 @@ export function setupAuth(app: Express) {
   });
 
   // Update user profile
-  app.patch("/api/user", (req, res) => {
+  app.patch("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      const { displayName, grade, interests, email } = req.body;
+      const { displayName, grade, interests, email, username } = req.body;
 
       // Only update fields that were provided
       const updateData: Partial<User> = {};
@@ -293,6 +293,25 @@ export function setupAuth(app: Express) {
       if (grade !== undefined) updateData.grade = grade;
       if (interests !== undefined) updateData.interests = interests;
       if (email !== undefined) updateData.email = email;
+      if (username !== undefined) {
+        if (typeof username !== "string" || username.trim().length < 3) {
+          return res
+            .status(400)
+            .json({ error: "Username must be at least 3 characters long" });
+        }
+
+        const normalizedUsername = username.trim();
+        if (normalizedUsername !== req.user.username) {
+          const existingUser = await storage.getUserByUsername(
+            normalizedUsername,
+          );
+          if (existingUser && existingUser.id !== req.user.id) {
+            return res.status(400).json({ error: "Username already taken" });
+          }
+        }
+
+        updateData.username = normalizedUsername;
+      }
 
       // Generate initials if display name changes
       if (displayName) {
@@ -310,19 +329,12 @@ export function setupAuth(app: Express) {
       }
 
       // Update user
-      storage
-        .updateUser(req.user.id, updateData)
-        .then((updatedUser) => {
-          if (!updatedUser) {
-            return res.status(404).json({ error: "User not found" });
-          }
+      const updatedUser = await storage.updateUser(req.user.id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
 
-          res.json(updatedUser);
-        })
-        .catch((error) => {
-          console.error("Error updating user profile:", error);
-          res.status(500).json({ error: "Failed to update user profile" });
-        });
+      res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update user profile" });
