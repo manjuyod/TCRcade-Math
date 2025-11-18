@@ -354,7 +354,7 @@ export default function MathRushSetupPage() {
                         </motion.div>
                       )}
                     </h3>
-                    
+
                     {hasMastery ? (
                       // Enhanced grid selection for mastery users
                       <div className="space-y-3">
@@ -431,7 +431,7 @@ export default function MathRushSetupPage() {
                       </motion.div>
                     )}
                   </h3>
-                  
+
                   {hasMastery && (
                     <p className="text-sm text-muted-foreground bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border-l-4 border-green-500 mb-4">
                       <Flame className="h-4 w-4 inline mr-2 text-green-600" />

@@ -711,23 +711,6 @@ export async function completeAssessment(userId: number, operator: string, score
 
     // Calculate mastery based on progression completion (not just score)
     masteryLevel = isProgressionComplete(operator, typesComplete, userGrade);
-
-    // If all questions were answered correctly, grant mastery regardless of progression coverage
-    // Prefer exact count from submitted answers; fall back to score-based estimate
-    let correctCountForMastery = 0;
-    if (Array.isArray(assessmentAnswers) && assessmentAnswers.length > 0) {
-      correctCountForMastery = assessmentAnswers.filter(a => a?.isCorrect === true).length;
-    } else {
-      const numericScore = Number(score);
-      if (!Number.isNaN(numericScore)) {
-        correctCountForMastery = Math.round(24 * (numericScore / 100));
-      }
-    }
-
-    if (correctCountForMastery >= 24) {
-      masteryLevel = true;
-    }
-    
     console.log(`Assessment completed for user ${userId}, operator ${operator}, score: ${score}`);
     console.log(`Mastery level: ${masteryLevel}, Auto-skip steps: ${autoSkipSteps}`);
 
