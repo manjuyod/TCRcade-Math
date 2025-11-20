@@ -104,6 +104,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getUsersByEmail(email: string): Promise<User[]> {
+    try {
+      return await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+    } catch (error) {
+      console.error("Error fetching users by email:", error);
+      return [];
+    }
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const defaultAvatarItems = {
       hair: "default",

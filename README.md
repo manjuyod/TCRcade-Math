@@ -10,6 +10,7 @@ A gamified math learning platform for K-6 students that provides an adaptive, en
 - **Personalized Analytics**: AI-driven insights into learning patterns and areas for improvement.
 - **Text-Focused Questions**: Focused on pure computational problems without distracting visual elements.
 - **Enhanced Security**: Complete password reset functionality with email-based verification.
+- **Smart Student Selector**: Registration page now includes a searchable type-ahead dropdown to quickly find students from large lists.
 
 ## Authentication System
 
@@ -23,6 +24,16 @@ A gamified math learning platform for K-6 students that provides an adaptive, en
 - Secure token-based password reset system
 - Email verification (when configured)
 - Token expiration for enhanced security
+
+### Multi-Account Login Selection
+- Login identifier now accepts username or email
+- If an email has multiple matching accounts with the provided password, a secure selection step is shown to pick the right account
+- Selection list only shows `username` and `display_name`; no emails or IDs are exposed
+- Pending selections expire after a few minutes and are tied to the active session
+- Quick test pass:
+  1. Username success/failure with wrong password (expect normal error)
+  2. Email with one matching account + correct password (logs in directly)
+  3. Email with multiple accounts and shared password (prompts selection, then logs in chosen account)
 
 ## Components and Modules
 

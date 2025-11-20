@@ -1,12 +1,13 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, User } from "@shared/schema";
 import { getFranchises, getStudentsByFranchise, getStudentInfo } from "./crm-db";
+import type { Session } from "express-session";
 
 declare global {
   namespace Express {
@@ -14,7 +15,82 @@ declare global {
   }
 }
 
+declare module "express-session" {
+  interface SessionData {
+    pendingLogin?: PendingLoginState;
+  }
+}
+
+const MULTI_LOGIN_TTL_MS = 5 * 60 * 1000;
+
+type PendingLoginOption = {
+  key: string;
+  username: string;
+  displayName: string | null;
+};
+
+type PendingLoginState = {
+  token: string;
+  createdAt: number;
+  options: PendingLoginOption[];
+  userIdByKey: Record<string, number>;
+};
+
 const scryptAsync = promisify(scrypt);
+
+const looksLikeEmail = (identifier: string) => identifier.includes("@");
+
+function clearPendingLoginSession(session: Session) {
+  if (session.pendingLogin) {
+    delete session.pendingLogin;
+  }
+}
+
+function getPendingLoginSession(
+  session: Session,
+  token?: string,
+): PendingLoginState | null {
+  const pending = session.pendingLogin;
+  if (!pending) return null;
+
+  const isExpired = Date.now() - pending.createdAt > MULTI_LOGIN_TTL_MS;
+  if (isExpired) {
+    clearPendingLoginSession(session);
+    return null;
+  }
+
+  if (token && pending.token !== token) {
+    return null;
+  }
+
+  return pending;
+}
+
+function setPendingLoginSession(req: Request, users: User[]) {
+  const token = randomBytes(12).toString("hex");
+  const options: PendingLoginOption[] = users.map((user) => {
+    const key = randomBytes(8).toString("hex");
+    return {
+      key,
+      username: user.username,
+      displayName: user.displayName || null,
+    };
+  });
+
+  const userIdByKey: Record<string, number> = {};
+  users.forEach((user, index) => {
+    userIdByKey[options[index]!.key] = user.id;
+  });
+
+  req.session.pendingLogin = {
+    token,
+    createdAt: Date.now(),
+    options,
+    userIdByKey,
+  };
+
+  return { token, options };
+}
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -46,16 +122,80 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        // Update last active timestamp
-        await storage.updateUser(user.id, { lastActive: new Date() });
-        return done(null, user);
-      }
-    }),
+    new LocalStrategy(
+      {
+        usernameField: "username",
+        passwordField: "password",
+        passReqToCallback: true,
+      },
+      async (req: Request, identifier, password, done) => {
+        try {
+          const normalizedIdentifier = identifier?.trim();
+          if (!normalizedIdentifier) {
+            return done(null, false);
+          }
+
+          const userFromUsername =
+            await storage.getUserByUsername(normalizedIdentifier);
+
+          if (userFromUsername) {
+            const isValid = await comparePasswords(
+              password,
+              userFromUsername.password,
+            );
+            if (!isValid) {
+              return done(null, false);
+            }
+
+            await storage.updateUser(userFromUsername.id, {
+              lastActive: new Date(),
+            });
+            return done(null, userFromUsername);
+          }
+
+          if (looksLikeEmail(normalizedIdentifier)) {
+            const usersByEmail = await storage.getUsersByEmail(
+              normalizedIdentifier,
+            );
+
+            if (!usersByEmail?.length) {
+              return done(null, false);
+            }
+
+            const matchingUsers: User[] = [];
+            for (const user of usersByEmail) {
+              if (await comparePasswords(password, user.password)) {
+                matchingUsers.push(user);
+              }
+            }
+
+            if (!matchingUsers.length) {
+              return done(null, false);
+            }
+
+            if (matchingUsers.length === 1) {
+              const matchedUser = matchingUsers[0]!;
+              await storage.updateUser(matchedUser.id, {
+                lastActive: new Date(),
+              });
+              return done(null, matchedUser);
+            }
+
+            const pendingSelection = setPendingLoginSession(
+              req,
+              matchingUsers,
+            );
+            return done(null, false, {
+              multiUserSelection: pendingSelection,
+            });
+          }
+
+          return done(null, false);
+        } catch (error) {
+          return done(error as Error);
+        }
+      },
+    ),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
@@ -104,14 +244,6 @@ export function setupAuth(app: Express) {
     const existingUser = await storage.getUserByUsername(username);
     if (existingUser) {
       return res.status(400).send("Username already exists");
-    }
-
-    // Check for existing email if email is provided
-    if (finalEmail) {
-      const existingEmailUser = await storage.getUserByEmail(finalEmail);
-      if (existingEmailUser) {
-        return res.status(400).send("Email already exists");
-      }
     }
 
     // Validate initials (3 letters for arcade-style)
@@ -179,8 +311,83 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+
+      if (info && (info as any).multiUserSelection) {
+        const multiInfo = (info as any).multiUserSelection as {
+          token: string;
+          options: PendingLoginOption[];
+        };
+
+        return res.status(200).json({
+          status: "select_user",
+          pendingToken: multiInfo.token,
+          options: multiInfo.options,
+        });
+      }
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      req.login(user, (loginErr) => {
+        if (loginErr) return next(loginErr);
+        clearPendingLoginSession(req.session);
+        res.status(200).json(user);
+      });
+    })(req, res, next);
+  });
+
+  app.get("/api/login/pending", (req, res) => {
+    const token = (req.query.token as string) || "";
+    const pending = getPendingLoginSession(req.session, token);
+
+    if (!token || !pending) {
+      return res.status(404).json({ message: "Pending login not found" });
+    }
+
+    res.json({
+      status: "select_user",
+      pendingToken: pending.token,
+      options: pending.options,
+    });
+  });
+
+  app.post("/api/login/select", async (req, res, next) => {
+    try {
+      const { token, selectionKey } = req.body ?? {};
+      if (!token || !selectionKey) {
+        return res.status(400).json({ message: "Invalid selection" });
+      }
+
+      const pending = getPendingLoginSession(req.session, token);
+      if (!pending) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      const userId = pending.userIdByKey[selectionKey];
+      if (!userId) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        clearPendingLoginSession(req.session);
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      await storage.updateUser(user.id, { lastActive: new Date() });
+
+      req.login(user, (loginErr) => {
+        clearPendingLoginSession(req.session);
+        if (loginErr) return next(loginErr);
+        res.status(200).json(user);
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {

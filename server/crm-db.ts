@@ -81,6 +81,9 @@ export async function getStudentsByFranchise(franchiseID: number): Promise<{ stu
         SELECT ID AS studentID, CONCAT(Firstname, ' ', LastName) AS studentName
         FROM tblstudents 
         WHERE FranchiseID = @franchiseID
+        AND IsDeleted = 0
+        AND IsTrail != 'Inactive'
+        Order BY Firstname, LastName
       `);
     
     console.log(`✓ Retrieved ${result.recordset.length} students for franchise ${franchiseID}`);

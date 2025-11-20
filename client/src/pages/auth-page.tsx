@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,8 +32,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import tcLogo from "../assets/tc-logo.png";
 
 // Type definitions for CRM data
@@ -48,7 +62,23 @@ interface Student {
 }
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  username: z
+    .string()
+    .min(1, "Username or email is required")
+    .refine(
+      (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return false;
+
+        if (trimmed.includes("@")) {
+          // Basic email shape check; allow short names for CRM emails
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+        }
+
+        return trimmed.length >= 3;
+      },
+      { message: "Enter a valid username or email" },
+    ),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -77,6 +107,10 @@ export default function AuthPage() {
   >("idle");
   const [resetError, setResetError] = useState<string | null>(null);
   const [selectedFranchiseID, setSelectedFranchiseID] = useState<string>("");
+  const [studentPopoverOpen, setStudentPopoverOpen] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [triggerWidth, setTriggerWidth] = useState<number>();
+  const studentTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Import toast from module to avoid hooks issues
   const { toast } = useToast();
@@ -92,6 +126,31 @@ export default function AuthPage() {
     queryKey: [`/api/students/${selectedFranchiseID}`],
     enabled: activeTab === 'register' && !!selectedFranchiseID,
   });
+
+  const filteredStudents = useMemo(() => {
+    if (!students) return [];
+    if (!studentSearch.trim()) return students;
+
+    const query = studentSearch.trim().toLowerCase();
+    return students.filter((student) =>
+      student.studentName.toLowerCase().includes(query),
+    );
+  }, [students, studentSearch]);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (studentTriggerRef.current) {
+        setTriggerWidth(studentTriggerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+
+    if (studentPopoverOpen) {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+  }, [studentPopoverOpen]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -120,7 +179,10 @@ export default function AuthPage() {
   });
 
   const onLoginSubmit = (data: z.infer<typeof loginSchema>) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate({
+      ...data,
+      username: data.username.trim(),
+    });
   };
 
   const onRegisterSubmit = (data: z.infer<typeof registerSchema>) => {
@@ -169,6 +231,8 @@ export default function AuthPage() {
     registerForm.setValue("franchiseID", franchiseID);
     // Reset student selection when franchise changes
     registerForm.setValue("studentID", "");
+    setStudentSearch("");
+    setStudentPopoverOpen(false);
   };
 
   const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
@@ -253,12 +317,12 @@ export default function AuthPage() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Username or Email</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder="Enter your username"
+                              placeholder="Enter your username or email"
                             />
                           </FormControl>
                           <FormMessage />
@@ -440,34 +504,91 @@ export default function AuthPage() {
                     <FormField
                       control={registerForm.control}
                       name="studentID"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select Student</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={!selectedFranchiseID || studentsLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary">
-                                <SelectValue placeholder={
-                                  !selectedFranchiseID ? "Please select a franchise first" :
-                                  studentsLoading ? "Loading students..." :
-                                  "Choose your student"
-                                } />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {students?.map((student) => (
-                                <SelectItem key={student.studentID} value={student.studentID.toString()}>
-                                  {student.studentName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const selectedStudentName = students?.find(
+                          (student) => student.studentID.toString() === field.value,
+                        )?.studentName;
+
+                        const placeholderText = !selectedFranchiseID
+                          ? "Please select a franchise first"
+                          : studentsLoading
+                            ? "Loading students..."
+                            : "Choose your student";
+
+                        return (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Select Student</FormLabel>
+                            <Popover
+                              open={studentPopoverOpen}
+                              onOpenChange={setStudentPopoverOpen}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={studentPopoverOpen}
+                                  disabled={!selectedFranchiseID || studentsLoading}
+                                  className="w-full justify-between p-3 bg-gray-100 rounded-xl text-left font-normal"
+                                  ref={studentTriggerRef}
+                                >
+                                  <span className="truncate">
+                                    {selectedStudentName || placeholderText}
+                                  </span>
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                align="start"
+                                className="p-0 border border-input rounded-none shadow-md"
+                                style={
+                                  triggerWidth
+                                    ? { width: triggerWidth, minWidth: triggerWidth }
+                                    : undefined
+                                }
+                              >
+                                <Command className="rounded-none">
+                                  <CommandInput
+                                    value={studentSearch}
+                                    onValueChange={setStudentSearch}
+                                    placeholder="Search students..."
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      {studentsLoading
+                                        ? "Loading students..."
+                                        : "No students found."}
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                      {filteredStudents.map((student) => (
+                                        <CommandItem
+                                          key={student.studentID}
+                                          value={student.studentName}
+                                          onSelect={() => {
+                                            field.onChange(student.studentID.toString());
+                                            setStudentPopoverOpen(false);
+                                            setStudentSearch("");
+                                          }}
+                                        >
+                                          {student.studentName}
+                                          <Check
+                                            className={cn(
+                                              "ml-auto h-4 w-4",
+                                              field.value === student.studentID.toString()
+                                                ? "opacity-100"
+                                                : "opacity-0",
+                                            )}
+                                          />
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <FormField

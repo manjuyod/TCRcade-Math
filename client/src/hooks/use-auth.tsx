@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -13,12 +13,18 @@ type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  loginMutation: UseMutationResult<LoginResult, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
+type LoginSelectionResponse = {
+  status: "select_user";
+  pendingToken: string;
+  options: Array<{ key: string; username: string; displayName: string | null }>;
+};
+type LoginResult = SelectUser | LoginSelectionResponse;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -33,12 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  const loginMutation = useMutation({
+  const loginMutation = useMutation<LoginResult, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: (result: LoginResult) => {
+      if ("status" in result && result.status === "select_user") {
+        toast({
+          title: "Select an account",
+          description: "Choose which account to use for this email address.",
+        });
+        setLocation(`/auth/select-user?token=${result.pendingToken}`);
+        return;
+      }
+
+      const user = result as SelectUser;
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
