@@ -38,7 +38,8 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [grade, setGrade] = useState(user?.grade || 'K');
   
-  // Email and password change fields
+  // Username, email and password change fields
+  const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -122,6 +123,33 @@ export default function ProfilePage() {
     onError: (error: Error) => {
       toast({
         title: 'Error updating email',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Username update mutation
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (data: { username: string }) => {
+      const response = await apiRequest('PATCH', '/api/user', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update username');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: 'Username updated successfully',
+        description: 'Your username has been changed.',
+      });
+      setShowSettings(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error updating username',
         description: error.message,
         variant: 'destructive',
       });
@@ -220,6 +248,30 @@ export default function ProfilePage() {
     }
 
     updateEmailMutation.mutate({ email });
+  };
+
+  const handleUsernameUpdate = () => {
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername || trimmedUsername.length < 3) {
+      toast({
+        title: 'Invalid username',
+        description: 'Username must be at least 3 characters long.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!user || trimmedUsername === user.username) {
+      toast({
+        title: 'No changes detected',
+        description: 'Your username is already up to date.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    updateUsernameMutation.mutate({ username: trimmedUsername });
   };
 
   const handlePasswordUpdate = () => {
@@ -547,6 +599,33 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     'Update Email'
+                  )}
+                </Button>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Username</label>
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use at least 3 characters. Usernames must be unique.
+                </p>
+                <Button 
+                  onClick={handleUsernameUpdate}
+                  disabled={updateUsernameMutation.isPending}
+                  className="w-full mt-2"
+                  variant="outline"
+                >
+                  {updateUsernameMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Username'
                   )}
                 </Button>
               </div>

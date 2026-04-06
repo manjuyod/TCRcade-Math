@@ -81,6 +81,9 @@ export async function getStudentsByFranchise(franchiseID: number): Promise<{ stu
         SELECT ID AS studentID, CONCAT(Firstname, ' ', LastName) AS studentName
         FROM tblstudents 
         WHERE FranchiseID = @franchiseID
+        AND IsDeleted = 0
+        AND IsTrail != 'Inactive'
+        Order BY Firstname, LastName
       `);
     
     console.log(`✓ Retrieved ${result.recordset.length} students for franchise ${franchiseID}`);
@@ -104,12 +107,13 @@ export async function getStudentInfo(studentID: number): Promise<{ isValid: bool
           s.ID as studentID,
           s.Firstname,
           s.LastName,
-          s.Email,
+          i.Email,
           s.Grade,
           s.FranchiseID,
           f.FranchiesName
         FROM tblstudents s
         LEFT JOIN tblFranchies f ON s.FranchiseID = f.ID
+        LEFT JOIN tblInquiry i ON s.InquiryID = i.ID
         WHERE s.ID = @studentID
       `);
     

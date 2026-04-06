@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
+import SelectUserPage from "@/pages/select-user-page";
 import ProfilePage from "@/pages/profile-page";
 import LeaderboardPage from "@/pages/leaderboard-page";
 import AdminPage from "@/pages/admin-page";
@@ -142,6 +143,7 @@ function Router() {
       <Route path="/math-facts/:operation/assessment" component={MathFactsAssessmentPlayPage} />
       <Route path="/math-facts/:operation/assessment/complete" component={MathFactsAssessmentCompletePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/select-user" component={SelectUserPage} />
       <Route path="/auth/reset/:token" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
