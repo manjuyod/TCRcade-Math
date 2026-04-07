@@ -23,7 +23,13 @@ export interface AdaptiveQuestionParams {
   studentLevel?: number;
   difficulty?: number;
   category?: string;
-  previousQuestions?: any[];
+  previousQuestions?: Array<number | {
+    id?: number;
+    question?: string;
+    mathOperations?: string[];
+    questionSignature?: string;
+    [key: string]: unknown;
+  }>;
   forceDynamic?: boolean;
   isMathFactsModule?: boolean;
 }
@@ -816,23 +822,6 @@ function getStarPoints(centerX: number, centerY: number, size: number): string {
   return points.join(' ');
 }
 
-type AdaptiveQuestionParams = {
-  grade: string;
-  concept?: string;
-  studentLevel?: number;
-  previousQuestions?: Array<number | { 
-    id?: number;
-    question?: string;
-    mathOperations?: string[];
-    questionSignature?: string;
-    [key: string]: any;
-  }>;
-  difficulty?: number;
-  category?: string;
-  forceDynamic?: boolean;  // Indicates if this is the first question in a series
-  isMathFactsModule?: boolean; // Indicates this is a pure computation Math Facts module
-};
-
 /**
  * Analyzes a student's response to a math question and provides helpful feedback
  */
@@ -1320,7 +1309,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     console.log(`✅ OpenAI API call successful for grade ${grade}, category ${category || 'general'}`);
     parsedResponse = JSON.parse(content as string);
     } catch (error) {
-      console.error(`❌ OpenAI API ERROR: ${error.message}`);
+      console.error(`❌ OpenAI API ERROR: ${error instanceof Error ? error.message : String(error)}`);
       console.error(`Failed to generate question for grade ${grade}, category ${category || 'general'}`);
       // Rethrow to be caught by outer try/catch
       throw error;
@@ -1456,6 +1445,13 @@ Make sure it's appropriate for the student's level and provides a learning oppor
     // Image generation is disabled per user request - this block will never execute
     if (false) { // Was: questionReferencesImage(parsedResponse.question)
       console.log("Image generation disabled per user request");
+      let imageType: string | undefined;
+      let imageContent:
+        | Record<string, number>
+        | Array<{ type: string; count: number }>
+        | [string | number, number]
+        | string
+        | undefined;
 
       // Check if the question has color-shape descriptions that give away the answer
       const colorShapePatterns = [
@@ -1560,7 +1556,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
           if (typeof imageContent === 'object') {
             // Handle array of coin objects
             if (Array.isArray(imageContent)) {
-              for (const item of imageContent) {
+              for (const item of imageContent as Array<{ type: string; count: number }>) {
                 if (item && typeof item === 'object' && 'type' in item && 'count' in item) {
                   const { type, count } = item;
                   switch (type) {
@@ -1578,7 +1574,7 @@ Make sure it's appropriate for the student's level and provides a learning oppor
             } 
             // Handle object with coin type keys
             else if (!Array.isArray(imageContent)) {
-              for (const [type, count] of Object.entries(imageContent)) {
+              for (const [type, count] of Object.entries(imageContent as Record<string, number>)) {
                 switch (type) {
                   case 'penny': totalCents += 1 * count; break;
                   case 'nickel': totalCents += 5 * count; break;

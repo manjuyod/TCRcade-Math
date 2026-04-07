@@ -12,6 +12,7 @@ import { useSessionDiagnostics } from "@/hooks/use-session-diagnostics";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import type { Question } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,15 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Question {
-  id: string;
-  question: string;
-  answer: string;
-  options: string[];
-  operation: string;
-  gradeLevel: number;
-}
 
 export default function SubtractionPlayPage() {
   const { user } = useAuth();

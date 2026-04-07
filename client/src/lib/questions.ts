@@ -143,9 +143,7 @@ export function useQuestionWithHistory(initialGrade = '3', initialCategory?: str
 
           if (response.ok) {
             newQuestion = await response.json();
-            console.log(`Successfully fetched Math Facts question: ${
-              typeof newQuestion?.question === 'object' ? newQuestion?.question?.text : newQuestion?.question
-            } || 'Unknown'`);
+            console.log(`Successfully fetched Math Facts question: ${newQuestion?.question || 'Unknown'}`);
             // Early return with the Math Facts question
             setQuestion(newQuestion);
             setLoading(false);

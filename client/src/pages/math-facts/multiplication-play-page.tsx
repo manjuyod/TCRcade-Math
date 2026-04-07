@@ -12,6 +12,7 @@ import { useSessionDiagnostics } from "@/hooks/use-session-diagnostics";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import type { Question } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,21 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Question {
-  id: number;
-  question: {
-    text: string;
-    style: any;
-    isFlashcard: boolean;
-  };
-  answer: string;
-  options: string[];
-  grade: string;
-  difficulty: number;
-  category: string;
-  concepts: string[];
-}
 
 export default function MultiplicationPlayPage() {
   const { user } = useAuth();

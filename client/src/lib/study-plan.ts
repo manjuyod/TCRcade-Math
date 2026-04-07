@@ -1,5 +1,4 @@
 import { queryClient } from '@/lib/queryClient';
-import { generateCustomStudyPlanFromAnalytics } from '@/components/ai-analytics';
 
 /**
  * Utility function to request a refresh of the user's custom study plan

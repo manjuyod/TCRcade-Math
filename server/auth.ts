@@ -7,8 +7,6 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, User } from "@shared/schema";
 import { getFranchises, getStudentsByFranchise, getStudentInfo } from "./crm-db";
-import type { Session } from "express-session";
-
 declare global {
   namespace Express {
     interface User extends SelectUser {}
@@ -40,14 +38,16 @@ const scryptAsync = promisify(scrypt);
 
 const looksLikeEmail = (identifier: string) => identifier.includes("@");
 
-function clearPendingLoginSession(session: Session) {
+type AuthSession = Request["session"] & { pendingLogin?: PendingLoginState };
+
+function clearPendingLoginSession(session: AuthSession) {
   if (session.pendingLogin) {
     delete session.pendingLogin;
   }
 }
 
 function getPendingLoginSession(
-  session: Session,
+  session: AuthSession,
   token?: string,
 ): PendingLoginState | null {
   const pending = session.pendingLogin;
@@ -187,7 +187,7 @@ export function setupAuth(app: Express) {
             );
             return done(null, false, {
               multiUserSelection: pendingSelection,
-            });
+            } as any);
           }
 
           return done(null, false);
@@ -312,7 +312,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: unknown) => {
       if (err) return next(err);
 
       if (info && (info as any).multiUserSelection) {
@@ -524,7 +524,7 @@ export function setupAuth(app: Express) {
       if (displayName) {
         updateData.initials = displayName
           .split(" ")
-          .map((name) => name[0])
+          .map((name: string) => name[0])
           .join("")
           .toUpperCase()
           .substring(0, 2);

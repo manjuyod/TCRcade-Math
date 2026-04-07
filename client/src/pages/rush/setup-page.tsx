@@ -49,14 +49,18 @@ export default function MathRushSetupPage() {
   const [mode] = useState<typeof MATH_RUSH_RULES.modes[number]>(operator as any);
   const [questionType, setQuestionType] = useState<string>('');
   const [timeOption, setTimeOption] = useState<'SHORT' | 'LONG'>('SHORT');
-  const [checkingAssessment, setCheckingAssessment] = useState(true);
-  const [needsAssessment, setNeedsAssessment] = useState(false);
+  const [hasFreshAssessmentStatus, setHasFreshAssessmentStatus] = useState(false);
 
   // Get time in seconds from the selected time option
   const timeSeconds = MATH_RUSH_RULES.timeSettings[timeOption].sec;
 
   // Check assessment status for this operator
-  const { data: assessmentData, isLoading: assessmentLoading } = useQuery({
+  const {
+    data: assessmentData,
+    isLoading: assessmentLoading,
+    isFetching: assessmentFetching,
+    error: assessmentError,
+  } = useQuery({
     queryKey: ['/api/rush/assessment-status', operator],
     queryFn: async () => {
       const response = await fetch(`/api/rush/assessment-status?operator=${operator}`);
@@ -69,6 +73,7 @@ export default function MathRushSetupPage() {
     // Force fresh read on mount to avoid stale cache after assessment
     staleTime: 0,
     refetchOnMount: 'always',
+    refetchOnReconnect: false,
   });
 
   // Get current progression type and available types
@@ -81,7 +86,14 @@ export default function MathRushSetupPage() {
       }
       return response.json();
     },
-    enabled: !!operator && !needsAssessment,
+    enabled:
+      !!operator &&
+      hasFreshAssessmentStatus &&
+      !assessmentLoading &&
+      !assessmentFetching &&
+      !assessmentError &&
+      !!assessmentData?.testTaken &&
+      !!assessmentData?.masteryLevel,
     // Force fresh read on mount to ensure latest progression
     staleTime: 0,
     refetchOnMount: 'always',
@@ -114,55 +126,61 @@ export default function MathRushSetupPage() {
     setQuestionType('');
   }, [mode]);
 
+  useEffect(() => {
+    setHasFreshAssessmentStatus(false);
+  }, [operator]);
+
+  useEffect(() => {
+    if (assessmentLoading || assessmentFetching) {
+      setHasFreshAssessmentStatus(false);
+      return;
+    }
+
+    if (!assessmentError && assessmentData) {
+      setHasFreshAssessmentStatus(true);
+    }
+  }, [assessmentData, assessmentLoading, assessmentFetching, assessmentError]);
+
   // Check if assessment is needed when assessment data loads
   useEffect(() => {
-    if (assessmentData && !assessmentLoading) {
-      const testTaken = assessmentData.testTaken;
-      const masteryLevel = assessmentData.masteryLevel;
-
-      console.log('Assessment data:', { testTaken, masteryLevel, operator });
-
-      if (!testTaken) {
-        // Redirect to assessment page
-        console.log('No test taken - redirecting to assessment');
-        navigate(`/math-rush-assessment?operator=${operator}`);
-        return;
-      }
-
-      // If test is taken but mastery not achieved, force progression
-      else if (testTaken && !masteryLevel) {
-        // Get the next required progression step and auto-navigate to play
-        console.log('Test taken but mastery not achieved - forcing progression');
-
-        // Set up automatic progression - go directly to play with forced progression
-        localStorage.setItem('mathRushMode', operator);
-        localStorage.setItem('mathRushTimeOption', 'SHORT'); // Default to short
-        localStorage.setItem('mathRushTimeSeconds', '60');
-        localStorage.setItem('mathRushForceProgression', 'true'); // Flag for forced progression
-        localStorage.removeItem('mathRushQuestionType'); // Let server determine next step
-
-        navigate('/rush/play');
-        return;
-      }
-
-      // If test is taken and mastery achieved, user stays on setup page to choose
-      else if (testTaken && masteryLevel) {
-        console.log('Mastery achieved - staying on setup page for type selection');
-        setCheckingAssessment(false);
-        return;
-      }
-
-      // Fallback - should not reach here
-      console.log('Unexpected assessment state - allowing setup page access');
-      setCheckingAssessment(false);
+    if (!hasFreshAssessmentStatus || !assessmentData || assessmentLoading || assessmentFetching) {
+      return;
     }
-  }, [assessmentData, assessmentLoading, operator, navigate]);
+
+    const testTaken = assessmentData.testTaken;
+    const masteryLevel = assessmentData.masteryLevel;
+
+    console.log('Assessment data:', { testTaken, masteryLevel, operator });
+
+    if (!testTaken) {
+      console.log('No test taken - redirecting to assessment');
+      navigate(`/math-rush-assessment?operator=${operator}`);
+      return;
+    }
+
+    if (testTaken && !masteryLevel) {
+      console.log('Test taken but mastery not achieved - forcing progression');
+
+      localStorage.setItem('mathRushMode', operator);
+      localStorage.setItem('mathRushTimeOption', 'SHORT'); // Default to short
+      localStorage.setItem('mathRushTimeSeconds', '60');
+      localStorage.setItem('mathRushForceProgression', 'true'); // Flag for forced progression
+      localStorage.removeItem('mathRushQuestionType'); // Let server determine next step
+
+      navigate('/rush/play');
+      return;
+    }
+
+    if (testTaken && masteryLevel) {
+      console.log('Mastery achieved - staying on setup page for type selection');
+    }
+  }, [assessmentData, assessmentLoading, assessmentFetching, hasFreshAssessmentStatus, operator, navigate]);
 
   // Check if user has achieved mastery
   const hasMastery = assessmentData?.testTaken && assessmentData?.masteryLevel;
 
   // Show loading while checking assessment status
-  if (assessmentLoading || !assessmentData || checkingAssessment) {
+  if (assessmentLoading || assessmentFetching || (!hasFreshAssessmentStatus && !assessmentError)) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Header />
@@ -176,6 +194,31 @@ export default function MathRushSetupPage() {
                 <p className="text-center text-muted-foreground">
                   Checking assessment status...
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (assessmentError && !hasFreshAssessmentStatus) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background">
+        <Header />
+        <Navigation active="home" />
+
+        <main className="flex-1 container max-w-4xl py-6 px-4 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center space-y-4 text-center">
+                <p className="font-medium">Unable to check assessment status.</p>
+                <p className="text-sm text-muted-foreground">
+                  Please try again in a moment.
+                </p>
+                <Button onClick={() => navigate('/modules')}>
+                  Back to Modules
+                </Button>
               </div>
             </CardContent>
           </Card>

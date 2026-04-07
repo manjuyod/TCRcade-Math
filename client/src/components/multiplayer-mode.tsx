@@ -378,7 +378,7 @@ export default function MultiplayerMode() {
         // This happens BEFORE any server sync or refresh
         setGameState(prev => ({
           ...prev,
-          currentQuestion: data.nextQuestion,
+          currentQuestion: data.nextQuestion ?? null,
           currentQuestionIndex: prev.currentQuestionIndex + 1,
           timeRemaining: activeRoom?.settings?.timeLimit || 30
         }));
@@ -454,7 +454,7 @@ export default function MultiplayerMode() {
       const isNewQuestion = activeRoom.gameState.currentQuestion?.id !== gameState.currentQuestion?.id;
         
       // If we're in the submission process, don't update ANY state except final results
-      if (isSubmitting && !isNewQuestion && activeRoom.gameState.status !== 'finished') {
+      if (isSubmitting && !isNewQuestion) {
         console.log('PREVENTING state update during answer submission - maintaining local state control');
         
         // Only update the results if the game is finished - this is critical
@@ -525,8 +525,8 @@ export default function MultiplayerMode() {
             clearInterval(timerRef.current!);
             
             // Only submit if we haven't already
-            if (submittedRef.current !== gameState.currentQuestion?.id) {
-              submittedRef.current = gameState.currentQuestion?.id;
+            if (submittedRef.current !== (gameState.currentQuestion?.id ?? null)) {
+              submittedRef.current = gameState.currentQuestion?.id ?? null;
               setIsAnswerSubmitted(true);
               
               submitAnswerMutation.mutate({
@@ -622,7 +622,7 @@ export default function MultiplayerMode() {
   const handleAnswerSubmit = (answer: string) => {
     if (activeRoomId && gameState.status === 'playing') {
       // Prevent multiple submissions for the same question
-      if (submittedRef.current === gameState.currentQuestion?.id) {
+      if (submittedRef.current === (gameState.currentQuestion?.id ?? null)) {
         console.log('Preventing duplicate answer submission for question:', gameState.currentQuestion?.id);
         return;
       }
@@ -630,7 +630,7 @@ export default function MultiplayerMode() {
       console.log('ULTRA AGGRESSIVE SUBMITTING ANSWER for question:', gameState.currentQuestion?.id);
       
       // Track that we've submitted an answer for this question IMMEDIATELY
-      submittedRef.current = gameState.currentQuestion?.id;
+      submittedRef.current = gameState.currentQuestion?.id ?? null;
       
       // IMMEDIATELY kill timer - extremely important for UX
       if (timerRef.current) {

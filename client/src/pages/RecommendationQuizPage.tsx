@@ -459,7 +459,7 @@ export default function RecommendationQuizPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {recommendationData?.questions.slice(0, userAnswers.length).map((rec, index) => (
+                  {recommendationData?.questions.slice(0, userAnswers.length).map((rec: { id: number; category: string }, index: number) => (
                     <div key={rec.id} className="flex items-center gap-2">
                       <Badge className={getRecommendationTypeColor(rec.category)}>
                         {getRecommendationTypeIcon(rec.category)}
