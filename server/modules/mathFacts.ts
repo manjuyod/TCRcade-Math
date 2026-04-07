@@ -128,7 +128,7 @@ function determineGradeLevelChange(
   };
 }
 
-function runAssessmentForOperation(
+async function runAssessmentForOperation(
   operation: 'addition' | 'subtraction' | 'multiplication' | 'division',
   userGrade: string,
   answerCallback: (questions: MathFactQuestion[]) => Promise<string[]>
@@ -138,48 +138,46 @@ function runAssessmentForOperation(
   totalCorrect: number;
   passed: boolean;
 }> {
-  return new Promise(async (resolve) => {
-    let currentGrade = gradeToString(getGradeForAssessment(userGrade));
-    let totalQuestionsAnswered = 0;
-    let totalCorrect = 0;
-    let passed = false;
+  let currentGrade = gradeToString(getGradeForAssessment(userGrade));
+  let totalQuestionsAnswered = 0;
+  let totalCorrect = 0;
+  let passed = false;
 
-    while (true) {
-      const questions = generateAssessmentQuestions(operation, currentGrade);
-      const answers = await answerCallback(questions);
+  while (true) {
+    const questions = generateAssessmentQuestions(operation, currentGrade);
+    const answers = await answerCallback(questions);
 
-      let correct = 0;
-      for (let i = 0; i < questions.length; i++) {
-        if (answers[i] === questions[i].answer) {
-          correct++;
-        }
+    let correct = 0;
+    for (let i = 0; i < questions.length; i++) {
+      if (answers[i] === questions[i].answer) {
+        correct++;
       }
-
-      totalQuestionsAnswered += questions.length;
-      totalCorrect += correct;
-
-      // If all questions correct at this level, they pass
-      if (correct === questions.length) {
-        passed = true;
-        break;
-      }
-
-      // If not perfect, drop down a grade level and try again
-      const nextGrade = getNextGradeLevel(currentGrade, 'down');
-      if (nextGrade === currentGrade) {
-        // Already at lowest level (K), stop here
-        break;
-      }
-      currentGrade = nextGrade;
     }
 
-    resolve({
-      finalGradeLevel: currentGrade,
-      questionsAnswered: totalQuestionsAnswered,
-      totalCorrect,
-      passed
-    });
-  });
+    totalQuestionsAnswered += questions.length;
+    totalCorrect += correct;
+
+    // If all questions correct at this level, they pass
+    if (correct === questions.length) {
+      passed = true;
+      break;
+    }
+
+    // If not perfect, drop down a grade level and try again
+    const nextGrade = getNextGradeLevel(currentGrade, 'down');
+    if (nextGrade === currentGrade) {
+      // Already at lowest level (K), stop here
+      break;
+    }
+    currentGrade = nextGrade;
+  }
+
+  return {
+    finalGradeLevel: currentGrade,
+    questionsAnswered: totalQuestionsAnswered,
+    totalCorrect,
+    passed
+  };
 }
 
 function validateMathFactAnswer(userAnswer: string, correctAnswer: string): boolean {

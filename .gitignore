@@ -4,7 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
-*.env
+.env
+.env.*
 /specs
 /.playwright-cli
 /playwright-cli

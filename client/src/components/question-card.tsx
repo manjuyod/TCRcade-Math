@@ -170,6 +170,7 @@ export default function QuestionCard({
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const resolvedAnswerHandler = onAnswerSubmit ?? onAnswer;
 
   const handleSelectOption = (option: string) => {
     if (selectedOption || showFeedback) return; // Prevent multiple selections
@@ -214,8 +215,7 @@ export default function QuestionCard({
 
     // Auto-progress after showing feedback for 1.5 seconds
     setTimeout(() => {
-      onAnswer?.(option);
-      onAnswerSubmit?.(option);
+      resolvedAnswerHandler?.(option);
     }, 1500);
   };
 

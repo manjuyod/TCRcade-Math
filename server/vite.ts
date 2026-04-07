@@ -10,6 +10,17 @@ import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
+const DEFAULT_ALLOWED_HOSTS = ["localhost", "127.0.0.1"];
+
+function getAllowedHosts(): string[] {
+  const additionalHosts =
+    process.env.__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      ?.split(",")
+      .map((host) => host.trim())
+      .filter(Boolean) ?? [];
+
+  return Array.from(new Set([...DEFAULT_ALLOWED_HOSTS, ...additionalHosts]));
+}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -26,7 +37,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true as const,
+    allowedHosts: getAllowedHosts(),
   };
 
   const vite = await createViteServer({

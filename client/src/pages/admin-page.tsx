@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { formatRelativeTime, getGradeLabel } from '@/lib/utils';
-import { Loader2, Eye, Edit, Trash, UserPlus, LogOut, ChevronRight, BarChart2 } from 'lucide-react';
+import { Loader2, Eye, Edit, Trash, UserPlus, LogOut, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
@@ -18,12 +18,6 @@ export default function AdminPage() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
-  // Redirect if not admin
-  if (user && !user.isAdmin) {
-    window.location.href = '/';
-    return null;
-  }
   
   // Fetch all users
   const { data: users, isLoading } = useQuery<User[]>({
@@ -101,6 +95,16 @@ export default function AdminPage() {
       });
     }
   };
+
+  useEffect(() => {
+    if (user && !user.isAdmin) {
+      window.location.href = '/';
+    }
+  }, [user]);
+
+  if (user && !user.isAdmin) {
+    return null;
+  }
   
   return (
     <div className="flex flex-col min-h-screen">

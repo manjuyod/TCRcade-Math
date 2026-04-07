@@ -13,9 +13,11 @@ export function ProgressBar({
   color = 'primary',
   className
 }: ProgressBarProps) {
+  const progressBarClassName = className ? `progress-bar ${className}` : 'progress-bar';
+
   return (
     <div 
-      className={className ?? "progress-bar"} 
+      className={progressBarClassName}
       data-color={color}
       style={{ height: `${height}px` }}
     >

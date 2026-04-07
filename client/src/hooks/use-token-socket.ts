@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuth } from '@/hooks/use-auth';
+import { AuthContext } from '@/hooks/use-auth';
 import { queryClient } from '@/lib/queryClient';
 import { tokenManager } from '@/lib/token-manager';
 
@@ -8,16 +8,8 @@ import { tokenManager } from '@/lib/token-manager';
  * Custom hook for real-time token updates via Socket.IO
  */
 export function useTokenSocket() {
-  // Use try-catch to handle cases where auth context might not be ready
-  let user = null;
-  try {
-    const auth = useAuth();
-    user = auth?.user;
-  } catch (error) {
-    console.log('Auth context not ready, skipping token socket initialization');
-    return null;
-  }
-  
+  const auth = useContext(AuthContext);
+  const user = auth?.user ?? null;
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -97,7 +89,7 @@ export function useTokenSocket() {
           }
           clearInterval(intervalId);
         };
-      }, [user?.id]);
+      }, [user]);
 
       return socketRef.current;
     }

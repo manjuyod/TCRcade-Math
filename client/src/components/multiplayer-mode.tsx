@@ -525,7 +525,7 @@ export default function MultiplayerMode() {
             clearInterval(timerRef.current!);
             
             // Only submit if we haven't already
-            if (submittedRef.current !== gameState.currentQuestion?.id) {
+            if (submittedRef.current !== (gameState.currentQuestion?.id ?? null)) {
               submittedRef.current = gameState.currentQuestion?.id ?? null;
               setIsAnswerSubmitted(true);
               
@@ -622,7 +622,7 @@ export default function MultiplayerMode() {
   const handleAnswerSubmit = (answer: string) => {
     if (activeRoomId && gameState.status === 'playing') {
       // Prevent multiple submissions for the same question
-      if (submittedRef.current === gameState.currentQuestion?.id) {
+      if (submittedRef.current === (gameState.currentQuestion?.id ?? null)) {
         console.log('Preventing duplicate answer submission for question:', gameState.currentQuestion?.id);
         return;
       }

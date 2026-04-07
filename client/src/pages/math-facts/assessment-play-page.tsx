@@ -36,6 +36,19 @@ interface AssessmentState {
   totalCorrectAnswers: number;
 }
 
+function normalizeAssessmentGrade(grade: string | null | undefined): string {
+  const resolvedGrade = grade ?? 'K';
+  if (resolvedGrade === 'K') {
+    return '0';
+  }
+
+  if (['6', '7', '8', '9', '10', '11', '12'].includes(resolvedGrade)) {
+    return '6';
+  }
+
+  return resolvedGrade;
+}
+
 export default function MathFactsAssessmentPlayPage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/math-facts/:operation/assessment');
@@ -90,7 +103,7 @@ export default function MathFactsAssessmentPlayPage() {
 
       // Determine starting grade
       const userGrade = user.grade ?? 'K';
-      const startingGrade = ['6', '7', '8', '9', '10', '11', '12'].includes(userGrade) ? '6' : userGrade;
+      const startingGrade = normalizeAssessmentGrade(userGrade);
 
       // Generate initial questions
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${startingGrade}`);
@@ -240,7 +253,7 @@ export default function MathFactsAssessmentPlayPage() {
 
   const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number, currentGradeOverride?: string) => {
     const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
-    const actualCurrentGrade = currentGradeOverride || assessmentState.currentGrade;
+    const actualCurrentGrade = normalizeAssessmentGrade(currentGradeOverride || assessmentState.currentGrade);
     const currentIndex = gradeOrder.indexOf(actualCurrentGrade);
 
     console.log(`Evaluating progression: currentGrade=${actualCurrentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);

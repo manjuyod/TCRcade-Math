@@ -24,7 +24,8 @@ export async function apiRequest(
 }
 
 export async function fetchRushAssessmentStatus(operator: string) {
-  const res = await fetch(`/api/rush/assessment-status?operator=${operator}`, {
+  const params = new URLSearchParams({ operator });
+  const res = await fetch(`/api/rush/assessment-status?${params.toString()}`, {
     credentials: "include",
   });
 

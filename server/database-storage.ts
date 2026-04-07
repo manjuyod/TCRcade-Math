@@ -1048,9 +1048,9 @@ export class DatabaseStorage {
         category: null,
         requiredGrade: null,
         specialReward: null
-      };
+      } satisfies DailyChallenge;
 
-      return fallbackChallenge as unknown as DailyChallenge;
+      return fallbackChallenge;
     }
   }
 
@@ -2156,7 +2156,7 @@ export class DatabaseStorage {
 
       const user = await this.getUser(userId);
       if (!user) {
-        return;
+        throw new Error(`User not found: ${userId} in updateSubjectMasteryMetrics`);
       }
 
       const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;

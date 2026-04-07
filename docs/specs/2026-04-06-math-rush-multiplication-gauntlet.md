@@ -4,8 +4,8 @@ Date: 2026-04-06
 
 Environment:
 - Local Windows dev run at `http://localhost:5000`
-- Account used: user id `14`, username `BBGawdBB2`
-- Password used: `Olimac_3333`
+- Test account used: user id `14`, username `<test_username>`
+- Password source: `<test_password>` from environment variables, a local secret store, or another secure channel outside version control
 - Browser tooling: `playwright-cli` in headed Chrome session
 
 ## Summary
@@ -28,7 +28,7 @@ The gauntlet did surface three high-signal issues:
 ## Repro Flow Executed
 
 1. Opened the app at `/auth`.
-2. Logged in with `BBGawdBB2` / `Olimac_3333`.
+2. Logged in with `<test_username>` / `<test_password>`.
 3. Opened `Math Rush: Multiplication` from `/modules`.
 4. Confirmed multiplication setup rendered as unlocked free play.
 5. Selected `Mixed 6-12` and started a short run.

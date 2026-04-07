@@ -78,7 +78,7 @@ The current rerun evidence suggests `localStorage` is not the main cause here, b
 Use this exact flow after the fix:
 
 1. Reset multiplication module progress for user `14`.
-2. Log in as `BBGawdBB2` with password `Olimac_3333`.
+2. Log in as `<test_username>` with password `<test_password>` from the project credential store or local secure configuration.
 3. Open `Math Rush: Multiplication`.
 4. Confirm the user is sent to assessment.
 5. Complete the assessment at `100%`.
