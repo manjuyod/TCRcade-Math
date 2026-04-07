@@ -293,7 +293,7 @@ export default function AdminPage() {
                                           <FormItem>
                                             <FormLabel>Display Name</FormLabel>
                                             <FormControl>
-                                              <Input {...field} />
+                                              <Input {...field} value={field.value ?? ""} />
                                             </FormControl>
                                           </FormItem>
                                         )}
@@ -308,6 +308,7 @@ export default function AdminPage() {
                                             <FormControl>
                                               <select
                                                 {...field}
+                                                value={field.value ?? ""}
                                                 className="w-full p-2 border rounded"
                                               >
                                                 <option value="K">Kindergarten</option>

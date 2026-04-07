@@ -16,7 +16,12 @@ interface DiagnosticReport {
   healthScore: number;
 }
 
-export function useSessionDiagnostics() {
+interface SessionDiagnosticsOptions {
+  isActive?: boolean;
+  moduleName?: string;
+}
+
+export function useSessionDiagnostics(_options?: SessionDiagnosticsOptions) {
   const [diagnostics, setDiagnostics] = useState<DiagnosticReport | null>(null);
 
   // Real-time health check

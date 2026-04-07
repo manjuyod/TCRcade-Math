@@ -9,8 +9,6 @@ import { db } from "./db";
 import { 
   syncUserProgressData,
   syncAllUsers, 
-  calculateTokenPercentile, 
-  calculateAccuracyPercentile,
   calculateModuleCompletion,
   calculateModuleAccuracy
 } from "./utils/data-sync";
@@ -1299,7 +1297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
         timestamp: new Date(msg.timestamp),
-        questionContext: msg.questionContext
+        questionContext: msg.questionContext ?? undefined
       }));
 
       // Generate AI response
@@ -1331,7 +1329,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update session progress
-      const updateData = {
+      const updateData: {
+        questionsAnswered: number;
+        correctAnswers: number;
+        totalTimeSeconds: number;
+        averageResponseTime: number;
+        conceptsPracticed?: string[];
+      } = {
         questionsAnswered: session.questionsAnswered + 1,
         correctAnswers: session.correctAnswers + (isCorrect ? 1 : 0),
         totalTimeSeconds: session.totalTimeSeconds + (timeSpent || 0),
@@ -1341,7 +1345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add concept to practiced concepts if provided
       if (question.concepts && question.concepts.length > 0) {
         const existingConcepts = session.conceptsPracticed || [];
-        const newConcepts = question.concepts.filter(concept => !existingConcepts.includes(concept));
+        const newConcepts = question.concepts.filter((concept: string) => !existingConcepts.includes(concept));
         if (newConcepts.length > 0) {
           updateData.conceptsPracticed = [...existingConcepts, ...newConcepts];
         }
@@ -1420,7 +1424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
           timestamp: new Date(msg.timestamp),
-          questionContext: msg.questionContext
+          questionContext: msg.questionContext ?? undefined
         }));
 
         aiResponse = await aiTutorEngine.generateChatResponse(
@@ -1596,7 +1600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalQuestions: questionsAnswered,
         correctAnswers: correctAnswers,
         accuracy: questionsAnswered > 0 ? (correctAnswers / questionsAnswered) * 100 : 0,
-        averageTimePerQuestion: user?.averageTimePerQuestion || 0
+        averageTimePerQuestion: 0
       };
 
       // The client expects analytics to be nested under the "analytics" key
@@ -1614,7 +1618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           questionsAnswered,
           correctAnswers,
           streakDays: user?.streakDays || 0,
-          totalTimeSpent: user?.totalTimeSpent || 0
+          totalTimeSpent: 0
         }
       });
     } catch (error) {
@@ -1657,7 +1661,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalDays: 14,
           estimatedTimePerDay: "15-25 minutes",
           focusAreas: weaknesses.length > 0 ? weaknesses.slice(0, 2) : ["Basic Math Facts", "Problem Solving"],
-          dailyActivities: []
+          dailyActivities: [] as Array<{
+            day: number;
+            activities: Array<{
+              module: string;
+              activity: string;
+              duration: string;
+              targetQuestions: number;
+              difficultyLevel: string;
+              rationale: string;
+            }>;
+          }>
         },
         learningObjectives: [
           `Improve performance in ${weaknesses[0] || 'math fundamentals'} by 20%`,
@@ -1685,7 +1699,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate daily activities based on user data
       for (let day = 1; day <= 14; day++) {
-        const activities = [];
+        const activities: Array<{
+          module: string;
+          activity: string;
+          duration: string;
+          targetQuestions: number;
+          difficultyLevel: string;
+          rationale: string;
+        }> = [];
         
         if (day % 3 === 1 && weaknesses.length > 0) {
           // Focus on primary weakness
@@ -1909,7 +1930,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               (user.correctAnswers || 0) + (isCorrect ? 1 : 0);
 
             // Prepare the update with required fields using increment pattern
-            const userUpdate = {
+            const userUpdate: {
+              questionsAnswered: number;
+              correctAnswers: number;
+              tokens?: { increment: number };
+            } = {
               questionsAnswered: (user.questionsAnswered || 0) + 1,
               correctAnswers: (user.correctAnswers || 0) + (isCorrect ? 1 : 0),
             };
@@ -2279,7 +2304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // MODULE VALIDATION - Check hidden_grade_asset for modules with attempts
-      const hiddenGradeAsset = user.hiddenGradeAsset || {};
+      const hiddenGradeAsset = (user.hiddenGradeAsset || {}) as Record<string, { total_questions_answered?: number }>;
       const validModules = Object.keys(hiddenGradeAsset).filter(moduleKey => {
         const moduleData = hiddenGradeAsset[moduleKey];
         return moduleData && 
@@ -3008,7 +3033,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`PROGRESSION: User grade: ${userGrade}, Types complete: ${typesComplete.length}, Is complete: ${isComplete}`);
             
             // Update progression data with mastery check
-            const updateData = {
+            const updateData: {
+              good_attempt: any;
+              bad_attempt: any;
+              types_complete: any;
+              last_played: string;
+              mastery_level?: boolean;
+            } = {
               good_attempt: newGoodAttempt,
               bad_attempt: newBadAttempt,
               types_complete: typesComplete,
@@ -3823,7 +3854,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const questions = await generateGameQuestions(room.grade || 'K', room.category || 'all', questionCount);
 
       // Update room with game state
-      const gameState = {
+      const gameState: any = {
+        currentQuestion: null,
         questions,
         currentQuestionIndex: 0,
         startTime: new Date(),
@@ -4357,7 +4389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Normalize grade to handle K=0 and auto-cap grades >= 6 to grade 6
       const normalizedGrade = normalizeGrade(grade as string);
-      console.log(`API: GET /api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${new URLSearchParams(req.query).get('_t')}`);
+      console.log(`API: GET /api/questions/math-facts?grade=${grade}&operation=${operation}&_t=${new URLSearchParams(req.query as Record<string, string>).get('_t')}`);
       console.log(`Normalized grade ${grade} to ${normalizedGrade} (auto-capped if >= 6)`);
       
       if (isNaN(normalizedGrade)) {

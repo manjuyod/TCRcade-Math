@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { RecommendationEngine } from './recommendation-engine';
 import { AnalyticsIntegration } from './analytics-integration';

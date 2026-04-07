@@ -11,13 +11,16 @@ import {
   leaderboard, type Leaderboard,
   moduleHistory, type ModuleHistory,
   tutorSessions, type TutorSession, type InsertTutorSession,
-  tutorChatMessages, type TutorChatMessage, type InsertTutorChatMessage
+  tutorChatMessages, type TutorChatMessage, type InsertTutorChatMessage,
+  type HiddenGradeAsset,
+  type HiddenGradeAssetModuleProgress,
+  type SubjectMastery,
+  type ConceptMastery,
+  type UserProgress
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, like, asc, isNull, or, inArray, not, sql } from "drizzle-orm";
 import { sessionStore } from "./session";
-// Use type import to avoid circular dependencies
-import type { IStorage } from "./storage";
 
 type IncrementalUpdate<T> = {
   [K in keyof T]?: T[K] | { increment: number };
@@ -57,7 +60,7 @@ function shuffleAnswerOptions(question: Question): Question {
   return shuffledQuestion;
 }
 
-export class DatabaseStorage implements IStorage {
+export class DatabaseStorage {
   sessionStore: any;
 
   constructor() {
@@ -338,8 +341,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async getBaseQuestions(filters?: { category?: string; difficulty?: number; concepts?: string[] }): Promise<Question[]> {
-    let query = db.select().from(questions);
-
     // Build filters array for base questions table
     const whereConditions = [];
 
@@ -360,10 +361,10 @@ export class DatabaseStorage implements IStorage {
 
     // Apply filters if any exist
     if (whereConditions.length > 0) {
-      query = query.where(and(...whereConditions));
+      return db.select().from(questions).where(and(...whereConditions));
     }
 
-    return await query;
+    return db.select().from(questions);
   }
 
   private convertRawToQuestions(rawQuestions: any[], category: string): Question[] {
@@ -633,9 +634,7 @@ export class DatabaseStorage implements IStorage {
       // Special handling for multiplication category to prevent division/fractions
       if (q.category === 'multiplication' && 
          (q.question.toLowerCase().includes('÷') || 
-          q.question.toLowerCase().includes('divide') ||
-          q.category === 'fractions' ||
-          q.category === 'division')) {
+          q.question.toLowerCase().includes('divide'))) {
         console.log(`REMOVING incorrectly categorized question from multiplication: ${q.id} - ${q.question.substring(0, 30)}...`);
         return false;
       }
@@ -672,12 +671,8 @@ export class DatabaseStorage implements IStorage {
   // Progress tracking migrated to hiddenGradeAsset JSON field
 
   // Concept mastery methods now use JSON data from users table
-  async getUserConceptMasteries(userId: number): Promise<any[]> {
-    const user = await this.getUser(userId);
-    if (!user?.hiddenGradeAsset) return [];
-
-    const hiddenGradeAsset = user.hiddenGradeAsset as any;
-    return hiddenGradeAsset.concept_mastery || [];
+  async getUserConceptMasteries(userId: number): Promise<ConceptMastery[]> {
+    return this.buildUserConceptMasteriesFromProgress(userId);
   }
 
   async getConceptsForGrade(grade: string): Promise<string[]> {
@@ -902,10 +897,11 @@ export class DatabaseStorage implements IStorage {
     today.setHours(0, 0, 0, 0);
 
     // First, try to find an existing challenge for today
+    const challengeDate = today.toISOString().slice(0, 10);
     const [challenge] = await db
       .select()
       .from(dailyChallenges)
-      .where(eq(dailyChallenges.date, today));
+      .where(eq(dailyChallenges.date, challengeDate));
 
     // If we found a challenge, return it
     if (challenge) {
@@ -918,7 +914,7 @@ export class DatabaseStorage implements IStorage {
 
     // Generate 5 random questions for the daily challenge
     const questionIds: number[] = [];
-    const questions: any[] = [];
+    const challengeQuestions: Question[] = [];
 
     // Get 5 random questions from the database (one for each K-4 grade)
     const randomQuestions = await db
@@ -929,7 +925,7 @@ export class DatabaseStorage implements IStorage {
     if (randomQuestions.length > 0) {
       randomQuestions.forEach(q => {
         questionIds.push(q.id);
-        questions.push(q);
+        challengeQuestions.push(q);
       });
     } else {
       // If no questions found, generate some hardcoded basic questions
@@ -942,7 +938,12 @@ export class DatabaseStorage implements IStorage {
           options: ["2", "3", "4", "5"],
           category: "addition",
           difficulty: 1,
-          grade: "K"
+          grade: "K",
+          concepts: ["addition"],
+          storyId: null,
+          storyNode: null,
+          storyText: null,
+          storyImage: null,
         },
         {
           id: 1002,
@@ -951,7 +952,12 @@ export class DatabaseStorage implements IStorage {
           options: ["1", "2", "3", "4"],
           category: "subtraction",
           difficulty: 1,
-          grade: "1"
+          grade: "1",
+          concepts: ["subtraction"],
+          storyId: null,
+          storyNode: null,
+          storyText: null,
+          storyImage: null,
         },
         {
           id: 1003,
@@ -960,7 +966,12 @@ export class DatabaseStorage implements IStorage {
           options: ["10", "11", "12", "13"],
           category: "multiplication",
           difficulty: 2,
-          grade: "2"
+          grade: "2",
+          concepts: ["multiplication"],
+          storyId: null,
+          storyNode: null,
+          storyText: null,
+          storyImage: null,
         },
         {
           id: 1004,
@@ -969,7 +980,12 @@ export class DatabaseStorage implements IStorage {
           options: ["4", "5", "6", "7"],
           category: "division",
           difficulty: 2,
-          grade: "3"
+          grade: "3",
+          concepts: ["division"],
+          storyId: null,
+          storyNode: null,
+          storyText: null,
+          storyImage: null,
         },
         {
           id: 1005,
@@ -978,28 +994,32 @@ export class DatabaseStorage implements IStorage {
           options: ["1/4", "2/4", "3/4", "4/4"],
           category: "fractions",
           difficulty: 3,
-          grade: "4"
+          grade: "4",
+          concepts: ["fractions"],
+          storyId: null,
+          storyNode: null,
+          storyText: null,
+          storyImage: null,
         }
       ];
 
       fallbackQuestions.forEach(q => {
         questionIds.push(q.id);
-        questions.push(q);
+        challengeQuestions.push(q);
       });
     }
 
     // Create the new challenge
     const newChallenge = {
       // Don't need to set ID as it's auto-incremented
-      date: today,
+      date: challengeDate,
       title: `Daily Math Challenge - ${today.toLocaleDateString()}`,
       description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
-      questions: JSON.stringify(questions), // Convert to JSON string
+      questions: challengeQuestions,
       questionIds: questionIds,
       difficulty: "medium",
       difficultyBonus: 1,
-      tokenReward: 25,
-      questionCount: 5
+      tokenReward: 25
     };
 
     try {
@@ -1017,21 +1037,20 @@ export class DatabaseStorage implements IStorage {
       // Create a fallback in-memory challenge that matches the schema
       const fallbackChallenge = {
         id: Math.floor(Date.now() / 1000), // Use timestamp as ID
-        date: today,
+        date: challengeDate,
         title: `Daily Math Challenge - ${today.toLocaleDateString()}`,
         description: "Complete these challenging questions to earn extra tokens and keep your streak going!",
-        questions: questions,
+        questions: challengeQuestions,
         questionIds: questionIds,
         difficulty: "medium",
         difficultyBonus: 1,
         tokenReward: 25,
-        questionCount: 5,
         category: null,
         requiredGrade: null,
         specialReward: null
       };
 
-      return fallbackChallenge as DailyChallenge;
+      return fallbackChallenge as unknown as DailyChallenge;
     }
   }
 
@@ -1114,13 +1133,11 @@ export class DatabaseStorage implements IStorage {
 
   // Math storytelling methods
   async getMathStories(grade?: string): Promise<MathStory[]> {
-    let query = db.select().from(mathStories);
-
     if (grade) {
-      query = query.where(eq(mathStories.grade, grade));
+      return db.select().from(mathStories).where(eq(mathStories.grade, grade));
     }
 
-    return query;
+    return db.select().from(mathStories);
   }
 
   async getMathStoryById(storyId: number): Promise<MathStory | undefined> {
@@ -1133,16 +1150,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStoryQuestions(storyId: number, nodeId?: number): Promise<Question[]> {
-    let query = db
-      .select()
-      .from(questions)
-      .where(eq(questions.storyId, storyId));
-
     if (nodeId !== undefined) {
-      query = query.where(eq(questions.storyNode, nodeId));
+      return db
+        .select()
+        .from(questions)
+        .where(and(eq(questions.storyId, storyId), eq(questions.storyNode, nodeId)));
     }
 
-    return query;
+    return db.select().from(questions).where(eq(questions.storyId, storyId));
   }
 
   async updateStoryProgress(userId: number, storyId: number, nodeId: number, complete: boolean): Promise<any> {
@@ -1157,7 +1172,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Update story progress in user's storyProgress JSON field
-    const storyProgress = user.storyProgress as any || {};
+    const storyProgress = (user.storyProgress ?? {}) as Record<string, { completedNodes: number[]; currentNode: number; complete: boolean }>;
     if (!storyProgress[storyId]) {
       storyProgress[storyId] = { completedNodes: [], currentNode: 1, complete: false };
     }
@@ -1224,9 +1239,22 @@ export class DatabaseStorage implements IStorage {
     const [room] = await db
       .insert(multiplayerRooms)
       .values({
-        ...roomData,
+        name: roomData.name ?? `Room ${roomCode}`,
         hostId,
         roomCode,
+        maxPlayers: roomData.maxPlayers ?? 4,
+        gameType: roomData.gameType ?? "cooperative",
+        difficulty: roomData.difficulty ?? 1,
+        category: roomData.category ?? null,
+        grade: roomData.grade ?? null,
+        status: roomData.status ?? "waiting",
+        gameData: roomData.gameData ?? {},
+        currentQuestionId: roomData.currentQuestionId ?? null,
+        maxParticipants: roomData.maxParticipants ?? roomData.maxPlayers ?? 4,
+        settings: roomData.settings ?? { questionCount: 10, timeLimit: 30 },
+        gameState: roomData.gameState ?? { currentQuestion: null, currentQuestionIndex: 0 },
+        startedAt: roomData.startedAt ?? null,
+        endedAt: roomData.endedAt ?? null,
         participants: [hostId],
         isActive: true,
         createdAt: new Date()
@@ -1255,20 +1283,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listActiveMultiplayerRooms(grade?: string): Promise<MultiplayerRoom[]> {
-    let query = db
-      .select()
-      .from(multiplayerRooms)
-      .where(eq(multiplayerRooms.isActive, true));
+    const rooms = grade
+      ? await db
+          .select()
+          .from(multiplayerRooms)
+          .where(and(eq(multiplayerRooms.isActive, true), or(eq(multiplayerRooms.grade, grade), isNull(multiplayerRooms.grade))))
+      : await db
+          .select()
+          .from(multiplayerRooms)
+          .where(eq(multiplayerRooms.isActive, true));
 
-    if (grade) {
-      query = query.where(or(
-        eq(multiplayerRooms.grade, grade),
-        isNull(multiplayerRooms.grade)
-      ));
-    }
-
-    // Make sure we don't include games that are full
-    const rooms = await query;
     return rooms.filter(room => {
       if (!room.participants || !room.maxParticipants) return true;
       return room.participants.length < room.maxParticipants;
@@ -1383,12 +1407,12 @@ export class DatabaseStorage implements IStorage {
       .map(([concept, _]) => concept);
 
     // Get progress data from the updated hiddenGradeAsset
-    const progressData = hiddenGradeAsset.user_progress || [];
+    const progressData = (hiddenGradeAsset.user_progress as Array<{ score: number; category: string }> | undefined) ?? [];
 
     // Create a simple analysis based on available data
     const strongCategories = progressData
-      .filter((p: any) => p.score > 100)
-      .map((p: any) => p.category);
+      .filter((p) => p.score > 100)
+      .map((p) => p.category);
 
     // Map weaknesses to practice activities but also add common learning activities
     // Explicitly avoiding "daily challenge" and "multiplayer" as per requirements
@@ -1517,43 +1541,55 @@ export class DatabaseStorage implements IStorage {
     return recommendation;
   }
 
+  async createRecommendation(data: {
+    userId: number;
+    conceptsToReview: string[];
+    conceptsToLearn: string[];
+    suggestedCategories: string[];
+    difficultyLevel: number;
+    recommendationData?: Record<string, unknown>;
+    aiInsights?: string;
+    learningStyleSuggestions?: Record<string, unknown>;
+  }): Promise<Recommendation> {
+    const [recommendation] = await db
+      .insert(recommendations)
+      .values({
+        userId: data.userId,
+        conceptsToReview: data.conceptsToReview,
+        conceptsToLearn: data.conceptsToLearn,
+        suggestedCategories: data.suggestedCategories,
+        difficultyLevel: data.difficultyLevel,
+        generatedAt: new Date(),
+        recommendationData: data.recommendationData ?? {},
+        aiInsights: data.aiInsights ?? null,
+        learningStyleSuggestions: data.learningStyleSuggestions ?? {},
+      })
+      .returning();
+
+    return recommendation;
+  }
+
   async generateRecommendations(userId: number): Promise<Recommendation> {
-    // Get user data
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    // Get concept masteries
-    const masteries = await db
-      .select()
-      .from(conceptMastery)
-      .where(eq(conceptMastery.userId, userId));
+    const masteries = await this.getUserConceptMasteries(userId);
 
-    // Identify concepts that need review
     const conceptsToReview = masteries
-      .filter(m => m.masteryLevel < 70)
-      .map(m => m.concept);
+      .filter((mastery) => (mastery.needsReview ?? mastery.masteryLevel < 70))
+      .map((mastery) => mastery.concept);
 
-    // Get all concepts for the user's grade
     const allConcepts = await this.getConceptsForGrade(user.grade || 'K');
-
-    // Identify concepts the user hasn't seen yet
-    const seenConcepts = masteries.map(m => m.concept);
-    const conceptsToLearn = allConcepts.filter(c => !seenConcepts.includes(c));
-
-    // Recommend categories based on user's progress
-    const progress = await db
-      .select()
-      .from(userProgress)
-      .where(eq(userProgress.userId, userId));
+    const seenConcepts = new Set(masteries.map((mastery) => mastery.concept));
+    const conceptsToLearn = allConcepts.filter((concept) => !seenConcepts.has(concept));
+    const progress = await this.getUserProgress(userId);
 
     const categoryCounts = progress.reduce((acc, p) => {
-      acc[p.category] = (acc[p.category] || 0) + 1;
+      const category = p.category || p.moduleName || "general";
+      acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -1563,38 +1599,30 @@ export class DatabaseStorage implements IStorage {
       .filter(c => !categoryCounts[c] || categoryCounts[c] < 3)
       .slice(0, 3);
 
-    // Calculate appropriate difficulty level
     const avgMasteryLevel = masteries.length > 0
-      ? masteries.reduce((sum, m) => sum + m.masteryLevel, 0) / masteries.length
+      ? masteries.reduce((sum, mastery) => sum + mastery.masteryLevel, 0) / masteries.length
       : 50;
 
     const difficultyLevel = Math.min(5, Math.max(1, Math.ceil(avgMasteryLevel / 20)));
 
-    // Create recommendation
-    const [recommendation] = await db
-      .insert(recommendations)
-      .values({
-        userId,
-        conceptsToReview,
-        conceptsToLearn: conceptsToLearn.slice(0, 5),
-        suggestedCategories,
-        difficultyLevel,
-        generatedAt: new Date(),
-        recommendationData: {
-          recentProgress: progress.slice(0, 5).map(p => p.category),
-          masteryLevels: masteries.map(m => ({ concept: m.concept, level: m.masteryLevel }))
-        },
-        aiInsights: conceptsToReview.length > 0
-          ? `Focus on improving your understanding of ${conceptsToReview.join(', ')}.`
-          : "Continue exploring new mathematical concepts!",
-        learningStyleSuggestions: {
-          recommendedFormat: user.learningStyle || 'visual',
-          paceRecommendation: 'moderate'
-        }
-      })
-      .returning();
-
-    return recommendation;
+    return this.createRecommendation({
+      userId,
+      conceptsToReview,
+      conceptsToLearn: conceptsToLearn.slice(0, 5),
+      suggestedCategories,
+      difficultyLevel,
+      recommendationData: {
+        recentProgress: progress.slice(0, 5).map((entry) => entry.category || entry.moduleName || "general"),
+        masteryLevels: masteries.map((mastery) => ({ concept: mastery.concept, level: mastery.masteryLevel })),
+      },
+      aiInsights: conceptsToReview.length > 0
+        ? `Focus on improving your understanding of ${conceptsToReview.join(', ')}.`
+        : "Continue exploring new mathematical concepts!",
+      learningStyleSuggestions: {
+        recommendedFormat: user.learningStyle || 'visual',
+        paceRecommendation: 'moderate',
+      },
+    });
   }
 
   // Additional method for adaptive questions that's directly referenced in the routes
@@ -1645,7 +1673,7 @@ export class DatabaseStorage implements IStorage {
               const selectedMeasurement = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
 
               // Parse the AnswerBank JSON to extract question and options
-              let questionText = selectedMeasurement.Title;
+              let questionText = selectedMeasurement.Title ?? "Measurement question";
               let options: string[] = [];
 
               try {
@@ -1661,8 +1689,8 @@ export class DatabaseStorage implements IStorage {
                 // Extract options from AnswerBank
                 if (answerBank?.options && Array.isArray(answerBank.options)) {
                   options = answerBank.options
-                    .filter(opt => opt.text && opt.text.trim())
-                    .map(opt => opt.text);
+                    .filter((opt: { text?: string }) => opt.text && opt.text.trim())
+                    .map((opt: { text?: string }) => opt.text ?? "");
                 }
               } catch (e) {
                 console.error('Error parsing AnswerBank:', e);
@@ -1670,7 +1698,7 @@ export class DatabaseStorage implements IStorage {
 
               // Fallback if no options found
               if (options.length === 0) {
-                options = [selectedMeasurement.CorrectAnswer, "Option B", "Option C", "Option D"];
+                options = [selectedMeasurement.CorrectAnswer ?? "", "Option B", "Option C", "Option D"];
               }
 
               // Transform to match Question interface
@@ -1680,7 +1708,7 @@ export class DatabaseStorage implements IStorage {
                 grade: grade, // Keep original user grade for consistency
                 difficulty: selectedMeasurement.Lesson || 3, // Use Lesson as difficulty level
                 question: questionText,
-                answer: selectedMeasurement.CorrectAnswer,
+                answer: selectedMeasurement.CorrectAnswer ?? "",
                 options: options,
                 concepts: ['measurement', selectedMeasurement.Section?.toLowerCase() || 'general'],
                 storyId: null,
@@ -1814,34 +1842,19 @@ export class DatabaseStorage implements IStorage {
   // Additional method for recommended questions
   async getRecommendedQuestion(userId: number): Promise<Question | undefined> {
     try {
-      // Get user data
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId));
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
 
       if (!user || !user.grade) {
         return undefined;
       }
 
-      // Get user's concept masteries to find concepts that need practice
-      const masteries = await db
-        .select()
-        .from(conceptMastery)
-        .where(eq(conceptMastery.userId, userId))
-        .orderBy(asc(conceptMastery.masteryLevel));
-
-      let conceptsToFocus: string[] = [];
-
-      if (masteries.length > 0) {
-        // Focus on concepts with lower mastery levels
-        conceptsToFocus = masteries
-          .filter(m => m.masteryLevel < 70)
-          .map(m => m.concept);
-      }
+      const masteries = await this.getUserConceptMasteries(userId);
+      const conceptsToFocus = masteries
+        .filter((mastery) => mastery.masteryLevel < 70)
+        .sort((a, b) => a.masteryLevel - b.masteryLevel)
+        .map((mastery) => mastery.concept);
 
       if (conceptsToFocus.length > 0) {
-        // Get questions for these concepts
         for (const concept of conceptsToFocus) {
           const conceptQuestions = await this.getQuestionsByConcept(user.grade, concept);
           if (conceptQuestions.length > 0) {
@@ -1864,36 +1877,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Subject mastery methods for adaptive grade progression
-  async getUserSubjectMasteries(userId: number): Promise<any[]> {
+  async getUserSubjectMasteries(userId: number): Promise<SubjectMastery[]> {
     const user = await this.getUser(userId);
     if (!user?.hiddenGradeAsset) return [];
 
-    const hiddenGradeAsset = user.hiddenGradeAsset as any;
-    return hiddenGradeAsset.subject_mastery || [];
+    const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+    return hiddenGradeAsset.subject_mastery ?? [];
   }
 
-  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<any[]> {
+  async getUserSubjectMasteriesByGrade(userId: number, grade: string): Promise<SubjectMastery[]> {
     const allMasteries = await this.getUserSubjectMasteries(userId);
-    return allMasteries.filter((mastery: any) => mastery.grade === grade);
+    return allMasteries.filter((mastery) => mastery.grade === grade);
   }
 
-  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<any | undefined> {
+  async getUserSubjectMastery(userId: number, subject: string, grade: string): Promise<SubjectMastery | undefined> {
     const allMasteries = await this.getUserSubjectMasteries(userId);
-    return allMasteries.find((mastery: any) => 
+    return allMasteries.find((mastery) => 
       mastery.subject === subject && mastery.grade === grade
     );
   }
 
-  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<any> {
+  async updateSubjectMastery(userId: number, subject: string, grade: string, isCorrect: boolean): Promise<SubjectMastery> {
     // Update subject mastery in user's JSON data
     const user = await this.getUser(userId);
     if (!user) throw new Error('User not found');
 
-    const hiddenGradeAsset = (user.hiddenGradeAsset as any) || {};
-    const subjectMasteries = hiddenGradeAsset.subject_mastery || [];
+    const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+    const subjectMasteries = [...(hiddenGradeAsset.subject_mastery ?? [])];
 
     // Find existing mastery entry
-    const existingIndex = subjectMasteries.findIndex((m: any) => 
+    const existingIndex = subjectMasteries.findIndex((m) => 
       m.userId === userId && m.subject === subject && m.grade === grade
     );
 
@@ -1908,10 +1921,15 @@ export class DatabaseStorage implements IStorage {
         ...existing,
         totalAttempts,
         correctAttempts,
-        lastPracticed: new Date(),
+        lastPracticed: new Date().toISOString(),
         masteryLevel,
         nextGradeUnlocked: existing.nextGradeUnlocked || (masteryLevel >= 80 && totalAttempts >= 30),
-        downgraded: masteryLevel < 50 && totalAttempts >= 10
+        downgraded: masteryLevel < 50 && totalAttempts >= 10,
+        difficultyLevel: existing.difficultyLevel ?? 1,
+        recent30Attempts: existing.recent30Attempts ?? 0,
+        recent30Correct: existing.recent30Correct ?? 0,
+        recent20Attempts: existing.recent20Attempts ?? 0,
+        recent20Correct: existing.recent20Correct ?? 0,
       };
     } else {
       // Create new mastery entry
@@ -1922,11 +1940,16 @@ export class DatabaseStorage implements IStorage {
         grade,
         totalAttempts: 1,
         correctAttempts: isCorrect ? 1 : 0,
-        lastPracticed: new Date(),
+        lastPracticed: new Date().toISOString(),
         masteryLevel: isCorrect ? 100 : 0,
         isUnlocked: true,
         nextGradeUnlocked: false,
-        downgraded: false
+        downgraded: false,
+        difficultyLevel: 1,
+        recent30Attempts: 0,
+        recent30Correct: 0,
+        recent20Attempts: 0,
+        recent20Correct: 0,
       });
     }
 
@@ -1974,40 +1997,72 @@ export class DatabaseStorage implements IStorage {
   }
 
   async unlockGradeForSubject(userId: number, subject: string, grade: string): Promise<SubjectMastery> {
-    // Check if the subject mastery already exists
     const existingMastery = await this.getUserSubjectMastery(userId, subject, grade);
 
     if (existingMastery) {
-      // Update existing mastery to unlock it
-      const [updatedMastery] = await db
-        .update(subjectMastery)
-        .set({
-          isUnlocked: true
-        })
-        .where(eq(subjectMastery.id, existingMastery.id))
-        .returning();
+      const user = await this.getUser(userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+      const subjectMasteries = [...(hiddenGradeAsset.subject_mastery ?? [])];
+      const existingIndex = subjectMasteries.findIndex((mastery) => mastery.id === existingMastery.id);
+      const updatedMastery: SubjectMastery = {
+        ...existingMastery,
+        isUnlocked: true,
+        unlocked: true,
+      };
+
+      if (existingIndex >= 0) {
+        subjectMasteries[existingIndex] = updatedMastery;
+        await this.updateUser(userId, {
+          hiddenGradeAsset: {
+            ...hiddenGradeAsset,
+            subject_mastery: subjectMasteries,
+          },
+        });
+      }
 
       return updatedMastery;
-    } else {
-      // Create new mastery entry with unlocked status
-      const [newMastery] = await db
-        .insert(subjectMastery)
-        .values({
-          userId,
-          subject,
-          grade,
-          totalAttempts: 0,
-          correctAttempts: 0,
-          lastPracticed: new Date(),
-          masteryLevel: 0,
-          isUnlocked: true,
-          nextGradeUnlocked: false,
-          downgraded: false
-        })
-        .returning();
-
-      return newMastery;
     }
+
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+    const subjectMasteries = [...(hiddenGradeAsset.subject_mastery ?? [])];
+    const newMastery: SubjectMastery = {
+      id: Date.now(),
+      userId,
+      subject,
+      grade,
+      totalAttempts: 0,
+      correctAttempts: 0,
+      lastPracticed: new Date().toISOString(),
+      masteryLevel: 0,
+      isUnlocked: true,
+      unlocked: true,
+      nextGradeUnlocked: false,
+      downgraded: false,
+      difficultyLevel: 1,
+      recent30Attempts: 0,
+      recent30Correct: 0,
+      recent20Attempts: 0,
+      recent20Correct: 0,
+    };
+
+    subjectMasteries.push(newMastery);
+    await this.updateUser(userId, {
+      hiddenGradeAsset: {
+        ...hiddenGradeAsset,
+        subject_mastery: subjectMasteries,
+      },
+    });
+
+    return newMastery;
   }
 
   async getAvailableSubjectsForGrade(userId: number, grade: string): Promise<string[]> {
@@ -2022,33 +2077,21 @@ export class DatabaseStorage implements IStorage {
     );
 
     // Return the list of unlocked subjects
-    return userMasteries.map(mastery => mastery.subject);
+    return userMasteries.map((mastery: SubjectMastery) => mastery.subject);
   }
 
   async getQuestionsForUserGradeAndSubject(userId: number, subject: string): Promise<Question[]> {
-    // First, get all subject masteries for this user that are unlocked
-    const userMasteries = await db
-      .select()
-      .from(subjectMastery)
-      .where(and(
-        eq(subjectMastery.userId, userId),
-        eq(subjectMastery.subject, subject),
-        eq(subjectMastery.isUnlocked, true)
-      ));
+    const userMasteries = (await this.getUserSubjectMasteries(userId))
+      .filter((mastery) => mastery.subject === subject && (mastery.isUnlocked ?? mastery.unlocked ?? false));
 
     if (userMasteries.length === 0) {
-      // If no masteries found, get the user's default grade
       const user = await this.getUser(userId);
       if (!user || !user.grade) return [];
 
-      // Create a default mastery for this subject and grade
       await this.unlockGradeForSubject(userId, subject, user.grade);
-
-      // Return questions for the user's default grade and this subject
       return this.getQuestionsByGrade(user.grade, subject);
     }
 
-    // Sort masteries by grade, descending order (to prioritize higher grades)
     const sortedMasteries = userMasteries.sort((a, b) => {
       const gradeA = parseInt(a.grade, 10);
       const gradeB = parseInt(b.grade, 10);
@@ -2084,118 +2127,64 @@ export class DatabaseStorage implements IStorage {
     questionId?: number
   ): Promise<void> {
     try {
-      // 1. Record this attempt in the history table
-      await db.insert(subjectDifficultyHistory).values({
-        userId,
-        subject,
-        grade,
-        isCorrect,
-        difficultyLevel: 1, // Will be updated with actual difficulty level below
-        questionId: questionId || null,
-        timestamp: new Date()
-      });
-
-      // 2. Get or create subject mastery record
       let masterEntry = await this.getUserSubjectMastery(userId, subject, grade);
 
       if (!masterEntry) {
-        // Create a new mastery entry
         masterEntry = await this.unlockGradeForSubject(userId, subject, grade);
       }
 
-      // 3. Update the mastery record with new attempt information
       const totalAttempts = masterEntry.totalAttempts + 1;
       const correctAttempts = masterEntry.correctAttempts + (isCorrect ? 1 : 0);
-
-      // Update recent attempt tracking for adaptive difficulty
-      const recent30Attempts = Math.min(masterEntry.recent30Attempts + 1, 30);
-      const recent30Correct = isCorrect 
-        ? Math.min(masterEntry.recent30Correct + 1, 30) 
-        : masterEntry.recent30Correct;
-
-      const recent20Attempts = Math.min(masterEntry.recent20Attempts + 1, 20);
-      const recent20Correct = isCorrect 
-        ? Math.min(masterEntry.recent20Correct + 1, 20) 
-        : masterEntry.recent20Correct;
-
-      // 4. Calculate accuracy for adaptive difficulty thresholds
+      const recent30Attempts = Math.min((masterEntry.recent30Attempts ?? 0) + 1, 30);
+      const recent30Correct = isCorrect
+        ? Math.min((masterEntry.recent30Correct ?? 0) + 1, 30)
+        : (masterEntry.recent30Correct ?? 0);
+      const recent20Attempts = Math.min((masterEntry.recent20Attempts ?? 0) + 1, 20);
+      const recent20Correct = isCorrect
+        ? Math.min((masterEntry.recent20Correct ?? 0) + 1, 20)
+        : (masterEntry.recent20Correct ?? 0);
       const accuracy30 = recent30Attempts > 0 ? recent30Correct / recent30Attempts : 0;
       const accuracy20 = recent20Attempts > 0 ? recent20Correct / recent20Attempts : 0;
-
-      // 5. Determine if difficulty should change
       const upgradeEligible = accuracy30 >= 0.8 && recent30Attempts >= 30;
       const downgradeEligible = accuracy20 <= 0.5 && recent20Attempts >= 20;
-
-      // Get current difficulty level
-      let difficultyLevel = masterEntry.difficultyLevel;
-
-      // 6. Adjust difficulty level if thresholds are met
+      let difficultyLevel = masterEntry.difficultyLevel ?? 1;
       if (upgradeEligible && difficultyLevel < 5) {
         difficultyLevel += 1;
-        console.log(`Upgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to good performance (${Math.round(accuracy30 * 100)}% over ${recent30Attempts} attempts)`);
-
-        // Reset counters after upgrade
-        await db.update(subjectMastery)
-          .set({
-            difficultyLevel,
-            upgradeEligible: false,
-            downgradeEligible: false,
-            recent30Attempts: 0,
-            recent30Correct: 0,
-            recent20Attempts: 0,
-            recent20Correct: 0,
-            totalAttempts,
-            correctAttempts,
-            lastPracticed: new Date()
-          })
-          .where(eq(subjectMastery.id, masterEntry.id));
-      } 
-      else if (downgradeEligible && difficultyLevel > 1) {
+      } else if (downgradeEligible && difficultyLevel > 1) {
         difficultyLevel -= 1;
-        console.log(`Downgrading difficulty for userId=${userId}, subject=${subject} to level ${difficultyLevel} due to struggles (${Math.round(accuracy20 * 100)}% over ${recent20Attempts} attempts)`);
-
-        // Reset counters after downgrade
-        await db.update(subjectMastery)
-          .set({
-            difficultyLevel,
-            upgradeEligible: false,
-            downgradeEligible: false,
-            recent30Attempts: 0,
-            recent30Correct: 0,
-            recent20Attempts: 0,
-            recent20Correct: 0,
-            totalAttempts,
-            correctAttempts,
-            lastPracticed: new Date()
-          })
-          .where(eq(subjectMastery.id, masterEntry.id));
-      }
-      else {
-        // Just update counters
-        await db.update(subjectMastery)
-          .set({
-            upgradeEligible,
-            downgradeEligible,
-            recent30Attempts,
-            recent30Correct,
-            recent20Attempts,
-            recent20Correct,
-            totalAttempts,
-            correctAttempts,
-            lastPracticed: new Date()
-          })
-          .where(eq(subjectMastery.id, masterEntry.id));
       }
 
-      // Update the difficulty level in the history record we just created
-      await db.update(subjectDifficultyHistory)
-        .set({ difficultyLevel })
-        .where(and(
-          eq(subjectDifficultyHistory.userId, userId),
-          eq(subjectDifficultyHistory.subject, subject),
-          eq(subjectDifficultyHistory.grade, grade),
-          eq(subjectDifficultyHistory.timestamp, new Date())
-        ));
+      const user = await this.getUser(userId);
+      if (!user) {
+        return;
+      }
+
+      const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+      const subjectMasteries = [...(hiddenGradeAsset.subject_mastery ?? [])];
+      const masteryIndex = subjectMasteries.findIndex((mastery) => mastery.id === masterEntry.id);
+
+      if (masteryIndex >= 0) {
+        subjectMasteries[masteryIndex] = {
+          ...subjectMasteries[masteryIndex],
+          totalAttempts,
+          correctAttempts,
+          difficultyLevel,
+          upgradeEligible,
+          downgradeEligible,
+          recent30Attempts: upgradeEligible || downgradeEligible ? 0 : recent30Attempts,
+          recent30Correct: upgradeEligible || downgradeEligible ? 0 : recent30Correct,
+          recent20Attempts: upgradeEligible || downgradeEligible ? 0 : recent20Attempts,
+          recent20Correct: upgradeEligible || downgradeEligible ? 0 : recent20Correct,
+          lastPracticed: new Date().toISOString(),
+        };
+
+        await this.updateUser(userId, {
+          hiddenGradeAsset: {
+            ...hiddenGradeAsset,
+            subject_mastery: subjectMasteries,
+          },
+        });
+      }
 
     } catch (error) {
       console.error('Error tracking subject difficulty:', error);
@@ -2213,7 +2202,7 @@ export class DatabaseStorage implements IStorage {
       return 1;
     }
 
-    return mastery.difficultyLevel;
+    return mastery.difficultyLevel ?? 1;
   }
 
   /**
@@ -2333,8 +2322,6 @@ export class DatabaseStorage implements IStorage {
    * Get module history for analytics and reporting
    */
   async getModuleHistoryAnalytics(userId?: number, days?: number): Promise<ModuleHistory[]> {
-    let query = db.select().from(moduleHistory);
-
     const filters = [];
 
     if (userId) {
@@ -2347,31 +2334,88 @@ export class DatabaseStorage implements IStorage {
       filters.push(gte(moduleHistory.completedAt, cutoffDate));
     }
 
-    if (filters.length > 0) {
-      query = query.where(and(...filters));
+    const baseQuery = filters.length > 0
+      ? db.select().from(moduleHistory).where(and(...filters))
+      : db.select().from(moduleHistory);
+
+    return await baseQuery.orderBy(desc(moduleHistory.completedAt)).limit(1000);
+  }
+
+  async updateUserProgress(userId: number, category: string, data: Partial<UserProgress>): Promise<UserProgress> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
     }
 
-    return await query
-      .orderBy(desc(moduleHistory.completedAt))
-      .limit(1000); // Reasonable limit for analytics
+    const hiddenGradeAsset = (user.hiddenGradeAsset ?? {}) as HiddenGradeAsset & {
+      user_progress?: UserProgress[];
+    };
+    const existingProgress = [...(hiddenGradeAsset.user_progress ?? [])];
+    const existingIndex = existingProgress.findIndex((entry) => entry.category === category);
+    const now = new Date().toISOString();
+
+    const currentEntry: UserProgress = existingIndex >= 0
+      ? existingProgress[existingIndex]
+      : {
+          id: `${category}-${Date.now()}`,
+          userId,
+          category,
+          score: 0,
+          completedQuestions: 0,
+          questionsAnswered: 0,
+          correctAnswers: 0,
+          timeSpent: 0,
+          date: now,
+          updatedAt: now,
+          level: 1,
+        };
+
+    const updatedEntry: UserProgress = {
+      ...currentEntry,
+      ...data,
+      userId,
+      category,
+      score: currentEntry.score + (data.score ?? 0),
+      completedQuestions: currentEntry.completedQuestions + (data.completedQuestions ?? 0),
+      questionsAnswered: currentEntry.questionsAnswered + (data.questionsAnswered ?? data.completedQuestions ?? 0),
+      correctAnswers: currentEntry.correctAnswers + (data.correctAnswers ?? 0),
+      timeSpent: currentEntry.timeSpent + (data.timeSpent ?? 0),
+      updatedAt: now,
+    };
+
+    if (existingIndex >= 0) {
+      existingProgress[existingIndex] = updatedEntry;
+    } else {
+      existingProgress.push(updatedEntry);
+    }
+
+    await this.updateUser(userId, {
+      hiddenGradeAsset: {
+        ...hiddenGradeAsset,
+        user_progress: existingProgress,
+      },
+    });
+
+    return updatedEntry;
   }
 
   /**
    * Get user progress data for analytics - combines historical and current data
    */
-  async getUserProgress(userId: number): Promise<any[]> {
+  async getUserProgress(userId: number): Promise<UserProgress[]> {
     try {
       // Get historical data from module_history
       const moduleHistoryData = await this.getUserModuleHistory(userId, 50);
       
       // Get current progress from user's hiddenGradeAsset
       const user = await this.getUser(userId);
-      const currentProgress = user?.hiddenGradeAsset || {};
+      const currentProgress = (user?.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
 
       // Transform historical data into progress format
-      const progressEntries = moduleHistoryData.map(session => ({
+      const progressEntries: UserProgress[] = moduleHistoryData.map(session => ({
         id: session.id,
         userId: session.userId,
+        category: session.moduleName,
         score: session.finalScore,
         completedQuestions: session.questionsTotal,
         questionsAnswered: session.questionsTotal,
@@ -2388,11 +2432,12 @@ export class DatabaseStorage implements IStorage {
       if (currentProgress.modules) {
         for (const [moduleName, moduleData] of Object.entries(currentProgress.modules)) {
           if (typeof moduleData === 'object' && moduleData !== null) {
-            const moduleInfo = moduleData as any;
+            const moduleInfo = moduleData as { progress?: HiddenGradeAssetModuleProgress };
             if (moduleInfo.progress) {
               progressEntries.push({
                 id: `current-${moduleName}`,
                 userId,
+                category: moduleName,
                 score: moduleInfo.progress.currentScore || 0,
                 completedQuestions: moduleInfo.progress.questionsAnswered || 0,
                 questionsAnswered: moduleInfo.progress.questionsAnswered || 0,
@@ -2419,29 +2464,34 @@ export class DatabaseStorage implements IStorage {
   /**
    * Get user concept masteries from current progress data
    */
-  async getUserConceptMasteries(userId: number): Promise<any[]> {
+  private async buildUserConceptMasteriesFromProgress(userId: number): Promise<ConceptMastery[]> {
     try {
       const user = await this.getUser(userId);
-      const currentProgress = user?.hiddenGradeAsset || {};
-      const masteries: any[] = [];
+      const currentProgress = (user?.hiddenGradeAsset ?? {}) as HiddenGradeAsset;
+      const masteries: ConceptMastery[] = [];
 
       // Extract concept masteries from module progress
       if (currentProgress.modules) {
         for (const [moduleName, moduleData] of Object.entries(currentProgress.modules)) {
           if (typeof moduleData === 'object' && moduleData !== null) {
-            const moduleInfo = moduleData as any;
-            if (moduleInfo.progress && moduleInfo.progress.conceptMastery) {
+            const moduleInfo = moduleData as { progress?: { conceptMastery?: Record<string, Partial<ConceptMastery>> } };
+            if (moduleInfo.progress?.conceptMastery) {
               for (const [concept, masteryData] of Object.entries(moduleInfo.progress.conceptMastery)) {
                 if (typeof masteryData === 'object' && masteryData !== null) {
-                  const mastery = masteryData as any;
+                  const mastery = masteryData as Partial<ConceptMastery>;
                   masteries.push({
                     id: `${moduleName}-${concept}`,
                     userId,
                     concept,
+                    grade: user?.grade ?? "K",
                     moduleName,
-                    masteryLevel: mastery.level || 0,
-                    attempts: mastery.attempts || 0,
-                    successRate: mastery.successRate || 0,
+                    totalAttempts: mastery.totalAttempts ?? mastery.attempts ?? 0,
+                    correctAttempts: mastery.correctAttempts ?? 0,
+                    masteryLevel: mastery.level ?? mastery.masteryLevel ?? 0,
+                    attempts: mastery.attempts ?? mastery.totalAttempts ?? 0,
+                    successRate: mastery.successRate ?? 0,
+                    needsReview: (mastery.level ?? mastery.masteryLevel ?? 0) < 70,
+                    lastPracticed: mastery.lastPracticed ?? new Date(),
                     lastAttempt: mastery.lastAttempt ? new Date(mastery.lastAttempt) : new Date(),
                     timeToMastery: mastery.timeToMastery || 0
                   });
@@ -2471,10 +2521,15 @@ export class DatabaseStorage implements IStorage {
             id: `general-${moduleName}`,
             userId,
             concept: this.formatModuleName(moduleName),
+            grade: user?.grade ?? "K",
             moduleName,
             masteryLevel: Math.min(100, avgScore),
+            totalAttempts: sessions.length,
+            correctAttempts: totalCorrect,
             attempts: sessions.length,
             successRate: successRate * 100,
+            needsReview: avgScore < 70,
+            lastPracticed: new Date(sessions[0].completedAt),
             lastAttempt: new Date(sessions[0].completedAt),
             timeToMastery: 0
           });
@@ -2673,20 +2728,20 @@ export class DatabaseStorage implements IStorage {
   /**
    * Build module performance data from historical data
    */
-  private buildModulePerformanceFromHistory(moduleHistoryData: any[]): any[] {
+  private buildModulePerformanceFromHistory(moduleHistoryData: ModuleHistory[]): Array<Record<string, unknown>> {
     const moduleGroups = moduleHistoryData.reduce((groups, session) => {
       if (!groups[session.moduleName]) groups[session.moduleName] = [];
       groups[session.moduleName].push(session);
       return groups;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, ModuleHistory[]>);
 
     return Object.entries(moduleGroups).map(([moduleName, sessions]) => ({
       moduleName,
-      averageScore: sessions.reduce((sum: number, s: any) => sum + s.finalScore, 0) / sessions.length,
-      accuracy: sessions.reduce((sum: number, s: any) => sum + (s.questionsCorrect / Math.max(1, s.questionsTotal)), 0) / sessions.length * 100,
+      averageScore: sessions.reduce((sum: number, session) => sum + session.finalScore, 0) / sessions.length,
+      accuracy: sessions.reduce((sum: number, session) => sum + (session.questionsCorrect / Math.max(1, session.questionsTotal)), 0) / sessions.length * 100,
       sessionCount: sessions.length,
       lastSession: sessions[0].completedAt,
-      trend: this.calculateModuleTrend(sessions as any[])
+      trend: this.calculateModuleTrend(sessions)
     }));
   }
 
@@ -2994,7 +3049,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addTutorChatMessage(data: InsertTutorChatMessage): Promise<TutorChatMessage> {
-    const [message] = await db.insert(tutorChatMessages).values(data).returning();
+    const sanitizedQuestionContext =
+      data.questionContext && typeof data.questionContext === "object" && !Array.isArray(data.questionContext)
+        ? data.questionContext
+        : null;
+
+    const [message] = await db
+      .insert(tutorChatMessages)
+      .values({
+        ...data,
+        questionContext: sanitizedQuestionContext,
+      } as any)
+      .returning();
     return message;
   }
 

@@ -29,7 +29,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, fetchRushAssessmentStatus, queryClient } from '@/lib/queryClient';
 
 type AssessmentQuestion = {
   id: number;
@@ -80,16 +80,31 @@ export default function MathRushAssessmentPage() {
     mutationFn: async (data: { operator: string; score: number; answers: any[] }) => {
       return apiRequest('POST', '/api/rush/complete-assessment', data);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       const operatorName = operator.charAt(0).toUpperCase() + operator.slice(1);
       toast({
         title: "Assessment Complete!",
         description: `Math Rush ${operatorName} is now unlocked! You can access token runs and practice sessions.`,
       });
-      // Navigate back to modules page
-      setTimeout(() => {
-        navigate('/modules');
-      }, 2000);
+      const navigationDelay = new Promise((resolve) => setTimeout(resolve, 2000));
+      const refreshAssessmentStatus = async () => {
+        await queryClient.invalidateQueries({
+          queryKey: ['/api/rush/assessment-status', operator],
+        });
+        await queryClient.fetchQuery({
+          queryKey: ['/api/rush/assessment-status', operator],
+          queryFn: () => fetchRushAssessmentStatus(operator),
+        });
+      };
+
+      await Promise.all([
+        navigationDelay,
+        refreshAssessmentStatus().catch((error) => {
+          console.error('Error refreshing assessment status cache:', error);
+        }),
+      ]);
+
+      navigate('/modules');
     },
     onError: (error) => {
       console.error('Error completing assessment:', error);

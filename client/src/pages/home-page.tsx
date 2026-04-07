@@ -42,6 +42,11 @@ function DashboardStats({
   cohortScore,
   questionsAnswered,
   studyTime,
+}: {
+  myScore: number;
+  cohortScore: number;
+  questionsAnswered: number;
+  studyTime: string;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1076,10 +1081,8 @@ export default function HomePage() {
                       const finalStats = {
                         questionsAnswered: sessionSize,
                         correctAnswers:
-                          sessionStats.correctAnswers + (isCorrect ? 1 : 0),
-                        tokensEarned:
-                          sessionStats.tokensEarned +
-                          (isCorrect ? tokensEarned : 0),
+                          sessionStats.correctAnswers,
+                        tokensEarned: sessionStats.tokensEarned,
                       };
 
                       // Log session completion for debugging

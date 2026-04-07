@@ -45,13 +45,13 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
   const [selectedGrade, setSelectedGrade] = useState(currentGrade || '5');
 
   // Get all subject masteries for the user
-  const { data: allMasteries, isLoading: masteriesLoading } = useQuery({
+  const { data: allMasteries, isLoading: masteriesLoading } = useQuery<SubjectMasteryType[]>({
     queryKey: ['/api/subject-masteries'],
     retry: 1,
   });
 
   // Get available subjects for the selected grade
-  const { data: availableSubjects, isLoading: subjectsLoading, refetch: refetchSubjects } = useQuery({
+  const { data: availableSubjects, isLoading: subjectsLoading, refetch: refetchSubjects } = useQuery<string[]>({
     queryKey: ['/api/subjects/available', selectedGrade],
     queryFn: async () => {
       const res = await fetch(`/api/subjects/available/${selectedGrade}`);
@@ -101,7 +101,7 @@ export function SubjectMastery({ userId, currentGrade }: { userId: number, curre
       (m: SubjectMasteryType) => m.subject === subject
     );
     
-    if (!mastery) return { unlocked: false, proficiencyScore: 0 };
+    if (!mastery) return { unlocked: false, proficiencyScore: 0, attempts: 0, correct: 0 };
     
     // Calculate proficiency score (0-1) based on correctAttempts / totalAttempts
     const proficiencyScore = mastery.totalAttempts > 0 

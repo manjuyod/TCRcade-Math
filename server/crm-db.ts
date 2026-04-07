@@ -11,7 +11,7 @@ const crmConfig: sql.config = {
     trustServerCertificate: true, // Trust the server certificate
     enableArithAbort: true,
     requestTimeout: 30000,
-    connectionTimeout: 30000,
+    connectTimeout: 30000,
   },
   pool: {
     max: 10,

@@ -4,11 +4,19 @@ import { motion } from 'framer-motion';
 import { getCategoryLabel } from '@/lib/questions';
 
 type QuestionCardProps = {
-  question: Question;
-  onAnswer: (answer: string) => void;
+  question: Question | null;
+  onAnswer?: (answer: string) => void;
+  onAnswerSubmit?: (answer: string) => void;
   disableOptions?: boolean;
   showCorrectAnswer?: boolean;
   showTimer?: boolean;
+  isLoading?: boolean;
+  isSubmitting?: boolean;
+  questionNumber?: number;
+  totalQuestions?: number;
+  correctCount?: number;
+  timeElapsed?: number;
+  progressPercentage?: number;
 };
 
 // Define the QuestionContent interface to match the structure coming from the backend
@@ -29,7 +37,14 @@ interface QuestionContent {
   isFlashcard?: boolean;
 }
 
-export default function QuestionCard({ question, onAnswer, disableOptions, showCorrectAnswer, showTimer }: QuestionCardProps) {
+export default function QuestionCard({
+  question,
+  onAnswer,
+  onAnswerSubmit,
+  disableOptions,
+  showCorrectAnswer,
+  showTimer,
+}: QuestionCardProps) {
   // Default to a safe fallback if question is undefined
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState<string>("Loading question...");
@@ -199,7 +214,8 @@ export default function QuestionCard({ question, onAnswer, disableOptions, showC
 
     // Auto-progress after showing feedback for 1.5 seconds
     setTimeout(() => {
-      onAnswer(option);
+      onAnswer?.(option);
+      onAnswerSubmit?.(option);
     }, 1500);
   };
 

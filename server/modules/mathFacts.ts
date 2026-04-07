@@ -139,12 +139,12 @@ function runAssessmentForOperation(
   passed: boolean;
 }> {
   return new Promise(async (resolve) => {
-    let currentGrade = getGradeForAssessment(userGrade);
+    let currentGrade = gradeToString(getGradeForAssessment(userGrade));
     let totalQuestionsAnswered = 0;
     let totalCorrect = 0;
     let passed = false;
 
-    while (currentGrade !== null) {
+    while (true) {
       const questions = generateAssessmentQuestions(operation, currentGrade);
       const answers = await answerCallback(questions);
 

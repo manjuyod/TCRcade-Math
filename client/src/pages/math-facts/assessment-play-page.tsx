@@ -48,7 +48,11 @@ export default function MathFactsAssessmentPlayPage() {
     currentQuestionIndex: 0,
     answers: [],
     completed: false,
-    results: []
+    results: [],
+    gradeCache: {},
+    maxGradeTested: '',
+    totalQuestionsAnswered: 0,
+    totalCorrectAnswers: 0,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +89,7 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
 
       // Determine starting grade
-      const userGrade = user.grade;
+      const userGrade = user.grade ?? 'K';
       const startingGrade = ['6', '7', '8', '9', '10', '11', '12'].includes(userGrade) ? '6' : userGrade;
 
       // Generate initial questions
@@ -299,13 +303,13 @@ export default function MathFactsAssessmentPlayPage() {
           questionsType: typeof data.questions,
           questionsLength: data.questions?.length,
           firstQuestion: data.questions?.[0]?.question,
-          allQuestions: data.questions?.map(q => q.question),
+          allQuestions: data.questions?.map((q: Question) => q.question),
           fullResponse: JSON.stringify(data)
         });
         
         // Validate the questions more thoroughly
         if (data.questions && Array.isArray(data.questions)) {
-          data.questions.forEach((q, index) => {
+          data.questions.forEach((q: Question, index: number) => {
             console.log(`   Question ${index + 1}: "${q.question}" (Answer: ${q.answer})`);
           });
         }
@@ -323,7 +327,7 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
 
       console.log(`🔄 STATE TRANSITION: Moving from ${assessmentState.currentGrade} to ${newGrade}`);
-      console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map(q => q.question));
+      console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map((q: Question) => q.question));
       console.log(`🎯 Pre-update state:`, {
         currentGrade: assessmentState.currentGrade,
         currentQuestion: assessmentState.questions[assessmentState.currentQuestionIndex]?.question

@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { playSound } from "@/lib/sounds";
-import { AiAnalytic } from "@shared/schema";
+import type { AiAnalytic, ConceptMastery, HiddenGradeAsset } from "@shared/schema";
 import { generateCustomStudyPlanFromAnalytics } from "@/lib/analytics-helpers";
 import {
   Loader2,
@@ -99,7 +99,7 @@ export default function AiAnalytics() {
   const analytics = analyticsData?.analytics?.analytics;
   const conceptMasteries = analyticsData?.analytics?.conceptMasteries || [];
   // Process recent progress data from hiddenGradeAsset modules
-  const processRecentProgressFromAsset = (hiddenGradeAsset: any) => {
+  const processRecentProgressFromAsset = (hiddenGradeAsset?: HiddenGradeAsset | null) => {
     if (!hiddenGradeAsset?.modules) return { data: [], isDummy: false };
 
     const dailyData: {
@@ -140,8 +140,12 @@ export default function AiAnalytics() {
 
       // Check for daily statistics
       if (module.daily_stats) {
-        Object.keys(module.daily_stats).forEach((date) => {
-          const stats = module.daily_stats[date];
+        const dailyStats = module.daily_stats as Record<
+          string,
+          { tokens_earned?: number; questions_attempted?: number; sessions?: number }
+        >;
+        Object.keys(dailyStats).forEach((date) => {
+          const stats = dailyStats[date];
           if (!dailyData[date]) {
             dailyData[date] = {
               date,
@@ -150,9 +154,9 @@ export default function AiAnalytics() {
               sessions: 0,
             };
           }
-          dailyData[date].totalScore += stats.tokens_earned || 0;
-          dailyData[date].totalQuestions += stats.questions_attempted || 0;
-          dailyData[date].sessions += stats.sessions || 1;
+          dailyData[date].totalScore += stats?.tokens_earned ?? 0;
+          dailyData[date].totalQuestions += stats?.questions_attempted ?? 0;
+          dailyData[date].sessions += stats?.sessions ?? 1;
           hasRealData = true;
         });
       }
@@ -223,7 +227,19 @@ export default function AiAnalytics() {
   const isProgressDataDummy = recentProgressResult.isDummy;
 
   // Extract concept mastery data from user's hiddenGradeAsset
-  const conceptMasteryData = user?.hiddenGradeAsset?.concept_mastery || {};
+  const conceptMasteryData = ((user?.hiddenGradeAsset?.concept_mastery ?? {}) as Record<
+    string,
+    {
+      weightedScore?: number;
+      accuracy?: number;
+      consistency?: number;
+      practiceVolume?: number;
+      practiceVolumeRatio?: number;
+      hasMastery?: boolean;
+      modules?: string[];
+      breakdown?: Record<string, unknown>;
+    }
+  >);
 
   // Process concept mastery data for display
   const processConceptMasteryData = () => {
@@ -310,16 +326,23 @@ export default function AiAnalytics() {
         "/api/analytics/study-plan",
         {},
       );
+      const responseData = (await response.json()) as {
+        studyPlan?: {
+          studyPlan: {
+            dailyActivities: Array<{
+              day: number;
+              activities: Array<{ activity: string; duration: string }>;
+            }>;
+          };
+        };
+      };
 
-      if (response.studyPlan) {
+      if (responseData.studyPlan) {
         // Transform the study plan into display format
-        const planItems = response.studyPlan.studyPlan.dailyActivities.map(
-          (day: any) =>
+        const planItems = responseData.studyPlan.studyPlan.dailyActivities.map(
+          (day) =>
             `Day ${day.day}: ${day.activities
-              .map(
-                (activity: any) =>
-                  `${activity.activity} (${activity.duration})`,
-              )
+              .map((activity) => `${activity.activity} (${activity.duration})`)
               .join(", ")}`,
         );
 
@@ -931,7 +954,7 @@ export default function AiAnalytics() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {(analytics.strengthConcepts || []).length > 0 ? (
-                      [...new Set(analytics.strengthConcepts || [])].map(
+                      Array.from(new Set<string>(analytics.strengthConcepts || [])).map(
                         (strength, index) => (
                           <Badge
                             key={index}
@@ -965,10 +988,10 @@ export default function AiAnalytics() {
                       const filteredWeaknesses = (
                         analytics.weaknessConcepts || []
                       ).filter(
-                        (concept) => !strengthConcepts.includes(concept),
+                        (concept: string) => !strengthConcepts.includes(concept),
                       );
                       return filteredWeaknesses.length > 0 ? (
-                        filteredWeaknesses.map((weakness, index) => (
+                        filteredWeaknesses.map((weakness: string, index: number) => (
                           <Badge
                             key={index}
                             variant="outline"
