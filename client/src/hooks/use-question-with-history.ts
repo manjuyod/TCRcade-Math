@@ -139,12 +139,7 @@ export function useQuestionWithHistory(
       const mathOperations: string[] = [];
       
       if (question.question) {
-        // Get the text property if it exists, otherwise use question.question directly
-        const questionText = typeof question.question === 'object' && question.question.text 
-          ? question.question.text 
-          : typeof question.question === 'string' 
-            ? question.question 
-            : '';
+        const questionText = question.question;
 
         console.log("Processing question text:", questionText);
             
@@ -155,28 +150,28 @@ export function useQuestionWithHistory(
         const divisionMatches = questionText.match(/(\d+)\s*[÷\/]\s*(\d+)/g) || [];
         
         // Convert matches to standardized math facts
-        additionMatches.forEach(match => {
+        additionMatches.forEach((match: string) => {
           const parts = match.match(/(\d+)\s*\+\s*(\d+)/);
           if (parts && parts.length >= 3) {
             mathOperations.push(`${parts[1]}+${parts[2]}`);
           }
         });
         
-        subtractionMatches.forEach(match => {
+        subtractionMatches.forEach((match: string) => {
           const parts = match.match(/(\d+)\s*\-\s*(\d+)/);
           if (parts && parts.length >= 3) {
             mathOperations.push(`${parts[1]}-${parts[2]}`);
           }
         });
         
-        multiplicationMatches.forEach(match => {
+        multiplicationMatches.forEach((match: string) => {
           const parts = match.match(/(\d+)\s*[×x\*]\s*(\d+)/);
           if (parts && parts.length >= 3) {
             mathOperations.push(`${parts[1]}×${parts[2]}`);
           }
         });
         
-        divisionMatches.forEach(match => {
+        divisionMatches.forEach((match: string) => {
           const parts = match.match(/(\d+)\s*[÷\/]\s*(\d+)/);
           if (parts && parts.length >= 3) {
             mathOperations.push(`${parts[1]}÷${parts[2]}`);
@@ -186,11 +181,7 @@ export function useQuestionWithHistory(
       
       // Generate a signature (normalized question text)
       const questionSignature = question.question
-        ? (typeof question.question === 'object' && question.question.text
-            ? question.question.text.toLowerCase().replace(/\s+/g, ' ').trim()
-            : typeof question.question === 'string'
-                ? question.question.toLowerCase().replace(/\s+/g, ' ').trim()
-                : '')
+        ? question.question.toLowerCase().replace(/\s+/g, ' ').trim()
         : '';
       
       // Store the question data

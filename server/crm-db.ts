@@ -1,5 +1,14 @@
 import sql from 'mssql';
 
+function getTrustServerCertificate(): boolean {
+  const configuredValue = process.env.DB_TRUST_SERVER_CERTIFICATE;
+  if (configuredValue !== undefined) {
+    return configuredValue.toLowerCase() === 'true';
+  }
+
+  return process.env.NODE_ENV !== 'production';
+}
+
 // CRM Database connection configuration
 const crmConfig: sql.config = {
   server: process.env.CRMSrvAddress!,
@@ -8,10 +17,11 @@ const crmConfig: sql.config = {
   password: process.env.CRMSrvPs!,
   options: {
     encrypt: true, // Use encryption for security
-    trustServerCertificate: true, // Trust the server certificate
+    // Production should use a valid trusted server certificate instead of bypassing TLS validation.
+    trustServerCertificate: getTrustServerCertificate(),
     enableArithAbort: true,
     requestTimeout: 30000,
-    connectionTimeout: 30000,
+    connectTimeout: 30000,
   },
   pool: {
     max: 10,

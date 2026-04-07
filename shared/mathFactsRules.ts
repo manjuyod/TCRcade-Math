@@ -95,6 +95,10 @@ export interface MathFactsProgress {
   last_session_date?: string;
 }
 
+type BinaryRange = { min1: number; max1: number; min2: number; max2: number };
+type SubtractionRange = { min2: number; max2: number; minDiff: number; maxDiff: number };
+type DivisionRange = { minDivisor: number; maxDivisor: number; minQuotient: number; maxQuotient: number };
+
 /**
  * Math Facts Rules - Shared configuration and logic
  */
@@ -168,33 +172,38 @@ export function generateMathFactQuestion(
   let num1: number, num2: number, result: number;
 
   switch (operation) {
-    case 'addition':
-      num1 = Math.floor(Math.random() * (range.max1 - range.min1 + 1)) + range.min1;
-      num2 = Math.floor(Math.random() * (range.max2 - range.min2 + 1)) + range.min2;
+    case 'addition': {
+      const additionRange = range as BinaryRange;
+      num1 = Math.floor(Math.random() * (additionRange.max1 - additionRange.min1 + 1)) + additionRange.min1;
+      num2 = Math.floor(Math.random() * (additionRange.max2 - additionRange.min2 + 1)) + additionRange.min2;
       result = num1 + num2;
       question = `${num1} + ${num2} = ?`;
       answer = result.toString();
       break;
+    }
 
-    case 'subtraction':
-      const subRange = range as any; // Type assertion for subtraction specific properties
+    case 'subtraction': {
+      const subRange = range as SubtractionRange;
       const minuend = Math.floor(Math.random() * (subRange.maxDiff - subRange.minDiff + 1)) + subRange.minDiff + subRange.min2;
       num2 = Math.floor(Math.random() * (Math.min(subRange.max2, minuend) - subRange.min2 + 1)) + subRange.min2;
       result = minuend - num2;
       question = `${minuend} - ${num2} = ?`;
       answer = result.toString();
       break;
+    }
 
-    case 'multiplication':
-      num1 = Math.floor(Math.random() * (range.max1 - range.min1 + 1)) + range.min1;
-      num2 = Math.floor(Math.random() * (range.max2 - range.min2 + 1)) + range.min2;
+    case 'multiplication': {
+      const multiplicationRange = range as BinaryRange;
+      num1 = Math.floor(Math.random() * (multiplicationRange.max1 - multiplicationRange.min1 + 1)) + multiplicationRange.min1;
+      num2 = Math.floor(Math.random() * (multiplicationRange.max2 - multiplicationRange.min2 + 1)) + multiplicationRange.min2;
       result = num1 * num2;
       question = `${num1} × ${num2} = ?`;
       answer = result.toString();
       break;
+    }
 
-    case 'division':
-      const divRange = range as any; // Type assertion for division specific properties
+    case 'division': {
+      const divRange = range as DivisionRange;
       const quotient = Math.floor(Math.random() * (divRange.maxQuotient - divRange.minQuotient + 1)) + divRange.minQuotient;
       const divisor = Math.floor(Math.random() * (divRange.maxDivisor - divRange.minDivisor + 1)) + divRange.minDivisor;
       const dividend = quotient * divisor;
@@ -202,6 +211,7 @@ export function generateMathFactQuestion(
       answer = quotient.toString();
       result = quotient;
       break;
+    }
 
     default:
       throw new Error(`Unknown operation: ${operation}`);

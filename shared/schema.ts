@@ -2,6 +2,136 @@ import { pgTable, text, serial, integer, boolean, timestamp, json, date, bigint,
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export interface AvatarConfiguration {
+  hair: string;
+  face: string;
+  outfit: string;
+  accessories: string[];
+  background: string;
+  unlocks: string[];
+  ownedAvatarItems?: string[];
+}
+
+export interface ConceptMastery {
+  id: number | string;
+  userId: number;
+  concept: string;
+  grade: string;
+  totalAttempts: number;
+  correctAttempts: number;
+  lastPracticed: Date | string;
+  masteryLevel: number;
+  needsReview?: boolean;
+  moduleName?: string;
+  attempts?: number;
+  successRate?: number;
+  lastAttempt?: Date | string;
+  timeToMastery?: number;
+  level?: number;
+}
+
+export interface SubjectMastery {
+  id: number | string;
+  userId: number;
+  subject: string;
+  grade: string;
+  totalAttempts: number;
+  correctAttempts: number;
+  lastPracticed: Date | string;
+  masteryLevel: number;
+  isUnlocked?: boolean;
+  unlocked?: boolean;
+  nextGradeUnlocked?: boolean;
+  downgraded?: boolean;
+  difficultyLevel?: number;
+  recent30Attempts?: number;
+  recent30Correct?: number;
+  recent20Attempts?: number;
+  recent20Correct?: number;
+  upgradeEligible?: boolean;
+  downgradeEligible?: boolean;
+  proficiencyScore?: number;
+  createdAt?: Date | string;
+}
+
+export interface UserProgress {
+  id: number | string;
+  userId: number;
+  category: string;
+  score: number;
+  completedQuestions: number;
+  questionsAnswered: number;
+  correctAnswers: number;
+  timeSpent: number;
+  date: Date | string;
+  updatedAt?: Date | string;
+  level?: number;
+  moduleName?: string;
+  difficulty?: number;
+  gradeLevel?: string;
+}
+
+export interface HiddenGradeAssetModuleProgress {
+  currentScore?: number;
+  currentDifficulty?: number;
+  currentGrade?: string;
+  questionsAnswered?: number;
+  correctAnswers?: number;
+  total_questions_answered?: number;
+  total_questions?: number;
+  timeSpent?: number;
+  tokens_earned?: number;
+  sessions_completed?: number;
+  mastery_level?: boolean | number;
+  conceptMastery?: Record<string, Partial<ConceptMastery>>;
+  completion_history?: Array<{
+    timestamp: string;
+    score?: number;
+    questions_answered?: number;
+  }>;
+  [key: string]: unknown;
+}
+
+export interface HiddenGradeAssetModule {
+  progress?: HiddenGradeAssetModuleProgress;
+  session_history?: Array<Record<string, unknown>>;
+  daily_stats?: Record<string, Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export interface HiddenGradeAsset {
+  grade?: string;
+  modules?: Record<string, HiddenGradeAssetModule>;
+  concept_mastery?: Record<string, Record<string, unknown>> | ConceptMastery[];
+  subject_mastery?: SubjectMastery[];
+  global_stats?: Record<string, number>;
+  ai_analytics?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface MultiplayerRoomSettings {
+  questionCount: number;
+  timeLimit: number;
+  [key: string]: unknown;
+}
+
+export interface MultiplayerGameState {
+  currentQuestion: Question | null;
+  currentQuestionIndex: number;
+  questions?: Question[];
+  status?: string;
+  playerAnswers?: Record<number, Array<Record<string, unknown>>>;
+  results?: Array<{
+    id: number;
+    score: number;
+    rank: number;
+    correct: number;
+    incorrect: number;
+  }>;
+  startTime?: Date | string;
+  [key: string]: unknown;
+}
+
 // Main user table - based on actual DB structure
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -21,7 +151,7 @@ export const users = pgTable("users", {
   correctAnswers: integer("correct_answers").default(0).notNull(),
   dailyEngagementMinutes: integer("daily_engagement_minutes").default(0).notNull(),
   // Avatar system fields
-  avatarItems: json("avatar_items").default({
+  avatarItems: json("avatar_items").$type<AvatarConfiguration>().default({
     hair: "default",
     face: "default",
     outfit: "default",
@@ -34,7 +164,7 @@ export const users = pgTable("users", {
   dailyChallengeStreak: integer("daily_challenge_streak").default(0).notNull(),
   completedChallenges: text("completed_challenges").array().default([]),
   // Story progress
-  storyProgress: json("story_progress").default({}),
+  storyProgress: json("story_progress").$type<Record<string, unknown>>().default({}),
   // Additional fields for stats tracking
   fastestCategory: text("fastest_category"),
   highestScoreCategory: text("highest_score_category"),
@@ -49,7 +179,7 @@ export const users = pgTable("users", {
   // New field found in actual database
   preferredDifficulty: integer("preferred_difficulty").default(1).notNull(),
   // JSON field to store all progress data
-  hiddenGradeAsset: json("hidden_grade_asset"),
+  hiddenGradeAsset: json("hidden_grade_asset").$type<HiddenGradeAsset | null>(),
   // CRM integration field
   studentID: integer("student_id"),
 });
@@ -164,7 +294,7 @@ export const dailyChallenges = pgTable("daily_challenges", {
   date: date("date").notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
-  questions: json("questions").default([]),
+  questions: json("questions").$type<Question[]>().default([]),
   questionIds: integer("question_ids").array().default([]),
   difficulty: text("difficulty").default("medium"),
   difficultyBonus: integer("difficulty_bonus").default(1).notNull(),
@@ -186,15 +316,15 @@ export const multiplayerRooms = pgTable("multiplayer_rooms", {
   grade: text("grade"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  gameData: json("game_data").default({}),
+  gameData: json("game_data").$type<Record<string, unknown>>().default({}),
   currentQuestionId: integer("current_question_id"),
   roomCode: text("room_code").notNull().unique(),
   // Extended fields for multiplayer
   status: text("status").default("waiting"),
   participants: integer("participants").array().default([]),
   maxParticipants: integer("max_participants").default(4),
-  settings: json("settings").default({ questionCount: 10, timeLimit: 30 }),
-  gameState: json("game_state").default({}),
+  settings: json("settings").$type<MultiplayerRoomSettings>().default({ questionCount: 10, timeLimit: 30 }),
+  gameState: json("game_state").$type<MultiplayerGameState>().default({ currentQuestion: null, currentQuestionIndex: 0 }),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
 });
@@ -216,9 +346,9 @@ export const recommendations = pgTable("recommendations", {
   suggestedCategories: text("suggested_categories").array().default([]),
   difficultyLevel: integer("difficulty_level").default(1).notNull(),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
-  recommendationData: json("recommendation_data").default({}), // Flexible JSON data for future extensions
+  recommendationData: json("recommendation_data").$type<Record<string, unknown>>().default({}), // Flexible JSON data for future extensions
   aiInsights: text("ai_insights"),
-  learningStyleSuggestions: json("learning_style_suggestions").default({}),
+  learningStyleSuggestions: json("learning_style_suggestions").$type<Record<string, unknown>>().default({}),
 });
 
 // AI Analytics data (preserved)
@@ -226,11 +356,11 @@ export const aiAnalytics = pgTable("ai_analytics", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   analysisDate: timestamp("analysis_date").defaultNow().notNull(),
-  learningPatterns: json("learning_patterns").default({}),
+  learningPatterns: json("learning_patterns").$type<Record<string, unknown>>().default({}),
   recommendations: text("recommendations"),
   strengths: text("strengths").array().default([]),
   areasForImprovement: text("areas_for_improvement").array().default([]),
-  engagementAnalysis: json("engagement_analysis").default({}),
+  engagementAnalysis: json("engagement_analysis").$type<Record<string, unknown>>().default({}),
   suggestedActivities: text("suggested_activities").array().default([]),
   // Additional fields for analytics
   learningStyle: text("learning_style"),
@@ -243,7 +373,7 @@ export const aiAnalytics = pgTable("ai_analytics", {
 // Session table for auth - exists in DB but was missing from schema
 export const session = pgTable("session", {
   sid: text("sid").primaryKey(),
-  sess: json("sess").notNull(),
+  sess: json("sess").$type<Record<string, unknown>>().notNull(),
   expire: timestamp("expire").notNull(),
 });
 
@@ -254,12 +384,16 @@ export const session = pgTable("session", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
   displayName: true,
   grade: true,
   lastGradeAdvancement: true,
   initials: true,
   isAdmin: true,
   preferredDifficulty: true, // Added new field
+  studentID: true,
+  strengthConcepts: true,
+  weaknessConcepts: true,
 });
 
 export const insertQuestionSchema = createInsertSchema(questions);
@@ -296,7 +430,7 @@ export const tutorSessions = pgTable("tutor_sessions", {
   questionsCovered: integer("questions_covered").default(0).notNull(),
   conceptsPracticed: text("concepts_practiced").array().default([]),
   sessionType: text("session_type").default("guided").notNull(), // 'guided', 'practice', 'review'
-  aiConversationLog: json("ai_conversation_log").default([]),
+  aiConversationLog: json("ai_conversation_log").$type<Array<Record<string, unknown>>>().default([]),
   sessionQualityRating: integer("session_quality_rating"), // 1-10 scale, set post-session
   helpfulnessRating: integer("helpfulness_rating"), // 1-10 scale
   clarityRating: integer("clarity_rating"), // 1-10 scale
@@ -323,7 +457,7 @@ export const tutorChatMessages = pgTable("tutor_chat_messages", {
   role: text("role").notNull(), // 'user' or 'assistant'
   content: text("content").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-  questionContext: json("question_context"), // Optional question context
+  questionContext: json("question_context").$type<Question | null>(), // Optional question context
   messageType: text("message_type").default("chat"), // 'chat', 'hint', 'explanation', 'feedback'
   isCorrectAnswer: boolean("is_correct_answer"),
 });
@@ -336,11 +470,11 @@ export const insertTutorChatMessageSchema = createInsertSchema(tutorChatMessages
 export const assessments = pgTable("assessments", {
   id: serial("id").primaryKey(),
   module: text("module"),
-  properties: json("properties"),
+  properties: json("properties").$type<Record<string, unknown> | null>(),
   int1: integer("int1"),
   int2: integer("int2"),
   int3: integer("int3"),
-  answerBank: json("answer_bank"),
+  answerBank: json("answer_bank").$type<Record<string, unknown> | string[] | null>(),
   correctAnswer: text("correct_answer"),
 });
 

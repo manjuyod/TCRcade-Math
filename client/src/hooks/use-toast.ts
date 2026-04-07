@@ -13,6 +13,7 @@ const TOAST_REMOVE_DELAY = 3000
 // Extended ToastProps to include dismissTimeout
 export interface ExtendedToastProps extends ToastProps {
   dismisstimeout?: number; // Time in ms after which toast auto-dismisses
+  dismissTimeout?: number;
 }
 
 type ToasterToast = ExtendedToastProps & {
@@ -144,11 +145,10 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+type Toast = Partial<Pick<ToasterToast, "id">> & Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  // Generate a unique ID for this toast
-  const id = genId()
+  const id = props.id ?? genId()
   
   // If there's already a toast with this exact message, don't add a duplicate
   // This prevents double notifications on rapid repeated actions
@@ -181,7 +181,7 @@ function toast({ ...props }: Toast) {
     }
     
     // Auto-dismiss after the timeout (if not disabled)
-    const dismissTimeout = props.dismisstimeout || 3000;
+    const dismissTimeout = props.dismissTimeout ?? props.dismisstimeout ?? 3000;
     if (dismissTimeout > 0) {
       setTimeout(() => {
         dispatch({ type: "DISMISS_TOAST", toastId: existingId })
@@ -209,7 +209,7 @@ function toast({ ...props }: Toast) {
 
   // Auto-dismiss toast after a timeout
   const DEFAULT_DISMISS_TIMEOUT = 3000 // 3 seconds
-  const dismissTimeout = props.dismisstimeout || DEFAULT_DISMISS_TIMEOUT
+  const dismissTimeout = props.dismissTimeout ?? props.dismisstimeout ?? DEFAULT_DISMISS_TIMEOUT
   
   dispatch({
     type: "ADD_TOAST",

@@ -118,6 +118,7 @@ export function useSessionTimer() {
   const progressPercentage = Math.min(100, (timeData.todayMinutes / 30) * 100);
   
   return {
+    elapsedTime: timeData.todayMinutes * 60,
     minutesPlayed: timeData.todayMinutes,
     displayMinutes: Math.floor(timeData.todayMinutes),
     progressPercentage

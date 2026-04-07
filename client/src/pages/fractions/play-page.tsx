@@ -34,7 +34,6 @@ import { FRACTIONS_PUZZLE_RULES } from "@shared/fractionsPuzzleRules";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useSessionPrevention } from "@/hooks/use-session-prevention";
-import { useModuleContext } from "@/context/module-context";
 
 interface FPQuestion {
   kind:

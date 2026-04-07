@@ -23,6 +23,16 @@ export async function apiRequest(
   return res;
 }
 
+export async function fetchRushAssessmentStatus(operator: string) {
+  const params = new URLSearchParams({ operator });
+  const res = await fetch(`/api/rush/assessment-status?${params.toString()}`, {
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return await res.json();
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;

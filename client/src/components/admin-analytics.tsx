@@ -150,6 +150,9 @@ export default function AdminAnalytics() {
           valueA = valueA.length;
           valueB = valueB.length;
         }
+
+        valueA = valueA ?? 0;
+        valueB = valueB ?? 0;
         
         if (studentSortOrder === 'asc') {
           return valueA > valueB ? 1 : -1;

@@ -38,7 +38,9 @@ export default function MathFactsLoadingPage() {
       setStatus('Loading your skill level...');
       setProgress(20);
 
-      const gradeLevel = user.hiddenGradeAsset?.modules?.[`${operation}_facts`]?.progress?.grade_level || user.grade;
+      const gradeLevel = String(
+        user.hiddenGradeAsset?.modules?.[`${operation}_facts`]?.progress?.grade_level ?? user.grade ?? "K",
+      );
       
       setStatus('Generating questions...');
       setProgress(40);

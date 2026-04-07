@@ -4,16 +4,21 @@ type ProgressBarProps = {
   progress: number; // 0-100 percentage
   height?: number; // in pixels
   color?: string;
+  className?: string;
 };
 
 export function ProgressBar({ 
   progress, 
   height = 12, 
-  color = 'primary' 
+  color = 'primary',
+  className
 }: ProgressBarProps) {
+  const progressBarClassName = className ? `progress-bar ${className}` : 'progress-bar';
+
   return (
     <div 
-      className="progress-bar" 
+      className={progressBarClassName}
+      data-color={color}
       style={{ height: `${height}px` }}
     >
       <motion.div

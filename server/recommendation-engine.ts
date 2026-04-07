@@ -73,12 +73,14 @@ export async function getRecommendedQuestion(userId: number): Promise<Question |
   if (!recommendations) {
     recommendations = await storage.generateRecommendations(userId);
   }
+  const conceptsToReview = recommendations.conceptsToReview ?? [];
+  const suggestedCategories = recommendations.suggestedCategories ?? [];
 
   // If we have concepts to review, prioritize questions that cover those concepts
-  if (recommendations.conceptsToReview.length > 0) {
+  if (conceptsToReview.length > 0) {
     // Try to find a question from a concept that needs review
-    const conceptToReview = recommendations.conceptsToReview[
-      Math.floor(Math.random() * recommendations.conceptsToReview.length)
+    const conceptToReview = conceptsToReview[
+      Math.floor(Math.random() * conceptsToReview.length)
     ];
 
     // Find questions that cover this concept
@@ -93,9 +95,9 @@ export async function getRecommendedQuestion(userId: number): Promise<Question |
   }
 
   // If we have suggested categories, prioritize those
-  if (recommendations.suggestedCategories.length > 0) {
-    const suggestedCategory = recommendations.suggestedCategories[
-      Math.floor(Math.random() * recommendations.suggestedCategories.length)
+  if (suggestedCategories.length > 0) {
+    const suggestedCategory = suggestedCategories[
+      Math.floor(Math.random() * suggestedCategories.length)
     ];
 
     // Get an adaptive question from this category with the recommended difficulty
@@ -334,7 +336,7 @@ Return a JSON array of questions.`
           hasAnswer: !!generatedQuestions[0].answer,
           hasOptions: !!generatedQuestions[0].options,
           optionsCount: generatedQuestions[0].options?.length,
-          sampleQuestion: generatedQuestions[0].question?.substring(0, 100) + '...'
+          sampleQuestion: `${generatedQuestions[0].question?.toString().substring(0, 100)}...`
         });
       }
     } catch (parseError) {
@@ -368,7 +370,7 @@ Return a JSON array of questions.`
     if (validQuestions.length > 0) {
       console.log('Sample valid question:', {
         id: validQuestions[0].id,
-        question: validQuestions[0].question?.substring(0, 50) + '...',
+        question: `${validQuestions[0].question.toString().substring(0, 50)}...`,
         hasAnswer: !!validQuestions[0].answer,
         optionsCount: validQuestions[0].options?.length,
         category: validQuestions[0].category

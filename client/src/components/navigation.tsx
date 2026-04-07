@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
 type NavigationProps = {
-  active:
+  active?:
     | "home"
     | "leaderboard"
     | "profile"
@@ -29,7 +29,7 @@ type NavigationProps = {
     | "modules";
 };
 
-export default function Navigation({ active }: NavigationProps) {
+export default function Navigation({ active = "home" }: NavigationProps) {
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const { toast } = useToast();

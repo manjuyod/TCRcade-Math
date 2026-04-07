@@ -36,6 +36,19 @@ interface AssessmentState {
   totalCorrectAnswers: number;
 }
 
+function normalizeAssessmentGrade(grade: string | null | undefined): string {
+  const resolvedGrade = grade ?? 'K';
+  if (resolvedGrade === 'K') {
+    return '0';
+  }
+
+  if (['6', '7', '8', '9', '10', '11', '12'].includes(resolvedGrade)) {
+    return '6';
+  }
+
+  return resolvedGrade;
+}
+
 export default function MathFactsAssessmentPlayPage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/math-facts/:operation/assessment');
@@ -48,7 +61,11 @@ export default function MathFactsAssessmentPlayPage() {
     currentQuestionIndex: 0,
     answers: [],
     completed: false,
-    results: []
+    results: [],
+    gradeCache: {},
+    maxGradeTested: '',
+    totalQuestionsAnswered: 0,
+    totalCorrectAnswers: 0,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -85,8 +102,8 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
 
       // Determine starting grade
-      const userGrade = user.grade;
-      const startingGrade = ['6', '7', '8', '9', '10', '11', '12'].includes(userGrade) ? '6' : userGrade;
+      const userGrade = user.grade ?? 'K';
+      const startingGrade = normalizeAssessmentGrade(userGrade);
 
       // Generate initial questions
       const response = await fetch(`/api/math-facts/assessment/${operation}?grade=${startingGrade}`);
@@ -236,7 +253,7 @@ export default function MathFactsAssessmentPlayPage() {
 
   const evaluateGradeLevelProgression = async (updatedGradeCache: any, passedCurrentGrade: boolean, totalQuestionsAnswered?: number, totalCorrectAnswers?: number, currentGradeOverride?: string) => {
     const gradeOrder = ['0', '1', '2', '3', '4', '5', '6'];
-    const actualCurrentGrade = currentGradeOverride || assessmentState.currentGrade;
+    const actualCurrentGrade = normalizeAssessmentGrade(currentGradeOverride || assessmentState.currentGrade);
     const currentIndex = gradeOrder.indexOf(actualCurrentGrade);
 
     console.log(`Evaluating progression: currentGrade=${actualCurrentGrade}, passed=${passedCurrentGrade}, currentIndex=${currentIndex}`);
@@ -299,13 +316,13 @@ export default function MathFactsAssessmentPlayPage() {
           questionsType: typeof data.questions,
           questionsLength: data.questions?.length,
           firstQuestion: data.questions?.[0]?.question,
-          allQuestions: data.questions?.map(q => q.question),
+          allQuestions: data.questions?.map((q: Question) => q.question),
           fullResponse: JSON.stringify(data)
         });
         
         // Validate the questions more thoroughly
         if (data.questions && Array.isArray(data.questions)) {
-          data.questions.forEach((q, index) => {
+          data.questions.forEach((q: Question, index: number) => {
             console.log(`   Question ${index + 1}: "${q.question}" (Answer: ${q.answer})`);
           });
         }
@@ -323,7 +340,7 @@ export default function MathFactsAssessmentPlayPage() {
       setSelectedAnswer('');
 
       console.log(`🔄 STATE TRANSITION: Moving from ${assessmentState.currentGrade} to ${newGrade}`);
-      console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map(q => q.question));
+      console.log(`📝 New questions for grade ${newGrade}:`, data.questions.map((q: Question) => q.question));
       console.log(`🎯 Pre-update state:`, {
         currentGrade: assessmentState.currentGrade,
         currentQuestion: assessmentState.questions[assessmentState.currentQuestionIndex]?.question
